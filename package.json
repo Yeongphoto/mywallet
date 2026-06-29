@@ -10,14 +10,17 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "@vitejs/plugin-react": "5.0.4",
+    "vite": "7.1.7",
+    "typescript": "5.9.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }
