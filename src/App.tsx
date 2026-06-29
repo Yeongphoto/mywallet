@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import type { AssetFormState, AssetItem, CategoryOption, Transaction, TransactionFormState, TransactionType } from './types';
 
 const expenseCategories: CategoryOption[] = [
@@ -62,7 +63,7 @@ function formatCurrency(value: number) {
 }
 
 function parseAmount(value: string) {
-  return Number(value.replaceAll(',', '').trim());
+  return Number(value.replace(/,/g, '').trim());
 }
 
 function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
@@ -104,6 +105,14 @@ function loadStoredData() {
     };
   } catch {
     return { transactions: [] as Transaction[], assets: [] as AssetItem[] };
+  }
+}
+
+function saveStoredData(transactions: Transaction[], assets: AssetItem[]) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets }));
+  } catch {
+    // 저장소 접근이 막힌 환경에서도 화면은 계속 표시되게 둡니다.
   }
 }
 
@@ -321,7 +330,7 @@ export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets }));
+    saveStoredData(transactions, assets);
   }, [transactions, assets]);
 
   const monthlyTransactions = useMemo(
