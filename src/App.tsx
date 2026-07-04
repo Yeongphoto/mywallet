@@ -165,6 +165,25 @@ function saveStoredData(
   } catch {
     // LocalStorage error fallback
   }
+
+  // Sync to D1 Database asynchronously
+  fetch("/api/data", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      transactions,
+      assets,
+      budget,
+      theme,
+      plans,
+      customExpenseCategories,
+      customIncomeCategories
+    })
+  }).catch(() => {
+    // Ignore errors for local fallback or offline modes
+  });
 }
 
 function sumAmount<T extends { amount: number }>(items: T[]) {
@@ -234,6 +253,39 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Load data from D1 on mount
+  useEffect(() => {
+    fetch("/api/data")
+      .then((res) => {
+        if (!res.ok) throw new Error("API error");
+        return res.json();
+      })
+      .then((data: any) => {
+        if (data && !data.error) {
+          // If remote D1 data is populated, update state
+          if (
+            (Array.isArray(data.transactions) && data.transactions.length > 0) ||
+            (Array.isArray(data.assets) && data.assets.length > 0) ||
+            (Array.isArray(data.customExpenseCategories) && data.customExpenseCategories.length > 0) ||
+            (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0)
+          ) {
+            setTransactions(data.transactions);
+            setAssets(data.assets);
+            setBudget(data.budget ?? 1000000);
+            setTheme(data.theme === 'dark' ? 'dark' : 'light');
+            setCustomExpenseCategories(data.customExpenseCategories || []);
+            setCustomIncomeCategories(data.customIncomeCategories || []);
+            if (Array.isArray(data.plans)) {
+              setPlans(data.plans);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback silently to LocalStorage if API fails or in local dev offline
+      });
+  }, []);
 
   // Sync calendar when selectedMonth changes
   useEffect(() => {

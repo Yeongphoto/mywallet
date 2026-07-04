@@ -1,0 +1,8 @@
+name = "mywallet"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mywallet-d1"
+database_id = "8dfd0da4-d04e-4f57-bc74-4cc567d2de0e"
