@@ -1111,7 +1111,7 @@ function UnifiedEntryForm({
         </label>
 
         {form.type !== 'asset' && (
-          <label>
+          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
             날짜
             <input
               type="date"
@@ -1121,7 +1121,7 @@ function UnifiedEntryForm({
           </label>
         )}
 
-        <label style={{ gridColumn: (isQuickAdd || form.type === 'asset') ? 'span 1' : 'span 1' }}>
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
           {form.type === 'asset' ? '자산 메모' : '내용'}
           <input
             type="text"
@@ -1131,7 +1131,7 @@ function UnifiedEntryForm({
           />
         </label>
 
-        <label style={{ gridColumn: (isQuickAdd || form.type === 'asset') ? 'span 1' : 'span 2' }}>
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
           금액 (원)
           <input
             type="text"
