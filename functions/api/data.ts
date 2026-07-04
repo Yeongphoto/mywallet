@@ -9,12 +9,13 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const [txs, asts, plns, cats, sgs] = await Promise.all([
+    const [txs, asts, plns, cats, sgs, rcRules] = await Promise.all([
       db.prepare("SELECT * FROM transactions").all(),
       db.prepare("SELECT * FROM assets").all(),
       db.prepare("SELECT * FROM plans").all(),
       db.prepare("SELECT * FROM custom_categories").all(),
-      db.prepare("SELECT * FROM settings").all()
+      db.prepare("SELECT * FROM settings").all(),
+      db.prepare("SELECT * FROM recurring_rules").all()
     ]);
 
     // parse settings
@@ -30,7 +31,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label })),
       customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label })),
       budget: Number(settingsMap['budget']) || 1000000,
-      theme: settingsMap['theme'] || 'light'
+      theme: settingsMap['theme'] || 'light',
+      recurringRules: rcRules.results || []
     };
 
     return new Response(JSON.stringify(data), {
@@ -52,7 +54,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const body: any = await context.request.json();
-    const { transactions, assets, plans, customExpenseCategories, customIncomeCategories, budget, theme } = body;
+    const { transactions, assets, plans, customExpenseCategories, customIncomeCategories, budget, theme, recurringRules } = body;
 
     const statements: D1PreparedStatement[] = [];
 
@@ -62,6 +64,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     statements.push(db.prepare("DELETE FROM plans"));
     statements.push(db.prepare("DELETE FROM custom_categories"));
     statements.push(db.prepare("DELETE FROM settings"));
+    statements.push(db.prepare("DELETE FROM recurring_rules"));
 
     // Insert transactions
     if (Array.isArray(transactions)) {
@@ -116,6 +119,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(String(budget ?? 1000000)));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('theme', ?)")
       .bind(String(theme ?? 'light')));
+
+    // Insert recurring rules
+    if (Array.isArray(recurringRules)) {
+      recurringRules.forEach((r: any) => {
+        statements.push(
+          db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(r.id, r.type, r.day, r.amount, r.title, r.category, r.startMonth, r.endMonth || null)
+        );
+      });
+    }
 
     // Batch execute
     await db.batch(statements);

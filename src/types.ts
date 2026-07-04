@@ -56,4 +56,13 @@ export interface CategoryPlan {
   plannedAmount: number;
 }
 
-
+export interface RecurringRule {
+  id: string;
+  type: TransactionType;
+  day: number;
+  amount: number;
+  title: string;
+  category: string;
+  startMonth: string; // YYYY-MM
+  endMonth: string | null; // YYYY-MM
+}

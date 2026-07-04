@@ -37,3 +37,15 @@ CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+DROP TABLE IF EXISTS recurring_rules;
+CREATE TABLE recurring_rules (
+  id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  day INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  startMonth TEXT NOT NULL,
+  endMonth TEXT
+);

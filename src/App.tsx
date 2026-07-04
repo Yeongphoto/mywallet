@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan } from './types';
+import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식' },
@@ -94,7 +94,8 @@ function loadStoredData() {
       theme: 'light' as const, 
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
-      customIncomeCategories: [] as CategoryOption[]
+      customIncomeCategories: [] as CategoryOption[],
+      recurringRules: [] as RecurringRule[]
     };
   }
 
@@ -111,7 +112,8 @@ function loadStoredData() {
           theme: 'light' as const,
           plans: [] as CategoryPlan[],
           customExpenseCategories: [] as CategoryOption[],
-          customIncomeCategories: [] as CategoryOption[]
+          customIncomeCategories: [] as CategoryOption[],
+          recurringRules: [] as RecurringRule[]
         };
       }
       return { 
@@ -121,7 +123,8 @@ function loadStoredData() {
         theme: 'light' as const, 
         plans: [] as CategoryPlan[],
         customExpenseCategories: [] as CategoryOption[],
-        customIncomeCategories: [] as CategoryOption[]
+        customIncomeCategories: [] as CategoryOption[],
+        recurringRules: [] as RecurringRule[]
       };
     }
 
@@ -133,7 +136,8 @@ function loadStoredData() {
       theme: parsed.theme === 'dark' ? ('dark' as const) : ('light' as const),
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
       customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
-      customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[]
+      customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
+      recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[]
     };
   } catch {
     return { 
@@ -143,7 +147,8 @@ function loadStoredData() {
       theme: 'light' as const, 
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
-      customIncomeCategories: [] as CategoryOption[]
+      customIncomeCategories: [] as CategoryOption[],
+      recurringRules: [] as RecurringRule[]
     };
   }
 }
@@ -155,12 +160,13 @@ function saveLocalStorage(
   theme: 'light' | 'dark', 
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
-  customIncomeCategories: CategoryOption[]
+  customIncomeCategories: CategoryOption[],
+  recurringRules: RecurringRule[]
 ) {
   try {
     window.localStorage.setItem(
       STORAGE_KEY, 
-      JSON.stringify({ transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories })
+      JSON.stringify({ transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules })
     );
   } catch {
     // LocalStorage error fallback
@@ -174,7 +180,8 @@ function saveRemoteD1(
   theme: 'light' | 'dark', 
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
-  customIncomeCategories: CategoryOption[]
+  customIncomeCategories: CategoryOption[],
+  recurringRules: RecurringRule[]
 ) {
   fetch("/api/data", {
     method: "POST",
@@ -188,7 +195,8 @@ function saveRemoteD1(
       theme,
       plans,
       customExpenseCategories,
-      customIncomeCategories
+      customIncomeCategories,
+      recurringRules
     })
   }).catch(() => {
     // Ignore errors for offline fallback
@@ -220,6 +228,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
   
   const allExpenseCategories = useMemo(() => [...expenseCategories, ...customExpenseCategories], [customExpenseCategories]);
   const allIncomeCategories = useMemo(() => [...incomeCategories, ...customIncomeCategories], [customIncomeCategories]);
@@ -258,20 +267,20 @@ export default function App() {
   // Sync state to LocalStorage and D1 (Debounced)
   useEffect(() => {
     // 1. LocalStorage is synced instantly for quick local cache recovery
-    saveLocalStorage(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+    saveLocalStorage(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
 
     // If still fetching initial DB data, do NOT upload/overwrite database
     if (isLoading) return;
 
     // 2. Debounce D1 Database sync by 1 second (1000ms)
     const syncTimer = setTimeout(() => {
-      saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+      saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
     }, 1000);
 
     return () => {
       clearTimeout(syncTimer);
     };
-  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, isLoading]);
+  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, isLoading]);
 
   // Handle theme attribute
   useEffect(() => {
@@ -291,7 +300,8 @@ export default function App() {
             (Array.isArray(data.transactions) && data.transactions.length > 0) ||
             (Array.isArray(data.assets) && data.assets.length > 0) ||
             (Array.isArray(data.customExpenseCategories) && data.customExpenseCategories.length > 0) ||
-            (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0);
+            (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0) ||
+            (Array.isArray(data.recurringRules) && data.recurringRules.length > 0);
 
           if (hasDbData) {
             // DB has data: DB data is absolute priority (force overwrite local/localstorage state)
@@ -301,6 +311,7 @@ export default function App() {
             setTheme(data.theme === 'dark' ? 'dark' : 'light');
             setCustomExpenseCategories(data.customExpenseCategories || []);
             setCustomIncomeCategories(data.customIncomeCategories || []);
+            setRecurringRules(data.recurringRules || []);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
@@ -311,9 +322,10 @@ export default function App() {
               transactions.length > 0 ||
               assets.length > 0 ||
               customExpenseCategories.length > 0 ||
-              customIncomeCategories.length > 0
+              customIncomeCategories.length > 0 ||
+              recurringRules.length > 0
             ) {
-              saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+              saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
             }
           }
         }
@@ -325,6 +337,64 @@ export default function App() {
         setIsLoading(false);
       });
   }, []);
+
+  // Auto-generate recurring transactions based on recurringRules
+  useEffect(() => {
+    if (isLoading || recurringRules.length === 0) return;
+
+    const currentMonthStr = getCurrentMonth(); // "YYYY-MM"
+    const newTxs: Transaction[] = [];
+
+    recurringRules.forEach((rule) => {
+      let [startYear, startMonth] = rule.startMonth.split('-').map(Number);
+      const [endYear, endMonth] = rule.endMonth ? rule.endMonth.split('-').map(Number) : [9999, 12];
+      const [curYear, curMonth] = currentMonthStr.split('-').map(Number);
+
+      // Loop month-by-month from startMonth to curMonth
+      let yr = startYear;
+      let mo = startMonth;
+
+      while (yr < curYear || (yr === curYear && mo <= curMonth)) {
+        // Check if exceeded endMonth
+        if (yr > endYear || (yr === endYear && mo > endMonth)) {
+          break;
+        }
+
+        const moStr = String(mo).padStart(2, '0');
+        const dateKey = `${yr}-${moStr}`; // "YYYY-MM"
+        const txId = `rec_${rule.id}_${dateKey}`;
+
+        // Check duplicate
+        const exists = transactions.some((t) => t.id === txId);
+        if (!exists) {
+          // Adjust day to prevent out of bounds (e.g. Feb 31 -> Feb 28)
+          const lastDay = new Date(yr, mo, 0).getDate();
+          const targetDay = Math.min(rule.day, lastDay);
+          const dayStr = String(targetDay).padStart(2, '0');
+
+          newTxs.push({
+            id: txId,
+            type: rule.type,
+            date: `${yr}-${moStr}-${dayStr}`,
+            amount: rule.amount,
+            title: rule.title,
+            category: rule.category
+          });
+        }
+
+        // Increment month
+        mo++;
+        if (mo > 12) {
+          mo = 1;
+          yr++;
+        }
+      }
+    });
+
+    if (newTxs.length > 0) {
+      setTransactions((prev) => [...prev, ...newTxs]);
+    }
+  }, [recurringRules, transactions, isLoading]);
 
   // Sync calendar when selectedMonth changes
   useEffect(() => {
@@ -412,6 +482,23 @@ export default function App() {
     setEditingTransaction(null);
   }
 
+  function handleAddRecurringRule(rule: RecurringRule) {
+    setRecurringRules((prev) => [...prev, rule]);
+  }
+
+  function handleStopRecurringRule(id: string) {
+    setRecurringRules((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, endMonth: selectedMonth } : r))
+    );
+    alert('이후부터 반복 기록이 중단되도록 설정되었습니다.');
+  }
+
+  function handleDeleteRecurringRule(id: string) {
+    if (window.confirm('이 정기 규칙을 완전히 삭제할까요? (이미 기록된 정기 내역은 삭제되지 않습니다.)')) {
+      setRecurringRules((prev) => prev.filter((r) => r.id !== id));
+    }
+  }
+
   function handleAddAsset(asset: AssetItem) {
     setAssets((prev) => [asset, ...prev]);
   }
@@ -427,6 +514,7 @@ export default function App() {
       setBudget(1000000);
       setCustomExpenseCategories([]);
       setCustomIncomeCategories([]);
+      setRecurringRules([]);
       setPlans([
         ...expenseCategories.map((c: CategoryOption) => ({ category: c.id, type: 'expense' as const, plannedAmount: 0 })),
         ...incomeCategories.map((c: CategoryOption) => ({ category: c.id, type: 'income' as const, plannedAmount: 0 }))
@@ -925,6 +1013,7 @@ export default function App() {
               onAddAsset={handleAddAsset}
               expenseCategories={allExpenseCategories}
               incomeCategories={allIncomeCategories}
+              onAddRecurringRule={handleAddRecurringRule}
             />
           </section>
         )}
@@ -1175,6 +1264,87 @@ export default function App() {
                 </div>
               </div>
             </section>
+
+            {/* 정기 반복 규칙 관리 장표 */}
+            <section className="glass-panel" style={{ marginTop: '24px' }}>
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Recurring Rules</p>
+                  <h2>🔄 정기 반복 기록 관리</h2>
+                </div>
+                <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  등록된 규칙: {recurringRules.length}개
+                </strong>
+              </div>
+
+              <div className="ledger-table-scroll" style={{ marginTop: '12px' }}>
+                <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
+                      <th style={{ padding: '10px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recurringRules.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)' }}>
+                          등록된 정기 반복 규칙이 없습니다. 거래 등록 시 체크박스를 선택해 보세요.
+                        </td>
+                      </tr>
+                    ) : (
+                      recurringRules.map((rule) => {
+                        const isStopped = !!rule.endMonth;
+                        const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
+                        const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
+                        
+                        return (
+                          <tr key={rule.id} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.6 : 1 }}>
+                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
+                            <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
+                            <td style={{ padding: '12px 8px' }}>{getCategoryLabel(catList, rule.category)}</td>
+                            <td style={{ padding: '12px 8px' }}>{rule.title}</td>
+                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(rule.amount)}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              {rule.startMonth} ~ {rule.endMonth ? `🏁 ${rule.endMonth} 끊김` : '진행중'}
+                            </td>
+                            <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                {!isStopped ? (
+                                  <button
+                                    type="button"
+                                    className="delete-btn-sm"
+                                    style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '0.78rem' }}
+                                    onClick={() => handleStopRecurringRule(rule.id)}
+                                  >
+                                    🛑 이달부터 끊기
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: '0.78rem', color: 'var(--color-expense)', fontWeight: 'bold' }}>반복 끊김</span>
+                                )}
+                                <button
+                                  type="button"
+                                  className="delete-btn-sm"
+                                  style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '0.78rem' }}
+                                  onClick={() => handleDeleteRecurringRule(rule.id)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </>
         )}
 
@@ -1377,6 +1547,7 @@ export default function App() {
                     isQuickAdd={true}
                     expenseCategories={allExpenseCategories}
                     incomeCategories={allIncomeCategories}
+                    onAddRecurringRule={handleAddRecurringRule}
                   />
                 </div>
               )}
@@ -1528,6 +1699,7 @@ function UnifiedEntryForm({
   isQuickAdd = false,
   expenseCategories,
   incomeCategories,
+  onAddRecurringRule,
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
@@ -1535,8 +1707,10 @@ function UnifiedEntryForm({
   isQuickAdd?: boolean;
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
+  onAddRecurringRule?: (r: RecurringRule) => void;
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
+  const [isRecurring, setIsRecurring] = useState(false);
 
   // Update categories dynamically depending on selection
   const activeCategories: CategoryOption[] = useMemo(() => {
@@ -1558,6 +1732,9 @@ function UnifiedEntryForm({
       type: newType,
       category: defaultCat,
     }));
+    if (newType === 'asset') {
+      setIsRecurring(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1596,6 +1773,21 @@ function UnifiedEntryForm({
         title: form.title.trim(),
         category: form.category,
       });
+
+      if (isRecurring && onAddRecurringRule) {
+        const day = Number(form.date.slice(8, 10)) || 1;
+        const startMonth = form.date.slice(0, 7); // "YYYY-MM"
+        onAddRecurringRule({
+          id: `rule_${Date.now()}`,
+          type: form.type,
+          day,
+          amount,
+          title: form.title.trim(),
+          category: form.category,
+          startMonth,
+          endMonth: null
+        });
+      }
     }
 
     // Reset Form (keep date & type)
@@ -1604,6 +1796,7 @@ function UnifiedEntryForm({
       amount: '',
       title: '',
     }));
+    setIsRecurring(false);
 
     if (!isQuickAdd) {
       alert('성공적으로 등록되었습니다!');
@@ -1676,6 +1869,18 @@ function UnifiedEntryForm({
             onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
           />
         </label>
+
+        {form.type !== 'asset' && (
+          <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', gridColumn: isQuickAdd ? 'span 1' : 'span 2', cursor: 'pointer', margin: '4px 0 8px' }}>
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>🔄 매달 자동으로 해당일에 정기 기록으로 등록</span>
+          </label>
+        )}
       </div>
 
       <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-asset)' }}>
