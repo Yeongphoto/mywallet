@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType } from './types';
+import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan } from './types';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식' },
@@ -87,7 +87,7 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
 
 function loadStoredData() {
   if (typeof window === 'undefined') {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
+    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
   }
 
   try {
@@ -101,9 +101,10 @@ function loadStoredData() {
           assets: Array.isArray(parsed.assets) ? parsed.assets : [],
           budget: 1000000,
           theme: 'light' as const,
+          plans: [] as CategoryPlan[],
         };
       }
-      return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
+      return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
     }
 
     const parsed = JSON.parse(rawData);
@@ -112,15 +113,16 @@ function loadStoredData() {
       assets: Array.isArray(parsed.assets) ? parsed.assets : [],
       budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
       theme: parsed.theme === 'dark' ? ('dark' as const) : ('light' as const),
+      plans: Array.isArray(parsed.plans) ? parsed.plans : [],
     };
   } catch {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
+    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
   }
 }
 
-function saveStoredData(transactions: Transaction[], assets: AssetItem[], budget: number, theme: 'light' | 'dark') {
+function saveStoredData(transactions: Transaction[], assets: AssetItem[], budget: number, theme: 'light' | 'dark', plans: CategoryPlan[]) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets, budget, theme }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets, budget, theme, plans }));
   } catch {
     // LocalStorage error fallback
   }
@@ -149,6 +151,17 @@ export default function App() {
   const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
+  const [plans, setPlans] = useState<CategoryPlan[]>(() => {
+    const initialPlans: CategoryPlan[] = storedData.plans || [];
+    const allCategories = [
+      ...expenseCategories.map(c => ({ category: c.id, type: 'expense' as const })),
+      ...incomeCategories.map(c => ({ category: c.id, type: 'income' as const }))
+    ];
+    return allCategories.map(item => {
+      const existing = initialPlans.find(p => p.category === item.category && p.type === item.type);
+      return existing ? { ...existing, plannedAmount: Number(existing.plannedAmount) || 0 } : { category: item.category, type: item.type, plannedAmount: 0 };
+    });
+  });
   const [activeTab, setActiveTab] = useState<'summary' | 'calendar' | 'entry' | 'ledger' | 'asset' | 'settings'>('summary');
   
   // Filtering & Search states
@@ -167,8 +180,8 @@ export default function App() {
 
   // Sync state to localstorage
   useEffect(() => {
-    saveStoredData(transactions, assets, budget, theme);
-  }, [transactions, assets, budget, theme]);
+    saveStoredData(transactions, assets, budget, theme, plans);
+  }, [transactions, assets, budget, theme, plans]);
 
   // Handle theme attribute
   useEffect(() => {
@@ -194,6 +207,16 @@ export default function App() {
   const assetTotal = sumAmount(assets);
   const balance = incomeTotal - expenseTotal;
   const maxFlow = Math.max(expenseTotal, incomeTotal, assetTotal, 1);
+
+  // Plans derived values
+  const plannedExpenseTotal = useMemo(
+    () => plans.filter(p => p.type === 'expense').reduce((sum, p) => sum + p.plannedAmount, 0),
+    [plans]
+  );
+  const plannedIncomeTotal = useMemo(
+    () => plans.filter(p => p.type === 'income').reduce((sum, p) => sum + p.plannedAmount, 0),
+    [plans]
+  );
 
   // Budget calculations
   const budgetPercent = budget > 0 ? Math.min(Math.round((expenseTotal / budget) * 100), 200) : 0;
@@ -264,6 +287,10 @@ export default function App() {
       setTransactions([]);
       setAssets([]);
       setBudget(1000000);
+      setPlans([
+        ...expenseCategories.map(c => ({ category: c.id, type: 'expense' as const, plannedAmount: 0 })),
+        ...incomeCategories.map(c => ({ category: c.id, type: 'income' as const, plannedAmount: 0 }))
+      ]);
     }
   }
 
@@ -362,6 +389,9 @@ export default function App() {
     assets.forEach((a) => {
       csv += `A,${a.id},${a.category},${a.amount},"${a.memo.replace(/"/g, '""')}",,\n`;
     });
+    plans.forEach((p) => {
+      csv += `P,${p.category},${p.type},${p.plannedAmount},,,\n`;
+    });
     csv += `BUDGET,${budget},,,,\n`;
 
     downloadCSV(csv, `mywallet_backup_${selectedMonth.replace('-', '')}.csv`);
@@ -381,6 +411,7 @@ export default function App() {
         const lines = text.split('\n');
         const newTransactions: Transaction[] = [];
         const newAssets: AssetItem[] = [];
+        const newPlans: CategoryPlan[] = [];
         let newBudget = budget;
 
         lines.forEach((line) => {
@@ -401,16 +432,25 @@ export default function App() {
               amount: Number(cells[3]),
               memo: cells[4],
             });
+          } else if (cells[0] === 'P') {
+            newPlans.push({
+              category: cells[1],
+              type: cells[2] as TransactionType,
+              plannedAmount: Number(cells[3]) || 0,
+            });
           } else if (cells[0] === 'BUDGET') {
             newBudget = Number(cells[1]) || 1000000;
           }
         });
 
-        if (newTransactions.length > 0 || newAssets.length > 0) {
-          if (window.confirm(`가계부 백업을 복원할까요? (현재 장부에 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건이 덮어쓰기됩니다.)`)) {
+        if (newTransactions.length > 0 || newAssets.length > 0 || newPlans.length > 0) {
+          if (window.confirm(`가계부 백업을 복원할까요? (현재 장부에 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건이 덮어쓰기됩니다.)`)) {
             setTransactions(newTransactions);
             setAssets(newAssets);
             setBudget(newBudget);
+            if (newPlans.length > 0) {
+              setPlans(newPlans);
+            }
           }
         } else {
           alert('가져올 수 있는 유효한 가계부 데이터가 없습니다.');
@@ -471,31 +511,28 @@ export default function App() {
             </div>
           </div>
 
-          {/* 헤더 우측 액션 그룹 */}
-          <div className="header-actions">
-            {/* 공통 월 선택 영역 */}
-            <div className="month-picker-wrap">
-              <div className="month-picker-display">
-                {selectedMonth.replace('-', '.')} 📅
-              </div>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-              />
+          {/* 공통 월 선택 영역 */}
+          <div className="month-picker-wrap">
+            <div className="month-picker-display">
+              {selectedMonth.replace('-', '.')} 📅
             </div>
-
-            {/* 설정 바로가기 버튼 */}
-            <button
-              type="button"
-              className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('settings')}
-              title="환경 설정"
-            >
-              <span>⚙️</span>
-              <strong className="settings-text">설정</strong>
-            </button>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
           </div>
+
+          {/* 설정 바로가기 버튼 */}
+          <button
+            type="button"
+            className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+            title="환경 설정"
+          >
+            <span>⚙️</span>
+            <strong className="settings-text">설정</strong>
+          </button>
         </header>
 
         {/* Dashboard Tab */}
@@ -530,6 +567,107 @@ export default function App() {
               <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" />
               <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" />
               <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" />
+            </section>
+
+            {/* 계획 대비 실적 비교 그래프 패널 */}
+            <section className="glass-panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Plan vs Actual</p>
+                  <h2>이번 달 계획 대비 실적 비교</h2>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '12px' }} className="compare-grid">
+                {/* 종합 계획 대비 실적 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>종합 달성 현황</h3>
+                  
+                  {/* 수입 비교 */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', fontWeight: 700 }}>
+                      <span>총 수입 실적: {formatCurrency(incomeTotal)}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>목표: {formatCurrency(plannedIncomeTotal)}</span>
+                    </div>
+                    <div className="budget-progress-bar" style={{ height: '14px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div 
+                        className="budget-progress-fill" 
+                        style={{ 
+                          width: `${plannedIncomeTotal > 0 ? Math.min((incomeTotal / plannedIncomeTotal) * 100, 100) : 0}%`,
+                          height: '100%',
+                          background: 'var(--color-income)',
+                          borderRadius: '10px',
+                          transition: 'width 0.4s ease'
+                        }} 
+                      />
+                    </div>
+                    <small style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                      달성률: {plannedIncomeTotal > 0 ? Math.round((incomeTotal / plannedIncomeTotal) * 100) : 0}%
+                    </small>
+                  </div>
+
+                  {/* 지출 비교 */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', fontWeight: 700 }}>
+                      <span>총 지출 실적: {formatCurrency(expenseTotal)}</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>예산: {formatCurrency(plannedExpenseTotal)}</span>
+                    </div>
+                    <div className="budget-progress-bar" style={{ height: '14px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div 
+                        className="budget-progress-fill" 
+                        style={{ 
+                          width: `${plannedExpenseTotal > 0 ? Math.min((expenseTotal / plannedExpenseTotal) * 100, 100) : 0}%`,
+                          height: '100%',
+                          background: expenseTotal > plannedExpenseTotal ? 'var(--color-expense)' : 'var(--primary)',
+                          borderRadius: '10px',
+                          transition: 'width 0.4s ease'
+                        }} 
+                      />
+                    </div>
+                    <small style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                      소비율: {plannedExpenseTotal > 0 ? Math.round((expenseTotal / plannedExpenseTotal) * 100) : 0}%
+                    </small>
+                  </div>
+                </div>
+
+                {/* 카테고리별 지출 계획 대비 실적 */}
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>주요 지출 카테고리별 현황</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {expenseCategories.slice(0, 5).map(c => {
+                      const plan = plans.find(p => p.category === c.id && p.type === 'expense');
+                      const plannedAmt = plan ? plan.plannedAmount : 0;
+                      const actualAmt = transactions
+                        .filter(t => t.type === 'expense' && t.category === c.id && t.date.slice(0, 7) === selectedMonth)
+                        .reduce((sum, t) => sum + t.amount, 0);
+                      const pct = plannedAmt > 0 ? Math.round((actualAmt / plannedAmt) * 100) : 0;
+                      let toneColor = 'var(--primary)';
+                      if (pct >= 100) toneColor = 'var(--color-expense)';
+                      else if (pct >= 80) toneColor = '#f59e0b';
+
+                      return (
+                        <div key={c.id}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '2px', fontWeight: 700 }}>
+                            <span>{c.label}: {formatCurrency(actualAmt)}</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>계획: {formatCurrency(plannedAmt)} ({pct}%)</span>
+                          </div>
+                          <div className="budget-progress-bar" style={{ height: '8px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
+                            <div 
+                              style={{ 
+                                width: `${plannedAmt > 0 ? Math.min((actualAmt / plannedAmt) * 100, 100) : 0}%`,
+                                height: '100%',
+                                background: toneColor,
+                                borderRadius: '10px',
+                                transition: 'width 0.4s ease'
+                              }} 
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </section>
 
             {/* Category summary table */}
@@ -673,39 +811,135 @@ export default function App() {
 
         {/* Assets Portfolio Tab */}
         {activeTab === 'asset' && (
-          <section className="glass-panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Assets Portfolio</p>
-                <h2>자산 구성 관리</h2>
+          <>
+            <section className="glass-panel" style={{ marginBottom: '24px' }}>
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Assets Portfolio</p>
+                  <h2>자산 구성 관리</h2>
+                </div>
+                <strong>자산 총액: {formatCurrency(assetTotal)}</strong>
               </div>
-              <strong>자산 총액: {formatCurrency(assetTotal)}</strong>
-            </div>
 
-            <div className="asset-list">
-              {assets.length === 0 ? (
-                <p className="empty-note" style={{ gridColumn: '1 / -1' }}>
-                  현재 등록된 자산 항목이 없습니다. 거래 등록 탭에서 '자산' 유형을 선택해 자산을 추가해보세요.
-                </p>
-              ) : (
-                assets.map((asset) => (
-                  <article key={asset.id} className="asset-card">
-                    <div className="asset-card-header">
-                      <strong>{getCategoryLabel(assetCategories, asset.category)}</strong>
-                      <span>자산</span>
-                    </div>
-                    <b>{formatCurrency(asset.amount)}</b>
-                    <div className="asset-card-footer">
-                      <span>{asset.memo || '메모 없음'}</span>
-                      <button type="button" className="delete-btn-sm" onClick={() => handleDeleteAsset(asset.id)}>
-                        삭제
-                      </button>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
+              <div className="asset-list">
+                {assets.length === 0 ? (
+                  <p className="empty-note" style={{ gridColumn: '1 / -1' }}>
+                    현재 등록된 자산 항목이 없습니다. 거래 등록 탭에서 '자산' 유형을 선택해 자산을 추가해보세요.
+                  </p>
+                ) : (
+                  assets.map((asset) => (
+                    <article key={asset.id} className="asset-card">
+                      <div className="asset-card-header">
+                        <strong>{getCategoryLabel(assetCategories, asset.category)}</strong>
+                        <span>자산</span>
+                      </div>
+                      <b>{formatCurrency(asset.amount)}</b>
+                      <div className="asset-card-footer">
+                        <span>{asset.memo || '메모 없음'}</span>
+                        <button type="button" className="delete-btn-sm" onClick={() => handleDeleteAsset(asset.id)}>
+                          삭제
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            {/* 계획(예산/수입 목표) 관리 장표 */}
+            <section className="glass-panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Category Plans</p>
+                  <h2>월간 수입 및 지출 계획 수립</h2>
+                </div>
+              </div>
+
+              <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '12px' }}>
+                {/* 지출 계획 */}
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🔴</span> 지출 예산 계획
+                  </h3>
+                  <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                        <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                        <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenseCategories.map((c) => {
+                        const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
+                        const value = plan ? plan.plannedAmount : 0;
+                        return (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                            <td style={{ padding: '10px 0', fontWeight: 700 }}>{c.label}</td>
+                            <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                              <input
+                                type="number"
+                                style={{ width: '140px', textAlign: 'right', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                                value={value || ''}
+                                onChange={(e) => {
+                                  const amt = Number(e.target.value) || 0;
+                                  setPlans((prev) =>
+                                    prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
+                                  );
+                                }}
+                                placeholder="0"
+                              />
+                              <span style={{ fontSize: '0.85rem', marginLeft: '6px', fontWeight: 700, color: 'var(--text-secondary)' }}>원</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 수입 계획 */}
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🔵</span> 수입 목표 계획
+                  </h3>
+                  <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                        <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                        <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {incomeCategories.map((c) => {
+                        const plan = plans.find((p) => p.category === c.id && p.type === 'income');
+                        const value = plan ? plan.plannedAmount : 0;
+                        return (
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                            <td style={{ padding: '10px 0', fontWeight: 700 }}>{c.label}</td>
+                            <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                              <input
+                                type="number"
+                                style={{ width: '140px', textAlign: 'right', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                                value={value || ''}
+                                onChange={(e) => {
+                                  const amt = Number(e.target.value) || 0;
+                                  setPlans((prev) =>
+                                    prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
+                                  );
+                                }}
+                                placeholder="0"
+                              />
+                              <span style={{ fontSize: '0.85rem', marginLeft: '6px', fontWeight: 700, color: 'var(--text-secondary)' }}>원</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </>
         )}
 
         {/* Settings Tab */}

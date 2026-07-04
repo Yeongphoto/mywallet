@@ -259,6 +259,12 @@
   .calendar-cell .date-number {
     font-size: 0.75rem;
   }
+
+  .plans-container,
+  .compare-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
   
   .calendar-value-badge {
     font-size: 0.58rem;

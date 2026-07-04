@@ -50,4 +50,10 @@ export interface UnifiedFormState {
   category: string;
 }
 
+export interface CategoryPlan {
+  category: string;
+  type: TransactionType;
+  plannedAmount: number;
+}
+
 
