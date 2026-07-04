@@ -148,7 +148,7 @@ function loadStoredData() {
   }
 }
 
-function saveStoredData(
+function saveLocalStorage(
   transactions: Transaction[], 
   assets: AssetItem[], 
   budget: number, 
@@ -165,8 +165,17 @@ function saveStoredData(
   } catch {
     // LocalStorage error fallback
   }
+}
 
-  // Sync to D1 Database asynchronously
+function saveRemoteD1(
+  transactions: Transaction[], 
+  assets: AssetItem[], 
+  budget: number, 
+  theme: 'light' | 'dark', 
+  plans: CategoryPlan[],
+  customExpenseCategories: CategoryOption[],
+  customIncomeCategories: CategoryOption[]
+) {
   fetch("/api/data", {
     method: "POST",
     headers: {
@@ -182,7 +191,7 @@ function saveStoredData(
       customIncomeCategories
     })
   }).catch(() => {
-    // Ignore errors for local fallback or offline modes
+    // Ignore errors for offline fallback
   });
 }
 
@@ -244,17 +253,32 @@ export default function App() {
   // Edit states
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
-  // Sync state to localstorage
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Sync state to LocalStorage and D1 (Debounced)
   useEffect(() => {
-    saveStoredData(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
-  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories]);
+    // 1. LocalStorage is synced instantly for quick local cache recovery
+    saveLocalStorage(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+
+    // If still fetching initial DB data, do NOT upload/overwrite database
+    if (isLoading) return;
+
+    // 2. Debounce D1 Database sync by 1 second (1000ms)
+    const syncTimer = setTimeout(() => {
+      saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+    }, 1000);
+
+    return () => {
+      clearTimeout(syncTimer);
+    };
+  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, isLoading]);
 
   // Handle theme attribute
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Load data from D1 on mount
+  // Load data from D1 on mount (DB-First policy)
   useEffect(() => {
     fetch("/api/data")
       .then((res) => {
@@ -263,15 +287,16 @@ export default function App() {
       })
       .then((data: any) => {
         if (data && !data.error) {
-          // If remote D1 data is populated, update state
-          if (
+          const hasDbData = 
             (Array.isArray(data.transactions) && data.transactions.length > 0) ||
             (Array.isArray(data.assets) && data.assets.length > 0) ||
             (Array.isArray(data.customExpenseCategories) && data.customExpenseCategories.length > 0) ||
-            (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0)
-          ) {
-            setTransactions(data.transactions);
-            setAssets(data.assets);
+            (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0);
+
+          if (hasDbData) {
+            // DB has data: DB data is absolute priority (force overwrite local/localstorage state)
+            setTransactions(data.transactions || []);
+            setAssets(data.assets || []);
             setBudget(data.budget ?? 1000000);
             setTheme(data.theme === 'dark' ? 'dark' : 'light');
             setCustomExpenseCategories(data.customExpenseCategories || []);
@@ -279,11 +304,25 @@ export default function App() {
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
+          } else {
+            // DB is completely empty (first time deployment):
+            // Upload current localstorage data (loaded via storedData) to D1 for initial migration
+            if (
+              transactions.length > 0 ||
+              assets.length > 0 ||
+              customExpenseCategories.length > 0 ||
+              customIncomeCategories.length > 0
+            ) {
+              saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+            }
           }
         }
       })
       .catch(() => {
-        // Fallback silently to LocalStorage if API fails or in local dev offline
+        // Fallback silently to LocalStorage if API fails or offline
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   }, []);
 
@@ -565,6 +604,33 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      {isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'var(--bg-app)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            border: '4px solid var(--border-card)',
+            borderTop: '4px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 800 }}>데이터베이스 연결 중...</strong>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>가계부의 실시간 D1 데이터를 불러오는 중입니다.</span>
+        </div>
+      )}
       {/* Sidebar Navigation (Fixed bottom bar on mobile) */}
       <aside className="sidebar">
         <div>

@@ -1111,5 +1111,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
   background: var(--bg-app);
 }
-
-
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

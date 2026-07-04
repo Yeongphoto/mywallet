@@ -15,6 +15,7 @@
 - [x] 원격 D1 데이터베이스 마이그레이션 (`wrangler d1 execute` remote) 완료
 - [x] 로컬 D1 에뮬레이션 마이그레이션 (`wrangler d1 execute` local) 완료
 - [x] Cloudflare Pages Functions 백엔드 API (`functions/api/data.ts`) 구현 (GET/POST 동기화)
-- [x] React 클라이언트 (`src/App.tsx`) D1 API 로드 및 자동 백그라운드 동기화(Sync) 연동
+- [x] React 클라이언트 D1 API 연동 및 입력 후 1초 뒤 자동 디바운스(Debounce) 저장 로직 적용
+- [x] 첫 접속 시 원격 DB 데이터 로딩 마스크 구현 및 DB 데이터 무조건 최우선(DB-First) 덮어쓰기 구현
 - [x] `package.json` 로컬 D1 에뮬레이션 dev 스크립트 (`dev:d1`) 추가
 - [x] `run.bat` 배치 파일 메뉴 분기 및 로컬 D1 연동 실행 기능 추가
