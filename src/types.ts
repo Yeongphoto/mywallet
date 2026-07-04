@@ -33,3 +33,21 @@ export interface AssetFormState {
   amount: string;
   memo: string;
 }
+
+export interface Budget {
+  amount: number;
+}
+
+export type Theme = 'light' | 'dark';
+
+export type EntryType = 'expense' | 'income' | 'asset';
+
+export interface UnifiedFormState {
+  type: EntryType;
+  date: string;
+  amount: string;
+  title: string;
+  category: string;
+}
+
+

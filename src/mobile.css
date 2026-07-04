@@ -1,0 +1,162 @@
+/* Mobile & Responsive Styling for MyWallet */
+
+@media (max-width: 1200px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .entry-grid,
+  .split-ledger,
+  .summary-table-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .asset-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 992px) {
+  /* Layout transformation: Side grid -> Single column */
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Sidebar transformed to Bottom Fixed Horizontal Tab Bar */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    height: 72px;
+    width: 100%;
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+    z-index: 99;
+  }
+  
+  .brand {
+    display: none; /* Hide brand logo in mobile navigation bar */
+  }
+  
+  .sidebar nav {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+    gap: 4px;
+    margin: 0;
+  }
+  
+  .sidebar nav a {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+    border-radius: 10px;
+    text-align: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  
+  .sidebar nav a.active {
+    color: #fff;
+    background: var(--primary);
+  }
+  
+  /* Compact Theme Toggle Area in Bottom Nav */
+  .theme-toggle-area {
+    padding-top: 0;
+    border-top: none;
+    margin-left: 10px;
+    display: none; /* Hide full toggle in bottom menu to save space, or show compact */
+  }
+  
+  /* Alternatively, put theme toggle header actions */
+  .hero-actions {
+    align-items: center;
+  }
+  
+  /* Bottom padding in main content to prevent menu overlap */
+  .content {
+    padding: 24px 20px 100px 20px;
+  }
+  
+  .asset-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px 16px 100px 16px;
+  }
+  
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .hero-actions {
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  
+  .hero-actions label {
+    width: 100%;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .summary-card {
+    min-height: 110px;
+    padding: 16px 20px;
+  }
+  
+  .calendar-cell {
+    aspect-ratio: 1;
+    padding: 4px;
+  }
+  
+  .calendar-cell .date-number {
+    font-size: 0.75rem;
+  }
+  
+  .calendar-value-badge {
+    font-size: 0.58rem;
+    padding: 0 2px;
+  }
+  
+  .ledger-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .ledger-filters {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+  
+  .ledger-filters input,
+  .ledger-filters select {
+    width: 100%;
+  }
+}

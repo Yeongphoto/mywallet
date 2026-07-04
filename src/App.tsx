@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { AssetFormState, AssetItem, CategoryOption, Transaction, TransactionFormState, TransactionType } from './types';
+import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType } from './types';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식' },
@@ -34,7 +34,7 @@ const assetCategories: CategoryOption[] = [
   { id: 'etc', label: '기타' },
 ];
 
-const STORAGE_KEY = 'mywallet:v1';
+const STORAGE_KEY = 'mywallet:v2';
 
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
   style: 'currency',
@@ -54,7 +54,6 @@ function createId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
-
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -70,49 +69,60 @@ function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
   return categories.find((category) => category.id === idOrLabel || category.label === idOrLabel)?.label ?? idOrLabel;
 }
 
-function createTransactionForm(categories: CategoryOption[]): TransactionFormState {
+function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'expense'): UnifiedFormState {
+  const defaultCategory = defaultType === 'expense' 
+    ? (expenseCategories[0]?.id ?? 'etc')
+    : defaultType === 'income'
+    ? (incomeCategories[0]?.id ?? 'etc')
+    : (assetCategories[0]?.id ?? 'cash');
+
   return {
-    date: getToday(),
+    type: defaultType,
+    date: defaultDate,
     amount: '',
     title: '',
-    category: categories[0]?.id ?? 'etc',
-  };
-}
-
-function createAssetForm(): AssetFormState {
-  return {
-    category: assetCategories[0]?.id ?? 'cash',
-    amount: '',
-    memo: '',
+    category: defaultCategory,
   };
 }
 
 function loadStoredData() {
   if (typeof window === 'undefined') {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[] };
+    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
   }
 
   try {
     const rawData = window.localStorage.getItem(STORAGE_KEY);
     if (!rawData) {
-      return { transactions: [] as Transaction[], assets: [] as AssetItem[] };
+      const oldData = window.localStorage.getItem('mywallet:v1');
+      if (oldData) {
+        const parsed = JSON.parse(oldData);
+        return {
+          transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+          assets: Array.isArray(parsed.assets) ? parsed.assets : [],
+          budget: 1000000,
+          theme: 'light' as const,
+        };
+      }
+      return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
     }
 
-    const parsed = JSON.parse(rawData) as { transactions?: Transaction[]; assets?: AssetItem[] };
+    const parsed = JSON.parse(rawData);
     return {
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       assets: Array.isArray(parsed.assets) ? parsed.assets : [],
+      budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
+      theme: parsed.theme === 'dark' ? ('dark' as const) : ('light' as const),
     };
   } catch {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[] };
+    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const };
   }
 }
 
-function saveStoredData(transactions: Transaction[], assets: AssetItem[]) {
+function saveStoredData(transactions: Transaction[], assets: AssetItem[], budget: number, theme: 'light' | 'dark') {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets, budget, theme }));
   } catch {
-    // 저장소 접근이 막힌 환경에서도 화면은 계속 표시되게 둡니다.
+    // LocalStorage error fallback
   }
 }
 
@@ -120,19 +130,758 @@ function sumAmount<T extends { amount: number }>(items: T[]) {
   return items.reduce((total, item) => total + item.amount, 0);
 }
 
-function SummaryCard({ label, value, helper, tone }: { label: string; value: number; helper: string; tone: 'expense' | 'income' | 'asset' | 'balance' }) {
+function downloadCSV(csvContent: string, fileName: string) {
+  const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+export default function App() {
+  const storedData = useMemo(() => loadStoredData(), []);
+  
+  // App states
+  const [transactions, setTransactions] = useState<Transaction[]>(storedData.transactions);
+  const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
+  const [budget, setBudget] = useState<number>(storedData.budget);
+  const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
+  const [activeTab, setActiveTab] = useState<'summary' | 'calendar' | 'entry' | 'ledger' | 'asset'>('summary');
+  
+  // Filtering & Search states
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
+  // Calendar states
+  const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
+  const [calendarMonth, setCalendarMonth] = useState(() => Number(selectedMonth.slice(5, 7)) - 1); // 0-11
+  const [selectedDayData, setSelectedDayData] = useState<string | null>(null); // Date string YYYY-MM-DD
+  const [modalTab, setModalTab] = useState<'view' | 'add'>('view');
+
+  // Edit states
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  // Sync state to localstorage
+  useEffect(() => {
+    saveStoredData(transactions, assets, budget, theme);
+  }, [transactions, assets, budget, theme]);
+
+  // Handle theme attribute
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  // Sync calendar when selectedMonth changes
+  useEffect(() => {
+    setCalendarYear(Number(selectedMonth.slice(0, 4)));
+    setCalendarMonth(Number(selectedMonth.slice(5, 7)) - 1);
+  }, [selectedMonth]);
+
+  // Derived Values
+  const monthlyTransactions = useMemo(
+    () => transactions.filter((transaction) => transaction.date.startsWith(selectedMonth)),
+    [transactions, selectedMonth],
+  );
+
+  const monthlyExpenses = monthlyTransactions.filter((transaction) => transaction.type === 'expense');
+  const monthlyIncomes = monthlyTransactions.filter((transaction) => transaction.type === 'income');
+  const expenseTotal = sumAmount(monthlyExpenses);
+  const incomeTotal = sumAmount(monthlyIncomes);
+  const assetTotal = sumAmount(assets);
+  const balance = incomeTotal - expenseTotal;
+  const maxFlow = Math.max(expenseTotal, incomeTotal, assetTotal, 1);
+
+  // Budget calculations
+  const budgetPercent = budget > 0 ? Math.min(Math.round((expenseTotal / budget) * 100), 200) : 0;
+  const budgetRemaining = budget - expenseTotal;
+  const budgetTone = budgetPercent >= 100 ? 'danger' : budgetPercent >= 80 ? 'warn' : 'safe';
+
+  // Category summary calculations
+  const expenseSummary = useMemo(() => {
+    return monthlyExpenses.reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + item.amount;
+      return acc;
+    }, {});
+  }, [monthlyExpenses]);
+
+  const incomeSummary = useMemo(() => {
+    return monthlyIncomes.reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + item.amount;
+      return acc;
+    }, {});
+  }, [monthlyIncomes]);
+
+  const assetSummary = useMemo(() => {
+    return assets.reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + item.amount;
+      return acc;
+    }, {});
+  }, [assets]);
+
+  // Filtered Transactions for Ledger view
+  const filteredLedgerTransactions = useMemo(() => {
+    return monthlyTransactions.filter((transaction) => {
+      const matchSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          getCategoryLabel(transaction.type === 'expense' ? expenseCategories : incomeCategories, transaction.category)
+                            .toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCategory = filterCategory === 'all' || transaction.category === filterCategory;
+      return matchSearch && matchCategory;
+    });
+  }, [monthlyTransactions, searchTerm, filterCategory]);
+
+  // Actions
+  function handleAddTransaction(transaction: Transaction) {
+    setTransactions((prev) => [transaction, ...prev]);
+    const transactionMonth = transaction.date.slice(0, 7);
+    if (transactionMonth !== selectedMonth) {
+      setSelectedMonth(transactionMonth);
+    }
+  }
+
+  function handleDeleteTransaction(id: string) {
+    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+  }
+
+  function handleUpdateTransaction(updated: Transaction) {
+    setTransactions((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setEditingTransaction(null);
+  }
+
+  function handleAddAsset(asset: AssetItem) {
+    setAssets((prev) => [asset, ...prev]);
+  }
+
+  function handleDeleteAsset(id: string) {
+    setAssets((prev) => prev.filter((asset) => asset.id !== id));
+  }
+
+  function handleReset() {
+    if (window.confirm('입력된 거래와 자산을 모두 초기화할까요?')) {
+      setTransactions([]);
+      setAssets([]);
+      setBudget(1000000);
+    }
+  }
+
+  function toggleTheme() {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }
+
+  // Calendar Helper Logic
+  const calendarDays = useMemo(() => {
+    const date = new Date(calendarYear, calendarMonth, 1);
+    const days = [];
+    const firstDayOfWeek = date.getDay();
+    const prevMonthLastDate = new Date(calendarYear, calendarMonth, 0).getDate();
+
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const prevDate = new Date(calendarYear, calendarMonth - 1, prevMonthLastDate - i);
+      const y = prevDate.getFullYear();
+      const m = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const d = String(prevDate.getDate()).padStart(2, '0');
+      days.push({
+        dateStr: `${y}-${m}-${d}`,
+        dayNum: prevMonthLastDate - i,
+        isCurrentMonth: false,
+        dayOfWeek: prevDate.getDay(),
+      });
+    }
+
+    const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    for (let i = 1; i <= lastDate; i++) {
+      const y = calendarYear;
+      const m = String(calendarMonth + 1).padStart(2, '0');
+      const d = String(i).padStart(2, '0');
+      days.push({
+        dateStr: `${y}-${m}-${d}`,
+        dayNum: i,
+        isCurrentMonth: true,
+        dayOfWeek: new Date(calendarYear, calendarMonth, i).getDay(),
+      });
+    }
+
+    const remaining = 42 - days.length;
+    for (let i = 1; i <= remaining; i++) {
+      const nextDate = new Date(calendarYear, calendarMonth + 1, i);
+      const y = nextDate.getFullYear();
+      const m = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const d = String(nextDate.getDate()).padStart(2, '0');
+      days.push({
+        dateStr: `${y}-${m}-${d}`,
+        dayNum: i,
+        isCurrentMonth: false,
+        dayOfWeek: nextDate.getDay(),
+      });
+    }
+
+    return days;
+  }, [calendarYear, calendarMonth]);
+
+  const dateWiseSums = useMemo(() => {
+    return transactions.reduce<Record<string, { income: number; expense: number }>>((acc, t) => {
+      if (!acc[t.date]) {
+        acc[t.date] = { income: 0, expense: 0 };
+      }
+      if (t.type === 'income') {
+        acc[t.date].income += t.amount;
+      } else {
+        acc[t.date].expense += t.amount;
+      }
+      return acc;
+    }, {});
+  }, [transactions]);
+
+  function handleCalendarPrev() {
+    if (calendarMonth === 0) {
+      setCalendarYear((prev) => prev - 1);
+      setCalendarMonth(11);
+    } else {
+      setCalendarMonth((prev) => prev - 1);
+    }
+  }
+
+  function handleCalendarNext() {
+    if (calendarMonth === 11) {
+      setCalendarYear((prev) => prev + 1);
+      setCalendarMonth(0);
+    } else {
+      setCalendarMonth((prev) => prev + 1);
+    }
+  }
+
+  // Backup CSV Export
+  function exportCSV() {
+    let csv = 'SECTION,TYPE/CATEGORY,DATE/MEMO,AMOUNT,TITLE,EXTRA\n';
+    transactions.forEach((t) => {
+      csv += `T,${t.id},${t.type},${t.date},${t.amount},"${t.title.replace(/"/g, '""')}",${t.category}\n`;
+    });
+    assets.forEach((a) => {
+      csv += `A,${a.id},${a.category},${a.amount},"${a.memo.replace(/"/g, '""')}",,\n`;
+    });
+    csv += `BUDGET,${budget},,,,\n`;
+
+    downloadCSV(csv, `mywallet_backup_${selectedMonth.replace('-', '')}.csv`);
+  }
+
+  // Backup CSV Import
+  function handleImportCSV(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (!text) return;
+
+      try {
+        const lines = text.split('\n');
+        const newTransactions: Transaction[] = [];
+        const newAssets: AssetItem[] = [];
+        let newBudget = budget;
+
+        lines.forEach((line) => {
+          const cells = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+          if (cells[0] === 'T') {
+            newTransactions.push({
+              id: cells[1],
+              type: cells[2] as TransactionType,
+              date: cells[3],
+              amount: Number(cells[4]),
+              title: cells[5],
+              category: cells[6],
+            });
+          } else if (cells[0] === 'A') {
+            newAssets.push({
+              id: cells[1],
+              category: cells[2],
+              amount: Number(cells[3]),
+              memo: cells[4],
+            });
+          } else if (cells[0] === 'BUDGET') {
+            newBudget = Number(cells[1]) || 1000000;
+          }
+        });
+
+        if (newTransactions.length > 0 || newAssets.length > 0) {
+          if (window.confirm(`가계부 백업을 복원할까요? (현재 장부에 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건이 덮어쓰기됩니다.)`)) {
+            setTransactions(newTransactions);
+            setAssets(newAssets);
+            setBudget(newBudget);
+          }
+        } else {
+          alert('가져올 수 있는 유효한 가계부 데이터가 없습니다.');
+        }
+      } catch {
+        alert('CSV 파일 해석 중 오류가 발생했습니다.');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
   return (
-    <article className={`summary-card ${tone}`}>
-      <span>{label}</span>
-      <strong>{formatCurrency(value)}</strong>
-      <small>{helper}</small>
-    </article>
+    <main className="app-shell">
+      {/* Sidebar Navigation (Fixed bottom bar on mobile) */}
+      <aside className="sidebar">
+        <div>
+          <div className="brand">
+            <span>MW</span>
+            <div>
+              <strong>MyWallet</strong>
+              <small>스마트 가계부 캘린더</small>
+            </div>
+          </div>
+          <nav>
+            <a href="#summary" className={activeTab === 'summary' ? 'active' : ''} onClick={() => setActiveTab('summary')}>
+              <span>📊</span>
+              <strong>대시보드</strong>
+            </a>
+            <a href="#calendar" className={activeTab === 'calendar' ? 'active' : ''} onClick={() => setActiveTab('calendar')}>
+              <span>📅</span>
+              <strong>달력 장부</strong>
+            </a>
+            <a href="#entry" className={activeTab === 'entry' ? 'active' : ''} onClick={() => setActiveTab('entry')}>
+              <span>➕</span>
+              <strong>거래 등록</strong>
+            </a>
+            <a href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => setActiveTab('ledger')}>
+              <span>📝</span>
+              <strong>거래 대장</strong>
+            </a>
+            <a href="#asset" className={activeTab === 'asset' ? 'active' : ''} onClick={() => setActiveTab('asset')}>
+              <span>💼</span>
+              <strong>자산 구성</strong>
+            </a>
+          </nav>
+        </div>
+        
+        <div className="theme-toggle-area">
+          <button type="button" className="theme-toggle-btn" onClick={toggleTheme}>
+            {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <section className="content">
+        <header className="hero">
+          <div>
+            <p className="eyebrow">Interactive Ledger</p>
+            <h1>
+              {activeTab === 'calendar'
+                ? `${calendarYear}년 ${calendarMonth + 1}월 달력`
+                : `${selectedMonth.replace('-', '.')} 재정 통계`}
+            </h1>
+            <p>가계부의 수입, 지출, 자산을 통합 폼으로 한 곳에서 편리하게 관리하세요.</p>
+          </div>
+          
+          <div className="hero-actions">
+            <label>
+              조회 월
+              <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} />
+            </label>
+            <button type="button" className="danger-button" onClick={handleReset}>
+              전체 초기화
+            </button>
+            <button type="button" className="primary-button" onClick={exportCSV}>
+              📥 CSV 백업
+            </button>
+            <label className="primary-button" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', borderRadius: '12px', minHeight: '44px', padding: '0 18px', fontWeight: '700' }}>
+              📤 CSV 복원
+              <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+            </label>
+            <button type="button" className="primary-button" style={{ background: 'var(--bg-balance-light)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }} onClick={toggleTheme}>
+              {theme === 'light' ? '🌙 다크모드' : '☀️ 라이트모드'}
+            </button>
+          </div>
+        </header>
+
+        {/* Dashboard Tab */}
+        {activeTab === 'summary' && (
+          <>
+            <section className="summary-grid" aria-label="월간 요약">
+              <article className="summary-card expense">
+                <span>이번 달 총 지출</span>
+                <strong>{formatCurrency(expenseTotal)}</strong>
+                <small>합리적인 소비를 위한 예산 대비 관리</small>
+              </article>
+              <article className="summary-card income">
+                <span>이번 달 총 수입</span>
+                <strong>{formatCurrency(incomeTotal)}</strong>
+                <small>월별 부가 소득 및 급여 포함</small>
+              </article>
+              <article className="summary-card balance">
+                <span>이번 달 잔액</span>
+                <strong>{formatCurrency(balance)}</strong>
+                <small>순수 저축 및 가용 예산 금액</small>
+              </article>
+              <article className="summary-card asset">
+                <span>총 관리 자산</span>
+                <strong>{formatCurrency(assetTotal)}</strong>
+                <small>현금, 투자 자산 등 누적 금액</small>
+              </article>
+            </section>
+
+            {/* Budget Tracker */}
+            <section className="glass-panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Monthly Budget</p>
+                  <h2>월간 예산 설정 및 현황</h2>
+                </div>
+                <label style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                  예산 수정:
+                  <input
+                    type="number"
+                    style={{ width: '120px', minHeight: '34px', height: '34px' }}
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value) || 0)}
+                  />
+                </label>
+              </div>
+              <div className="budget-tracker">
+                <div className="budget-info">
+                  <span>예산 진행률: <strong>{budgetPercent}%</strong></span>
+                  <span>
+                    지출: <strong>{formatCurrency(expenseTotal)}</strong> / 한도: {formatCurrency(budget)}
+                  </span>
+                  <span>
+                    {budgetRemaining >= 0
+                      ? `잔여 예산: ${formatCurrency(budgetRemaining)}`
+                      : `예산 초과: ${formatCurrency(Math.abs(budgetRemaining))}`}
+                  </span>
+                </div>
+                <div className="budget-progress-bar">
+                  <div
+                    className={`budget-progress-fill ${budgetTone}`}
+                    style={{ width: `${Math.min(budgetPercent, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* Flow Panel */}
+            <section className="glass-panel flow-panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Monthly Flow</p>
+                  <h2>수입 vs 지출 vs 자산 비중</h2>
+                </div>
+              </div>
+              <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" />
+              <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" />
+              <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" />
+            </section>
+
+            {/* Category summary table */}
+            <section className="glass-panel summary-table-grid">
+              <div className="panel-header" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                <div>
+                  <p className="eyebrow">Category Summary</p>
+                  <h2>카테고리별 합계</h2>
+                </div>
+              </div>
+              <CategorySummaryColumn title="지출 카테고리" categories={expenseCategories} values={expenseSummary} />
+              <CategorySummaryColumn title="수입 카테고리" categories={incomeCategories} values={incomeSummary} />
+              <CategorySummaryColumn title="자산 분배 상태" categories={assetCategories} values={assetSummary} />
+            </section>
+          </>
+        )}
+
+        {/* Calendar View Tab */}
+        {activeTab === 'calendar' && (
+          <section className="glass-panel calendar-view-container">
+            <div className="calendar-control">
+              <h2>
+                {calendarYear}년 {calendarMonth + 1}월
+              </h2>
+              <div className="calendar-nav-buttons">
+                <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev}>
+                  ◀
+                </button>
+                <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext}>
+                  ▶
+                </button>
+              </div>
+            </div>
+
+            <div className="calendar-grid">
+              {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+                <div
+                  key={day}
+                  className={`calendar-day-name ${idx === 0 ? 'sunday' : idx === 6 ? 'saturday' : ''}`}
+                >
+                  {day}
+                </div>
+              ))}
+              {calendarDays.map((day) => {
+                const daySums = dateWiseSums[day.dateStr];
+                const isSelected = selectedDayData === day.dateStr;
+                const isToday = day.dateStr === getToday();
+                
+                return (
+                  <div
+                    key={day.dateStr}
+                    className={`calendar-cell ${day.isCurrentMonth ? '' : 'prev-month'} ${
+                      day.dayOfWeek === 0 ? 'sunday' : day.dayOfWeek === 6 ? 'saturday' : ''
+                    } ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      setSelectedDayData(day.dateStr);
+                      setModalTab('view');
+                    }}
+                  >
+                    <span className="date-number">{day.dayNum}</span>
+                    <div className="day-values">
+                      {daySums?.income > 0 && (
+                        <span className="calendar-value-badge income">+{formatCurrency(daySums.income)}</span>
+                      )}
+                      {daySums?.expense > 0 && (
+                        <span className="calendar-value-badge expense">-{formatCurrency(daySums.expense)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Unified Entry Tab */}
+        {activeTab === 'entry' && (
+          <section style={{ maxWidth: '640px', margin: '0 auto' }}>
+            <UnifiedEntryForm
+              onAddTransaction={handleAddTransaction}
+              onAddAsset={handleAddAsset}
+            />
+          </section>
+        )}
+
+        {/* Ledger List Tab */}
+        {activeTab === 'ledger' && (
+          <section className="glass-panel">
+            <div className="ledger-header">
+              <div>
+                <p className="eyebrow">Ledger List</p>
+                <h2>거래 장부 목록</h2>
+              </div>
+              <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>
+              
+              <div className="ledger-filters">
+                <input
+                  type="text"
+                  placeholder="제목 또는 카테고리 검색..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                  <option value="all">모든 카테고리</option>
+                  <optgroup label="지출 카테고리">
+                    {expenseCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="수입 카테고리">
+                    {incomeCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <div className="split-ledger">
+              <TransactionListTable
+                title="지출 내역"
+                type="expense"
+                items={filteredLedgerTransactions.filter((t) => t.type === 'expense')}
+                onDelete={handleDeleteTransaction}
+                onEdit={setEditingTransaction}
+              />
+              <TransactionListTable
+                title="수입 내역"
+                type="income"
+                items={filteredLedgerTransactions.filter((t) => t.type === 'income')}
+                onDelete={handleDeleteTransaction}
+                onEdit={setEditingTransaction}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Assets Portfolio Tab */}
+        {activeTab === 'asset' && (
+          <section className="glass-panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Assets Portfolio</p>
+                <h2>자산 구성 관리</h2>
+              </div>
+              <strong>자산 총액: {formatCurrency(assetTotal)}</strong>
+            </div>
+
+            <div className="asset-list">
+              {assets.length === 0 ? (
+                <p className="empty-note" style={{ gridColumn: '1 / -1' }}>
+                  현재 등록된 자산 항목이 없습니다. 거래 등록 탭에서 '자산' 유형을 선택해 자산을 추가해보세요.
+                </p>
+              ) : (
+                assets.map((asset) => (
+                  <article key={asset.id} className="asset-card">
+                    <div className="asset-card-header">
+                      <strong>{getCategoryLabel(assetCategories, asset.category)}</strong>
+                      <span>자산</span>
+                    </div>
+                    <b>{formatCurrency(asset.amount)}</b>
+                    <div className="asset-card-footer">
+                      <span>{asset.memo || '메모 없음'}</span>
+                      <button type="button" className="delete-btn-sm" onClick={() => handleDeleteAsset(asset.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+      </section>
+
+      {/* Date Detail View Modal (Calendar Cell Clicked) */}
+      {selectedDayData && (
+        <div className="modal-backdrop" onClick={() => setSelectedDayData(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedDayData} 거래 관리</h3>
+              <button type="button" className="close-btn" onClick={() => setSelectedDayData(null)}>
+                &times;
+              </button>
+            </div>
+            
+            <div className="modal-tab-header">
+              <button
+                type="button"
+                className={`modal-tab-btn ${modalTab === 'view' ? 'active' : ''}`}
+                onClick={() => setModalTab('view')}
+              >
+                상세 내역 보기
+              </button>
+              <button
+                type="button"
+                className={`modal-tab-btn ${modalTab === 'add' ? 'active' : ''}`}
+                onClick={() => setModalTab('add')}
+              >
+                통합 거래 등록
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {modalTab === 'view' ? (
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <h4>지출 및 수입 내역</h4>
+                  {transactions.filter((t) => t.date === selectedDayData).length === 0 ? (
+                    <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0' }}>
+                      해당 날짜에 등록된 거래 내역이 없습니다.
+                    </p>
+                  ) : (
+                    <div className="ledger-table-scroll">
+                      <table className="ledger-table">
+                        <thead>
+                          <tr>
+                            <th>유형</th>
+                            <th>금액</th>
+                            <th>내용</th>
+                            <th>카테고리</th>
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions
+                            .filter((t) => t.date === selectedDayData)
+                            .map((t) => (
+                              <tr key={t.id}>
+                                <td style={{ color: t.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)', fontWeight: 'bold' }}>
+                                  {t.type === 'income' ? '수입' : '지출'}
+                                </td>
+                                <td>{formatCurrency(t.amount)}</td>
+                                <td>{t.title}</td>
+                                <td>
+                                  {getCategoryLabel(t.type === 'income' ? incomeCategories : expenseCategories, t.category)}
+                                </td>
+                                <td>
+                                  <div className="actions-cell">
+                                    <button type="button" className="edit-btn" onClick={() => {
+                                      setEditingTransaction(t);
+                                      setSelectedDayData(null);
+                                    }}>
+                                      수정
+                                    </button>
+                                    <button type="button" className="delete-btn-sm" onClick={() => handleDeleteTransaction(t.id)}>
+                                      삭제
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '20px' }}>
+                  <UnifiedEntryForm
+                    defaultDate={selectedDayData}
+                    onAddTransaction={(t) => {
+                      handleAddTransaction(t);
+                      setModalTab('view');
+                    }}
+                    onAddAsset={(a) => {
+                      handleAddAsset(a);
+                      setModalTab('view');
+                    }}
+                    isQuickAdd={true}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="modal-backdrop" onClick={() => setEditingTransaction(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>거래 내역 수정</h3>
+              <button type="button" className="close-btn" onClick={() => setEditingTransaction(null)}>
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              <TransactionEditForm
+                transaction={editingTransaction}
+                onSave={handleUpdateTransaction}
+                onCancel={() => setEditingTransaction(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
   );
 }
 
-function FlowBar({ label, value, max, tone }: { label: string; value: number; max: number; tone: 'expense' | 'income' | 'asset' }) {
+// Flow bar sub-component
+function FlowRowItem({ label, value, max, tone }: { label: string; value: number; max: number; tone: 'expense' | 'income' | 'asset' }) {
   const width = max > 0 ? Math.round((value / max) * 100) : 0;
-
   return (
     <div className="flow-row">
       <div>
@@ -146,149 +895,9 @@ function FlowBar({ label, value, max, tone }: { label: string; value: number; ma
   );
 }
 
-function TransactionForm({ type, title, categories, onAdd }: { type: TransactionType; title: string; categories: CategoryOption[]; onAdd: (transaction: Transaction) => void }) {
-  const [form, setForm] = useState<TransactionFormState>(() => createTransactionForm(categories));
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const amount = parseAmount(form.amount);
-    if (!form.date || !form.title.trim() || !Number.isFinite(amount) || amount <= 0) {
-      return;
-    }
-
-    onAdd({
-      id: createId(),
-      type,
-      date: form.date,
-      amount,
-      title: form.title.trim(),
-      category: form.category,
-    });
-
-    setForm(createTransactionForm(categories));
-  }
-
-  return (
-    <form className={`entry-form ${type}`} onSubmit={handleSubmit}>
-      <div className="entry-form-title">
-        <strong>{title}</strong>
-        <span>{type === 'expense' ? '엑셀 거래 시트의 왼쪽 영역' : '엑셀 거래 시트의 오른쪽 영역'}</span>
-      </div>
-      <div className="form-grid">
-        <label>
-          날짜
-          <input type="date" value={form.date} onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))} />
-        </label>
-        <label>
-          금액
-          <input inputMode="numeric" placeholder="0" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
-        </label>
-        <label>
-          내용
-          <input placeholder="예: 식비, 교통비" value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} />
-        </label>
-        <label>
-          카테고리
-          <select value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>{category.label}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <button type="submit">{title} 추가</button>
-    </form>
-  );
-}
-
-function AssetForm({ onAdd }: { onAdd: (asset: AssetItem) => void }) {
-  const [form, setForm] = useState<AssetFormState>(() => createAssetForm());
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const amount = parseAmount(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return;
-    }
-
-    onAdd({
-      id: createId(),
-      category: form.category,
-      amount,
-      memo: form.memo.trim(),
-    });
-
-    setForm(createAssetForm());
-  }
-
-  return (
-    <form className="asset-form" onSubmit={handleSubmit}>
-      <label>
-        자산 구분
-        <select value={form.category} onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}>
-          {assetCategories.map((category) => (
-            <option key={category.id} value={category.id}>{category.label}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        금액
-        <input inputMode="numeric" placeholder="0" value={form.amount} onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))} />
-      </label>
-      <label>
-        메모
-        <input placeholder="선택 입력" value={form.memo} onChange={(event) => setForm((prev) => ({ ...prev, memo: event.target.value }))} />
-      </label>
-      <button type="submit">자산 추가</button>
-    </form>
-  );
-}
-
-function TransactionTable({ title, type, items, onDelete }: { title: string; type: TransactionType; items: Transaction[]; onDelete: (id: string) => void }) {
-  const categories = type === 'expense' ? expenseCategories : incomeCategories;
-
-  return (
-    <section className="ledger-table-wrap">
-      <h3 className={type}>{title}</h3>
-      <div className="ledger-table-scroll">
-        <table className="ledger-table">
-          <thead>
-            <tr>
-              <th>날짜</th>
-              <th>금액</th>
-              <th>내용</th>
-              <th>카테고리</th>
-              <th aria-label="삭제" />
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="empty-cell">등록된 내역이 없습니다.</td>
-              </tr>
-            ) : (
-              items.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td>{transaction.date}</td>
-                  <td>{formatCurrency(transaction.amount)}</td>
-                  <td>{transaction.title}</td>
-                  <td>{getCategoryLabel(categories, transaction.category)}</td>
-                  <td><button type="button" className="delete-button" onClick={() => onDelete(transaction.id)}>삭제</button></td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function SummaryColumn({ title, categories, values }: { title: string; categories: CategoryOption[]; values: Record<string, number> }) {
+// Category summary sub-column
+function CategorySummaryColumn({ title, categories, values }: { title: string; categories: CategoryOption[]; values: Record<string, number> }) {
   const total = categories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
-
   return (
     <article className="summary-column">
       <h3>{title}</h3>
@@ -316,173 +925,301 @@ function SummaryColumn({ title, categories, values }: { title: string; categorie
   );
 }
 
-function aggregateByCategory(items: Transaction[] | AssetItem[]) {
-  return items.reduce<Record<string, number>>((acc, item) => {
-    acc[item.category] = (acc[item.category] ?? 0) + item.amount;
-    return acc;
-  }, {});
+// Transaction List Table sub-component
+function TransactionListTable({
+  title,
+  type,
+  items,
+  onDelete,
+  onEdit,
+}: {
+  title: string;
+  type: TransactionType;
+  items: Transaction[];
+  onDelete: (id: string) => void;
+  onEdit: (t: Transaction) => void;
+}) {
+  const categories = type === 'expense' ? expenseCategories : incomeCategories;
+
+  return (
+    <section className="ledger-table-wrap">
+      <h3 className={type}>{title}</h3>
+      <div className="ledger-table-scroll">
+        <table className="ledger-table">
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>금액</th>
+              <th>내용</th>
+              <th>카테고리</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="empty-cell">
+                  등록된 내역이 없습니다.
+                </td>
+              </tr>
+            ) : (
+              items.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td>{transaction.date}</td>
+                  <td style={{ fontWeight: 600 }}>{formatCurrency(transaction.amount)}</td>
+                  <td>{transaction.title}</td>
+                  <td>{getCategoryLabel(categories, transaction.category)}</td>
+                  <td>
+                    <div className="actions-cell">
+                      <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
+                        수정
+                      </button>
+                      <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
 }
 
-export default function App() {
-  const storedData = useMemo(() => loadStoredData(), []);
-  const [transactions, setTransactions] = useState<Transaction[]>(storedData.transactions);
-  const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+// Unified Entry Form (Income / Expense / Asset)
+function UnifiedEntryForm({
+  defaultDate = getToday(),
+  onAddTransaction,
+  onAddAsset,
+  isQuickAdd = false,
+}: {
+  defaultDate?: string;
+  onAddTransaction: (t: Transaction) => void;
+  onAddAsset: (a: AssetItem) => void;
+  isQuickAdd?: boolean;
+}) {
+  const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
 
-  useEffect(() => {
-    saveStoredData(transactions, assets);
-  }, [transactions, assets]);
+  // Update categories dynamically depending on selection
+  const activeCategories = useMemo(() => {
+    if (form.type === 'expense') return expenseCategories;
+    if (form.type === 'income') return incomeCategories;
+    return assetCategories;
+  }, [form.type]);
 
-  const monthlyTransactions = useMemo(
-    () => transactions.filter((transaction) => transaction.date.startsWith(selectedMonth)),
-    [transactions, selectedMonth],
-  );
+  // Adjust default category when type changes
+  function handleTypeChange(newType: EntryType) {
+    const defaultCat = newType === 'expense'
+      ? (expenseCategories[0]?.id ?? 'etc')
+      : newType === 'income'
+      ? (incomeCategories[0]?.id ?? 'etc')
+      : (assetCategories[0]?.id ?? 'cash');
 
-  const monthlyExpenses = monthlyTransactions.filter((transaction) => transaction.type === 'expense');
-  const monthlyIncomes = monthlyTransactions.filter((transaction) => transaction.type === 'income');
-  const expenseTotal = sumAmount(monthlyExpenses);
-  const incomeTotal = sumAmount(monthlyIncomes);
-  const assetTotal = sumAmount(assets);
-  const balance = incomeTotal - expenseTotal;
-  const maxFlow = Math.max(expenseTotal, incomeTotal, assetTotal, 1);
-  const expenseSummary = aggregateByCategory(monthlyExpenses);
-  const incomeSummary = aggregateByCategory(monthlyIncomes);
-  const assetSummary = aggregateByCategory(assets);
-
-  function handleAddTransaction(transaction: Transaction) {
-    setTransactions((prev) => [transaction, ...prev]);
-    setSelectedMonth(transaction.date.slice(0, 7));
+    setForm((prev) => ({
+      ...prev,
+      type: newType,
+      category: defaultCat,
+    }));
   }
 
-  function handleDeleteTransaction(id: string) {
-    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-  }
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const amount = parseAmount(form.amount);
 
-  function handleDeleteAsset(id: string) {
-    setAssets((prev) => prev.filter((asset) => asset.id !== id));
-  }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('올바른 금액을 입력해 주세요.');
+      return;
+    }
 
-  function handleReset() {
-    if (window.confirm('입력된 거래와 자산을 모두 초기화할까요?')) {
-      setTransactions([]);
-      setAssets([]);
+    if (form.type === 'asset') {
+      // Asset Registration
+      onAddAsset({
+        id: createId(),
+        category: form.category,
+        amount,
+        memo: form.title.trim() || '자산 등록',
+      });
+    } else {
+      // Income or Expense Registration
+      if (!form.date) {
+        alert('날짜를 입력해 주세요.');
+        return;
+      }
+      if (!form.title.trim()) {
+        alert('내용을 입력해 주세요.');
+        return;
+      }
+
+      onAddTransaction({
+        id: createId(),
+        type: form.type,
+        date: form.date,
+        amount,
+        title: form.title.trim(),
+        category: form.category,
+      });
+    }
+
+    // Reset Form (keep date & type)
+    setForm((prev) => ({
+      ...prev,
+      amount: '',
+      title: '',
+    }));
+
+    if (!isQuickAdd) {
+      alert('성공적으로 등록되었습니다!');
     }
   }
 
+  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'asset';
+
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span>MW</span>
-          <div>
-            <strong>MyWallet</strong>
-            <small>엑셀 레퍼런스 기반 가계부</small>
-          </div>
+    <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
+      {!isQuickAdd && (
+        <div className={`entry-form-title ${formColorClass}`}>
+          <strong>통합 거래 등록</strong>
+          <span>수입, 지출, 자산 내역을 드롭다운 선택으로 한 번에 관리합니다.</span>
         </div>
-        <nav>
-          <a href="#monthly" className="active">월간 요약</a>
-          <a href="#entry">거래 입력</a>
-          <a href="#ledger">거래 장부</a>
-          <a href="#asset">자산 관리</a>
-        </nav>
-      </aside>
+      )}
 
-      <section className="content" id="monthly">
-        <header className="hero">
-          <div>
-            <p className="eyebrow">Excel Reference</p>
-            <h1>{selectedMonth.replace('-', '.')} 가계부</h1>
-            <p>엑셀의 월별 요약, 거래 입력, 카테고리 합계 구조를 웹앱 화면으로 옮긴 첫 버전입니다.</p>
-          </div>
-          <div className="hero-actions">
-            <label>
-              조회 월
-              <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} />
-            </label>
-            <button type="button" className="danger-button" onClick={handleReset}>전체 초기화</button>
-          </div>
-        </header>
+      <div className="form-grid" style={{ gridTemplateColumns: isQuickAdd ? '1fr' : '1fr 1fr' }}>
+        <label>
+          구분 (유형)
+          <select value={form.type} onChange={(e) => handleTypeChange(e.target.value as EntryType)}>
+            <option value="expense">지출 🔴</option>
+            <option value="income">수입 🔵</option>
+            <option value="asset">자산 🟢</option>
+          </select>
+        </label>
 
-        <section className="summary-grid" aria-label="월간 요약">
-          <SummaryCard label="지출" value={expenseTotal} helper="선택한 월의 총 지출" tone="expense" />
-          <SummaryCard label="수입" value={incomeTotal} helper="선택한 월의 총 수입" tone="income" />
-          <SummaryCard label="자산" value={assetTotal} helper="현재 입력된 자산 합계" tone="asset" />
-          <SummaryCard label="잔액" value={balance} helper="수입에서 지출을 뺀 금액" tone="balance" />
-        </section>
+        {form.type !== 'asset' && (
+          <label>
+            날짜
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            />
+          </label>
+        )}
 
-        <section className="flow-panel panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">Monthly Flow</p>
-              <h2>월간 흐름</h2>
-            </div>
-          </div>
-          <FlowBar label="지출" value={expenseTotal} max={maxFlow} tone="expense" />
-          <FlowBar label="수입" value={incomeTotal} max={maxFlow} tone="income" />
-          <FlowBar label="자산" value={assetTotal} max={maxFlow} tone="asset" />
-        </section>
+        <label>
+          금액 (원)
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="0"
+            value={form.amount}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+          />
+        </label>
 
-        <section className="entry-grid" id="entry">
-          <TransactionForm type="expense" title="지출" categories={expenseCategories} onAdd={handleAddTransaction} />
-          <TransactionForm type="income" title="수입" categories={incomeCategories} onAdd={handleAddTransaction} />
-        </section>
+        <label>
+          {form.type === 'asset' ? '자산 메모' : '내용'}
+          <input
+            type="text"
+            placeholder={form.type === 'asset' ? '예: 카카오뱅크 통장, 주식 계좌' : '예: 식비, 교통비, 보너스'}
+            value={form.title}
+            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+        </label>
 
-        <section className="dashboard-grid" id="ledger">
-          <div className="panel panel-large">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Ledger</p>
-                <h2>거래 장부</h2>
-              </div>
-              <span className="record-count">{monthlyTransactions.length}건</span>
-            </div>
-            <div className="split-ledger">
-              <TransactionTable title="지출" type="expense" items={monthlyExpenses} onDelete={handleDeleteTransaction} />
-              <TransactionTable title="수입" type="income" items={monthlyIncomes} onDelete={handleDeleteTransaction} />
-            </div>
-          </div>
+        <label>
+          {form.type === 'asset' ? '자산 구분' : '카테고리'}
+          <select
+            value={form.category}
+            onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+          >
+            {activeCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-          <div className="side-panels">
-            <section className="panel" id="asset">
-              <div className="panel-header compact">
-                <div>
-                  <p className="eyebrow">Assets</p>
-                  <h2>자산 관리</h2>
-                </div>
-              </div>
-              <AssetForm onAdd={(asset) => setAssets((prev) => [asset, ...prev])} />
-              <div className="asset-list">
-                {assets.length === 0 ? (
-                  <p className="empty-note">자산 항목을 추가해보세요.</p>
-                ) : (
-                  assets.map((asset) => (
-                    <article key={asset.id}>
-                      <div>
-                        <strong>{getCategoryLabel(assetCategories, asset.category)}</strong>
-                        <span>{asset.memo || '메모 없음'}</span>
-                      </div>
-                      <b>{formatCurrency(asset.amount)}</b>
-                      <button type="button" className="delete-button" onClick={() => handleDeleteAsset(asset.id)}>삭제</button>
-                    </article>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
-        </section>
+      <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-asset)' }}>
+        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '자산 등록'}
+      </button>
+    </form>
+  );
+}
 
-        <section className="summary-table-grid panel">
-          <div className="panel-header full">
-            <div>
-              <p className="eyebrow">Category Summary</p>
-              <h2>카테고리별 합계</h2>
-            </div>
-          </div>
-          <SummaryColumn title="지출" categories={expenseCategories} values={expenseSummary} />
-          <SummaryColumn title="수입" categories={incomeCategories} values={incomeSummary} />
-          <SummaryColumn title="자산" categories={assetCategories} values={assetSummary} />
-        </section>
-      </section>
-    </main>
+// Edit Form
+function TransactionEditForm({
+  transaction,
+  onSave,
+  onCancel,
+}: {
+  transaction: Transaction;
+  onSave: (t: Transaction) => void;
+  onCancel: () => void;
+}) {
+  const [date, setDate] = useState(transaction.date);
+  const [amount, setAmount] = useState(String(transaction.amount));
+  const [title, setTitle] = useState(transaction.title);
+  const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
+  const [category, setCategory] = useState(transaction.category);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const numericAmount = parseAmount(amount);
+    if (!date || !title.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      alert('금액과 내용을 올바르게 입력해주세요.');
+      return;
+    }
+
+    onSave({
+      ...transaction,
+      date,
+      amount: numericAmount,
+      title: title.trim(),
+      category,
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
+      <label>
+        날짜
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </label>
+      <label>
+        금액 (원)
+        <input
+          type="text"
+          inputMode="numeric"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+      </label>
+      <label>
+        내용
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+      </label>
+      <label>
+        카테고리
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+        <button type="button" className="danger-button" onClick={onCancel}>
+          취소
+        </button>
+        <button type="submit" className="primary-button">
+          변경 사항 저장
+        </button>
+      </div>
+    </form>
   );
 }
