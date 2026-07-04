@@ -465,33 +465,26 @@ export default function App() {
 
       {/* Main Content */}
       <section className="content">
-        <header className="hero">
-          <div>
-            <p className="eyebrow">Interactive Ledger</p>
-            <h1>
-              {activeTab === 'calendar'
-                ? `${calendarYear}년 ${calendarMonth + 1}월 달력`
-                : `${selectedMonth.replace('-', '.')} 재정 통계`}
-            </h1>
-            <p>가계부의 수입, 지출, 자산을 통합 폼으로 한 곳에서 편리하게 관리하세요.</p>
+        <header className="app-header">
+          {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
+          <div className="header-brand">
+            <span className="logo-box">MW</span>
+            <div className="brand-text">
+              <strong>MyWallet</strong>
+              <small>스마트 가계부 캘린더</small>
+            </div>
           </div>
-          
-          <div className="hero-actions">
-            <label>
-              조회 월
-              <input type="month" value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)} />
-            </label>
-            <button type="button" className="danger-button" onClick={handleReset}>
-              전체 초기화
-            </button>
-            <button type="button" className="primary-button" onClick={exportCSV}>
-              📥 CSV 백업
-            </button>
-            <label className="primary-button" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', borderRadius: '12px', minHeight: '44px', padding: '0 18px', fontWeight: '700' }}>
-              📤 CSV 복원
-              <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
-            </label>
 
+          {/* 공통 월 선택 영역 */}
+          <div className="month-picker-wrap">
+            <div className="month-picker-display">
+              {selectedMonth.replace('-', '.')} 📅
+            </div>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
           </div>
         </header>
 
@@ -780,6 +773,48 @@ export default function App() {
                 >
                   {theme === 'light' ? '🌙 다크 모드 활성화' : '☀️ 라이트 모드 활성화'}
                 </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>가계부 데이터 백업 및 복원</strong>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    현재 데이터를 CSV 파일로 안전하게 백업하거나 백업 파일을 불러옵니다.
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button" 
+                    className="primary-button" 
+                    style={{ 
+                      minHeight: '44px', 
+                      padding: '0 18px', 
+                      borderRadius: '12px',
+                      fontWeight: '700',
+                      width: '180px'
+                    }} 
+                    onClick={exportCSV}
+                  >
+                    📥 CSV 백업
+                  </button>
+                  <label 
+                    className="primary-button" 
+                    style={{ 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      cursor: 'pointer', 
+                      borderRadius: '12px', 
+                      minHeight: '44px', 
+                      padding: '0 18px', 
+                      fontWeight: '700',
+                      width: '180px'
+                    }}
+                  >
+                    📤 CSV 복원
+                    <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+                  </label>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>

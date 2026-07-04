@@ -107,7 +107,71 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: 24px 20px 100px 20px;
+    padding: 88px 16px 96px 16px;
+  }
+  
+  /* Mobile Header Fixed Top Bar */
+  .app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    padding: 0 16px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 99;
+    margin-bottom: 0;
+  }
+  
+  .app-header .header-brand {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    text-align: left;
+  }
+  
+  .app-header .logo-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), #0d9488);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    display: grid;
+    place-items: center;
+  }
+  
+  .app-header .brand-text strong {
+    font-size: 0.9rem;
+    color: #fff;
+    display: block;
+    line-height: 1.1;
+  }
+  
+  .app-header .brand-text small {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    display: block;
+    margin-top: 2px;
+  }
+  
+  /* Mobile month picker adapt */
+  .app-header .month-picker-wrap {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .app-header .month-picker-display {
+    color: #fff;
   }
   
   .asset-form {
