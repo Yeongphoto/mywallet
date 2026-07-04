@@ -149,7 +149,7 @@ export default function App() {
   const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
-  const [activeTab, setActiveTab] = useState<'summary' | 'calendar' | 'entry' | 'ledger' | 'asset'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'calendar' | 'entry' | 'ledger' | 'asset' | 'settings'>('summary');
   
   // Filtering & Search states
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -455,13 +455,11 @@ export default function App() {
               <span>💼</span>
               <strong>자산 구성</strong>
             </a>
+            <a href="#settings" className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
+              <span>⚙️</span>
+              <strong>설정</strong>
+            </a>
           </nav>
-        </div>
-        
-        <div className="theme-toggle-area">
-          <button type="button" className="theme-toggle-btn" onClick={toggleTheme}>
-            {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-          </button>
         </div>
       </aside>
 
@@ -493,9 +491,7 @@ export default function App() {
               📤 CSV 복원
               <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
             </label>
-            <button type="button" className="primary-button" style={{ background: 'var(--bg-balance-light)', color: 'var(--text-primary)', border: '1px solid var(--border-input)' }} onClick={toggleTheme}>
-              {theme === 'light' ? '🌙 다크모드' : '☀️ 라이트모드'}
-            </button>
+
           </div>
         </header>
 
@@ -748,6 +744,66 @@ export default function App() {
                   </article>
                 ))
               )}
+            </div>
+          </section>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <section className="glass-panel">
+            <div className="panel-header">
+              <div>
+                <p className="eyebrow">Application Settings</p>
+                <h2>환경 설정</h2>
+              </div>
+            </div>
+            
+            <div style={{ display: 'grid', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>화면 테마 설정</strong>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    어두운 환경에서 눈을 보호하기 위해 다크 모드를 활성화할 수 있습니다.
+                  </span>
+                </div>
+                <button 
+                  type="button" 
+                  className="primary-button" 
+                  style={{ 
+                    minHeight: '44px', 
+                    padding: '0 18px', 
+                    borderRadius: '12px',
+                    fontWeight: '700',
+                    width: '180px'
+                  }} 
+                  onClick={toggleTheme}
+                >
+                  {theme === 'light' ? '🌙 다크 모드 활성화' : '☀️ 라이트 모드 활성화'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>가계부 데이터 초기화</strong>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    등록된 모든 수입, 지출, 자산 및 예산 데이터를 초기화합니다.
+                  </span>
+                </div>
+                <button 
+                  type="button" 
+                  className="danger-button" 
+                  style={{ 
+                    minHeight: '44px', 
+                    padding: '0 18px', 
+                    borderRadius: '12px',
+                    fontWeight: '700',
+                    width: '180px'
+                  }} 
+                  onClick={handleReset}
+                >
+                  ⚠️ 전체 데이터 초기화
+                </button>
+              </div>
             </div>
           </section>
         )}
