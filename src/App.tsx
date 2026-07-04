@@ -1096,38 +1096,6 @@ function UnifiedEntryForm({
           </select>
         </label>
 
-        {form.type !== 'asset' && (
-          <label>
-            날짜
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-            />
-          </label>
-        )}
-
-        <label>
-          금액 (원)
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="0"
-            value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
-          />
-        </label>
-
-        <label>
-          {form.type === 'asset' ? '자산 메모' : '내용'}
-          <input
-            type="text"
-            placeholder={form.type === 'asset' ? '예: 카카오뱅크 통장, 주식 계좌' : '예: 식비, 교통비, 보너스'}
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-          />
-        </label>
-
         <label>
           {form.type === 'asset' ? '자산 구분' : '카테고리'}
           <select
@@ -1140,6 +1108,38 @@ function UnifiedEntryForm({
               </option>
             ))}
           </select>
+        </label>
+
+        {form.type !== 'asset' && (
+          <label>
+            날짜
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            />
+          </label>
+        )}
+
+        <label style={{ gridColumn: (isQuickAdd || form.type === 'asset') ? 'span 1' : 'span 1' }}>
+          {form.type === 'asset' ? '자산 메모' : '내용'}
+          <input
+            type="text"
+            placeholder={form.type === 'asset' ? '예: 카카오뱅크 통장, 주식 계좌' : '예: 식비, 교통비, 보너스'}
+            value={form.title}
+            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+          />
+        </label>
+
+        <label style={{ gridColumn: (isQuickAdd || form.type === 'asset') ? 'span 1' : 'span 2' }}>
+          금액 (원)
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="0"
+            value={form.amount}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+          />
         </label>
       </div>
 
