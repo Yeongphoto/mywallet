@@ -49,3 +49,8 @@ CREATE TABLE recurring_rules (
   startMonth TEXT NOT NULL,
   endMonth TEXT
 );
+
+DROP TABLE IF EXISTS deleted_recurring_txs;
+CREATE TABLE deleted_recurring_txs (
+  id TEXT PRIMARY KEY
+);

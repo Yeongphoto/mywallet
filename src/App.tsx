@@ -95,7 +95,8 @@ function loadStoredData() {
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
       customIncomeCategories: [] as CategoryOption[],
-      recurringRules: [] as RecurringRule[]
+      recurringRules: [] as RecurringRule[],
+      deletedRecurringTxs: [] as string[]
     };
   }
 
@@ -113,7 +114,8 @@ function loadStoredData() {
           plans: [] as CategoryPlan[],
           customExpenseCategories: [] as CategoryOption[],
           customIncomeCategories: [] as CategoryOption[],
-          recurringRules: [] as RecurringRule[]
+          recurringRules: [] as RecurringRule[],
+          deletedRecurringTxs: [] as string[]
         };
       }
       return { 
@@ -124,7 +126,8 @@ function loadStoredData() {
         plans: [] as CategoryPlan[],
         customExpenseCategories: [] as CategoryOption[],
         customIncomeCategories: [] as CategoryOption[],
-        recurringRules: [] as RecurringRule[]
+        recurringRules: [] as RecurringRule[],
+        deletedRecurringTxs: [] as string[]
       };
     }
 
@@ -137,7 +140,8 @@ function loadStoredData() {
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
       customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
-      recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[]
+      recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[],
+      deletedRecurringTxs: Array.isArray(parsed.deletedRecurringTxs) ? parsed.deletedRecurringTxs : [] as string[]
     };
   } catch {
     return { 
@@ -148,7 +152,8 @@ function loadStoredData() {
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
       customIncomeCategories: [] as CategoryOption[],
-      recurringRules: [] as RecurringRule[]
+      recurringRules: [] as RecurringRule[],
+      deletedRecurringTxs: [] as string[]
     };
   }
 }
@@ -161,12 +166,13 @@ function saveLocalStorage(
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
   customIncomeCategories: CategoryOption[],
-  recurringRules: RecurringRule[]
+  recurringRules: RecurringRule[],
+  deletedRecurringTxs: string[]
 ) {
   try {
     window.localStorage.setItem(
       STORAGE_KEY, 
-      JSON.stringify({ transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules })
+      JSON.stringify({ transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, deletedRecurringTxs })
     );
   } catch {
     // LocalStorage error fallback
@@ -181,7 +187,8 @@ function saveRemoteD1(
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
   customIncomeCategories: CategoryOption[],
-  recurringRules: RecurringRule[]
+  recurringRules: RecurringRule[],
+  deletedRecurringTxs: string[]
 ) {
   fetch("/api/data", {
     method: "POST",
@@ -196,7 +203,8 @@ function saveRemoteD1(
       plans,
       customExpenseCategories,
       customIncomeCategories,
-      recurringRules
+      recurringRules,
+      deletedRecurringTxs
     })
   }).catch(() => {
     // Ignore errors for offline fallback
@@ -229,6 +237,7 @@ export default function App() {
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
+  const [deletedRecurringTxs, setDeletedRecurringTxs] = useState<string[]>(storedData.deletedRecurringTxs || []);
   
   const allExpenseCategories = useMemo(() => [...expenseCategories, ...customExpenseCategories], [customExpenseCategories]);
   const allIncomeCategories = useMemo(() => [...incomeCategories, ...customIncomeCategories], [customIncomeCategories]);
@@ -267,20 +276,20 @@ export default function App() {
   // Sync state to LocalStorage and D1 (Debounced)
   useEffect(() => {
     // 1. LocalStorage is synced instantly for quick local cache recovery
-    saveLocalStorage(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
+    saveLocalStorage(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, deletedRecurringTxs);
 
     // If still fetching initial DB data, do NOT upload/overwrite database
     if (isLoading) return;
 
     // 2. Debounce D1 Database sync by 1 second (1000ms)
     const syncTimer = setTimeout(() => {
-      saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
+      saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, deletedRecurringTxs);
     }, 1000);
 
     return () => {
       clearTimeout(syncTimer);
     };
-  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, isLoading]);
+  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, deletedRecurringTxs, isLoading]);
 
   // Handle theme attribute
   useEffect(() => {
@@ -301,7 +310,8 @@ export default function App() {
             (Array.isArray(data.assets) && data.assets.length > 0) ||
             (Array.isArray(data.customExpenseCategories) && data.customExpenseCategories.length > 0) ||
             (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0) ||
-            (Array.isArray(data.recurringRules) && data.recurringRules.length > 0);
+            (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||
+            (Array.isArray(data.deletedRecurringTxs) && data.deletedRecurringTxs.length > 0);
 
           if (hasDbData) {
             // DB has data: DB data is absolute priority (force overwrite local/localstorage state)
@@ -312,6 +322,7 @@ export default function App() {
             setCustomExpenseCategories(data.customExpenseCategories || []);
             setCustomIncomeCategories(data.customIncomeCategories || []);
             setRecurringRules(data.recurringRules || []);
+            setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
@@ -323,9 +334,10 @@ export default function App() {
               assets.length > 0 ||
               customExpenseCategories.length > 0 ||
               customIncomeCategories.length > 0 ||
-              recurringRules.length > 0
+              recurringRules.length > 0 ||
+              deletedRecurringTxs.length > 0
             ) {
-              saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules);
+              saveRemoteD1(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories, recurringRules, deletedRecurringTxs);
             }
           }
         }
@@ -364,9 +376,10 @@ export default function App() {
         const dateKey = `${yr}-${moStr}`; // "YYYY-MM"
         const txId = `rec_${rule.id}_${dateKey}`;
 
-        // Check duplicate
+        // Check duplicate & deleted logs
         const exists = transactions.some((t) => t.id === txId);
-        if (!exists) {
+        const isDeleted = deletedRecurringTxs.includes(txId);
+        if (!exists && !isDeleted) {
           // Adjust day to prevent out of bounds (e.g. Feb 31 -> Feb 28)
           const lastDay = new Date(yr, mo, 0).getDate();
           const targetDay = Math.min(rule.day, lastDay);
@@ -394,7 +407,7 @@ export default function App() {
     if (newTxs.length > 0) {
       setTransactions((prev) => [...prev, ...newTxs]);
     }
-  }, [recurringRules, transactions, isLoading]);
+  }, [recurringRules, transactions, deletedRecurringTxs, isLoading]);
 
   // Sync calendar when selectedMonth changes
   useEffect(() => {
@@ -475,6 +488,9 @@ export default function App() {
 
   function handleDeleteTransaction(id: string) {
     setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+    if (id.startsWith('rec_')) {
+      setDeletedRecurringTxs((prev) => [...prev, id]);
+    }
   }
 
   function handleUpdateTransaction(updated: Transaction) {
@@ -515,6 +531,7 @@ export default function App() {
       setCustomExpenseCategories([]);
       setCustomIncomeCategories([]);
       setRecurringRules([]);
+      setDeletedRecurringTxs([]);
       setPlans([
         ...expenseCategories.map((c: CategoryOption) => ({ category: c.id, type: 'expense' as const, plannedAmount: 0 })),
         ...incomeCategories.map((c: CategoryOption) => ({ category: c.id, type: 'income' as const, plannedAmount: 0 }))
@@ -1765,15 +1782,6 @@ function UnifiedEntryForm({
         return;
       }
 
-      onAddTransaction({
-        id: createId(),
-        type: form.type,
-        date: form.date,
-        amount,
-        title: form.title.trim(),
-        category: form.category,
-      });
-
       if (isRecurring && onAddRecurringRule) {
         const day = Number(form.date.slice(8, 10)) || 1;
         const startMonth = form.date.slice(0, 7); // "YYYY-MM"
@@ -1786,6 +1794,15 @@ function UnifiedEntryForm({
           category: form.category,
           startMonth,
           endMonth: null
+        });
+      } else {
+        onAddTransaction({
+          id: createId(),
+          type: form.type,
+          date: form.date,
+          amount,
+          title: form.title.trim(),
+          category: form.category,
         });
       }
     }

@@ -9,13 +9,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const [txs, asts, plns, cats, sgs, rcRules] = await Promise.all([
+    const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
       db.prepare("SELECT * FROM transactions").all(),
       db.prepare("SELECT * FROM assets").all(),
       db.prepare("SELECT * FROM plans").all(),
       db.prepare("SELECT * FROM custom_categories").all(),
       db.prepare("SELECT * FROM settings").all(),
-      db.prepare("SELECT * FROM recurring_rules").all()
+      db.prepare("SELECT * FROM recurring_rules").all(),
+      db.prepare("SELECT * FROM deleted_recurring_txs").all()
     ]);
 
     // parse settings
@@ -32,7 +33,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label })),
       budget: Number(settingsMap['budget']) || 1000000,
       theme: settingsMap['theme'] || 'light',
-      recurringRules: rcRules.results || []
+      recurringRules: rcRules.results || [],
+      deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id)
     };
 
     return new Response(JSON.stringify(data), {
@@ -54,7 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const body: any = await context.request.json();
-    const { transactions, assets, plans, customExpenseCategories, customIncomeCategories, budget, theme, recurringRules } = body;
+    const { transactions, assets, plans, customExpenseCategories, customIncomeCategories, budget, theme, recurringRules, deletedRecurringTxs } = body;
 
     const statements: D1PreparedStatement[] = [];
 
@@ -65,6 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     statements.push(db.prepare("DELETE FROM custom_categories"));
     statements.push(db.prepare("DELETE FROM settings"));
     statements.push(db.prepare("DELETE FROM recurring_rules"));
+    statements.push(db.prepare("DELETE FROM deleted_recurring_txs"));
 
     // Insert transactions
     if (Array.isArray(transactions)) {
@@ -126,6 +129,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         statements.push(
           db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
             .bind(r.id, r.type, r.day, r.amount, r.title, r.category, r.startMonth, r.endMonth || null)
+        );
+      });
+    }
+
+    // Insert deleted recurring transaction IDs
+    if (Array.isArray(deletedRecurringTxs)) {
+      deletedRecurringTxs.forEach((id: string) => {
+        statements.push(
+          db.prepare("INSERT INTO deleted_recurring_txs (id) VALUES (?)")
+            .bind(id)
         );
       });
     }
