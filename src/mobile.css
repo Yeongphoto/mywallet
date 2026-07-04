@@ -152,6 +152,16 @@
     margin-bottom: 0;
   }
   
+  .app-header .header-title {
+    display: none !important;
+  }
+  
+  .app-header .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
   .app-header .header-brand {
     display: flex;
     gap: 8px;

@@ -511,28 +511,35 @@ export default function App() {
             </div>
           </div>
 
-          {/* 공통 월 선택 영역 */}
-          <div className="month-picker-wrap">
-            <div className="month-picker-display">
-              {selectedMonth.replace('-', '.')} 📅
-            </div>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
-          </div>
+          {/* PC 전용 헤더 좌측 타이틀 (선택 월에 연동, 모바일에서는 CSS로 숨김) */}
+          <h1 className="header-title">
+            {selectedMonth.replace('-', '.')} 재정 현황
+          </h1>
 
-          {/* 설정 바로가기 버튼 */}
-          <button
-            type="button"
-            className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('settings')}
-            title="환경 설정"
-          >
-            <span>⚙️</span>
-            <strong className="settings-text">설정</strong>
-          </button>
+          {/* 헤더 우측 액션 그룹 */}
+          <div className="header-actions">
+            {/* 공통 월 선택 영역 */}
+            <div className="month-picker-wrap">
+              <div className="month-picker-display">
+                {selectedMonth.replace('-', '.')} 📅
+              </div>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+              />
+            </div>
+
+            {/* 설정 바로가기 버튼 */}
+            <button
+              type="button"
+              className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+              title="환경 설정"
+            >
+              <span>⚙️</span>
+            </button>
+          </div>
         </header>
 
         {/* Dashboard Tab */}

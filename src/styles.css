@@ -247,6 +247,20 @@ button:active {
   display: none;
 }
 
+.app-header .header-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.app-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* Month Picker Overlay Styling */
 .month-picker-wrap {
   position: relative;
