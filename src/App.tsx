@@ -524,52 +524,9 @@ export default function App() {
               </article>
             </section>
 
-            {/* Budget Tracker */}
-            <section className="glass-panel">
-              <div className="panel-header">
-                <div>
-                  <p className="eyebrow">Monthly Budget</p>
-                  <h2>월간 예산 설정 및 현황</h2>
-                </div>
-                <label style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-                  예산 수정:
-                  <input
-                    type="number"
-                    style={{ width: '120px', minHeight: '34px', height: '34px' }}
-                    value={budget}
-                    onChange={(e) => setBudget(Number(e.target.value) || 0)}
-                  />
-                </label>
-              </div>
-              <div className="budget-tracker">
-                <div className="budget-info">
-                  <span>예산 진행률: <strong>{budgetPercent}%</strong></span>
-                  <span>
-                    지출: <strong>{formatCurrency(expenseTotal)}</strong> / 한도: {formatCurrency(budget)}
-                  </span>
-                  <span>
-                    {budgetRemaining >= 0
-                      ? `잔여 예산: ${formatCurrency(budgetRemaining)}`
-                      : `예산 초과: ${formatCurrency(Math.abs(budgetRemaining))}`}
-                  </span>
-                </div>
-                <div className="budget-progress-bar">
-                  <div
-                    className={`budget-progress-fill ${budgetTone}`}
-                    style={{ width: `${Math.min(budgetPercent, 100)}%` }}
-                  />
-                </div>
-              </div>
-            </section>
 
             {/* Flow Panel */}
             <section className="glass-panel flow-panel">
-              <div className="panel-header">
-                <div>
-                  <p className="eyebrow">Monthly Flow</p>
-                  <h2>수입 vs 지출 vs 자산 비중</h2>
-                </div>
-              </div>
               <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" />
               <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" />
               <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" />
