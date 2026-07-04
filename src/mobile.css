@@ -270,10 +270,44 @@
     font-size: 0.75rem;
   }
 
-  .plans-container,
   .compare-grid {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
+  }
+
+  .plans-container {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .plans-table th,
+  .plans-table td {
+    padding: 6px 2px !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .plans-table input[type="number"] {
+    width: 60px !important;
+    padding: 4px 6px !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+  }
+  
+  .add-category-bar {
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .add-category-bar select,
+  .add-category-bar input[type="text"] {
+    padding: 6px 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .add-category-bar button {
+    width: 100% !important;
+    min-height: 34px !important;
+    font-size: 0.8rem !important;
   }
   
   .calendar-value-badge {

@@ -87,7 +87,15 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
 
 function loadStoredData() {
   if (typeof window === 'undefined') {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
+    return { 
+      transactions: [] as Transaction[], 
+      assets: [] as AssetItem[], 
+      budget: 1000000, 
+      theme: 'light' as const, 
+      plans: [] as CategoryPlan[],
+      customExpenseCategories: [] as CategoryOption[],
+      customIncomeCategories: [] as CategoryOption[]
+    };
   }
 
   try {
@@ -102,9 +110,19 @@ function loadStoredData() {
           budget: 1000000,
           theme: 'light' as const,
           plans: [] as CategoryPlan[],
+          customExpenseCategories: [] as CategoryOption[],
+          customIncomeCategories: [] as CategoryOption[]
         };
       }
-      return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
+      return { 
+        transactions: [] as Transaction[], 
+        assets: [] as AssetItem[], 
+        budget: 1000000, 
+        theme: 'light' as const, 
+        plans: [] as CategoryPlan[],
+        customExpenseCategories: [] as CategoryOption[],
+        customIncomeCategories: [] as CategoryOption[]
+      };
     }
 
     const parsed = JSON.parse(rawData);
@@ -114,15 +132,36 @@ function loadStoredData() {
       budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
       theme: parsed.theme === 'dark' ? ('dark' as const) : ('light' as const),
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
+      customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
+      customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[]
     };
   } catch {
-    return { transactions: [] as Transaction[], assets: [] as AssetItem[], budget: 1000000, theme: 'light' as const, plans: [] as CategoryPlan[] };
+    return { 
+      transactions: [] as Transaction[], 
+      assets: [] as AssetItem[], 
+      budget: 1000000, 
+      theme: 'light' as const, 
+      plans: [] as CategoryPlan[],
+      customExpenseCategories: [] as CategoryOption[],
+      customIncomeCategories: [] as CategoryOption[]
+    };
   }
 }
 
-function saveStoredData(transactions: Transaction[], assets: AssetItem[], budget: number, theme: 'light' | 'dark', plans: CategoryPlan[]) {
+function saveStoredData(
+  transactions: Transaction[], 
+  assets: AssetItem[], 
+  budget: number, 
+  theme: 'light' | 'dark', 
+  plans: CategoryPlan[],
+  customExpenseCategories: CategoryOption[],
+  customIncomeCategories: CategoryOption[]
+) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ transactions, assets, budget, theme, plans }));
+    window.localStorage.setItem(
+      STORAGE_KEY, 
+      JSON.stringify({ transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories })
+    );
   } catch {
     // LocalStorage error fallback
   }
@@ -151,11 +190,19 @@ export default function App() {
   const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
+  const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
+  const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
+  
+  const allExpenseCategories = useMemo(() => [...expenseCategories, ...customExpenseCategories], [customExpenseCategories]);
+  const allIncomeCategories = useMemo(() => [...incomeCategories, ...customIncomeCategories], [customIncomeCategories]);
+
   const [plans, setPlans] = useState<CategoryPlan[]>(() => {
     const initialPlans: CategoryPlan[] = storedData.plans || [];
     const allCategories = [
-      ...expenseCategories.map(c => ({ category: c.id, type: 'expense' as const })),
-      ...incomeCategories.map(c => ({ category: c.id, type: 'income' as const }))
+      ...expenseCategories.map((c: CategoryOption) => ({ category: c.id, type: 'expense' as const })),
+      ...storedData.customExpenseCategories.map((c: CategoryOption) => ({ category: c.id, type: 'expense' as const })),
+      ...incomeCategories.map((c: CategoryOption) => ({ category: c.id, type: 'income' as const })),
+      ...storedData.customIncomeCategories.map((c: CategoryOption) => ({ category: c.id, type: 'income' as const }))
     ];
     return allCategories.map(item => {
       const existing = initialPlans.find(p => p.category === item.category && p.type === item.type);
@@ -180,8 +227,8 @@ export default function App() {
 
   // Sync state to localstorage
   useEffect(() => {
-    saveStoredData(transactions, assets, budget, theme, plans);
-  }, [transactions, assets, budget, theme, plans]);
+    saveStoredData(transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories);
+  }, [transactions, assets, budget, theme, plans, customExpenseCategories, customIncomeCategories]);
 
   // Handle theme attribute
   useEffect(() => {
@@ -287,9 +334,11 @@ export default function App() {
       setTransactions([]);
       setAssets([]);
       setBudget(1000000);
+      setCustomExpenseCategories([]);
+      setCustomIncomeCategories([]);
       setPlans([
-        ...expenseCategories.map(c => ({ category: c.id, type: 'expense' as const, plannedAmount: 0 })),
-        ...incomeCategories.map(c => ({ category: c.id, type: 'income' as const, plannedAmount: 0 }))
+        ...expenseCategories.map((c: CategoryOption) => ({ category: c.id, type: 'expense' as const, plannedAmount: 0 })),
+        ...incomeCategories.map((c: CategoryOption) => ({ category: c.id, type: 'income' as const, plannedAmount: 0 }))
       ]);
     }
   }
@@ -641,7 +690,7 @@ export default function App() {
                 <div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>주요 지출 카테고리별 현황</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {expenseCategories.slice(0, 5).map(c => {
+                    {allExpenseCategories.slice(0, 5).map((c: CategoryOption) => {
                       const plan = plans.find(p => p.category === c.id && p.type === 'expense');
                       const plannedAmt = plan ? plan.plannedAmount : 0;
                       const actualAmt = transactions
@@ -756,6 +805,8 @@ export default function App() {
             <UnifiedEntryForm
               onAddTransaction={handleAddTransaction}
               onAddAsset={handleAddAsset}
+              expenseCategories={allExpenseCategories}
+              incomeCategories={allIncomeCategories}
             />
           </section>
         )}
@@ -780,14 +831,14 @@ export default function App() {
                 <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                   <option value="all">모든 카테고리</option>
                   <optgroup label="지출 카테고리">
-                    {expenseCategories.map((c) => (
+                    {allExpenseCategories.map((c: CategoryOption) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="수입 카테고리">
-                    {incomeCategories.map((c) => (
+                    {allIncomeCategories.map((c: CategoryOption) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
@@ -804,6 +855,7 @@ export default function App() {
                 items={filteredLedgerTransactions.filter((t) => t.type === 'expense')}
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
+                categories={allExpenseCategories}
               />
               <TransactionListTable
                 title="수입 내역"
@@ -811,6 +863,7 @@ export default function App() {
                 items={filteredLedgerTransactions.filter((t) => t.type === 'income')}
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
+                categories={allIncomeCategories}
               />
             </div>
           </section>
@@ -855,11 +908,69 @@ export default function App() {
 
             {/* 계획(예산/수입 목표) 관리 장표 */}
             <section className="glass-panel">
-              <div className="panel-header">
+              <div className="panel-header" style={{ marginBottom: '12px' }}>
                 <div>
                   <p className="eyebrow">Category Plans</p>
-                  <h2>월간 수입 및 지출 계획 수립</h2>
+                  <h2>월간 계획</h2>
                 </div>
+              </div>
+
+              {/* 카테고리 등록 인라인 폼 */}
+              <div className="add-category-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '16px', background: 'var(--bg-balance-light)', borderRadius: '12px', border: '1px solid var(--border-card)', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>🏷️ 카테고리 등록:</span>
+                <select 
+                  id="new-cat-type" 
+                  defaultValue="expense"
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                >
+                  <option value="expense">🔴 지출 카테고리</option>
+                  <option value="income">🔵 수입 카테고리</option>
+                </select>
+                <input 
+                  type="text" 
+                  id="new-cat-name"
+                  placeholder="예: 데이트, 보너스"
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', flex: 1, minWidth: '150px', fontWeight: 'bold' }}
+                />
+                <button 
+                  type="button" 
+                  className="primary-button" 
+                  style={{ minHeight: '38px', padding: '0 16px', borderRadius: '8px', fontSize: '0.85rem' }}
+                  onClick={() => {
+                    const typeSelect = document.getElementById('new-cat-type') as HTMLSelectElement;
+                    const nameInput = document.getElementById('new-cat-name') as HTMLInputElement;
+                    const catName = nameInput.value.trim();
+                    if (!catName) {
+                      alert('카테고리명을 입력해주세요.');
+                      return;
+                    }
+                    const catType = typeSelect.value as 'expense' | 'income';
+                    const targetList = catType === 'expense' ? allExpenseCategories : allIncomeCategories;
+                    
+                    // 중복 검사
+                    if (targetList.some((c: CategoryOption) => c.label === catName)) {
+                      alert('이미 존재하는 카테고리입니다.');
+                      return;
+                    }
+
+                    const generatedId = `cat_${Date.now()}`;
+                    const newCategory = { id: generatedId, label: catName };
+
+                    if (catType === 'expense') {
+                      setCustomExpenseCategories(prev => [...prev, newCategory]);
+                    } else {
+                      setCustomIncomeCategories(prev => [...prev, newCategory]);
+                    }
+
+                    // plans 배열에도 기본 0원으로 등록
+                    setPlans(prev => [...prev, { category: generatedId, type: catType, plannedAmount: 0 }]);
+                    
+                    nameInput.value = '';
+                    alert(`'${catName}' 카테고리가 등록되었습니다.`);
+                  }}
+                >
+                  ➕ 카테고리 추가
+                </button>
               </div>
 
               <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '12px' }}>
@@ -876,7 +987,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {expenseCategories.map((c) => {
+                      {allExpenseCategories.map((c: CategoryOption) => {
                         const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
                         const value = plan ? plan.plannedAmount : 0;
                         return (
@@ -917,7 +1028,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {incomeCategories.map((c) => {
+                      {allIncomeCategories.map((c: CategoryOption) => {
                         const plan = plans.find((p) => p.category === c.id && p.type === 'income');
                         const value = plan ? plan.plannedAmount : 0;
                         return (
@@ -1146,6 +1257,8 @@ export default function App() {
                       setModalTab('view');
                     }}
                     isQuickAdd={true}
+                    expenseCategories={allExpenseCategories}
+                    incomeCategories={allIncomeCategories}
                   />
                 </div>
               )}
@@ -1231,14 +1344,15 @@ function TransactionListTable({
   items,
   onDelete,
   onEdit,
+  categories,
 }: {
   title: string;
   type: TransactionType;
   items: Transaction[];
   onDelete: (id: string) => void;
   onEdit: (t: Transaction) => void;
+  categories: CategoryOption[];
 }) {
-  const categories = type === 'expense' ? expenseCategories : incomeCategories;
 
   return (
     <section className="ledger-table-wrap">
@@ -1294,20 +1408,24 @@ function UnifiedEntryForm({
   onAddTransaction,
   onAddAsset,
   isQuickAdd = false,
+  expenseCategories,
+  incomeCategories,
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
   onAddAsset: (a: AssetItem) => void;
   isQuickAdd?: boolean;
+  expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
 
   // Update categories dynamically depending on selection
-  const activeCategories = useMemo(() => {
+  const activeCategories: CategoryOption[] = useMemo(() => {
     if (form.type === 'expense') return expenseCategories;
     if (form.type === 'income') return incomeCategories;
     return assetCategories;
-  }, [form.type]);
+  }, [form.type, expenseCategories, incomeCategories]);
 
   // Adjust default category when type changes
   function handleTypeChange(newType: EntryType) {
