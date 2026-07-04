@@ -107,7 +107,7 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: 100px 16px 100px 16px;
+    padding: 110px 16px 110px 16px !important;
   }
   
   /* Mobile Header Fixed Top Bar */

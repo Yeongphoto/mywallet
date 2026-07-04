@@ -222,22 +222,24 @@ button:active {
 
 /* Main Content */
 .content {
-  padding: 40px 48px;
+  padding: 96px 48px 40px 48px;
   overflow-y: auto;
 }
 
 /* App Header (Top bar) */
 .app-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 260px;
+  right: 0;
+  height: 56px;
   background-color: var(--bg-app);
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 12px 0;
+  padding: 0 48px;
   border-bottom: 1px solid var(--border-card);
-  margin-bottom: 24px;
-  z-index: 20;
+  z-index: 90;
 }
 
 /* PC View: Hide brand area in main top bar because sidebar already has it */
