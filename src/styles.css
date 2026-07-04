@@ -228,12 +228,16 @@ button:active {
 
 /* App Header (Top bar) */
 .app-header {
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-app);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 16px 0 24px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border-card);
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+  z-index: 20;
 }
 
 /* PC View: Hide brand area in main top bar because sidebar already has it */
@@ -248,10 +252,10 @@ button:active {
   align-items: center;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
-  border-radius: 12px;
-  padding: 10px 18px;
-  font-weight: 800;
-  font-size: 1.1rem;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
