@@ -455,10 +455,6 @@ export default function App() {
               <span>💼</span>
               <strong>자산 구성</strong>
             </a>
-            <a href="#settings" className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
-              <span>⚙️</span>
-              <strong>설정</strong>
-            </a>
           </nav>
         </div>
       </aside>
@@ -475,16 +471,30 @@ export default function App() {
             </div>
           </div>
 
-          {/* 공통 월 선택 영역 */}
-          <div className="month-picker-wrap">
-            <div className="month-picker-display">
-              {selectedMonth.replace('-', '.')} 📅
+          {/* 헤더 우측 액션 그룹 */}
+          <div className="header-actions">
+            {/* 공통 월 선택 영역 */}
+            <div className="month-picker-wrap">
+              <div className="month-picker-display">
+                {selectedMonth.replace('-', '.')} 📅
+              </div>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+              />
             </div>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
+
+            {/* 설정 바로가기 버튼 */}
+            <button
+              type="button"
+              className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+              title="환경 설정"
+            >
+              <span>⚙️</span>
+              <strong className="settings-text">설정</strong>
+            </button>
           </div>
         </header>
 

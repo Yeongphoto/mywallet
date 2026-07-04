@@ -288,6 +288,43 @@ button:active {
   pointer-events: none;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-settings-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 35px; /* 날짜선택기와 동등한 미니멀 높이 */
+}
+
+.header-settings-btn:hover {
+  border-color: var(--primary);
+  background: var(--bg-balance-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.header-settings-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+}
+
 .eyebrow {
   margin: 0;
   color: var(--primary);

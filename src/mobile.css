@@ -174,15 +174,34 @@
     color: #fff;
   }
   
+  .app-header .header-settings-btn {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    min-height: 37px;
+  }
+  
+  .app-header .header-settings-btn .settings-text {
+    display: none; /* 모바일에서는 ⚙️ 아이콘만 노출해 공간 절약 */
+  }
+  
+  .app-header .header-settings-btn span {
+    font-size: 1.05rem;
+  }
+  
+  .app-header .header-settings-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+  
   .asset-form {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .content {
-    padding: 20px 16px 100px 16px;
-  }
+
   
   .hero {
     flex-direction: column;
