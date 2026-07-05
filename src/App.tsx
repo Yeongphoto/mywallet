@@ -2274,16 +2274,6 @@ function TransactionListTable({
                   <td><CategoryBadge categories={categories} idOrLabel={transaction.category} /></td>
                   <td>
                     <div className="actions-cell">
-                      {transaction.id.startsWith('rec_') && onStopRecurring && (
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0, border: '1px solid var(--primary)', color: 'var(--primary)', background: 'transparent' }}
-                          onClick={() => onStopRecurring(transaction.id)}
-                        >
-                          반복 해제
-                        </button>
-                      )}
                       <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
                         수정
                       </button>
