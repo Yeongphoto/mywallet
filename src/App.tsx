@@ -1912,7 +1912,7 @@ export default function App() {
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <span>💼</span> 자산 목록
                 </h3>
-                <div className="asset-table-list" style={{ display: 'grid', gap: '6px' }}>
+                <div className="asset-table-list" style={{ display: 'grid', gap: '0px' }}>
                   {assets.length === 0 ? (
                     <p className="empty-note" style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-secondary)' }}>
                       등록된 자산 항목이 없습니다. 우측 상단의 [자산 등록] 단추를 통해 자산을 추가해보세요.
@@ -1920,6 +1920,27 @@ export default function App() {
                   ) : (
                     assets.map((asset, index) => {
                       const isDragging = draggedAssetIndex === index;
+                      const isFirst = index === 0;
+                      const isLast = index === assets.length - 1;
+
+                      // 테두리 겹침 방지 및 둥글기 동적 계산
+                      const baseRowStyle: React.CSSProperties = {
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        transition: 'all 0.15s ease',
+                        boxSizing: 'border-box',
+                        height: '43px',
+                        borderLeft: '1px solid var(--border-card)',
+                        borderRight: '1px solid var(--border-card)',
+                        borderBottom: '1px solid var(--border-card)',
+                        borderTop: isFirst ? '1px solid var(--border-card)' : 'none',
+                        borderTopLeftRadius: isFirst ? '8px' : '0px',
+                        borderTopRightRadius: isFirst ? '8px' : '0px',
+                        borderBottomLeftRadius: isLast ? '8px' : '0px',
+                        borderBottomRightRadius: isLast ? '8px' : '0px',
+                      };
                       
                       if (isDragging) {
                         return (
@@ -1930,12 +1951,13 @@ export default function App() {
                             onDragEnd={handleAssetDragEnd}
                             onDrop={handleAssetDrop}
                             style={{
-                              height: '40px',
-                              border: '2px dashed var(--primary)',
-                              borderRadius: '8px',
+                              ...baseRowStyle,
+                              borderStyle: 'dashed',
+                              borderWidth: '2px',
+                              borderColor: 'var(--primary)',
+                              borderTop: isFirst ? '2px dashed var(--primary)' : 'none',
                               background: 'var(--bg-balance-light)',
                               opacity: 0.6,
-                              transition: 'all 0.15s ease',
                             }}
                           />
                         );
@@ -1952,17 +1974,9 @@ export default function App() {
                           onDrop={handleAssetDrop}
                           className="glass-panel"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
+                            ...baseRowStyle,
                             cursor: 'grab',
-                            transition: 'all 0.15s ease',
                             background: 'var(--bg-card)',
-                            borderColor: 'var(--border-card)',
-                            borderStyle: 'solid',
-                            borderWidth: '1px',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
