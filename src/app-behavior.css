@@ -168,30 +168,50 @@ textarea {
     gap: 14px !important;
   }
 
-  .content:has(.plans-container) .plans-container > *,
-  .content:has(.plans-container) .plans-container .category-table-card {
+  .content:has(.plans-container) .plans-container > * {
     width: 100% !important;
     min-width: 0 !important;
   }
 
+  .content:has(.plans-container) .glass-panel:has(> h3 + div > .category-table-card) {
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .content:has(.plans-container) .glass-panel:has(> h3 + div > .category-table-card) > h3 {
+    margin-bottom: 12px !important;
+    padding-bottom: 10px !important;
+    font-size: 1.12rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .content:has(.plans-container) .glass-panel:has(> h3 + div > .category-table-card) > div:has(> .category-table-card) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-top: 12px !important;
+  }
+
   .content:has(.plans-container) .category-table-card {
-    border-radius: 20px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 18px !important;
     overflow: hidden !important;
   }
 
   .content:has(.plans-container) .category-table-head {
-    padding: 14px 16px !important;
+    padding: 12px 14px !important;
     gap: 8px !important;
     align-items: center !important;
   }
 
   .content:has(.plans-container) .category-table-head strong {
-    font-size: 1rem !important;
+    font-size: 0.96rem !important;
     line-height: 1.25 !important;
   }
 
   .content:has(.plans-container) .category-table-head b {
-    font-size: 0.88rem !important;
+    font-size: 0.84rem !important;
   }
 
   .content:has(.plans-container) .category-table {
@@ -200,28 +220,35 @@ textarea {
 
   .content:has(.plans-container) .category-table .category-row {
     display: grid !important;
-    grid-template-columns: 28px 34px minmax(0, 1fr) 54px !important;
+    grid-template-columns: 26px 36px minmax(0, 1fr) 50px !important;
     gap: 8px !important;
     align-items: center !important;
-    min-height: 52px !important;
+    min-height: 50px !important;
     padding: 8px !important;
     border-radius: 14px !important;
   }
 
   .content:has(.plans-container) .category-table .category-row .category-drag-handle {
-    width: 28px !important;
+    width: 26px !important;
     height: 36px !important;
     display: grid !important;
     place-items: center !important;
     margin: 0 !important;
   }
 
-  .content:has(.plans-container) .category-table .category-row .category-color-menu,
-  .content:has(.plans-container) .category-table .category-row .category-color-picker,
-  .content:has(.plans-container) .category-table .category-row .category-color-swatch {
-    width: 34px !important;
-    height: 34px !important;
+  .content:has(.plans-container) .category-table .category-row .category-color-menu {
+    width: 36px !important;
+    height: 36px !important;
     margin: 0 !important;
+    position: relative !important;
+  }
+
+  .content:has(.plans-container) .category-table .category-row .category-color-swatch {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    border-radius: 999px !important;
   }
 
   .content:has(.plans-container) .category-table .category-row .category-row-main {
@@ -230,15 +257,20 @@ textarea {
 
   .content:has(.plans-container) .category-table .category-row .category-row-main > * {
     max-width: 100% !important;
+    min-height: 34px !important;
+    padding: 4px 10px !important;
+    font-size: 0.82rem !important;
+    line-height: 1.15 !important;
     white-space: nowrap !important;
   }
 
   .content:has(.plans-container) .category-table .category-row-action {
     justify-self: end !important;
-    min-width: 48px !important;
+    min-width: 46px !important;
     min-height: 36px !important;
-    padding: 0 8px !important;
+    padding: 0 6px !important;
     font-size: 0.78rem !important;
+    line-height: 1.1 !important;
   }
 }
 
@@ -270,11 +302,11 @@ textarea {
   }
 
   .content:has(.plans-container) .category-table .category-row {
-    grid-template-columns: 24px 30px minmax(0, 1fr) 50px !important;
+    grid-template-columns: 24px 34px minmax(0, 1fr) 48px !important;
     gap: 6px !important;
   }
 
   .content:has(.plans-container) .category-table-head strong {
-    font-size: 0.94rem !important;
+    font-size: 0.9rem !important;
   }
 }
