@@ -2133,7 +2133,7 @@ export default function App() {
                 
                 {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
                 <div style={{ width: '100%', marginTop: '16px' }}>
-                  <article className="category-table-card" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🏷️ 등록된 자산 카테고리</strong>
                       <b>{activeAssetCategories.length}개</b>
@@ -2334,10 +2334,10 @@ export default function App() {
               </h3>
               
               {/* 지출 및 수입 카테고리 목록 표시 (2열 구성) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
+                <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
                   
                   {/* 지출 카테고리 목록 */}
-                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-plan" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🔴 지출 카테고리 목록</strong>
                       <b>{activeExpenseCategories.length}개</b>
@@ -2429,7 +2429,7 @@ export default function App() {
                   </article>
 
                   {/* 수입 카테고리 목록 */}
-                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-plan" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🔵 수입 카테고리 목록</strong>
                       <b>{activeIncomeCategories.length}개</b>

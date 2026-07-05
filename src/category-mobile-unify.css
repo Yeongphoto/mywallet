@@ -1,7 +1,13 @@
-/* Mobile category lists: unify asset and plan settings to the asset-list density. */
+/* Mobile managed category lists: keep asset and plan category rows identical. */
 @media (max-width: 992px) {
-  .content:has(.asset-accordion-group) .category-table-card,
-  .content:has(.plans-container) .category-table-card {
+  .managed-category-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    margin-top: 12px !important;
+  }
+
+  .managed-category-card {
     width: 100% !important;
     min-width: 0 !important;
     border-radius: 18px !important;
@@ -9,14 +15,18 @@
     box-shadow: none !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table,
-  .content:has(.plans-container) .category-table {
+  .managed-category-card .category-table-head {
+    min-height: 48px !important;
+    padding: 12px 14px !important;
+    align-items: center !important;
+  }
+
+  .managed-category-card .category-table {
     display: grid !important;
     padding: 6px 0 !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-row,
-  .content:has(.plans-container) .category-table .category-row {
+  .managed-category-card .category-row {
     display: grid !important;
     grid-template-columns: 28px 42px minmax(0, 1fr) 54px !important;
     gap: 8px !important;
@@ -28,14 +38,12 @@
     box-sizing: border-box !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-row.dragging,
-  .content:has(.plans-container) .category-table .category-row.dragging {
+  .managed-category-card .category-row.dragging {
     background: rgba(2, 132, 199, 0.06) !important;
     border-radius: 14px !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-drag-handle,
-  .content:has(.plans-container) .category-table .category-drag-handle {
+  .managed-category-card .category-drag-handle {
     grid-column: 1 !important;
     width: 28px !important;
     height: 38px !important;
@@ -47,9 +55,9 @@
     touch-action: none !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-color-menu,
-  .content:has(.plans-container) .category-table .category-color-menu {
+  .managed-category-card .category-color-menu {
     grid-column: 2 !important;
+    position: relative !important;
     width: 42px !important;
     min-width: 42px !important;
     height: 42px !important;
@@ -58,10 +66,8 @@
     place-items: center !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-color-swatch,
-  .content:has(.plans-container) .category-table .category-color-swatch,
-  .content:has(.asset-accordion-group) .category-table .category-color-menu > button,
-  .content:has(.plans-container) .category-table .category-color-menu > button {
+  .managed-category-card .category-color-swatch,
+  .managed-category-card .category-color-menu > button {
     width: 34px !important;
     min-width: 34px !important;
     max-width: 34px !important;
@@ -73,18 +79,19 @@
     box-sizing: border-box !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-row-main,
-  .content:has(.plans-container) .category-table .category-row-main {
+  .managed-category-card .category-row-main {
     grid-column: 3 !important;
     min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-row-main > *,
-  .content:has(.plans-container) .category-table .category-row-main > * {
+  .managed-category-card .category-row-main > span {
+    display: inline-flex !important;
+    align-items: center !important;
     height: 34px !important;
     min-height: 34px !important;
+    max-height: 34px !important;
     padding: 4px 10px !important;
     border-radius: 10px !important;
     font-size: 0.82rem !important;
@@ -93,8 +100,7 @@
     box-sizing: border-box !important;
   }
 
-  .content:has(.asset-accordion-group) .category-table .category-row-action,
-  .content:has(.plans-container) .category-table .category-row-action {
+  .managed-category-card .category-row-action {
     grid-column: 4 !important;
     justify-self: end !important;
     min-width: 46px !important;
@@ -103,5 +109,69 @@
     font-size: 0.78rem !important;
     line-height: 1.1 !important;
     border-radius: 10px !important;
+  }
+
+  .managed-category-card .category-palette-popover {
+    left: -46px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .content:has(.plans-container) .managed-category-card .category-table .category-row,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row,
+  .content .managed-category-card .category-row {
+    grid-template-columns: 28px 42px minmax(0, 1fr) 54px !important;
+    gap: 8px !important;
+    min-height: 58px !important;
+    padding: 8px 14px !important;
+    border-radius: 0 !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-drag-handle,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-drag-handle,
+  .content .managed-category-card .category-drag-handle {
+    width: 28px !important;
+    height: 38px !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-color-menu,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-color-menu,
+  .content .managed-category-card .category-color-menu {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-color-swatch,
+  .content:has(.plans-container) .managed-category-card .category-table .category-color-menu > button,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-color-swatch,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-color-menu > button,
+  .content .managed-category-card .category-color-swatch,
+  .content .managed-category-card .category-color-menu > button {
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-row-main > span,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row-main > span,
+  .content .managed-category-card .category-row-main > span {
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    padding: 4px 10px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-row-action,
+  .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row-action,
+  .content .managed-category-card .category-row-action {
+    min-width: 46px !important;
+    min-height: 34px !important;
+    padding: 0 6px !important;
+    font-size: 0.78rem !important;
   }
 }
