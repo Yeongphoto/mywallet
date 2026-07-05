@@ -506,6 +506,7 @@ export default function App() {
   const [planCatLabel, setPlanCatLabel] = useState('');
   const [planCatColor, setPlanCatColor] = useState('#ef4444');
   const [planCatType, setPlanCatType] = useState<CategoryScope>('expense');
+  const [categoryModalType, setCategoryModalType] = useState<CategoryScope>('expense');
   const [assetSection, setAssetSection] = useState({ showAsset: true, showPlan: false, showRecurring: false });
   const [openPaletteKey, setOpenPaletteKey] = useState<string | null>(null);
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
@@ -2092,53 +2093,6 @@ export default function App() {
                   <span>🏷️</span> 자산 카테고리 설정
                 </h3>
                 
-                {/* 등록 모달과 동일한 디자인의 폼 */}
-                <form
-                  style={{
-                    display: 'grid',
-                    gap: '16px',
-                    background: 'var(--bg-balance-light)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-card)',
-                    marginBottom: '20px'
-                  }}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleAddAssetCategory(assetCatLabel, assetCatColor);
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>카테고리 이름</label>
-                      <input
-                        type="text"
-                        value={assetCatLabel}
-                        onChange={(e) => setAssetCatLabel(e.target.value)}
-                        placeholder="예: 예금, 적금, 주식 등"
-                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <div style={{ width: '100px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>전용 색상</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
-                        <label className="category-color-field" style={{ margin: 0, cursor: 'pointer', display: 'block' }}>
-                          <span style={{ display: 'block', width: '36px', height: '36px', borderRadius: '8px', background: assetCatColor, border: '1px solid var(--border-card)' }} />
-                          <input
-                            type="color"
-                            value={assetCatColor}
-                            onChange={(e) => setAssetCatColor(e.target.value)}
-                            style={{ display: 'none' }}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                    <button type="submit" className="primary-button" style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      등록
-                    </button>
-                  </div>
-                </form>
-
                 {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
                 <div className="category-card-grid" style={{ display: 'grid', gap: '16px', marginTop: '16px' }}>
                   <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
@@ -2341,65 +2295,7 @@ export default function App() {
                 <span>🏷️</span> 지출/수입 카테고리 설정
               </h3>
               
-              {/* 등록 모달과 동일한 디자인의 폼 */}
-              <form
-                style={{
-                  display: 'grid',
-                  gap: '16px',
-                  background: 'var(--bg-balance-light)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-card)',
-                  marginBottom: '20px'
-                }}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleAddPlanCategory(planCatLabel, planCatColor, planCatType);
-                }}
-              >
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <div style={{ width: '120px' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>분류</label>
-                    <select
-                      value={planCatType}
-                      onChange={(e) => setPlanCatType(e.target.value as CategoryScope)}
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
-                    >
-                      <option value="expense">지출 🔴</option>
-                      <option value="income">수입 🔵</option>
-                    </select>
-                  </div>
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>카테고리 이름</label>
-                    <input
-                      type="text"
-                      value={planCatLabel}
-                      onChange={(e) => setPlanCatLabel(e.target.value)}
-                      placeholder="예: 식비, 교통비, 급여 등"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div style={{ width: '100px' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>전용 색상</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
-                      <label className="category-color-field" style={{ margin: 0, cursor: 'pointer', display: 'block' }}>
-                        <span style={{ display: 'block', width: '36px', height: '36px', borderRadius: '8px', background: planCatColor, border: '1px solid var(--border-card)' }} />
-                        <input
-                          type="color"
-                          value={planCatColor}
-                          onChange={(e) => setPlanCatColor(e.target.value)}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <button type="submit" className="primary-button" style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    등록
-                    </button>
-                  </div>
-                </form>
-
-                {/* 지출 및 수입 카테고리 목록 표시 (2열 구성) */}
+              {/* 지출 및 수입 카테고리 목록 표시 (2열 구성) */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
                   
                   {/* 지출 카테고리 목록 */}
@@ -2888,10 +2784,8 @@ export default function App() {
             </div>
             <form onSubmit={(e) => {
               e.preventDefault();
-              const typeSelect = e.currentTarget.elements.namedItem('cat-type') as HTMLSelectElement;
               const nameInput = e.currentTarget.elements.namedItem('cat-name') as HTMLInputElement;
-              
-              const catType = typeSelect.value as 'expense' | 'income' | 'asset';
+              const catType = categoryModalType;
               const catName = nameInput.value.trim();
 
               if (!catName) {
@@ -2931,6 +2825,8 @@ export default function App() {
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>카테고리 유형</label>
                 <select 
                   name="cat-type"
+                  value={categoryModalType}
+                  onChange={(e) => setCategoryModalType(e.target.value as CategoryScope)}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 >
                   <option value="expense">지출 🔴</option>
@@ -3075,24 +2971,53 @@ export default function App() {
 
       {/* 4대 코어 탭 하단 고정 등록바 */}
       {(activeTab === 'asset' || activeTab === 'plan' || activeTab === 'calendar' || activeTab === 'ledger') && (
-        <div className="fixed-bottom-bar">
+        <div className="fixed-bottom-bar" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
           {activeTab === 'asset' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => setIsAssetModalOpen(true)}
-            >
-              <span>+</span> 자산 등록
-            </button>
+            <>
+              <button
+                type="button"
+                className="primary-button fixed-bottom-bar-btn"
+                onClick={() => setIsAssetModalOpen(true)}
+              >
+                <span>+</span> 자산 등록
+              </button>
+              <button
+                type="button"
+                className="secondary-button fixed-bottom-bar-btn"
+                style={{ background: 'var(--bg-balance-light)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
+                onClick={() => {
+                  setCategoryModalType('asset');
+                  setIsCategoryModalOpen(true);
+                }}
+              >
+                <span>+</span> 카테고리 등록
+              </button>
+            </>
           )}
           {activeTab === 'plan' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => setIsCategoryModalOpen(true)}
-            >
-              <span>+</span> 카테고리 등록
-            </button>
+            <>
+              <button
+                type="button"
+                className="primary-button fixed-bottom-bar-btn"
+                onClick={() => {
+                  setIsEntryModalOpen(true);
+                  setModalTab('add');
+                }}
+              >
+                <span>+</span> 거래 등록
+              </button>
+              <button
+                type="button"
+                className="secondary-button fixed-bottom-bar-btn"
+                style={{ background: 'var(--bg-balance-light)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
+                onClick={() => {
+                  setCategoryModalType('expense');
+                  setIsCategoryModalOpen(true);
+                }}
+              >
+                <span>+</span> 카테고리 등록
+              </button>
+            </>
           )}
           {activeTab === 'calendar' && (
             <button
