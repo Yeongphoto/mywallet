@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { preloadD1Cache } from './d1-cache-preload';
+import { registerPwaServiceWorker } from './pwa-register';
 import './asset-save-guard';
 import './app-behavior';
 import './asset-drag-fix';
@@ -23,6 +24,7 @@ if (!rootElement) {
 
 async function bootstrap() {
   await preloadD1Cache();
+  registerPwaServiceWorker();
 
   createRoot(rootElement).render(
     <StrictMode>
