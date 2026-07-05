@@ -1,0 +1,27 @@
+/* App-like mobile behavior */
+html {
+  min-height: 100%;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100%;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  font-size: max(16px, 0.95rem);
+}
