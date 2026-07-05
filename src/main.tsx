@@ -25,11 +25,13 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
+const appRootElement = rootElement;
+
 async function bootstrap() {
   await preloadD1Cache();
   registerPwaServiceWorker();
 
-  createRoot(rootElement).render(
+  createRoot(appRootElement).render(
     <StrictMode>
       <App />
     </StrictMode>,

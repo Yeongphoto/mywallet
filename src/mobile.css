@@ -290,6 +290,52 @@
     padding: 18px !important;
   }
 
+  .modal-backdrop {
+    padding: 14px !important;
+    align-items: center !important;
+  }
+
+  .modal-content {
+    max-height: min(84dvh, calc(100dvh - 28px)) !important;
+    border-radius: 24px !important;
+  }
+
+  .modal-header {
+    padding: 18px 20px !important;
+  }
+
+  .modal-header h3 {
+    font-size: 1.08rem !important;
+  }
+
+  .modal-body {
+    padding: 18px 20px !important;
+    max-height: 68dvh !important;
+  }
+
+  .modal-content form {
+    gap: 14px !important;
+  }
+
+  .modal-content .form-grid {
+    gap: 12px !important;
+  }
+
+  .modal-content .form-grid label:not(.recurring-toggle),
+  .modal-content .form-group {
+    min-height: 56px;
+    padding: 7px 13px 8px !important;
+    border-radius: 15px;
+  }
+
+  .modal-content .form-grid label:not(.recurring-toggle) > input,
+  .modal-content .form-grid label:not(.recurring-toggle) > select,
+  .modal-content .form-group > input,
+  .modal-content .form-group > select {
+    min-height: 28px !important;
+    font-size: 1rem !important;
+  }
+
   .tab-title-bar,
   .panel-header,
   .calendar-control,

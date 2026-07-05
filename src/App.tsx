@@ -3003,7 +3003,7 @@ export default function App() {
                     style={{ 
                       width: '340px', 
                       height: 'auto', 
-                      maxHeight: '340px',
+                      maxHeight: 'min(78dvh, 480px)',
                       padding: '20px', 
                       boxSizing: 'border-box',
                       zIndex: 1110,
