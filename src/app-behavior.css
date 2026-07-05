@@ -95,29 +95,21 @@ textarea,
 }
 
 .touch-sort-placeholder {
-  height: 12px !important;
-  min-height: 12px !important;
-  margin: 2px 0 !important;
-  border: 0 !important;
-  border-radius: 999px !important;
+  min-height: 52px !important;
+  margin: 4px 0 !important;
+  border: 2px dashed rgba(2, 132, 199, 0.58) !important;
+  border-radius: 14px !important;
   background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(2, 132, 199, 0.76) 0 10px,
-      transparent 10px 16px
-    ) center / 100% 2px no-repeat,
-    linear-gradient(90deg, rgba(2, 132, 199, 0.08), rgba(16, 185, 129, 0.08)) !important;
+    linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(16, 185, 129, 0.07)) !important;
   box-sizing: border-box !important;
 }
 
 .asset-table-list .touch-sort-placeholder {
-  height: 12px !important;
-  min-height: 12px !important;
+  min-height: 58px !important;
 }
 
 .managed-category-card .touch-sort-placeholder {
-  height: 12px !important;
-  min-height: 12px !important;
+  min-height: 58px !important;
   margin: 2px 14px !important;
 }
 
