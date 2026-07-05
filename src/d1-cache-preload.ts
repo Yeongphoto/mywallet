@@ -1,4 +1,6 @@
 const D1_CACHE_STORAGE_KEY = 'mywallet:v2';
+const D1_CACHE_BACKUP_KEY = 'mywallet:v2:pre-d1-backup';
+const D1_CACHE_BACKUP_PREFIX = 'mywallet:v2:backup:';
 
 type WalletPayload = {
   transactions?: unknown[];
@@ -32,6 +34,27 @@ function hasRemoteWalletData(data: WalletPayload) {
   );
 }
 
+function hasLocalWalletData(raw: string | null) {
+  if (!raw) return false;
+  try {
+    const data = JSON.parse(raw) as WalletPayload;
+    return hasRemoteWalletData(data);
+  } catch {
+    return false;
+  }
+}
+
+function backupCurrentLocalCache() {
+  const current = window.localStorage.getItem(D1_CACHE_STORAGE_KEY);
+  if (!hasLocalWalletData(current)) return;
+
+  const previousBackup = window.localStorage.getItem(D1_CACHE_BACKUP_KEY);
+  if (previousBackup !== current) {
+    window.localStorage.setItem(D1_CACHE_BACKUP_KEY, current!);
+    window.localStorage.setItem(`${D1_CACHE_BACKUP_PREFIX}${Date.now()}`, current!);
+  }
+}
+
 export async function preloadD1Cache() {
   if (typeof window === 'undefined') return;
 
@@ -49,6 +72,7 @@ export async function preloadD1Cache() {
     const data = await response.json() as WalletPayload;
     if (!data || data.error || !hasRemoteWalletData(data)) return;
 
+    backupCurrentLocalCache();
     window.localStorage.setItem(D1_CACHE_STORAGE_KEY, JSON.stringify(data));
     window.dispatchEvent(new CustomEvent('mywallet:d1-cache-preloaded', { detail: data }));
   } catch {
