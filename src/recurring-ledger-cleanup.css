@@ -1,0 +1,93 @@
+/* Recurring ledger cleanup
+   Recurring rules auto-create monthly transactions, so the manual transaction button is hidden. */
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table thead th:first-child,
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:first-child {
+  display: none !important;
+}
+
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:last-child .primary-button {
+  display: none !important;
+}
+
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:last-child > div {
+  gap: 8px !important;
+}
+
+@media (max-width: 992px) {
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tr {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "day title amount"
+      "category category actions" !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(1) {
+    display: none !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(2) {
+    grid-area: day !important;
+    font-size: 0.82rem !important;
+    font-weight: 850 !important;
+    color: var(--text-secondary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(3) {
+    grid-area: category !important;
+    justify-self: start !important;
+    align-self: center !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(4) {
+    grid-area: title !important;
+    min-width: 0 !important;
+    font-size: 0.95rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(5) {
+    grid-area: amount !important;
+    justify-self: end !important;
+    text-align: right !important;
+    font-size: 0.95rem !important;
+    font-weight: 900 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) {
+    grid-area: actions !important;
+    justify-self: end !important;
+    align-self: center !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) > div {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) .delete-btn-sm {
+    min-width: 48px !important;
+    min-height: 34px !important;
+    padding: 4px 9px !important;
+    border-radius: 10px !important;
+    font-size: 0.72rem !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tr {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    gap: 5px 7px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(4),
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(5) {
+    font-size: 0.88rem !important;
+  }
+}
