@@ -1,17 +1,17 @@
 :root {
   /* Light Theme Variables */
-  --bg-app: #f4f6fa;
+  --bg-app: #f5f7fb;
   --bg-sidebar: #0f172a;
-  --bg-card: rgba(255, 255, 255, 0.85);
-  --border-card: rgba(255, 255, 255, 0.4);
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --border-card: rgba(148, 163, 184, 0.22);
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --border-input: #e2e8f0;
   --bg-input: #ffffff;
   
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
-  --primary-rgb: 2, 132, 199;
+  --primary: #0b8ec7;
+  --primary-hover: #0675a7;
+  --primary-rgb: 11, 142, 199;
   
   --color-expense: #ef4444;
   --color-income: #3b82f6;
@@ -25,14 +25,14 @@
   --bg-balance-light: #f8fafc;
   --bg-budget-light: #fffbeb;
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 14px 34px rgba(15, 23, 42, 0.08);
+  --shadow-xl: 0 24px 54px rgba(15, 23, 42, 0.12);
   
-  --glass-bg: rgba(255, 255, 255, 0.65);
-  --glass-blur: blur(16px);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-blur: blur(18px);
+  --glass-border: rgba(148, 163, 184, 0.18);
   --fab-right: 34px;
   --fab-bottom: 34px;
   --fab-gap: 10px;
@@ -1866,16 +1866,16 @@ textarea:focus {
   left: 260px;
   right: 0;
   height: 70px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border-card);
+  background: rgba(248, 250, 252, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding: 0 32px;
   z-index: 90;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 -12px 34px rgba(15, 23, 42, 0.08);
 }
 
 .fixed-bottom-bar-btn {
@@ -1887,15 +1887,15 @@ textarea:focus {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3) !important;
-  border: none !important;
+  box-shadow: 0 8px 18px rgba(var(--primary-rgb), 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
 }
 
 .fixed-bottom-bar-btn:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45) !important;
+  box-shadow: 0 10px 24px rgba(var(--primary-rgb), 0.28) !important;
 }
 
 /* 다크모드 대응 고정 하단바 */

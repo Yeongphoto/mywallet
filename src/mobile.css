@@ -262,7 +262,9 @@
     padding: 0 16px !important;
     height: 60px !important;
     justify-content: flex-end !important; /* 우측 정렬로 전환하여 엄지손가락 클릭 편의성 극대화 */
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
+    background: rgba(248, 250, 252, 0.9) !important;
+    border-top: 1px solid rgba(148, 163, 184, 0.18) !important;
+    box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.1) !important;
   }
 
   .fixed-bottom-bar-btn {
@@ -320,7 +322,7 @@
   .calendar-grid {
     width: 100%;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 6px;
+    gap: 4px;
   }
 
   .calendar-day-name {
@@ -356,8 +358,8 @@
   
   .calendar-cell {
     min-width: 0;
-    padding: 5px;
-    border-radius: 4px;
+    padding: 5px 6px;
+    border-radius: 5px;
   }
   
   .calendar-cell .date-number {
