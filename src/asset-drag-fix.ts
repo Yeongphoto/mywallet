@@ -57,7 +57,7 @@ function prepareAssetRows() {
       handle.setAttribute('role', 'button');
       handle.setAttribute('aria-label', '자산 순서 이동');
       handle.style.cursor = 'grab';
-      handle.style.touchAction = 'none';
+      handle.style.touchAction = 'pan-y';
       handle.style.setProperty('-webkit-user-drag', 'element');
     });
   });

@@ -41,6 +41,8 @@ let pendingTouchSort: PendingTouchSort | null = null;
 let touchSortSaving = false;
 const TOUCH_SORT_DELAY = 170;
 const TOUCH_SORT_CANCEL_DISTANCE = 9;
+const HANDLE_HIT_WIDTH = 18;
+const HANDLE_HIT_HEIGHT = 28;
 
 function readWalletData(): WalletData | null {
   try {
@@ -172,6 +174,14 @@ function getSortableFromHandle(handle: HTMLElement) {
   return null;
 }
 
+function isPreciseHandleHit(event: PointerEvent, handle: HTMLElement) {
+  const rect = handle.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return Math.abs(event.clientX - centerX) <= HANDLE_HIT_WIDTH / 2
+    && Math.abs(event.clientY - centerY) <= HANDLE_HIT_HEIGHT / 2;
+}
+
 function activateTouchSort(pending: PendingTouchSort) {
   if (touchSortState || pendingTouchSort !== pending) return;
 
@@ -213,6 +223,7 @@ function queueTouchSort(event: PointerEvent) {
   if (event.button !== 0) return;
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>('.category-drag-handle, .asset-drag-handle');
   if (!handle) return;
+  if (!isPreciseHandleHit(event, handle)) return;
 
   const sortable = getSortableFromHandle(handle);
   if (!sortable) return;

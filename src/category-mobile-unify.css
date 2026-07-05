@@ -52,7 +52,7 @@
     margin: 0 !important;
     opacity: 0.72 !important;
     cursor: grab !important;
-    touch-action: none !important;
+    touch-action: pan-y !important;
   }
 
   .managed-category-card .category-color-menu {
