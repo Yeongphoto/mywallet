@@ -674,7 +674,8 @@ textarea:focus {
   display: grid;
   gap: 20px;
   position: relative;
-  padding-bottom: 96px;
+  padding-bottom: 0;
+  overflow: hidden;
 }
 
 .calendar-grid {

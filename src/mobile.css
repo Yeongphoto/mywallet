@@ -272,7 +272,7 @@
 
   /* 모바일 캘린더 높이 전체 반응형 꽉 채움 보정 */
   .calendar-grid {
-    height: calc(100vh - 290px) !important; /* 헤더 및 하단 바 구역 여백을 제외하고 꽉 참 */
+    height: calc(100vh - 340px) !important; /* 290px -> 340px로 좁혀서 이중 하단 탭 바와의 겹침 방지 */
     min-height: 380px !important;
     grid-auto-rows: 1fr !important;
   }
@@ -355,7 +355,6 @@
   
   .calendar-cell {
     min-width: 0;
-    aspect-ratio: 0.95;
     padding: 5px;
     border-radius: 12px;
   }
