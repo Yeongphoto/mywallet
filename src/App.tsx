@@ -2781,7 +2781,7 @@ export default function App() {
       {/* 카테고리 통합 등록 모달 */}
       {isCategoryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsCategoryModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', overflow: 'visible' }}>
             <div className="modal-header">
               <h3>🏷️ 카테고리 추가 등록</h3>
               <button type="button" className="close-btn" onClick={() => setIsCategoryModalOpen(false)}>✕</button>
@@ -2912,14 +2912,14 @@ export default function App() {
                             className="category-palette-popover" 
                             style={{ 
                               position: 'absolute', 
-                              bottom: '36px', 
-                              left: '-140px', 
-                              zIndex: 100, 
+                              bottom: '34px', 
+                              right: '0px', 
+                              zIndex: 1000, 
                               background: 'var(--bg-card)', 
                               border: '1px solid var(--border-card)', 
                               borderRadius: '12px', 
                               padding: '16px', 
-                              boxShadow: '0 8px 30px rgba(0,0,0,0.2)', 
+                              boxShadow: '0 8px 30px rgba(0,0,0,0.25)', 
                               width: '230px',
                               display: 'grid',
                               gap: '12px'
