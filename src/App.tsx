@@ -2781,7 +2781,7 @@ export default function App() {
       {/* 카테고리 통합 등록 모달 */}
       {isCategoryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsCategoryModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', overflow: 'visible' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', overflow: 'visible', position: 'relative' }}>
             <div className="modal-header">
               <h3>🏷️ 카테고리 추가 등록</h3>
               <button type="button" className="close-btn" onClick={() => setIsCategoryModalOpen(false)}>✕</button>
@@ -2931,104 +2931,113 @@ export default function App() {
               </div>
             </form>
 
-            {/* 자율자재 팝오버를 형제 요소로 격리 배치하여 Stacking Context 완벽 해소 */}
+            {/* 자율자재 색상 선택 독립 서브 모달 (중앙 배치) */}
             {customPaletteOpen && (() => {
               const currentCustomHex = hslToHex(pickerHue, pickerSat, pickerLight);
               return (
                 <div 
-                  className="category-palette-popover" 
-                  style={{ 
-                    position: 'absolute', 
-                    bottom: '96px', 
-                    right: '28px', 
-                    zIndex: 9999, 
-                    background: 'var(--bg-card)', 
-                    border: '1px solid var(--border-card)', 
-                    borderRadius: '12px', 
-                    padding: '16px', 
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.35)', 
-                    width: '230px',
-                    display: 'grid',
-                    gap: '12px'
-                  }}
+                  className="modal-backdrop" 
+                  style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                  onClick={() => setCustomPaletteOpen(false)}
                 >
-                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', textAlign: 'left' }}>🎨 자율자재 색상 선택</h4>
-                  
-                  {/* 색조 슬라이더 */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                      <span>색조 (Hue)</span>
-                      <span>{pickerHue}°</span>
+                  <div 
+                    className="modal-content" 
+                    onClick={(e) => e.stopPropagation()} 
+                    style={{ 
+                      width: '300px', 
+                      height: '260px', 
+                      padding: '16px', 
+                      boxSizing: 'border-box',
+                      zIndex: 1110,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      borderRadius: '16px',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-card)',
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 'bold' }}>🎨 자율자재 색상 선택</h4>
+                    
+                    {/* 색조 슬라이더 */}
+                    <div style={{ display: 'grid', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        <span>색조 (Hue)</span>
+                        <span>{pickerHue}°</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="360" 
+                        value={pickerHue} 
+                        onChange={(e) => setPickerHue(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          height: '8px',
+                          borderRadius: '4px',
+                          outline: 'none',
+                          WebkitAppearance: 'none',
+                          background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                          cursor: 'pointer',
+                          margin: 0
+                        }}
+                      />
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="360" 
-                      value={pickerHue} 
-                      onChange={(e) => setPickerHue(Number(e.target.value))}
-                      style={{
-                        width: '100%',
-                        height: '8px',
-                        borderRadius: '4px',
-                        outline: 'none',
-                        WebkitAppearance: 'none',
-                        background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                        cursor: 'pointer'
-                      }}
-                    />
-                  </div>
 
-                  {/* 명도 슬라이더 */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                      <span>명도 (Lightness)</span>
-                      <span>{pickerLight}%</span>
+                    {/* 명도 슬라이더 */}
+                    <div style={{ display: 'grid', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                        <span>명도 (Lightness)</span>
+                        <span>{pickerLight}%</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="15" 
+                        max="85" 
+                        value={pickerLight} 
+                        onChange={(e) => setPickerLight(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          height: '8px',
+                          borderRadius: '4px',
+                          outline: 'none',
+                          WebkitAppearance: 'none',
+                          background: `linear-gradient(to right, #111, hsl(${pickerHue}, 100%, 50%), #eee)`,
+                          cursor: 'pointer',
+                          margin: 0
+                        }}
+                      />
                     </div>
-                    <input 
-                      type="range" 
-                      min="15" 
-                      max="85" 
-                      value={pickerLight} 
-                      onChange={(e) => setPickerLight(Number(e.target.value))}
-                      style={{
-                        width: '100%',
-                        height: '8px',
-                        borderRadius: '4px',
-                        outline: 'none',
-                        WebkitAppearance: 'none',
-                        background: `linear-gradient(to right, #111, hsl(${pickerHue}, 100%, 50%), #eee)`,
-                        cursor: 'pointer'
-                      }}
-                    />
-                  </div>
 
-                  {/* 미리보기 및 HEX 값 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-balance-light)', padding: '8px 12px', borderRadius: '8px' }}>
-                    <span style={{ display: 'block', width: '28px', height: '28px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
-                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
-                  </div>
+                    {/* 미리보기 및 HEX 값 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-balance-light)', padding: '6px 12px', borderRadius: '8px', height: '40px', boxSizing: 'border-box' }}>
+                      <span style={{ display: 'block', width: '24px', height: '24px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
+                      <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
+                    </div>
 
-                  {/* 확인/취소 단추 */}
-                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '10px', marginTop: '4px' }}>
-                    <button 
-                      type="button" 
-                      className="secondary-button" 
-                      style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }} 
-                      onClick={() => setCustomPaletteOpen(false)}
-                    >
-                      취소
-                    </button>
-                    <button 
-                      type="button" 
-                      className="primary-button" 
-                      style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }}
-                      onClick={() => {
-                        setSelectedCategoryColor(currentCustomHex);
-                        setCustomPaletteOpen(false);
-                      }}
-                    >
-                      확인
-                    </button>
+                    {/* 확인/취소 단추 */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
+                      <button 
+                        type="button" 
+                        className="secondary-button" 
+                        style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px', marginTop: 0 }} 
+                        onClick={() => setCustomPaletteOpen(false)}
+                      >
+                        취소
+                      </button>
+                      <button 
+                        type="button" 
+                        className="primary-button" 
+                        style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px', marginTop: 0 }}
+                        onClick={() => {
+                          setSelectedCategoryColor(currentCustomHex);
+                          setCustomPaletteOpen(false);
+                        }}
+                      >
+                        확인
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
