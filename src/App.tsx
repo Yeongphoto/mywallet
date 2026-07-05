@@ -507,6 +507,8 @@ export default function App() {
   const [planCatColor, setPlanCatColor] = useState('#ef4444');
   const [planCatType, setPlanCatType] = useState<CategoryScope>('expense');
   const [categoryModalType, setCategoryModalType] = useState<CategoryScope>('expense');
+  const [customPaletteOpen, setCustomPaletteOpen] = useState(false);
+  const [customPaletteColor, setCustomPaletteColor] = useState('#ef4444');
   const [assetSection, setAssetSection] = useState({ showAsset: true, showPlan: false, showRecurring: false });
   const [openPaletteKey, setOpenPaletteKey] = useState<string | null>(null);
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
@@ -2848,7 +2850,7 @@ export default function App() {
 
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>카테고리 고유 색상</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px', alignItems: 'center' }}>
                   {['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'].map((color) => {
                     const isSelected = selectedCategoryColor.toLowerCase() === color.toLowerCase();
                     return (
@@ -2856,59 +2858,80 @@ export default function App() {
                         key={color}
                         type="button"
                         style={{
-                          width: '32px',
-                          height: '32px',
+                          width: '26px',
+                          height: '26px',
                           borderRadius: '50%',
                           background: color,
                           border: isSelected ? '3px solid var(--text-primary)' : '1px solid rgba(0, 0, 0, 0.1)',
                           cursor: 'pointer',
                           padding: 0,
-                          transform: isSelected ? 'scale(1.15)' : 'scale(1)',
+                          transform: isSelected ? 'scale(1.12)' : 'scale(1)',
                           transition: 'all 0.15s ease',
                           boxShadow: isSelected ? '0 4px 6px rgba(0,0,0,0.15)' : 'none'
                         }}
-                        onClick={() => setSelectedCategoryColor(color)}
+                        onClick={() => {
+                          setSelectedCategoryColor(color);
+                          setCustomPaletteOpen(false);
+                        }}
                       />
                     );
                   })}
 
-                  {/* 자율자재 선택 가능한 팔레트 칩 (확인/취소 단추 없음!) */}
+                  {/* 자율자재 선택 가능한 팔레트 칩 (팝오버 확인/취소 단추 포함!) */}
                   {(() => {
                     const presetColors = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'];
                     const isCustom = !presetColors.includes(selectedCategoryColor.toLowerCase());
                     return (
-                      <label
-                        style={{
-                          display: 'inline-block',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          background: isCustom ? selectedCategoryColor : 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)',
-                          border: isCustom ? '3px solid var(--text-primary)' : '1px solid rgba(0, 0, 0, 0.1)',
-                          cursor: 'pointer',
-                          transform: isCustom ? 'scale(1.15)' : 'scale(1)',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isCustom ? '0 4px 6px rgba(0,0,0,0.15)' : 'none',
-                          position: 'relative',
-                          margin: 0
-                        }}
-                        title="커스텀 색상 선택"
-                      >
-                        <input
-                          type="color"
-                          value={selectedCategoryColor}
-                          onChange={(e) => setSelectedCategoryColor(e.target.value)}
+                      <div style={{ position: 'relative', display: 'inline-block', margin: 0, lineHeight: 1 }}>
+                        <button
+                          type="button"
                           style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            opacity: 0,
-                            cursor: 'pointer'
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            background: isCustom ? selectedCategoryColor : 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)',
+                            border: isCustom ? '3px solid var(--text-primary)' : '1px solid rgba(0, 0, 0, 0.1)',
+                            cursor: 'pointer',
+                            padding: 0,
+                            transform: isCustom ? 'scale(1.12)' : 'scale(1)',
+                            transition: 'all 0.15s ease',
+                            boxShadow: isCustom ? '0 4px 6px rgba(0,0,0,0.15)' : 'none'
                           }}
+                          onClick={() => {
+                            setCustomPaletteColor(selectedCategoryColor);
+                            setCustomPaletteOpen((prev) => !prev);
+                          }}
+                          title="커스텀 색상 선택"
                         />
-                      </label>
+                        {customPaletteOpen && (
+                          <div className="category-palette-popover" style={{ position: 'absolute', top: '32px', left: '-120px', zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
+                              <span style={{ display: 'block', width: '32px', height: '32px', borderRadius: '6px', background: customPaletteColor, border: '1px solid var(--border-card)' }} />
+                              <input
+                                type="color"
+                                value={customPaletteColor}
+                                onChange={(event) => setCustomPaletteColor(event.target.value)}
+                                style={{ display: 'none' }}
+                              />
+                              <strong style={{ fontSize: '0.85rem' }}>자율자재 색상 피커</strong>
+                            </label>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setCustomPaletteOpen(false)}>취소</button>
+                              <button
+                                type="button"
+                                className="primary-button"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => {
+                                  setSelectedCategoryColor(customPaletteColor);
+                                  setCustomPaletteOpen(false);
+                                }}
+                              >
+                                확인
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
