@@ -488,6 +488,7 @@ export default function App() {
   // Edit states
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
+  const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -996,6 +997,47 @@ export default function App() {
 
   function handleDeleteAsset(id: string) {
     setAssets((prev) => prev.filter((asset) => asset.id !== id));
+  }
+
+  function handleAssetDragStart(e: React.DragEvent, index: number) {
+    setDraggedAssetIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleAssetDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault();
+  }
+
+  function handleAssetDrop(e: React.DragEvent, targetIndex: number) {
+    e.preventDefault();
+    if (draggedAssetIndex === null || draggedAssetIndex === targetIndex) return;
+
+    const newAssets = [...assets];
+    const draggedItem = newAssets[draggedAssetIndex];
+    newAssets.splice(draggedAssetIndex, 1);
+    newAssets.splice(targetIndex, 0, draggedItem);
+
+    setAssets(newAssets);
+    setDraggedAssetIndex(null);
+
+    const newTime = Date.now();
+    setUpdatedAt(newTime);
+    saveRemoteD1(
+      transactions,
+      newAssets,
+      budget,
+      theme,
+      plans,
+      customExpenseCategories,
+      customIncomeCategories,
+      customAssetCategories,
+      categoryColors,
+      categoryOrder,
+      hiddenCategories,
+      recurringRules,
+      deletedRecurringTxs,
+      newTime
+    );
   }
 
   function handleCategoryColorChange(type: CategoryScope, id: string, color: string) {
@@ -1710,136 +1752,132 @@ export default function App() {
                 onStopRecurring={handleStopRecurringFromTx}
               />
             </div>
+          </section>
+        )}
 
-            {/* 정기 지출 규칙 관리 영역 병합 */}
-            <div className="glass-panel" style={{ marginTop: '24px', padding: '24px' }}>
-              <div className="panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>🔄</span> 정기 지출
-                  </h3>
-                </div>
-                <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  등록된 규칙: {recurringRules.length}개
-                </strong>
+        {/* 정기 지출 규칙 관리 영역 외부 분리 */}
+        {activeTab === 'ledger' && (
+          <section className="glass-panel" style={{ marginTop: '24px' }}>
+            <div className="panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔄</span> 정기 지출
+                </h3>
               </div>
+              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                등록된 규칙: {recurringRules.length}개
+              </strong>
+            </div>
 
-              <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--bg-balance-light)', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  💡 **안내**: 각 규칙의 우측 **[⚡ 거래 등록]** 버튼을 누르면, 선택된 년월(**{selectedMonth}**)의 지정된 예정일에 맞춰 실제 지출/수입 내역으로 한 번에 수동 즉시 등록할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="ledger-table-scroll">
-                <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
-                      <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
+            <div className="ledger-table-scroll">
+              <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recurringRules.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                        등록된 정기 반복 규칙이 없습니다. 장부 탭이나 달력 모달의 거래 등록 양식에서 [매달 정기 기록으로 등록]을 체크하고 추가해보세요.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {recurringRules.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
-                          등록된 정기 반복 규칙이 없습니다. 장부 탭이나 달력 모달의 거래 등록 양식에서 [매달 정기 기록으로 등록]을 체크하고 추가해보세요.
-                        </td>
-                      </tr>
-                    ) : (
-                      recurringRules.map((rule) => {
-                        const isStopped = !!rule.endMonth;
-                        const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
-                        const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
-                        
-                        return (
-                          <tr key={rule.id} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.6 : 1 }}>
-                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
-                            <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
-                            <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
-                            <td style={{ padding: '12px 8px' }}>{rule.title}</td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(rule.amount)}</td>
-                            <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                              {rule.startMonth} ~ {rule.endMonth ? `🏁 ${rule.endMonth} 끊김` : '진행중'}
-                            </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                                {!isStopped && (
-                                  <button
-                                    type="button"
-                                    className="primary-button"
-                                    style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', marginTop: 0, width: 'auto' }}
-                                    onClick={() => {
-                                      const year = Number(selectedMonth.slice(0, 4));
-                                      const month = Number(selectedMonth.slice(5, 7));
-                                      const lastDay = new Date(year, month, 0).getDate();
-                                      const targetDay = Math.min(rule.day, lastDay);
-                                      const dateStr = `${selectedMonth}-${String(targetDay).padStart(2, '0')}`;
+                  ) : (
+                    recurringRules.map((rule) => {
+                      const isStopped = !!rule.endMonth;
+                      const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
+                      const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
+                      
+                      return (
+                        <tr key={rule.id} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.6 : 1 }}>
+                          <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
+                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
+                          <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
+                          <td style={{ padding: '12px 8px' }}>{rule.title}</td>
+                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(rule.amount)}</td>
+                          <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {rule.startMonth} ~ {rule.endMonth ? `🏁 ${rule.endMonth} 끊김` : '진행중'}
+                          </td>
+                          <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                              {!isStopped && (
+                                <button
+                                  type="button"
+                                  className="primary-button"
+                                  style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', marginTop: 0, width: 'auto' }}
+                                  onClick={() => {
+                                    const year = Number(selectedMonth.slice(0, 4));
+                                    const month = Number(selectedMonth.slice(5, 7));
+                                    const lastDay = new Date(year, month, 0).getDate();
+                                    const targetDay = Math.min(rule.day, lastDay);
+                                    const dateStr = `${selectedMonth}-${String(targetDay).padStart(2, '0')}`;
 
-                                      const isDuplicate = transactions.some(
-                                        (t) => t.date === dateStr && t.amount === rule.amount && t.title === rule.title && t.category === rule.category
-                                      );
-                                      const addRecurringTransaction = () => {
-                                        handleAddTransaction({
-                                          id: `tx_${Date.now()}`,
-                                          type: rule.type,
-                                          date: dateStr,
-                                          amount: rule.amount,
-                                          title: rule.title,
-                                          category: rule.category
-                                        });
-                                        showNotice(`${dateStr} 자로 '${rule.title}' 거래가 등록되었습니다.`, '거래 등록 완료', 'success');
-                                      };
+                                    const isDuplicate = transactions.some(
+                                      (t) => t.date === dateStr && t.amount === rule.amount && t.title === rule.title && t.category === rule.category
+                                    );
+                                    const addRecurringTransaction = () => {
+                                      handleAddTransaction({
+                                        id: `tx_${Date.now()}`,
+                                        type: rule.type,
+                                        date: dateStr,
+                                        amount: rule.amount,
+                                        title: rule.title,
+                                        category: rule.category
+                                      });
+                                      showNotice(`${dateStr} 자로 '${rule.title}' 거래가 등록되었습니다.`, '거래 등록 완료', 'success');
+                                    };
 
-                                      if (isDuplicate) {
-                                        requestConfirm({
-                                          title: '중복 거래 확인',
-                                          message: '동일한 예정일에 유사한 정기 거래가 이미 있습니다. 추가로 등록할까요?',
-                                          confirmLabel: '추가 등록',
-                                          onConfirm: addRecurringTransaction,
-                                        });
-                                        return;
-                                      }
+                                    if (isDuplicate) {
+                                      requestConfirm({
+                                        title: '중복 거래 확인',
+                                        message: '동일한 예정일에 유사한 정기 거래가 이미 있습니다. 추가로 등록할까요?',
+                                        confirmLabel: '추가 등록',
+                                        onConfirm: addRecurringTransaction,
+                                      });
+                                      return;
+                                    }
 
-                                      addRecurringTransaction();
-                                    }}
-                                  >
-                                    ⚡ 거래 등록
-                                  </button>
-                                )}
-                                {!isStopped ? (
-                                  <button
-                                    type="button"
-                                    className="delete-btn-sm"
-                                    style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
-                                    onClick={() => handleStopRecurringRule(rule.id)}
-                                  >
-                                    🛑 끊기
-                                  </button>
-                                ) : (
-                                  <span style={{ fontSize: '0.78rem', color: 'var(--color-expense)', fontWeight: 'bold' }}>끊김</span>
-                                )}
+                                    addRecurringTransaction();
+                                  }}
+                                >
+                                  ⚡ 거래 등록
+                                </button>
+                              )}
+                              {!isStopped ? (
                                 <button
                                   type="button"
                                   className="delete-btn-sm"
-                                  style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
-                                  onClick={() => handleDeleteRecurringRule(rule.id)}
+                                  style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
+                                  onClick={() => handleStopRecurringRule(rule.id)}
                                 >
-                                  삭제
+                                  🛑 끊기
                                 </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                              ) : (
+                                <span style={{ fontSize: '0.78rem', color: 'var(--color-expense)', fontWeight: 'bold' }}>끊김</span>
+                              )}
+                              <button
+                                type="button"
+                                className="delete-btn-sm"
+                                style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
+                                onClick={() => handleDeleteRecurringRule(rule.id)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
@@ -1849,8 +1887,7 @@ export default function App() {
             {/* 자산 탭 상단 헤더 및 등록 제어 단추 */}
             <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <p className="eyebrow">Asset Portfolio</p>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>자산 구성 및 카테고리 확인</h1>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>자산 현황</h1>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}>💼 자산 총액: {formatCurrency(assetTotal)}</strong>
                 </div>
@@ -1860,74 +1897,69 @@ export default function App() {
             {/* 고정 카드 그리드 영역 */}
             <div className="asset-accordion-group" style={{ display: 'grid', gap: '24px' }}>
               
-              {/* 1. [ 자산 현황 및 관리 ] 고정 카드 */}
+              {/* 1. [ 자산 현황 ] 고정 카드 */}
               <div className="glass-panel" style={{ padding: '24px' }}>
                 <h3 style={{ margin: '0 0 20px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-                  <span>💼</span> 자산 현황 및 관리
+                  <span>💼</span> 자산 목록
                 </h3>
-                <div className="asset-list">
+                <div className="asset-table-list" style={{ display: 'grid', gap: '12px' }}>
                   {assets.length === 0 ? (
-                    <p className="empty-note" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)' }}>
+                    <p className="empty-note" style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)' }}>
                       등록된 자산 항목이 없습니다. 우측 상단의 [자산 등록] 단추를 통해 자산을 추가해보세요.
                     </p>
                   ) : (
-                    assets.map((asset) => (
-                      <article key={asset.id} className="asset-card">
-                        <div className="asset-card-header">
+                    assets.map((asset, index) => (
+                      <div
+                        key={asset.id}
+                        draggable
+                        onDragStart={(e) => handleAssetDragStart(e, index)}
+                        onDragOver={(e) => handleAssetDragOver(e, index)}
+                        onDrop={(e) => handleAssetDrop(e, index)}
+                        className="glass-panel"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '16px 20px',
+                          background: 'var(--bg-card)',
+                          border: '1px solid var(--border-card)',
+                          borderRadius: '12px',
+                          cursor: 'grab',
+                          transition: 'transform 0.2s, box-shadow 0.2s',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                          <span style={{ color: 'var(--text-secondary)', cursor: 'grab', fontSize: '1.2rem', userSelect: 'none' }}>⠿</span>
                           <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                          <span>자산</span>
+                          <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
+                          {asset.memo && (
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>({asset.memo})</span>
+                          )}
                         </div>
-                        <b>{formatCurrency(asset.amount)}</b>
-                        <div className="asset-card-footer">
-                          <span>{asset.memo || '메모 없음'}</span>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              type="button"
-                              className="edit-btn"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: '6px' }}
-                              onClick={() => {
-                                setEditingAsset(asset); // 수정 모드 전환
-                                setIsAssetModalOpen(true);
-                              }}
-                            >
-                              수정
-                            </button>
-                            <button type="button" className="delete-btn-sm" onClick={() => handleDeleteAsset(asset.id)}>
-                              삭제
-                            </button>
-                          </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="edit-btn"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                            onClick={() => {
+                              setEditingAsset(asset); // 수정 모드 전환
+                              setIsAssetModalOpen(true);
+                            }}
+                          >
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            className="delete-btn-sm"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                            onClick={() => handleDeleteAsset(asset.id)}
+                          >
+                            삭제
+                          </button>
                         </div>
-                      </article>
+                      </div>
                     ))
                   )}
-                </div>
-              </div>
-
-              {/* 2. [ 카테고리 확인 ] 고정 카드 */}
-              <div className="glass-panel" style={{ padding: '24px' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-                  <span>🏷️</span> 현재 등록된 카테고리 확인
-                </h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
-                  💡 **팁**: 카테고리의 신규 추가, 삭제, 순서 변경 및 전용 색상 편집은 우측 상단의 **[설정 ⚙️]** → **[카테고리 설정]** 메뉴에서 가능합니다.
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)' }}>🔴 지출 카테고리</h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {activeExpenseCategories.map((c) => (
-                        <CategoryBadge key={c.id} categories={allExpenseCategories} idOrLabel={c.id} />
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)' }}>🔵 수입 카테고리</h4>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {activeIncomeCategories.map((c) => (
-                        <CategoryBadge key={c.id} categories={allIncomeCategories} idOrLabel={c.id} />
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1940,11 +1972,7 @@ export default function App() {
           <>
             <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <p className="eyebrow">Monthly Plans</p>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>월간 계획 설정</h1>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  카테고리별 이번 달 지출 예산 및 수입 목표를 수립하고 조절합니다.
-                </p>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>월간 계획 설정</h1>
               </div>
             </div>
 
@@ -1953,10 +1981,6 @@ export default function App() {
                 <h3 style={{ margin: '0 0 20px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
                   <span>📊</span> 월간 계획 (수입/지출 예산)
                 </h3>
-                
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
-                  💡 **안내**: 각 카테고리 우측의 금액 입력창을 클릭하여 원하는 한도 예산 또는 목표액을 직접 수정(입력)할 수 있으며, 변경 즉시 로컬과 D1 DB에 정석 보존됩니다.
-                </p>
 
                 <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                   {/* 지출 계획 */}
