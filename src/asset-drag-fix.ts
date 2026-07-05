@@ -85,6 +85,7 @@ function startAssetPointerDrag(event: PointerEvent) {
   const row = handle.closest<HTMLElement>('.asset-row');
   const list = row?.closest<HTMLElement>('.asset-table-list');
   if (!row || !list) return;
+  if (row.dataset.assetId) return;
 
   assetPointerDrag = { row, list, pointerId: event.pointerId };
   row.classList.add('dragging');

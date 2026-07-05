@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './app-behavior';
 import './asset-drag-fix';
+import './touch-sortable';
 import './styles.css';
 import './mobile.css';
 import './calendar.css';

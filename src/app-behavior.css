@@ -75,6 +75,44 @@ textarea,
   cursor: grabbing;
 }
 
+.touch-sort-active {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.touch-sort-ghost {
+  opacity: 0.96 !important;
+  border: 1px solid rgba(2, 132, 199, 0.38) !important;
+  border-radius: 14px !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.22) !important;
+  transform: scale(1.015) !important;
+  transition: none !important;
+}
+
+.touch-sort-placeholder {
+  min-height: 52px !important;
+  margin: 4px 0 !important;
+  border: 2px dashed rgba(2, 132, 199, 0.58) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(16, 185, 129, 0.07)) !important;
+  box-sizing: border-box !important;
+}
+
+.asset-table-list .touch-sort-placeholder {
+  min-height: 58px !important;
+}
+
+.managed-category-card .touch-sort-placeholder {
+  min-height: 58px !important;
+  margin: 2px 14px !important;
+}
+
+.touch-sortable-ready {
+  transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease !important;
+}
+
 button,
 a,
 input,

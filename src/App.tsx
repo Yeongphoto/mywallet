@@ -2045,6 +2045,7 @@ export default function App() {
                         return (
                           <div
                             key={asset.id}
+                            data-asset-id={asset.id}
                             onDragOver={(e) => handleAssetDragOver(e, index)}
                             onDragEnter={() => handleAssetDragEnter(index)}
                             onDragEnd={handleAssetDragEnd}
@@ -2076,6 +2077,7 @@ export default function App() {
                       return (
                         <div
                           key={asset.id}
+                          data-asset-id={asset.id}
                           draggable
                           onDragStart={(e) => handleAssetDragStart(e, index)}
                           onDragOver={(e) => handleAssetDragOver(e, index)}
@@ -2133,7 +2135,7 @@ export default function App() {
                 
                 {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
                 <div style={{ width: '100%', marginTop: '16px' }}>
-                  <article className="category-table-card managed-category-card managed-category-card-asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🏷️ 등록된 자산 카테고리</strong>
                       <b>{activeAssetCategories.length}개</b>
@@ -2147,6 +2149,8 @@ export default function App() {
                         return (
                           <div
                             key={`asset-${category.id}`}
+                            data-category-id={category.id}
+                            data-category-scope="asset"
                             className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable
                             onDragStart={() => setDragCategory({ type: 'asset', id: category.id })}
@@ -2337,7 +2341,7 @@ export default function App() {
                 <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
                   
                   {/* 지출 카테고리 목록 */}
-                  <article className="category-table-card managed-category-card managed-category-card-plan" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🔴 지출 카테고리 목록</strong>
                       <b>{activeExpenseCategories.length}개</b>
@@ -2351,6 +2355,8 @@ export default function App() {
                         return (
                           <div
                             key={`expense-${category.id}`}
+                            data-category-id={category.id}
+                            data-category-scope="expense"
                             className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable
                             onDragStart={() => setDragCategory({ type: 'expense', id: category.id })}
@@ -2429,7 +2435,7 @@ export default function App() {
                   </article>
 
                   {/* 수입 카테고리 목록 */}
-                  <article className="category-table-card managed-category-card managed-category-card-plan" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                  <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="income" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🔵 수입 카테고리 목록</strong>
                       <b>{activeIncomeCategories.length}개</b>
@@ -2443,6 +2449,8 @@ export default function App() {
                         return (
                           <div
                             key={`income-${category.id}`}
+                            data-category-id={category.id}
+                            data-category-scope="income"
                             className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable
                             onDragStart={() => setDragCategory({ type: 'income', id: category.id })}
