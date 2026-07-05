@@ -722,7 +722,7 @@ textarea:focus {
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: 1fr; /* 5주/6주 셀들이 세로로 균등 100% 팽창 */
   gap: 8px;
-  height: calc(100vh - 290px); /* 230px -> 290px로 넓혀 하단 등록바 겹침 해소 */
+  height: calc(100vh - 230px); /* 290px -> 230px로 넉넉하게 높이 공간 복구 */
   min-height: 480px;
 }
 

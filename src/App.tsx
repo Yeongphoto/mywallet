@@ -1523,7 +1523,19 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <section className="content">
+      <section 
+        className="content" 
+        style={
+          activeTab === 'calendar' 
+            ? { 
+                overflow: 'hidden', 
+                height: 'calc(100vh - 64px)', 
+                paddingBottom: 0,
+                boxSizing: 'border-box'
+              } 
+            : undefined
+        }
+      >
         <header className="app-header">
           {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
           <div className="header-brand">
