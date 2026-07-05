@@ -6,6 +6,7 @@ import { registerPwaServiceWorker } from './pwa-register';
 import './asset-save-guard';
 import './local-recovery';
 import './local-recovery-visible';
+import './settings-recovery-button';
 import './app-behavior';
 import './asset-drag-fix';
 import './touch-sortable';
