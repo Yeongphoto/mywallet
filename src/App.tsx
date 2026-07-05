@@ -2549,109 +2549,101 @@ export default function App() {
               </button>
             </div>
             
-            <div className="modal-tab-header">
-              <button
-                type="button"
-                className={`modal-tab-btn ${modalTab === 'view' ? 'active' : ''}`}
-                onClick={() => setModalTab('view')}
-              >
-                상세 내역 보기
-              </button>
-              <button
-                type="button"
-                className={`modal-tab-btn ${modalTab === 'add' ? 'active' : ''}`}
-                onClick={() => setModalTab('add')}
-              >
-                통합 거래 등록
-              </button>
-            </div>
+            <div className="modal-body" style={{ padding: '20px 24px' }}>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', color: 'var(--text-primary)' }}>지출 및 수입 내역</h4>
+                {transactions.filter((t) => t.date === selectedDayData).length === 0 ? (
+                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>
+                    해당 날짜에 등록된 거래 내역이 없습니다.
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gap: '12px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {transactions
+                      .filter((t) => t.date === selectedDayData)
+                      .map((t) => {
+                        const isIncome = t.type === 'income';
+                        const isFuture = t.date > getToday();
+                        return (
+                          <div
+                            key={t.id}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '10px',
+                              padding: '16px',
+                              borderRadius: '12px',
+                              border: '1px solid var(--border-card)',
+                              background: isIncome ? 'rgba(59, 130, 246, 0.03)' : 'rgba(239, 68, 68, 0.03)',
+                              position: 'relative',
+                              opacity: isFuture ? 0.65 : 1,
+                              transition: 'opacity 0.2s'
+                            }}
+                          >
+                            {/* 상단: 유형 태그 배지 & 작업 단추 */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span
+                                style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 'bold',
+                                  background: isIncome ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                  color: isIncome ? 'var(--color-income)' : 'var(--color-expense)'
+                                }}
+                              >
+                                {isIncome ? '🔵 수입' : '🔴 지출'}
+                              </span>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  className="edit-btn"
+                                  style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
+                                  onClick={() => {
+                                    setEditingTransaction(t);
+                                    setSelectedDayData(null);
+                                  }}
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  type="button"
+                                  className="delete-btn-sm"
+                                  style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
+                                  onClick={() => handleDeleteTransaction(t.id)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </div>
 
-            <div className="modal-body" style={{ padding: '24px 28px' }}>
-              {modalTab === 'view' ? (
-                <div style={{ display: 'grid', gap: '20px' }}>
-                  <h4>지출 및 수입 내역</h4>
-                  {transactions.filter((t) => t.date === selectedDayData).length === 0 ? (
-                    <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0' }}>
-                      해당 날짜에 등록된 거래 내역이 없습니다.
-                    </p>
-                  ) : (
-                    <div className="ledger-table-scroll">
-                      <table className="ledger-table">
-                        <thead>
-                          <tr>
-                            <th>유형</th>
-                            <th>금액</th>
-                            <th>내용</th>
-                            <th>카테고리</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {transactions
-                            .filter((t) => t.date === selectedDayData)
-                            .map((t) => {
-                              const isFuture = t.date > getToday();
-                              return (
-                                <tr key={t.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
-                                  <td style={{ color: t.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)', fontWeight: 'bold' }}>
-                                    {t.type === 'income' ? '수입' : '지출'}
-                                  </td>
-                                  <td>{formatCurrency(t.amount)}</td>
-                                  <td>
-                                    {t.title}
-                                    {t.recurringRuleId && (
-                                      <span
-                                        title="정기 반복 결제"
-                                        style={{ marginLeft: '6px', color: 'var(--primary)', fontSize: '0.9rem', cursor: 'help' }}
-                                      >
-                                        🔄
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td>
-                                    <CategoryBadge categories={t.type === 'income' ? incomeCategories : expenseCategories} idOrLabel={t.category} />
-                                  </td>
-                                  <td>
-                                    <div className="actions-cell">
-                                      <button type="button" className="edit-btn" onClick={() => {
-                                        setEditingTransaction(t);
-                                        setSelectedDayData(null);
-                                      }}>
-                                        수정
-                                      </button>
-                                      <button type="button" className="delete-btn-sm" onClick={() => handleDeleteTransaction(t.id)}>
-                                        삭제
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gap: '20px' }}>
-                  <UnifiedEntryForm
-                    defaultDate={selectedDayData}
-                    onAddTransaction={(t) => {
-                      handleAddTransaction(t);
-                      setModalTab('view');
-                    }}
-                    onAddAsset={(a) => {
-                      handleAddAsset(a);
-                      setModalTab('view');
-                    }}
-                    isQuickAdd={true}
-                    expenseCategories={activeExpenseCategories}
-                    incomeCategories={activeIncomeCategories}
-                    onAddRecurringRule={handleAddRecurringRule}
-                    onNotify={showNotice}
-                  />
-                </div>
-              )}
+                            {/* 중단: 타이틀 내용 & 카테고리 배지 */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                                {t.title}
+                                {t.recurringRuleId && (
+                                  <span
+                                    title="정기 반복 결제"
+                                    style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '0.9rem', cursor: 'help' }}
+                                  >
+                                    🔄
+                                  </span>
+                                )}
+                              </strong>
+                              <CategoryBadge categories={isIncome ? incomeCategories : expenseCategories} idOrLabel={t.category} />
+                            </div>
+
+                            {/* 하단: 금액 표시 */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
+                              <span style={{ fontSize: '1.15rem', fontWeight: '800', color: isIncome ? 'var(--color-income)' : 'var(--color-expense)' }}>
+                                {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

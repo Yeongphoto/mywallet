@@ -255,6 +255,20 @@
   .category-card-grid {
     grid-template-columns: 1fr;
   }
+
+  .fixed-bottom-bar {
+    left: 0 !important;
+    bottom: 72px !important; /* 모바일 내비바(72px) 바로 위에 오프셋 고정 */
+    padding: 0 16px !important;
+    height: 60px !important;
+    justify-content: center !important; /* 가로가 넓은 모바일 기기에서도 화면 중앙 정렬 */
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .fixed-bottom-bar-btn {
+    padding: 8px 18px !important;
+    font-size: 0.85rem !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -577,21 +591,7 @@
     width: min(360px, calc(100vw - 28px));
     justify-content: center;
   }
-
   .floating-action-layer.multi .floating-action {
     min-width: 0;
-  }
-
-  .fixed-bottom-bar {
-    left: 0 !important;
-    bottom: 60px !important; /* 모바일 하단바 높이 위에 안착 */
-    padding: 0 16px !important;
-    height: 60px !important;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
-  }
-
-  .fixed-bottom-bar-btn {
-    padding: 8px 18px !important;
-    font-size: 0.85rem !important;
   }
 }
