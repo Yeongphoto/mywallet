@@ -17,11 +17,13 @@
   --color-income: #3b82f6;
   --color-asset: #10b981;
   --color-balance: #0f172a;
+  --color-budget: #f59e0b;
   
   --bg-expense-light: #fef2f2;
   --bg-income-light: #eff6ff;
   --bg-asset-light: #ecfdf5;
   --bg-balance-light: #f8fafc;
+  --bg-budget-light: #fffbeb;
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
@@ -36,6 +38,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 [data-theme='dark'] {
@@ -57,11 +60,13 @@
   --color-income: #60a5fa;
   --color-asset: #34d399;
   --color-balance: #f3f4f6;
+  --color-budget: #fbbf24;
   
   --bg-expense-light: rgba(239, 68, 68, 0.15);
   --bg-income-light: rgba(59, 130, 246, 0.15);
   --bg-asset-light: rgba(16, 185, 129, 0.15);
   --bg-balance-light: rgba(255, 255, 255, 0.06);
+  --bg-budget-light: rgba(245, 158, 11, 0.15);
   
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
@@ -457,6 +462,7 @@ textarea:focus {
 .summary-card.income::before { background: var(--color-income); }
 .summary-card.asset::before { background: var(--color-asset); }
 .summary-card.balance::before { background: var(--color-balance); }
+.summary-card.budget-status::before { background: var(--color-budget); }
 
 .summary-card span {
   color: var(--text-secondary);
@@ -635,8 +641,8 @@ textarea:focus {
 .calendar-day-name.saturday { color: #60a5fa; }
 
 .calendar-cell {
-  aspect-ratio: 1.1;
-  padding: 8px;
+  aspect-ratio: 1.38;
+  padding: 6px 8px;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
   border-radius: 12px;
@@ -1114,4 +1120,21 @@ textarea:focus {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Chrome, Safari, Edge Slim Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  opacity: 0.3;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }

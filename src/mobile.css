@@ -262,7 +262,7 @@
   }
   
   .calendar-cell {
-    aspect-ratio: 1;
+    aspect-ratio: 1.25;
     padding: 4px;
   }
   

@@ -5,7 +5,8 @@ CREATE TABLE transactions (
   date TEXT NOT NULL,
   amount INTEGER NOT NULL,
   title TEXT NOT NULL,
-  category TEXT NOT NULL
+  category TEXT NOT NULL,
+  recurring_rule_id TEXT
 );
 
 DROP TABLE IF EXISTS assets;
@@ -29,6 +30,7 @@ CREATE TABLE custom_categories (
   id TEXT NOT NULL,
   type TEXT NOT NULL,
   label TEXT NOT NULL,
+  color TEXT,
   PRIMARY KEY (id, type)
 );
 

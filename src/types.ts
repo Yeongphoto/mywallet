@@ -3,6 +3,7 @@ export type TransactionType = 'income' | 'expense';
 export interface CategoryOption {
   id: string;
   label: string;
+  color?: string;
 }
 
 export interface Transaction {
@@ -12,6 +13,7 @@ export interface Transaction {
   amount: number;
   title: string;
   category: string;
+  recurringRuleId?: string | null;
 }
 
 export interface AssetItem {

@@ -29,12 +29,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       transactions: txs.results || [],
       assets: asts.results || [],
       plans: plns.results || [],
-      customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label })),
-      customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label })),
+      customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
+      customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
+      customAssetCategories: (cats.results || []).filter((c: any) => c.type === 'asset').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
       budget: Number(settingsMap['budget']) || 1000000,
       theme: settingsMap['theme'] || 'light',
       recurringRules: rcRules.results || [],
-      deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id)
+      deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id),
+      updatedAt: Number(settingsMap['updatedAt']) || 0
     };
 
     return new Response(JSON.stringify(data), {
@@ -56,7 +58,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const body: any = await context.request.json();
-    const { transactions, assets, plans, customExpenseCategories, customIncomeCategories, budget, theme, recurringRules, deletedRecurringTxs } = body;
+    const { 
+      transactions, 
+      assets, 
+      plans, 
+      customExpenseCategories, 
+      customIncomeCategories, 
+      customAssetCategories,
+      budget, 
+      theme, 
+      recurringRules, 
+      deletedRecurringTxs,
+      updatedAt
+    } = body;
 
     const statements: D1PreparedStatement[] = [];
 
@@ -73,8 +87,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(transactions)) {
       transactions.forEach((t: any) => {
         statements.push(
-          db.prepare("INSERT INTO transactions (id, type, date, amount, title, category) VALUES (?, ?, ?, ?, ?, ?)")
-            .bind(t.id, t.type, t.date, t.amount, t.title, t.category)
+          db.prepare("INSERT INTO transactions (id, type, date, amount, title, category, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
+            .bind(t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId || null)
         );
       });
     }
@@ -103,16 +117,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(customExpenseCategories)) {
       customExpenseCategories.forEach((c: any) => {
         statements.push(
-          db.prepare("INSERT INTO custom_categories (id, type, label) VALUES (?, 'expense', ?)")
-            .bind(c.id, c.label)
+          db.prepare("INSERT INTO custom_categories (id, type, label, color) VALUES (?, 'expense', ?, ?)")
+            .bind(c.id, c.label, c.color || null)
         );
       });
     }
     if (Array.isArray(customIncomeCategories)) {
       customIncomeCategories.forEach((c: any) => {
         statements.push(
-          db.prepare("INSERT INTO custom_categories (id, type, label) VALUES (?, 'income', ?)")
-            .bind(c.id, c.label)
+          db.prepare("INSERT INTO custom_categories (id, type, label, color) VALUES (?, 'income', ?, ?)")
+            .bind(c.id, c.label, c.color || null)
+        );
+      });
+    }
+    if (Array.isArray(customAssetCategories)) {
+      customAssetCategories.forEach((c: any) => {
+        statements.push(
+          db.prepare("INSERT INTO custom_categories (id, type, label, color) VALUES (?, 'asset', ?, ?)")
+            .bind(c.id, c.label, c.color || null)
         );
       });
     }
@@ -122,6 +144,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(String(budget ?? 1000000)));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('theme', ?)")
       .bind(String(theme ?? 'light')));
+    statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('updatedAt', ?)")
+      .bind(String(updatedAt ?? 0)));
 
     // Insert recurring rules
     if (Array.isArray(recurringRules)) {
