@@ -1,0 +1,98 @@
+/* Calendar viewport sync overrides
+   Keeps the calendar tab height locked between the fixed header and bottom action bars. */
+:root {
+  --calendar-header-height: 56px;
+  --calendar-bottom-action-height: 70px;
+  --calendar-desktop-x-padding: 48px;
+  --calendar-mobile-x-padding: 12px;
+  --calendar-view-gap: 12px;
+}
+
+@supports selector(.content:has(.calendar-view-container)) {
+  .content:has(.calendar-view-container) {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    padding-top: calc(var(--calendar-header-height) + 18px) !important;
+    padding-right: var(--calendar-desktop-x-padding) !important;
+    padding-bottom: var(--calendar-bottom-action-height) !important;
+    padding-left: var(--calendar-desktop-x-padding) !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content:has(.calendar-view-container) .calendar-view-container {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--calendar-view-gap) !important;
+  }
+
+  .content:has(.calendar-view-container) .calendar-control,
+  .content:has(.calendar-view-container) .calendar-day-names-row {
+    flex: 0 0 auto;
+  }
+
+  .content:has(.calendar-view-container) .calendar-day-names-row {
+    margin-bottom: 0 !important;
+  }
+
+  .content:has(.calendar-view-container) .calendar-grid {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+  }
+
+  .content:has(.calendar-view-container) .calendar-cell {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    --calendar-header-height: 64px;
+    --calendar-bottom-nav-height: 72px;
+    --calendar-bottom-action-height: calc(60px + var(--calendar-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    --calendar-view-gap: 8px;
+  }
+
+  @supports selector(.content:has(.calendar-view-container)) {
+    .content:has(.calendar-view-container) {
+      padding-top: calc(var(--calendar-header-height) + 10px) !important;
+      padding-right: var(--calendar-mobile-x-padding) !important;
+      padding-bottom: var(--calendar-bottom-action-height) !important;
+      padding-left: var(--calendar-mobile-x-padding) !important;
+    }
+
+    .content:has(.calendar-view-container) .calendar-control {
+      margin-bottom: 0 !important;
+    }
+
+    .content:has(.calendar-view-container) .calendar-grid {
+      min-height: 0 !important;
+      gap: 6px !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  @supports selector(.content:has(.calendar-view-container)) {
+    .content:has(.calendar-view-container) .calendar-cell {
+      padding: 4px !important;
+    }
+
+    .content:has(.calendar-view-container) .calendar-value-badge {
+      font-size: 0.5rem;
+      line-height: 1.15;
+    }
+  }
+}
