@@ -67,11 +67,9 @@ function writeWalletData(data: WalletData) {
   });
 }
 
-function makePlaceholder(source: HTMLElement) {
-  const rect = source.getBoundingClientRect();
+function makePlaceholder(_source: HTMLElement) {
   const placeholder = document.createElement('div');
   placeholder.className = 'touch-sort-placeholder';
-  placeholder.style.height = `${rect.height}px`;
   return placeholder;
 }
 
