@@ -1,0 +1,42 @@
+/* Bottom bars sync fix
+   Keep the floating action bar from rising when the bottom menu grows.
+   The menu bar itself absorbs the larger height upward. */
+@media (max-width: 992px) {
+  :root {
+    --mobile-nav-height: 92px;
+    --mobile-action-bar-height: 60px;
+    --mobile-action-bar-bottom: calc(var(--mobile-nav-height) - var(--mobile-action-bar-height) + env(safe-area-inset-bottom, 0px));
+    --mobile-content-bottom-space: calc(var(--mobile-nav-height) + 96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .sidebar {
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-top: 10px !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box !important;
+  }
+
+  .sidebar nav,
+  .sidebar > div {
+    height: 100% !important;
+    align-items: center !important;
+  }
+
+  .fixed-bottom-bar {
+    bottom: var(--mobile-action-bar-bottom) !important;
+    height: var(--mobile-action-bar-height) !important;
+    padding: 0 16px !important;
+    transform: none !important;
+  }
+
+  .content:not(:has(.calendar-view-container)) {
+    padding-bottom: var(--mobile-content-bottom-space) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  :root {
+    --mobile-nav-height: 92px;
+    --mobile-action-bar-bottom: calc(var(--mobile-nav-height) - var(--mobile-action-bar-height) + env(safe-area-inset-bottom, 0px));
+  }
+}
