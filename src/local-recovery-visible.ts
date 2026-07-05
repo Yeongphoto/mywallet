@@ -6,6 +6,13 @@ const RECOVERY_BACKUP_PREFIX = 'mywallet:v2:backup:';
 type RecoveryPayload = Record<string, any>;
 type RecoveryCandidate = { key: string; label: string; raw: string; count: number; updatedAt: number };
 
+declare global {
+  interface Window {
+    mywalletOpenLocalRecovery?: () => void;
+    mywalletMountSettingsRecoveryButton?: () => void;
+  }
+}
+
 function parsePayload(raw: string | null): RecoveryPayload | null {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
@@ -139,6 +146,7 @@ function mountRecoveryButton() {
 }
 
 function bootRecoveryButton() {
+  window.mywalletOpenLocalRecovery = openRecoveryPanel;
   mountRecoveryButton();
   window.setTimeout(mountRecoveryButton, 500);
   window.setTimeout(mountRecoveryButton, 1500);
@@ -148,9 +156,12 @@ function bootRecoveryButton() {
 }
 
 if (typeof window !== 'undefined') {
+  window.mywalletOpenLocalRecovery = openRecoveryPanel;
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootRecoveryButton, { once: true });
   } else {
     bootRecoveryButton();
   }
 }
+
+export {};
