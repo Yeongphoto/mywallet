@@ -2941,7 +2941,6 @@ export default function App() {
                   onClick={() => setCustomPaletteOpen(false)}
                 >
                   <div 
-                    className="modal-content" 
                     onClick={(e) => e.stopPropagation()} 
                     style={{ 
                       width: '340px', 
@@ -3021,7 +3020,7 @@ export default function App() {
                       <button 
                         type="button" 
                         className="secondary-button" 
-                        style={{ flex: 1, height: '42px', marginTop: 0 }} 
+                        style={{ flex: '1 1 0px', width: '100%', height: '42px', marginTop: 0 }} 
                         onClick={() => setCustomPaletteOpen(false)}
                       >
                         취소
@@ -3029,7 +3028,7 @@ export default function App() {
                       <button 
                         type="button" 
                         className="primary-button" 
-                        style={{ flex: 1, height: '42px', marginTop: 0 }}
+                        style={{ flex: '1 1 0px', width: '100%', height: '42px', marginTop: 0 }}
                         onClick={() => {
                           setSelectedCategoryColor(currentCustomHex);
                           setCustomPaletteOpen(false);
