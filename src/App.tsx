@@ -1337,14 +1337,6 @@ export default function App() {
                     ▶
                   </button>
                 </div>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ width: 'auto', padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem', marginTop: 0, background: 'var(--primary)' }}
-                  onClick={() => setIsEntryModalOpen(true)}
-                >
-                  ➕ 새 거래 등록
-                </button>
               </div>
             </div>
 
@@ -1399,14 +1391,6 @@ export default function App() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span className="record-count" style={{ margin: 0 }}>{filteredLedgerTransactions.length}건 검색됨</span>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ width: 'auto', padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem', marginTop: 0, background: 'var(--primary)' }}
-                  onClick={() => setIsEntryModalOpen(true)}
-                >
-                  ➕ 새 거래 등록
-                </button>
               </div>
             </div>
               
@@ -1605,27 +1589,6 @@ export default function App() {
                   <strong style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}>💼 자산 총액: {formatCurrency(assetTotal)}</strong>
                   <strong style={{ fontSize: '1.05rem', color: 'var(--color-expense)' }}>🔄 반복결제 총액 (지출): {formatCurrency(recurringExpenseTotal)}</strong>
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ width: 'auto', padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem', marginTop: 0 }}
-                  onClick={() => {
-                    setEditingAsset(null); // 신규 등록 모드
-                    setIsAssetModalOpen(true);
-                  }}
-                >
-                  ➕ 자산 등록
-                </button>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{ width: 'auto', padding: '8px 16px', borderRadius: '10px', fontSize: '0.85rem', marginTop: 0, background: 'var(--color-income)' }}
-                  onClick={() => setIsCategoryModalOpen(true)}
-                >
-                  🏷️ 카테고리 추가
-                </button>
               </div>
             </div>
 
@@ -1871,6 +1834,50 @@ export default function App() {
           </section>
         )}
       </section>
+
+      {(activeTab === 'calendar' || activeTab === 'ledger' || activeTab === 'asset') && (
+        <div className={`floating-action-layer ${activeTab === 'asset' ? 'multi' : ''}`}>
+          {(activeTab === 'calendar' || activeTab === 'ledger') && (
+            <button
+              type="button"
+              className="floating-action"
+              onClick={() => setIsEntryModalOpen(true)}
+              aria-label="새 거래 등록"
+              title="새 거래 등록"
+            >
+              <span aria-hidden="true">+</span>
+              <strong>거래 등록</strong>
+            </button>
+          )}
+          {activeTab === 'asset' && (
+            <>
+              <button
+                type="button"
+                className="floating-action secondary"
+                onClick={() => setIsCategoryModalOpen(true)}
+                aria-label="카테고리 추가"
+                title="카테고리 추가"
+              >
+                <span aria-hidden="true">#</span>
+                <strong>카테고리</strong>
+              </button>
+              <button
+                type="button"
+                className="floating-action"
+                onClick={() => {
+                  setEditingAsset(null);
+                  setIsAssetModalOpen(true);
+                }}
+                aria-label="자산 등록"
+                title="자산 등록"
+              >
+                <span aria-hidden="true">+</span>
+                <strong>자산 등록</strong>
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Date Detail View Modal (Calendar Cell Clicked) */}
       {selectedDayData && (
