@@ -441,20 +441,16 @@
     width: 100%;
   }
 
-  .settings-sync-card {
-    grid-template-columns: 1fr !important;
+  .settings-sync-button {
+    grid-template-columns: 10px minmax(0, 1fr) !important;
     gap: 12px !important;
     padding: 16px 16px 16px 18px !important;
   }
 
-  .settings-sync-card .secondary-button {
+  .settings-sync-action {
+    grid-column: 2;
     width: 100% !important;
-    min-width: 0 !important;
-    min-height: 40px !important;
-  }
-
-  .settings-sync-meta {
-    gap: 6px !important;
+    min-height: 38px !important;
   }
 
   .settings-data-grid {

@@ -2886,20 +2886,14 @@ export default function App() {
 
             {settingsSection === 'data' && (
               <div className="settings-stack settings-data-stack">
-                <div className={`settings-sync-card ${remoteSync.status}`}>
-                  <div>
-                    <span className="settings-sync-kicker">SERVER SYNC</span>
+                <button type="button" className={`settings-sync-button ${remoteSync.status}`} onClick={() => void verifyRemoteSync(true)}>
+                  <span className="settings-sync-dot" aria-hidden="true" />
+                  <span className="settings-sync-copy">
                     <strong>{remoteSync.message}</strong>
-                  </div>
-                  <button type="button" className="secondary-button" onClick={() => void verifyRemoteSync(true)}>
-                    서버 확인
-                  </button>
-                  <div className="settings-sync-meta">
-                    <span>로컬 {formatSyncTime(remoteSync.localUpdatedAt || updatedAt)}</span>
-                    <span>서버 {formatSyncTime(remoteSync.remoteUpdatedAt)}</span>
-                    <span>확인 {formatSyncTime(remoteSync.checkedAt)}</span>
-                  </div>
-                </div>
+                    <small>가장 최근 저장 {formatSyncTime(remoteSync.remoteUpdatedAt || remoteSync.localUpdatedAt || updatedAt)}</small>
+                  </span>
+                  <span className="settings-sync-action">서버 확인</span>
+                </button>
                 <div className="settings-data-grid">
                   <article className="settings-data-card settings-csv-card">
                     <div>
