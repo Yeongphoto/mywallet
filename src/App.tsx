@@ -48,6 +48,7 @@ type CategoryColorMap = Record<string, string>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
+type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight';
 
 interface NoticeState {
   id: number;
@@ -63,6 +64,29 @@ interface ConfirmState {
   cancelLabel?: string;
   tone?: 'default' | 'danger';
   onConfirm: () => void;
+}
+
+function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
+  const paths: Record<AppIconName, string[]> = {
+    dashboard: ['M4 13h4v7H4z', 'M10 4h4v16h-4z', 'M16 9h4v11h-4z'],
+    asset: ['M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2', 'M4 11h16'],
+    plan: ['M4 19V5', 'M4 19h16', 'M7 15l3-4 3 2 5-7'],
+    calendar: ['M7 3v3', 'M17 3v3', 'M4 8h16', 'M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z'],
+    ledger: ['M6 3h9l3 3v15H6z', 'M15 3v4h4', 'M8 12h8', 'M8 16h8', 'M8 8h4'],
+    settings: ['M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', 'M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c0 .4.2.76.6 1 .3.25.7.4 1.1.4H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.6z'],
+    plus: ['M12 5v14', 'M5 12h14'],
+    edit: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
+    chevronLeft: ['M15 18l-6-6 6-6'],
+    chevronRight: ['M9 18l6-6-6-6'],
+  };
+
+  return (
+    <svg className="app-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {paths[name].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
 }
 
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
@@ -1499,23 +1523,23 @@ export default function App() {
           </div>
           <nav>
             <a href="#summary" className={activeTab === 'summary' ? 'active' : ''} onClick={() => setActiveTab('summary')}>
-              <span>📊</span>
+              <span><AppIcon name="dashboard" /></span>
               <strong>메인</strong>
             </a>
             <a href="#asset" className={activeTab === 'asset' ? 'active' : ''} onClick={() => setActiveTab('asset')}>
-              <span>💼</span>
+              <span><AppIcon name="asset" /></span>
               <strong>자산</strong>
             </a>
             <a href="#plan" className={activeTab === 'plan' ? 'active' : ''} onClick={() => setActiveTab('plan')}>
-              <span>📈</span>
+              <span><AppIcon name="plan" /></span>
               <strong>계획</strong>
             </a>
             <a href="#calendar" className={activeTab === 'calendar' ? 'active' : ''} onClick={() => setActiveTab('calendar')}>
-              <span>📅</span>
+              <span><AppIcon name="calendar" /></span>
               <strong>달력</strong>
             </a>
             <a href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => setActiveTab('ledger')}>
-              <span>📝</span>
+              <span><AppIcon name="ledger" /></span>
               <strong>장부</strong>
             </a>
           </nav>
@@ -1557,7 +1581,7 @@ export default function App() {
             {/* 공통 월 선택 영역 */}
             <div className="month-picker-wrap">
               <div className="month-picker-display">
-                {selectedMonth.replace('-', '.')} 📅
+                {selectedMonth.replace('-', '.')} <AppIcon name="calendar" size={16} />
               </div>
               <input
                 type="month"
@@ -1576,7 +1600,7 @@ export default function App() {
               }}
               title="환경 설정"
             >
-              <span>⚙️</span>
+              <span><AppIcon name="settings" size={21} /></span>
             </button>
           </div>
         </header>
@@ -1754,10 +1778,10 @@ export default function App() {
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <div className="calendar-nav-buttons">
                   <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev}>
-                    ◀
+                    <AppIcon name="chevronLeft" size={20} />
                   </button>
                   <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext}>
-                    ▶
+                    <AppIcon name="chevronRight" size={20} />
                   </button>
                 </div>
               </div>
@@ -2004,7 +2028,7 @@ export default function App() {
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>자산 현황</h1>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  <strong style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}>💼 자산 총액: {formatCurrency(assetTotal)}</strong>
+                  <strong className="section-title-icon" style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}><AppIcon name="asset" size={18} /> 자산 총액: {formatCurrency(assetTotal)}</strong>
                 </div>
               </div>
             </div>
@@ -2015,7 +2039,7 @@ export default function App() {
               {/* 1. [ 자산 현황 ] 고정 카드 */}
               <div className="glass-panel" style={{ padding: '16px' }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                  <span>💼</span> 자산 목록
+                  <AppIcon name="asset" size={19} /> 자산 목록
                 </h3>
                 <div className="asset-table-list" style={{ display: 'grid', gap: '3px' }}>
                   {assets.length === 0 ? (
@@ -2248,7 +2272,7 @@ export default function App() {
             <div className="asset-accordion-group" style={{ display: 'grid', gap: '24px' }}>
               <div className="glass-panel" style={{ padding: '24px' }}>
                 <h3 style={{ margin: '0 0 20px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-                  <span>📊</span> 월간 계획 (수입/지출 예산)
+                  <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
                 </h3>
 
                 <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -2722,7 +2746,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsAssetModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3>{editingAsset ? '💼 개별 자산 항목 수정' : '💼 개별 자산 항목 추가'}</h3>
+              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> {editingAsset ? '개별 자산 항목 수정' : '개별 자산 항목 추가'}</h3>
               <button type="button" className="close-btn" onClick={() => setIsAssetModalOpen(false)}>✕</button>
             </div>
             <form 
@@ -2804,7 +2828,7 @@ export default function App() {
                   className="primary-button" 
                   style={{ flex: 2, marginTop: 0 }}
                 >
-                  {editingAsset ? '자산 수정 ✏️' : '자산 등록 ➕'}
+                  <AppIcon name={editingAsset ? 'edit' : 'plus'} size={17} /> {editingAsset ? '자산 수정' : '자산 등록'}
                 </button>
               </div>
             </form>
@@ -2960,7 +2984,7 @@ export default function App() {
                   className="primary-button" 
                   style={{ flex: 2, marginTop: 0 }}
                 >
-                  추가하기 ➕
+                  <AppIcon name="plus" size={17} /> 추가하기
                 </button>
               </div>
             </form>
@@ -3084,7 +3108,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsEntryModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
-              <h3>➕ 통합 거래 등록</h3>
+              <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 거래 등록</h3>
               <button type="button" className="close-btn" onClick={() => setIsEntryModalOpen(false)}>✕</button>
             </div>
             <div className="modal-body" style={{ padding: '24px 28px' }}>
@@ -3166,14 +3190,14 @@ export default function App() {
                   setIsCategoryModalOpen(true);
                 }}
               >
-                <span>+</span> 카테고리 등록
+                <AppIcon name="plus" size={17} /> 카테고리 등록
               </button>
               <button
                 type="button"
                 className="primary-button fixed-bottom-bar-btn"
                 onClick={() => setIsAssetModalOpen(true)}
               >
-                <span>+</span> 자산 등록
+                <AppIcon name="plus" size={17} /> 자산 등록
               </button>
             </>
           )}
@@ -3188,7 +3212,7 @@ export default function App() {
                   setIsCategoryModalOpen(true);
                 }}
               >
-                <span>+</span> 카테고리 등록
+                <AppIcon name="plus" size={17} /> 카테고리 등록
               </button>
               <button
                 type="button"
@@ -3198,7 +3222,7 @@ export default function App() {
                   setModalTab('add');
                 }}
               >
-                <span>+</span> 거래 등록
+                <AppIcon name="plus" size={17} /> 거래 등록
               </button>
             </>
           )}
@@ -3211,7 +3235,7 @@ export default function App() {
                 setModalTab('add');
               }}
             >
-              <span>+</span> 거래 등록
+              <AppIcon name="plus" size={17} /> 거래 등록
             </button>
           )}
           {activeTab === 'ledger' && (
@@ -3223,7 +3247,7 @@ export default function App() {
                 setModalTab('add');
               }}
             >
-              <span>+</span> 거래 등록
+              <AppIcon name="plus" size={17} /> 거래 등록
             </button>
           )}
         </div>

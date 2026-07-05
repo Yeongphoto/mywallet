@@ -128,6 +128,24 @@ button:active {
   transform: scale(0.97);
 }
 
+.app-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+.section-title-icon,
+.modal-title-icon {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Layout */
 .app-shell {
   display: grid;
@@ -199,6 +217,18 @@ button:active {
   align-items: center;
   gap: 10px;
   transition: all 0.2s ease;
+}
+
+.sidebar nav a > span {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar nav a .app-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar nav a.active,
@@ -706,9 +736,14 @@ textarea:focus {
   background: var(--glass-bg);
   border: 1px solid var(--border-input);
   border-radius: 8px;
+  color: var(--text-primary);
   display: grid;
   place-items: center;
   font-size: 1.1rem;
+}
+
+.calendar-nav-btn .app-icon {
+  stroke-width: 2.4;
 }
 
 .calendar-nav-btn:hover {
@@ -1891,6 +1926,10 @@ textarea:focus {
   border: 1px solid rgba(255, 255, 255, 0.42) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+}
+
+.fixed-bottom-bar-btn .app-icon {
+  stroke-width: 2.5;
 }
 
 .fixed-bottom-bar-btn:hover {
