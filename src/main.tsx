@@ -4,6 +4,7 @@ import App from './App';
 import './styles.css';
 import './mobile.css';
 import './calendar.css';
+import './app-behavior.css';
 
 const rootElement = document.getElementById('root');
 
