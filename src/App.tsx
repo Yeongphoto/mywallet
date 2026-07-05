@@ -1003,14 +1003,14 @@ export default function App() {
   function handleAssetDragStart(e: React.DragEvent, index: number) {
     setDraggedAssetIndex(index);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
   }
 
   function handleAssetDragOver(e: React.DragEvent, index: number) {
     e.preventDefault();
   }
 
-  function handleAssetDrop(e: React.DragEvent, targetIndex: number) {
-    e.preventDefault();
+  function handleAssetDragEnter(targetIndex: number) {
     if (draggedAssetIndex === null || draggedAssetIndex === targetIndex) return;
 
     const newAssets = [...assets];
@@ -1019,6 +1019,10 @@ export default function App() {
     newAssets.splice(targetIndex, 0, draggedItem);
 
     setAssets(newAssets);
+    setDraggedAssetIndex(targetIndex);
+  }
+
+  function handleAssetDragEnd() {
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
 
@@ -1026,7 +1030,7 @@ export default function App() {
     setUpdatedAt(newTime);
     saveRemoteD1(
       transactions,
-      newAssets,
+      assets,
       budget,
       theme,
       plans,
@@ -1040,6 +1044,10 @@ export default function App() {
       deletedRecurringTxs,
       newTime
     );
+  }
+
+  function handleAssetDrop(e: React.DragEvent) {
+    e.preventDefault();
   }
 
   function handleCategoryColorChange(type: CategoryScope, id: string, color: string) {
@@ -1912,20 +1920,36 @@ export default function App() {
                   ) : (
                     assets.map((asset, index) => {
                       const isDragging = draggedAssetIndex === index;
-                      const isHovered = dragOverIndex === index && draggedAssetIndex !== index;
                       
+                      if (isDragging) {
+                        return (
+                          <div
+                            key={asset.id}
+                            onDragOver={(e) => handleAssetDragOver(e, index)}
+                            onDragEnter={() => handleAssetDragEnter(index)}
+                            onDragEnd={handleAssetDragEnd}
+                            onDrop={handleAssetDrop}
+                            style={{
+                              height: '40px',
+                              border: '2px dashed var(--primary)',
+                              borderRadius: '8px',
+                              background: 'var(--bg-balance-light)',
+                              opacity: 0.6,
+                              transition: 'all 0.15s ease',
+                            }}
+                          />
+                        );
+                      }
+
                       return (
                         <div
                           key={asset.id}
                           draggable
                           onDragStart={(e) => handleAssetDragStart(e, index)}
                           onDragOver={(e) => handleAssetDragOver(e, index)}
-                          onDragEnter={() => setDragOverIndex(index)}
-                          onDragEnd={() => {
-                            setDraggedAssetIndex(null);
-                            setDragOverIndex(null);
-                          }}
-                          onDrop={(e) => handleAssetDrop(e, index)}
+                          onDragEnter={() => handleAssetDragEnter(index)}
+                          onDragEnd={handleAssetDragEnd}
+                          onDrop={handleAssetDrop}
                           className="glass-panel"
                           style={{
                             display: 'flex',
@@ -1933,18 +1957,16 @@ export default function App() {
                             justifyContent: 'space-between',
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            cursor: isDragging ? 'grabbing' : 'grab',
+                            cursor: 'grab',
                             transition: 'all 0.15s ease',
-                            opacity: isDragging ? 0.4 : 1,
-                            transform: isHovered ? 'scale(1.01)' : 'none',
-                            background: isHovered ? 'var(--bg-balance-light)' : 'var(--bg-card)',
-                            borderColor: isHovered ? 'var(--primary)' : 'var(--border-card)',
-                            borderStyle: isHovered || isDragging ? 'dashed' : 'solid',
-                            borderWidth: isHovered ? '2px' : '1px',
+                            background: 'var(--bg-card)',
+                            borderColor: 'var(--border-card)',
+                            borderStyle: 'solid',
+                            borderWidth: '1px',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <span style={{ color: 'var(--text-secondary)', cursor: isDragging ? 'grabbing' : 'grab', fontSize: '1.1rem', userSelect: 'none' }}>⠿</span>
+                            <span style={{ color: 'var(--text-secondary)', cursor: 'grab', fontSize: '1.1rem', userSelect: 'none' }}>⠿</span>
                             <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
                             <span style={{ fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(asset.amount)}</span>
                             {asset.memo && (
@@ -1956,25 +1978,25 @@ export default function App() {
                               type="button"
                               className="edit-btn"
                               style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}
-                            onClick={() => {
-                              setEditingAsset(asset); // 수정 모드 전환
-                              setIsAssetModalOpen(true);
-                            }}
-                          >
-                            수정
-                          </button>
-                          <button
-                            type="button"
-                            className="delete-btn-sm"
-                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
-                            onClick={() => handleDeleteAsset(asset.id)}
-                          >
-                            삭제
-                          </button>
+                              onClick={() => {
+                                setEditingAsset(asset); // 수정 모드 전환
+                                setIsAssetModalOpen(true);
+                              }}
+                            >
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              className="delete-btn-sm"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                              onClick={() => handleDeleteAsset(asset.id)}
+                            >
+                              삭제
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
                 )}
                 </div>
               </div>
