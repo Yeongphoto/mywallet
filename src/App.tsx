@@ -1912,7 +1912,7 @@ export default function App() {
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <span>💼</span> 자산 목록
                 </h3>
-                <div className="asset-table-list" style={{ display: 'grid', gap: '0px' }}>
+                <div className="asset-table-list" style={{ display: 'grid', gap: '3px' }}>
                   {assets.length === 0 ? (
                     <p className="empty-note" style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-secondary)' }}>
                       등록된 자산 항목이 없습니다. 우측 상단의 [자산 등록] 단추를 통해 자산을 추가해보세요.
@@ -1920,10 +1920,8 @@ export default function App() {
                   ) : (
                     assets.map((asset, index) => {
                       const isDragging = draggedAssetIndex === index;
-                      const isFirst = index === 0;
-                      const isLast = index === assets.length - 1;
 
-                      // 테두리 겹침 방지 및 둥글기 동적 계산
+                      // 그림자 없는 1px 테두리 스트로크 및 8px 보더 반경
                       const baseRowStyle: React.CSSProperties = {
                         display: 'flex',
                         alignItems: 'center',
@@ -1931,15 +1929,9 @@ export default function App() {
                         padding: '8px 12px',
                         transition: 'all 0.15s ease',
                         boxSizing: 'border-box',
-                        height: '43px',
-                        borderLeft: '1px solid var(--border-card)',
-                        borderRight: '1px solid var(--border-card)',
-                        borderBottom: '1px solid var(--border-card)',
-                        borderTop: isFirst ? '1px solid var(--border-card)' : 'none',
-                        borderTopLeftRadius: isFirst ? '8px' : '0px',
-                        borderTopRightRadius: isFirst ? '8px' : '0px',
-                        borderBottomLeftRadius: isLast ? '8px' : '0px',
-                        borderBottomRightRadius: isLast ? '8px' : '0px',
+                        border: '1px solid var(--border-card)',
+                        borderRadius: '8px',
+                        boxShadow: 'none',
                       };
                       
                       if (isDragging) {
@@ -1952,14 +1944,25 @@ export default function App() {
                             onDrop={handleAssetDrop}
                             style={{
                               ...baseRowStyle,
-                              borderStyle: 'dashed',
-                              borderWidth: '2px',
-                              borderColor: 'var(--primary)',
-                              borderTop: isFirst ? '2px dashed var(--primary)' : 'none',
+                              border: '2px dashed var(--primary)',
                               background: 'var(--bg-balance-light)',
-                              opacity: 0.6,
+                              opacity: 0.65,
                             }}
-                          />
+                          >
+                            {/* 실제 Row와 100% 동일한 컨텐츠이지만 visibility: 'hidden'을 주어 공간(높이/너비)을 완벽 정밀 점유! */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', visibility: 'hidden' }}>
+                              <span style={{ fontSize: '1.1rem' }}>⠿</span>
+                              <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                              <span style={{ fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(asset.amount)}</span>
+                              {asset.memo && (
+                                <span style={{ fontSize: '0.82rem' }}>({asset.memo})</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px', visibility: 'hidden' }}>
+                              <button type="button" className="edit-btn" style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}>수정</button>
+                              <button type="button" className="delete-btn-sm" style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}>삭제</button>
+                            </div>
+                          </div>
                         );
                       }
 
@@ -1972,7 +1975,6 @@ export default function App() {
                           onDragEnter={() => handleAssetDragEnter(index)}
                           onDragEnd={handleAssetDragEnd}
                           onDrop={handleAssetDrop}
-                          className="glass-panel"
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
