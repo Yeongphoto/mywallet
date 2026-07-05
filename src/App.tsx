@@ -2094,8 +2094,8 @@ export default function App() {
                 </h3>
                 
                 {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
-                <div className="category-card-grid" style={{ display: 'grid', gap: '16px', marginTop: '16px' }}>
-                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                <div style={{ width: '100%', marginTop: '16px' }}>
+                  <article className="category-table-card" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🏷️ 등록된 자산 카테고리</strong>
                       <b>{activeAssetCategories.length}개</b>
@@ -2848,9 +2848,9 @@ export default function App() {
 
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>카테고리 고유 색상</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px', alignItems: 'center' }}>
                   {['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'].map((color) => {
-                    const isSelected = selectedCategoryColor === color;
+                    const isSelected = selectedCategoryColor.toLowerCase() === color.toLowerCase();
                     return (
                       <button
                         key={color}
@@ -2871,6 +2871,46 @@ export default function App() {
                       />
                     );
                   })}
+
+                  {/* 자율자재 선택 가능한 팔레트 칩 (확인/취소 단추 없음!) */}
+                  {(() => {
+                    const presetColors = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'];
+                    const isCustom = !presetColors.includes(selectedCategoryColor.toLowerCase());
+                    return (
+                      <label
+                        style={{
+                          display: 'inline-block',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: isCustom ? selectedCategoryColor : 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)',
+                          border: isCustom ? '3px solid var(--text-primary)' : '1px solid rgba(0, 0, 0, 0.1)',
+                          cursor: 'pointer',
+                          transform: isCustom ? 'scale(1.15)' : 'scale(1)',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isCustom ? '0 4px 6px rgba(0,0,0,0.15)' : 'none',
+                          position: 'relative',
+                          margin: 0
+                        }}
+                        title="커스텀 색상 선택"
+                      >
+                        <input
+                          type="color"
+                          value={selectedCategoryColor}
+                          onChange={(e) => setSelectedCategoryColor(e.target.value)}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer'
+                          }}
+                        />
+                      </label>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -2976,13 +3016,6 @@ export default function App() {
             <>
               <button
                 type="button"
-                className="primary-button fixed-bottom-bar-btn"
-                onClick={() => setIsAssetModalOpen(true)}
-              >
-                <span>+</span> 자산 등록
-              </button>
-              <button
-                type="button"
                 className="secondary-button fixed-bottom-bar-btn"
                 style={{ background: 'var(--bg-balance-light)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
                 onClick={() => {
@@ -2992,20 +3025,17 @@ export default function App() {
               >
                 <span>+</span> 카테고리 등록
               </button>
+              <button
+                type="button"
+                className="primary-button fixed-bottom-bar-btn"
+                onClick={() => setIsAssetModalOpen(true)}
+              >
+                <span>+</span> 자산 등록
+              </button>
             </>
           )}
           {activeTab === 'plan' && (
             <>
-              <button
-                type="button"
-                className="primary-button fixed-bottom-bar-btn"
-                onClick={() => {
-                  setIsEntryModalOpen(true);
-                  setModalTab('add');
-                }}
-              >
-                <span>+</span> 거래 등록
-              </button>
               <button
                 type="button"
                 className="secondary-button fixed-bottom-bar-btn"
@@ -3016,6 +3046,16 @@ export default function App() {
                 }}
               >
                 <span>+</span> 카테고리 등록
+              </button>
+              <button
+                type="button"
+                className="primary-button fixed-bottom-bar-btn"
+                onClick={() => {
+                  setIsEntryModalOpen(true);
+                  setModalTab('add');
+                }}
+              >
+                <span>+</span> 거래 등록
               </button>
             </>
           )}
