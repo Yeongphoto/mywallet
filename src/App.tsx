@@ -1264,7 +1264,11 @@ export default function App() {
   const calendarDays = useMemo(() => {
     const date = new Date(calendarYear, calendarMonth, 1);
     const days = [];
-    const firstDayOfWeek = date.getDay();
+    const rawFirstDayOfWeek = date.getDay();
+    const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+    // 35칸(5주)을 초과하는 달의 경우 시작 요일을 강제로 일요일(0)로 당겨 5행 수용 보장
+    const firstDayOfWeek = (rawFirstDayOfWeek + lastDate > 35) ? 0 : rawFirstDayOfWeek;
     const prevMonthLastDate = new Date(calendarYear, calendarMonth, 0).getDate();
 
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
@@ -1280,7 +1284,6 @@ export default function App() {
       });
     }
 
-    const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
     for (let i = 1; i <= lastDate; i++) {
       const y = calendarYear;
       const m = String(calendarMonth + 1).padStart(2, '0');
@@ -1293,7 +1296,8 @@ export default function App() {
       });
     }
 
-    const remaining = 42 - days.length;
+    // 무조건 5행(35일)으로 픽스하여 남은 공간 채움
+    const remaining = 35 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const nextDate = new Date(calendarYear, calendarMonth + 1, i);
       const y = nextDate.getFullYear();
@@ -1716,7 +1720,7 @@ export default function App() {
 
         {/* Calendar View Tab */}
         {activeTab === 'calendar' && (
-          <section className="glass-panel calendar-view-container">
+          <section className="calendar-view-container" style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 }}>
             <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2>
                 {calendarYear}년 {calendarMonth + 1}월

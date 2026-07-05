@@ -741,7 +741,7 @@ textarea:focus {
   padding: 8px 10px;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
-  border-radius: 12px;
+  border-radius: 4px; /* 둥글게 가두던 12px 코너를 지우고 미니멀 격자화 */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
