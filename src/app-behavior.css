@@ -27,6 +27,10 @@ textarea {
 }
 
 @media (max-width: 992px) {
+  .content:not(:has(.calendar-view-container)) {
+    padding-top: calc(64px + 12px) !important;
+  }
+
   .content:has(.asset-accordion-group) > .tab-title-bar,
   .content:has(.plans-container) > .tab-title-bar {
     display: none !important;
