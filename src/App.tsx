@@ -489,6 +489,7 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
   const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -1019,6 +1020,7 @@ export default function App() {
 
     setAssets(newAssets);
     setDraggedAssetIndex(null);
+    setDragOverIndex(null);
 
     const newTime = Date.now();
     setUpdatedAt(newTime);
@@ -1885,9 +1887,9 @@ export default function App() {
         {activeTab === 'asset' && (
           <>
             {/* 자산 탭 상단 헤더 및 등록 제어 단추 */}
-            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>자산 현황</h1>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>자산 현황</h1>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}>💼 자산 총액: {formatCurrency(assetTotal)}</strong>
                 </div>
@@ -1895,52 +1897,65 @@ export default function App() {
             </div>
 
             {/* 고정 카드 그리드 영역 */}
-            <div className="asset-accordion-group" style={{ display: 'grid', gap: '24px' }}>
+            <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
               
               {/* 1. [ 자산 현황 ] 고정 카드 */}
-              <div className="glass-panel" style={{ padding: '24px' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
+              <div className="glass-panel" style={{ padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <span>💼</span> 자산 목록
                 </h3>
-                <div className="asset-table-list" style={{ display: 'grid', gap: '12px' }}>
+                <div className="asset-table-list" style={{ display: 'grid', gap: '6px' }}>
                   {assets.length === 0 ? (
-                    <p className="empty-note" style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-secondary)' }}>
+                    <p className="empty-note" style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-secondary)' }}>
                       등록된 자산 항목이 없습니다. 우측 상단의 [자산 등록] 단추를 통해 자산을 추가해보세요.
                     </p>
                   ) : (
-                    assets.map((asset, index) => (
-                      <div
-                        key={asset.id}
-                        draggable
-                        onDragStart={(e) => handleAssetDragStart(e, index)}
-                        onDragOver={(e) => handleAssetDragOver(e, index)}
-                        onDrop={(e) => handleAssetDrop(e, index)}
-                        className="glass-panel"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '16px 20px',
-                          background: 'var(--bg-card)',
-                          border: '1px solid var(--border-card)',
-                          borderRadius: '12px',
-                          cursor: 'grab',
-                          transition: 'transform 0.2s, box-shadow 0.2s',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                          <span style={{ color: 'var(--text-secondary)', cursor: 'grab', fontSize: '1.2rem', userSelect: 'none' }}>⠿</span>
-                          <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                          <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
-                          {asset.memo && (
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>({asset.memo})</span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            type="button"
-                            className="edit-btn"
-                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                    assets.map((asset, index) => {
+                      const isDragging = draggedAssetIndex === index;
+                      const isHovered = dragOverIndex === index && draggedAssetIndex !== index;
+                      
+                      return (
+                        <div
+                          key={asset.id}
+                          draggable
+                          onDragStart={(e) => handleAssetDragStart(e, index)}
+                          onDragOver={(e) => handleAssetDragOver(e, index)}
+                          onDragEnter={() => setDragOverIndex(index)}
+                          onDragEnd={() => {
+                            setDraggedAssetIndex(null);
+                            setDragOverIndex(null);
+                          }}
+                          onDrop={(e) => handleAssetDrop(e, index)}
+                          className="glass-panel"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            transition: 'all 0.15s ease',
+                            opacity: isDragging ? 0.4 : 1,
+                            transform: isHovered ? 'scale(1.01)' : 'none',
+                            background: isHovered ? 'var(--bg-balance-light)' : 'var(--bg-card)',
+                            borderColor: isHovered ? 'var(--primary)' : 'var(--border-card)',
+                            borderStyle: isHovered || isDragging ? 'dashed' : 'solid',
+                            borderWidth: isHovered ? '2px' : '1px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            <span style={{ color: 'var(--text-secondary)', cursor: isDragging ? 'grabbing' : 'grab', fontSize: '1.1rem', userSelect: 'none' }}>⠿</span>
+                            <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                            <span style={{ fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(asset.amount)}</span>
+                            {asset.memo && (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>({asset.memo})</span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="edit-btn"
+                              style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}
                             onClick={() => {
                               setEditingAsset(asset); // 수정 모드 전환
                               setIsAssetModalOpen(true);
@@ -1958,8 +1973,9 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </div>
               </div>
 
