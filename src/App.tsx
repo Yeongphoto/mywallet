@@ -1,44 +1,53 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { DragEvent, FormEvent } from 'react';
 import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 
 const expenseCategories: CategoryOption[] = [
-  { id: 'food', label: '음식' },
-  { id: 'daily', label: '생필품' },
-  { id: 'saving', label: '저축' },
-  { id: 'utility', label: '공공요금' },
-  { id: 'subscription', label: '월정료' },
-  { id: 'medical', label: '의료' },
-  { id: 'housing', label: '주거' },
-  { id: 'transport', label: '교통' },
-  { id: 'personal', label: '개인' },
-  { id: 'travel', label: '여행' },
-  { id: 'etc', label: '기타' },
+  { id: 'food', label: '음식', color: '#ef4444' },
+  { id: 'daily', label: '생필품', color: '#f97316' },
+  { id: 'saving', label: '저축', color: '#2563eb' },
+  { id: 'utility', label: '공공요금', color: '#0891b2' },
+  { id: 'subscription', label: '월정료', color: '#7c3aed' },
+  { id: 'medical', label: '의료', color: '#db2777' },
+  { id: 'housing', label: '주거', color: '#475569' },
+  { id: 'transport', label: '교통', color: '#16a34a' },
+  { id: 'personal', label: '개인', color: '#0f766e' },
+  { id: 'travel', label: '여행', color: '#0284c7' },
+  { id: 'etc', label: '기타', color: '#64748b' },
 ];
 
 const incomeCategories: CategoryOption[] = [
-  { id: 'salary', label: '급여' },
-  { id: 'bonus', label: '보너스' },
-  { id: 'interest', label: '이자' },
-  { id: 'etc', label: '기타' },
+  { id: 'salary', label: '급여', color: '#059669' },
+  { id: 'bonus', label: '보너스', color: '#0ea5e9' },
+  { id: 'interest', label: '이자', color: '#6366f1' },
+  { id: 'etc', label: '기타', color: '#64748b' },
 ];
 
 const assetCategories: CategoryOption[] = [
-  { id: 'cash', label: '현금' },
-  { id: 'stock', label: '주식' },
-  { id: 'installment', label: '적금' },
-  { id: 'deposit', label: '예금' },
-  { id: 'subscription-saving', label: '청약' },
-  { id: 'emergency', label: '비상금' },
-  { id: 'travel', label: '여행' },
-  { id: 'etc', label: '기타' },
+  { id: 'cash', label: '현금', color: '#10b981' },
+  { id: 'stock', label: '주식', color: '#3b82f6' },
+  { id: 'installment', label: '적금', color: '#14b8a6' },
+  { id: 'deposit', label: '예금', color: '#06b6d4' },
+  { id: 'subscription-saving', label: '청약', color: '#8b5cf6' },
+  { id: 'emergency', label: '비상금', color: '#f59e0b' },
+  { id: 'travel', label: '여행', color: '#0284c7' },
+  { id: 'etc', label: '기타', color: '#64748b' },
 ];
 
 const STORAGE_KEY = 'mywallet:v2';
+const categoryColorPresets = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+  '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+  '#3b82f6', '#2563eb', '#6366f1', '#7c3aed', '#8b5cf6',
+  '#a855f7', '#d946ef', '#ec4899', '#db2777', '#64748b',
+];
 
 type NoticeType = 'info' | 'success' | 'warning' | 'error';
 type CategoryScope = TransactionType | 'asset';
 type CategoryColorMap = Record<string, string>;
+type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
+type HiddenCategoryMap = Record<string, boolean>;
+type AppTab = 'summary' | 'calendar' | 'entry' | 'ledger' | 'asset' | 'settings' | 'recurring';
 
 interface NoticeState {
   id: number;
@@ -59,6 +68,10 @@ interface ConfirmState {
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
   style: 'currency',
   currency: 'KRW',
+  maximumFractionDigits: 0,
+});
+
+const numberFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 0,
 });
 
@@ -87,8 +100,16 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function formatNumberInput(value: number) {
+  return value > 0 ? numberFormatter.format(value) : '';
+}
+
 function parseAmount(value: string) {
   return Number(value.replace(/,/g, '').trim());
+}
+
+function parseNumberInput(value: string) {
+  return Number(value.replace(/[^\d]/g, '')) || 0;
 }
 
 function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
@@ -99,11 +120,28 @@ function getCategoryColorKey(type: CategoryScope, id: string) {
   return `${type}:${id}`;
 }
 
-function applyCategoryColors(categories: CategoryOption[], type: CategoryScope, colors: CategoryColorMap) {
+function getTabFromHash(): AppTab {
+  const hash = window.location.hash.replace('#', '');
+  const tabs: AppTab[] = ['summary', 'calendar', 'entry', 'ledger', 'asset', 'settings', 'recurring'];
+  return tabs.includes(hash as AppTab) ? hash as AppTab : 'summary';
+}
+
+function applyCategorySettings(categories: CategoryOption[], type: CategoryScope, colors: CategoryColorMap, order: CategoryOrderMap) {
+  const orderList = order[type] ?? [];
+  const orderIndex = new Map(orderList.map((id, index) => [id, index]));
+
   return categories.map((category) => ({
     ...category,
     color: colors[getCategoryColorKey(type, category.id)] ?? category.color,
-  }));
+  })).sort((a, b) => {
+    const aIndex = orderIndex.has(a.id) ? orderIndex.get(a.id)! : Number.MAX_SAFE_INTEGER;
+    const bIndex = orderIndex.has(b.id) ? orderIndex.get(b.id)! : Number.MAX_SAFE_INTEGER;
+    return aIndex - bIndex;
+  });
+}
+
+function isCategoryHidden(hiddenCategories: HiddenCategoryMap, type: CategoryScope, id: string) {
+  return Boolean(hiddenCategories[getCategoryColorKey(type, id)]);
 }
 
 function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]; idOrLabel: string }) {
@@ -148,6 +186,22 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
   );
 }
 
+function PlanAmountInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  return (
+    <div className="plan-amount-control">
+      <input
+        type="text"
+        inputMode="numeric"
+        value={formatNumberInput(value)}
+        onChange={(event) => onChange(parseNumberInput(event.target.value))}
+        onFocus={(event) => event.currentTarget.select()}
+        placeholder="0"
+      />
+      <span>원</span>
+    </div>
+  );
+}
+
 function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'expense'): UnifiedFormState {
   const defaultCategory = defaultType === 'expense' 
     ? (expenseCategories[0]?.id ?? 'etc')
@@ -176,6 +230,8 @@ function loadStoredData() {
       customIncomeCategories: [] as CategoryOption[],
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
+      categoryOrder: {} as CategoryOrderMap,
+      hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
       deletedRecurringTxs: [] as string[],
       updatedAt: 0
@@ -198,6 +254,8 @@ function loadStoredData() {
           customIncomeCategories: [] as CategoryOption[],
           customAssetCategories: [] as CategoryOption[],
           categoryColors: {} as CategoryColorMap,
+          categoryOrder: {} as CategoryOrderMap,
+          hiddenCategories: {} as HiddenCategoryMap,
           recurringRules: [] as RecurringRule[],
           deletedRecurringTxs: [] as string[],
           updatedAt: 0
@@ -213,6 +271,8 @@ function loadStoredData() {
         customIncomeCategories: [] as CategoryOption[],
         customAssetCategories: [] as CategoryOption[],
         categoryColors: {} as CategoryColorMap,
+        categoryOrder: {} as CategoryOrderMap,
+        hiddenCategories: {} as HiddenCategoryMap,
         recurringRules: [] as RecurringRule[],
         deletedRecurringTxs: [] as string[],
         updatedAt: 0
@@ -230,6 +290,8 @@ function loadStoredData() {
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
       customAssetCategories: Array.isArray(parsed.customAssetCategories) ? parsed.customAssetCategories : [] as CategoryOption[],
       categoryColors: parsed.categoryColors && typeof parsed.categoryColors === 'object' ? parsed.categoryColors as CategoryColorMap : {} as CategoryColorMap,
+      categoryOrder: parsed.categoryOrder && typeof parsed.categoryOrder === 'object' ? parsed.categoryOrder as CategoryOrderMap : {} as CategoryOrderMap,
+      hiddenCategories: parsed.hiddenCategories && typeof parsed.hiddenCategories === 'object' ? parsed.hiddenCategories as HiddenCategoryMap : {} as HiddenCategoryMap,
       recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[],
       deletedRecurringTxs: Array.isArray(parsed.deletedRecurringTxs) ? parsed.deletedRecurringTxs : [] as string[],
       updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0
@@ -245,6 +307,8 @@ function loadStoredData() {
       customIncomeCategories: [] as CategoryOption[],
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
+      categoryOrder: {} as CategoryOrderMap,
+      hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
       deletedRecurringTxs: [] as string[],
       updatedAt: 0
@@ -262,6 +326,8 @@ function saveLocalStorage(
   customIncomeCategories: CategoryOption[],
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
+  categoryOrder: CategoryOrderMap,
+  hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
   deletedRecurringTxs: string[],
   updatedAt: number
@@ -279,6 +345,8 @@ function saveLocalStorage(
         customIncomeCategories, 
         customAssetCategories,
         categoryColors,
+        categoryOrder,
+        hiddenCategories,
         recurringRules, 
         deletedRecurringTxs,
         updatedAt
@@ -299,6 +367,8 @@ function saveRemoteD1(
   customIncomeCategories: CategoryOption[],
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
+  categoryOrder: CategoryOrderMap,
+  hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
   deletedRecurringTxs: string[],
   updatedAt: number
@@ -318,6 +388,8 @@ function saveRemoteD1(
       customIncomeCategories,
       customAssetCategories,
       categoryColors,
+      categoryOrder,
+      hiddenCategories,
       recurringRules,
       deletedRecurringTxs,
       updatedAt
@@ -354,22 +426,37 @@ export default function App() {
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
   const [customAssetCategories, setCustomAssetCategories] = useState<CategoryOption[]>(storedData.customAssetCategories || []);
   const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(storedData.categoryColors || {});
+  const [categoryOrder, setCategoryOrder] = useState<CategoryOrderMap>(storedData.categoryOrder || {});
+  const [hiddenCategories, setHiddenCategories] = useState<HiddenCategoryMap>(storedData.hiddenCategories || {});
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
   const [deletedRecurringTxs, setDeletedRecurringTxs] = useState<string[]>(storedData.deletedRecurringTxs || []);
   const [updatedAt, setUpdatedAt] = useState<number>(storedData.updatedAt || 0);
   
   const allExpenseCategories = useMemo(
-    () => applyCategoryColors([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors),
-    [customExpenseCategories, categoryColors]
+    () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryOrder),
+    [customExpenseCategories, categoryColors, categoryOrder]
   );
   const allIncomeCategories = useMemo(
-    () => applyCategoryColors([...incomeCategories, ...customIncomeCategories], 'income', categoryColors),
-    [customIncomeCategories, categoryColors]
+    () => applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryOrder),
+    [customIncomeCategories, categoryColors, categoryOrder]
   );
   const allAssetCategories = useMemo(
-    () => applyCategoryColors([...assetCategories, ...customAssetCategories], 'asset', categoryColors),
-    [customAssetCategories, categoryColors]
+    () => applyCategorySettings([...assetCategories, ...customAssetCategories], 'asset', categoryColors, categoryOrder),
+    [customAssetCategories, categoryColors, categoryOrder]
   );
+  const activeExpenseCategories = useMemo(
+    () => allExpenseCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'expense', category.id)),
+    [allExpenseCategories, hiddenCategories]
+  );
+  const activeIncomeCategories = useMemo(
+    () => allIncomeCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'income', category.id)),
+    [allIncomeCategories, hiddenCategories]
+  );
+  const activeAssetCategories = useMemo(
+    () => allAssetCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'asset', category.id)),
+    [allAssetCategories, hiddenCategories]
+  );
+  const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
 
   const [plans, setPlans] = useState<CategoryPlan[]>(() => {
     const initialPlans: CategoryPlan[] = storedData.plans || [];
@@ -384,7 +471,8 @@ export default function App() {
       return existing ? { ...existing, plannedAmount: Number(existing.plannedAmount) || 0 } : { category: item.category, type: item.type, plannedAmount: 0 };
     });
   });
-  const [activeTab, setActiveTab] = useState<'summary' | 'calendar' | 'entry' | 'ledger' | 'asset' | 'categories' | 'settings' | 'recurring'>('summary');
+  const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
+  const [settingsSection, setSettingsSection] = useState<'category' | 'app' | 'data'>('category');
   
   // Filtering & Search states
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -411,6 +499,8 @@ export default function App() {
     color: '#0284c7',
   });
   const [assetSection, setAssetSection] = useState({ showAsset: true, showPlan: false, showRecurring: false });
+  const [openPaletteKey, setOpenPaletteKey] = useState<string | null>(null);
+  const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<NoticeState | null>(null);
@@ -439,6 +529,12 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    const syncTabFromHash = () => setActiveTab(getTabFromHash());
+    window.addEventListener('hashchange', syncTabFromHash);
+    return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
+
   // Sync state to LocalStorage and D1 (Debounced with Timestamp updates)
   useEffect(() => {
     const newUpdatedAt = Date.now();
@@ -455,6 +551,8 @@ export default function App() {
       customIncomeCategories, 
       customAssetCategories,
       categoryColors,
+      categoryOrder,
+      hiddenCategories,
       recurringRules, 
       deletedRecurringTxs,
       newUpdatedAt
@@ -475,6 +573,8 @@ export default function App() {
         customIncomeCategories, 
         customAssetCategories,
         categoryColors,
+        categoryOrder,
+        hiddenCategories,
         recurringRules, 
         deletedRecurringTxs,
         newUpdatedAt
@@ -495,6 +595,8 @@ export default function App() {
     customIncomeCategories, 
     customAssetCategories,
     categoryColors,
+    categoryOrder,
+    hiddenCategories,
     recurringRules, 
     deletedRecurringTxs, 
     isLoading
@@ -524,6 +626,8 @@ export default function App() {
             (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0) ||
             (Array.isArray(data.customAssetCategories) && data.customAssetCategories.length > 0) ||
             (data.categoryColors && typeof data.categoryColors === 'object' && Object.keys(data.categoryColors).length > 0) ||
+            (data.categoryOrder && typeof data.categoryOrder === 'object' && Object.keys(data.categoryOrder).length > 0) ||
+            (data.hiddenCategories && typeof data.hiddenCategories === 'object' && Object.keys(data.hiddenCategories).length > 0) ||
             (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||
             (Array.isArray(data.deletedRecurringTxs) && data.deletedRecurringTxs.length > 0);
 
@@ -534,6 +638,8 @@ export default function App() {
             storedData.customIncomeCategories.length > 0 ||
             storedData.customAssetCategories.length > 0 ||
             Object.keys(storedData.categoryColors || {}).length > 0 ||
+            Object.keys(storedData.categoryOrder || {}).length > 0 ||
+            Object.keys(storedData.hiddenCategories || {}).length > 0 ||
             storedData.recurringRules.length > 0 ||
             storedData.deletedRecurringTxs.length > 0;
 
@@ -551,6 +657,8 @@ export default function App() {
                 storedData.customIncomeCategories,
                 storedData.customAssetCategories,
                 storedData.categoryColors,
+                storedData.categoryOrder,
+                storedData.hiddenCategories,
                 storedData.recurringRules,
                 storedData.deletedRecurringTxs,
                 newTime
@@ -577,6 +685,8 @@ export default function App() {
             setCustomIncomeCategories(data.customIncomeCategories || []);
             setCustomAssetCategories(data.customAssetCategories || []);
             setCategoryColors(data.categoryColors || {});
+            setCategoryOrder(data.categoryOrder || {});
+            setHiddenCategories(data.hiddenCategories || {});
             setRecurringRules(data.recurringRules || []);
             setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             setUpdatedAt(serverUpdatedAt);
@@ -592,6 +702,8 @@ export default function App() {
               customIncomeCategories.length > 0 ||
               customAssetCategories.length > 0 ||
               Object.keys(categoryColors).length > 0 ||
+              Object.keys(categoryOrder).length > 0 ||
+              Object.keys(hiddenCategories).length > 0 ||
               recurringRules.length > 0 ||
               deletedRecurringTxs.length > 0
             ) {
@@ -607,6 +719,8 @@ export default function App() {
                 customIncomeCategories,
                 customAssetCategories,
                 categoryColors,
+                categoryOrder,
+                hiddenCategories,
                 recurringRules,
                 deletedRecurringTxs,
                 newTime
@@ -803,12 +917,12 @@ export default function App() {
   const filteredLedgerTransactions = useMemo(() => {
     return monthlyTransactions.filter((transaction) => {
       const matchSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          getCategoryLabel(transaction.type === 'expense' ? expenseCategories : incomeCategories, transaction.category)
+                          getCategoryLabel(transaction.type === 'expense' ? allExpenseCategories : allIncomeCategories, transaction.category)
                             .toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = filterCategory === 'all' || transaction.category === filterCategory;
       return matchSearch && matchCategory;
     });
-  }, [monthlyTransactions, searchTerm, filterCategory]);
+  }, [monthlyTransactions, searchTerm, filterCategory, allExpenseCategories, allIncomeCategories]);
 
   // Actions
   function handleAddTransaction(transaction: Transaction) {
@@ -901,10 +1015,10 @@ export default function App() {
 
     const targetList =
       categoryDraft.type === 'expense'
-        ? allExpenseCategories
+        ? activeExpenseCategories
         : categoryDraft.type === 'income'
-        ? allIncomeCategories
-        : allAssetCategories;
+        ? activeIncomeCategories
+        : activeAssetCategories;
 
     if (targetList.some((category) => category.label === label)) {
       showNotice('이미 등록된 카테고리입니다.', '중복 카테고리', 'warning');
@@ -925,47 +1039,38 @@ export default function App() {
     }
 
     handleCategoryColorChange(categoryDraft.type, generatedId, categoryDraft.color);
+    setCategoryOrder((prev) => ({
+      ...prev,
+      [categoryDraft.type]: [...(prev[categoryDraft.type] ?? targetList.map((category) => category.id)), generatedId],
+    }));
     setCategoryDraft((prev) => ({ ...prev, label: '' }));
     showNotice(`'${label}' 카테고리를 추가했습니다.`, '카테고리 추가', 'success');
   }
 
-  function handleDeleteCustomCategory(type: CategoryScope, id: string, label: string) {
-    const isUsed =
-      type === 'asset'
-        ? assets.some((asset) => asset.category === id)
-        : transactions.some((transaction) => transaction.type === type && transaction.category === id) ||
-          recurringRules.some((rule) => rule.type === type && rule.category === id);
-
-    if (isUsed) {
-      showNotice('이미 사용 중인 카테고리는 삭제할 수 없습니다. 색상만 변경해 주세요.', '삭제 불가', 'warning');
-      return;
-    }
-
+  function handleArchiveCategory(type: CategoryScope, id: string, label: string) {
     requestConfirm({
       title: '카테고리 삭제',
-      message: `'${label}' 카테고리를 삭제할까요?`,
+      message: `'${label}' 카테고리를 목록에서 제거할까요? 기존 거래와 자산 기록은 유지됩니다.`,
       confirmLabel: '삭제',
       tone: 'danger',
       onConfirm: () => {
-        if (type === 'expense') {
-          setCustomExpenseCategories((prev) => prev.filter((category) => category.id !== id));
-        } else if (type === 'income') {
-          setCustomIncomeCategories((prev) => prev.filter((category) => category.id !== id));
-        } else {
-          setCustomAssetCategories((prev) => prev.filter((category) => category.id !== id));
-        }
-
-        if (type !== 'asset') {
-          setPlans((prev) => prev.filter((plan) => !(plan.type === type && plan.category === id)));
-        }
-        setCategoryColors((prev) => {
-          const next = { ...prev };
-          delete next[getCategoryColorKey(type, id)];
-          return next;
-        });
-        showNotice(`'${label}' 카테고리를 삭제했습니다.`, '삭제 완료', 'success');
+        setHiddenCategories((prev) => ({ ...prev, [getCategoryColorKey(type, id)]: true }));
+        showNotice(`'${label}' 카테고리를 숨겼습니다.`, '삭제 완료', 'success');
       },
     });
+  }
+
+  function handleCategoryDrop(event: DragEvent<HTMLDivElement>, type: CategoryScope, targetId: string, categories: CategoryOption[]) {
+    event.preventDefault();
+    if (!dragCategory || dragCategory.type !== type || dragCategory.id === targetId) return;
+
+    const visibleIds = categories.map((category) => category.id);
+    const nextIds = visibleIds.filter((id) => id !== dragCategory.id);
+    const targetIndex = nextIds.indexOf(targetId);
+    nextIds.splice(targetIndex, 0, dragCategory.id);
+
+    setCategoryOrder((prev) => ({ ...prev, [type]: nextIds }));
+    setDragCategory(null);
   }
 
   function handleReset() {
@@ -998,6 +1103,8 @@ export default function App() {
       setCustomIncomeCategories([]);
       setCustomAssetCategories([]);
       setCategoryColors({});
+      setCategoryOrder({});
+      setHiddenCategories({});
       setRecurringRules([]);
       setDeletedRecurringTxs([]);
       setPlans(initialPlans);
@@ -1014,6 +1121,8 @@ export default function App() {
         [],
         [],
         [],
+        {},
+        {},
         {},
         [],
         [],
@@ -1208,23 +1317,17 @@ export default function App() {
     {
       type: 'expense' as const,
       title: '지출 카테고리',
-      subtitle: '거래 장부와 월간 예산에 사용됩니다.',
-      categories: allExpenseCategories,
-      defaultIds: new Set(expenseCategories.map((category) => category.id)),
+      categories: activeExpenseCategories,
     },
     {
       type: 'income' as const,
       title: '수입 카테고리',
-      subtitle: '수입 기록과 목표 계획에 사용됩니다.',
-      categories: allIncomeCategories,
-      defaultIds: new Set(incomeCategories.map((category) => category.id)),
+      categories: activeIncomeCategories,
     },
     {
       type: 'asset' as const,
       title: '자산 카테고리',
-      subtitle: '자산 구성 카드와 분류 배지에 사용됩니다.',
-      categories: allAssetCategories,
-      defaultIds: new Set(assetCategories.map((category) => category.id)),
+      categories: activeAssetCategories,
     },
   ];
 
@@ -1288,10 +1391,6 @@ export default function App() {
               <span>💼</span>
               <strong>자산 구성</strong>
             </a>
-            <a href="#categories" className={activeTab === 'categories' ? 'active' : ''} onClick={() => setActiveTab('categories')}>
-              <span>#</span>
-              <strong>카테고리</strong>
-            </a>
           </nav>
         </div>
       </aside>
@@ -1331,7 +1430,10 @@ export default function App() {
             <button
               type="button"
               className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('settings')}
+              onClick={() => {
+                window.location.hash = 'settings';
+                setActiveTab('settings');
+              }}
               title="환경 설정"
             >
               <span>⚙️</span>
@@ -1442,7 +1544,7 @@ export default function App() {
                       const plan = plans.find(p => p.category === c.id && p.type === 'expense');
                       const plannedAmt = plan ? plan.plannedAmount : 0;
                       const actualAmt = transactions
-                        .filter(t => t.type === 'expense' && t.category === c.id && t.date.slice(0, 7) === selectedMonth)
+                          .filter(t => t.type === 'expense' && t.category === c.id && t.date.slice(0, 7) === selectedMonth)
                         .reduce((sum, t) => sum + t.amount, 0);
                       const pct = plannedAmt > 0 ? Math.round((actualAmt / plannedAmt) * 100) : 0;
                       let toneColor = 'var(--primary)';
@@ -1572,14 +1674,14 @@ export default function App() {
                 <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                   <option value="all">모든 카테고리</option>
                   <optgroup label="지출 카테고리">
-                    {allExpenseCategories.map((c: CategoryOption) => (
+                    {activeExpenseCategories.map((c: CategoryOption) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="수입 카테고리">
-                    {allIncomeCategories.map((c: CategoryOption) => (
+                    {activeIncomeCategories.map((c: CategoryOption) => (
                       <option key={c.id} value={c.id}>
                         {c.label}
                       </option>
@@ -1825,26 +1927,23 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allExpenseCategories.map((c: CategoryOption) => {
+                        {activeExpenseCategories.map((c: CategoryOption) => {
                           const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
                           const value = plan ? plan.plannedAmount : 0;
                           return (
                             <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>{c.label}</td>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
+                              </td>
                               <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <input
-                                  type="number"
-                                  style={{ width: '140px', textAlign: 'right', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
-                                  value={value || ''}
-                                  onChange={(e) => {
-                                    const amt = Number(e.target.value) || 0;
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
                                     setPlans((prev) =>
                                       prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
                                     );
                                   }}
-                                  placeholder="0"
                                 />
-                                <span style={{ fontSize: '0.85rem', marginLeft: '6px', fontWeight: 700, color: 'var(--text-secondary)' }}>원</span>
                               </td>
                             </tr>
                           );
@@ -1866,26 +1965,23 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allIncomeCategories.map((c: CategoryOption) => {
+                        {activeIncomeCategories.map((c: CategoryOption) => {
                           const plan = plans.find((p) => p.category === c.id && p.type === 'income');
                           const value = plan ? plan.plannedAmount : 0;
                           return (
                             <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>{c.label}</td>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
+                              </td>
                               <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <input
-                                  type="number"
-                                  style={{ width: '140px', textAlign: 'right', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
-                                  value={value || ''}
-                                  onChange={(e) => {
-                                    const amt = Number(e.target.value) || 0;
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
                                     setPlans((prev) =>
                                       prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
                                     );
                                   }}
-                                  placeholder="0"
                                 />
-                                <span style={{ fontSize: '0.85rem', marginLeft: '6px', fontWeight: 700, color: 'var(--text-secondary)' }}>원</span>
                               </td>
                             </tr>
                           );
@@ -1900,207 +1996,189 @@ export default function App() {
           </>
         )}
 
-        {/* Category Management Tab */}
-        {activeTab === 'categories' && (
-          <section className="glass-panel category-manager">
-            <div className="category-manager-head">
-              <div>
-                <p className="eyebrow">Category Studio</p>
-                <h2>카테고리 관리</h2>
-              </div>
-              <span className="category-total-chip">
-                총 {allExpenseCategories.length + allIncomeCategories.length + allAssetCategories.length}개
-              </span>
-            </div>
-
-            <form className="category-create-card" onSubmit={handleAddManagedCategory}>
-              <div className="category-create-copy">
-                <strong>새 카테고리</strong>
-                <span>분류와 색상을 정하면 장부, 정기 반복, 자산 카드에 바로 반영됩니다.</span>
-              </div>
-              <select
-                value={categoryDraft.type}
-                onChange={(event) => setCategoryDraft((prev) => ({ ...prev, type: event.target.value as CategoryScope }))}
-                aria-label="카테고리 분류"
-              >
-                {categoryTypeOptions.map((option) => (
-                  <option key={option.type} value={option.type}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={categoryDraft.label}
-                onChange={(event) => setCategoryDraft((prev) => ({ ...prev, label: event.target.value }))}
-                placeholder="카테고리 이름"
-                aria-label="카테고리 이름"
-              />
-              <label className="category-color-field">
-                <span style={{ background: categoryDraft.color }} />
-                <input
-                  type="color"
-                  value={categoryDraft.color}
-                  onChange={(event) => setCategoryDraft((prev) => ({ ...prev, color: event.target.value }))}
-                  aria-label="새 카테고리 색상"
-                />
-              </label>
-              <button type="submit" className="primary-button">추가</button>
-            </form>
-
-            <div className="category-card-grid">
-              {categoryManagerGroups.map((group) => (
-                <article key={group.type} className="category-table-card">
-                  <div className="category-table-head">
-                    <div>
-                      <strong>{group.title}</strong>
-                      <span>{group.subtitle}</span>
-                    </div>
-                    <b>{group.categories.length}개</b>
-                  </div>
-                  <div className="category-table">
-                    {group.categories.map((category) => {
-                      const isDefault = group.defaultIds.has(category.id);
-                      const color = category.color || '#64748b';
-
-                      return (
-                        <div key={`${group.type}-${category.id}`} className="category-row">
-                          <label className="category-color-picker" title="색상 변경">
-                            <span style={{ background: color }} />
-                            <input
-                              type="color"
-                              value={color}
-                              onChange={(event) => handleCategoryColorChange(group.type, category.id, event.target.value)}
-                              aria-label={`${category.label} 색상`}
-                            />
-                          </label>
-                          <div className="category-row-main">
-                            <CategoryBadge categories={group.categories} idOrLabel={category.id} />
-                            <small>{isDefault ? '기본' : '사용자'}</small>
-                          </div>
-                          <button
-                            type="button"
-                            className="category-row-action"
-                            disabled={isDefault}
-                            onClick={() => handleDeleteCustomCategory(group.type, category.id, category.label)}
-                          >
-                            {isDefault ? '고정' : '삭제'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <section className="glass-panel">
-            <div className="panel-header">
-              <div>
-                <p className="eyebrow">Application Settings</p>
-                <h2>환경 설정</h2>
+          <section className="glass-panel settings-hub">
+            <div className="settings-head">
+              <h2>설정</h2>
+              <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
+                <button type="button" className={settingsSection === 'category' ? 'active' : ''} onClick={() => setSettingsSection('category')}>카테고리</button>
+                <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
+                <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
               </div>
             </div>
-            
-            <div style={{ display: 'grid', gap: '20px', marginTop: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>화면 테마 설정</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    어두운 환경에서 눈을 보호하기 위해 다크 모드를 활성화할 수 있습니다.
-                  </span>
-                </div>
-                <button 
-                  type="button" 
-                  className="primary-button" 
-                  style={{ 
-                    minHeight: '44px', 
-                    padding: '0 18px', 
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    width: '180px'
-                  }} 
-                  onClick={toggleTheme}
-                >
-                  {theme === 'light' ? '🌙 다크 모드 활성화' : '☀️ 라이트 모드 활성화'}
-                </button>
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>가계부 데이터 백업 및 복원</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    현재 데이터를 CSV 파일로 안전하게 백업하거나 백업 파일을 불러옵니다.
+            {settingsSection === 'category' && (
+              <div className="category-manager">
+                <div className="category-manager-head">
+                  <h3>카테고리 관리</h3>
+                  <span className="category-total-chip">
+                    {categoryManagerGroups.reduce((sum, group) => sum + group.categories.length, 0)}개
                   </span>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <button 
-                    type="button" 
-                    className="primary-button" 
-                    style={{ 
-                      minHeight: '44px', 
-                      padding: '0 18px', 
-                      borderRadius: '12px',
-                      fontWeight: '700',
-                      width: '180px'
-                    }} 
-                    onClick={exportCSV}
+
+                <form id="category-create-form" className="category-create-card" onSubmit={handleAddManagedCategory}>
+                  <div className="category-create-copy">
+                    <strong>새 카테고리</strong>
+                  </div>
+                  <select
+                    value={categoryDraft.type}
+                    onChange={(event) => setCategoryDraft((prev) => ({ ...prev, type: event.target.value as CategoryScope }))}
+                    aria-label="카테고리 분류"
                   >
-                    📥 CSV 백업
-                  </button>
-                  <label 
-                    className="primary-button" 
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      cursor: 'pointer', 
-                      borderRadius: '12px', 
-                      minHeight: '44px', 
-                      padding: '0 18px', 
-                      fontWeight: '700',
-                      width: '180px'
-                    }}
-                  >
-                    📤 CSV 복원
-                    <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+                    {categoryTypeOptions.map((option) => (
+                      <option key={option.type} value={option.type}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={categoryDraft.label}
+                    onChange={(event) => setCategoryDraft((prev) => ({ ...prev, label: event.target.value }))}
+                    placeholder="카테고리 이름"
+                    aria-label="카테고리 이름"
+                  />
+                  <label className="category-color-field">
+                    <span style={{ background: categoryDraft.color }} />
+                    <input
+                      type="color"
+                      value={categoryDraft.color}
+                      onChange={(event) => setCategoryDraft((prev) => ({ ...prev, color: event.target.value }))}
+                      aria-label="새 카테고리 색상"
+                    />
                   </label>
-                </div>
-              </div>
+                </form>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px', background: 'var(--bg-balance-light)', borderRadius: '16px', border: '1px solid var(--border-card)', flexWrap: 'wrap', gap: '16px' }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '4px' }}>가계부 데이터 초기화</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    등록된 모든 수입, 지출, 자산 및 예산 데이터를 초기화합니다.
-                  </span>
+                <div className="category-card-grid">
+                  {categoryManagerGroups.map((group) => (
+                    <article key={group.type} className="category-table-card">
+                      <div className="category-table-head">
+                        <strong>{group.title}</strong>
+                        <b>{group.categories.length}개</b>
+                      </div>
+                      <div className="category-table">
+                        {group.categories.map((category) => {
+                          const color = category.color || '#64748b';
+                          const paletteKey = getCategoryColorKey(group.type, category.id);
+                          const isOpen = openPaletteKey === paletteKey;
+
+                          return (
+                            <div
+                              key={`${group.type}-${category.id}`}
+                              className={`category-row ${dragCategory?.type === group.type && dragCategory.id === category.id ? 'dragging' : ''}`}
+                              draggable
+                              onDragStart={() => setDragCategory({ type: group.type, id: category.id })}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={(event) => handleCategoryDrop(event, group.type, category.id, group.categories)}
+                              onDragEnd={() => setDragCategory(null)}
+                            >
+                              <span className="category-drag-handle" aria-hidden="true">⋮⋮</span>
+                              <div className="category-color-menu">
+                                <button
+                                  type="button"
+                                  className="category-color-swatch"
+                                  style={{ background: color }}
+                                  onClick={() => {
+                                    setPaletteDraftColor(color);
+                                    setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
+                                  }}
+                                  aria-label={`${category.label} 색상`}
+                                />
+                                {isOpen && (
+                                  <div className="category-palette-popover">
+                                    <div className="category-preset-grid">
+                                      {categoryColorPresets.map((preset) => (
+                                        <button
+                                          key={preset}
+                                          type="button"
+                                          className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
+                                          style={{ background: preset }}
+                                          onClick={() => setPaletteDraftColor(preset)}
+                                          aria-label={`${category.label} ${preset}`}
+                                        />
+                                      ))}
+                                    </div>
+                                    <label className="category-custom-color">
+                                      <span style={{ background: paletteDraftColor }} />
+                                      <input
+                                        type="color"
+                                        value={paletteDraftColor}
+                                        onChange={(event) => setPaletteDraftColor(event.target.value)}
+                                        aria-label="커스텀 색상"
+                                      />
+                                      <strong>커스텀</strong>
+                                    </label>
+                                    <div className="category-palette-actions">
+                                      <button type="button" className="secondary-button" onClick={() => setOpenPaletteKey(null)}>취소</button>
+                                      <button
+                                        type="button"
+                                        className="primary-button"
+                                        onClick={() => {
+                                          handleCategoryColorChange(group.type, category.id, paletteDraftColor);
+                                          setOpenPaletteKey(null);
+                                        }}
+                                      >
+                                        확인
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="category-row-main">
+                                <CategoryBadge categories={group.categories} idOrLabel={category.id} />
+                              </div>
+                              <button
+                                type="button"
+                                className="category-row-action"
+                                onClick={() => handleArchiveCategory(group.type, category.id, category.label)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ))}
                 </div>
-                <button 
-                  type="button" 
-                  className="danger-button" 
-                  style={{ 
-                    minHeight: '44px', 
-                    padding: '0 18px', 
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    width: '180px'
-                  }} 
-                  onClick={handleReset}
-                >
-                  ⚠️ 전체 데이터 초기화
-                </button>
               </div>
-            </div>
+            )}
+
+            {settingsSection === 'app' && (
+              <div className="settings-stack">
+                <div className="settings-row">
+                  <strong>화면 테마</strong>
+                  <button type="button" className="primary-button" onClick={toggleTheme}>
+                    {theme === 'light' ? '다크 모드' : '라이트 모드'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {settingsSection === 'data' && (
+              <div className="settings-stack">
+                <div className="settings-row">
+                  <strong>백업 및 복원</strong>
+                  <div className="settings-actions">
+                    <button type="button" className="primary-button" onClick={exportCSV}>CSV 백업</button>
+                    <label className="primary-button">
+                      CSV 복원
+                      <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+                </div>
+                <div className="settings-row">
+                  <strong>데이터 초기화</strong>
+                  <button type="button" className="danger-button" onClick={handleReset}>전체 초기화</button>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </section>
 
-      {(activeTab === 'calendar' || activeTab === 'ledger' || activeTab === 'asset') && (
-        <div className={`floating-action-layer ${activeTab === 'asset' ? 'multi' : ''}`}>
+      {(activeTab === 'calendar' || activeTab === 'ledger' || activeTab === 'asset' || (activeTab === 'settings' && settingsSection === 'category')) && (
+        <div className="floating-action-layer">
           {(activeTab === 'calendar' || activeTab === 'ledger') && (
             <button
               type="button"
@@ -2114,31 +2192,31 @@ export default function App() {
             </button>
           )}
           {activeTab === 'asset' && (
-            <>
-              <button
-                type="button"
-                className="floating-action secondary"
-                onClick={() => setActiveTab('categories')}
-                aria-label="카테고리 추가"
-                title="카테고리 추가"
-              >
-                <span aria-hidden="true">#</span>
-                <strong>카테고리</strong>
-              </button>
-              <button
-                type="button"
-                className="floating-action"
-                onClick={() => {
-                  setEditingAsset(null);
-                  setIsAssetModalOpen(true);
-                }}
-                aria-label="자산 등록"
-                title="자산 등록"
-              >
-                <span aria-hidden="true">+</span>
-                <strong>자산 등록</strong>
-              </button>
-            </>
+            <button
+              type="button"
+              className="floating-action"
+              onClick={() => {
+                setEditingAsset(null);
+                setIsAssetModalOpen(true);
+              }}
+              aria-label="자산 등록"
+              title="자산 등록"
+            >
+              <span aria-hidden="true">+</span>
+              <strong>자산 등록</strong>
+            </button>
+          )}
+          {activeTab === 'settings' && settingsSection === 'category' && (
+            <button
+              type="submit"
+              form="category-create-form"
+              className="floating-action"
+              aria-label="카테고리 등록"
+              title="카테고리 등록"
+            >
+              <span aria-hidden="true">+</span>
+              <strong>카테고리 등록</strong>
+            </button>
           )}
         </div>
       )}
@@ -2250,8 +2328,8 @@ export default function App() {
                       setModalTab('view');
                     }}
                     isQuickAdd={true}
-                    expenseCategories={allExpenseCategories}
-                    incomeCategories={allIncomeCategories}
+                    expenseCategories={activeExpenseCategories}
+                    incomeCategories={activeIncomeCategories}
                     onAddRecurringRule={handleAddRecurringRule}
                     onNotify={showNotice}
                   />
@@ -2332,7 +2410,7 @@ export default function App() {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 >
                   <option value="">-- 분류 선택 --</option>
-                  {allAssetCategories.map((c) => (
+                  {activeAssetCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
                 </select>
@@ -2404,10 +2482,10 @@ export default function App() {
                 return;
               }
 
-              const targetList = 
-                catType === 'expense' ? allExpenseCategories : 
-                catType === 'income' ? allIncomeCategories : 
-                allAssetCategories;
+              const targetList =
+                catType === 'expense' ? activeExpenseCategories :
+                catType === 'income' ? activeIncomeCategories :
+                activeAssetCategories;
 
               if (targetList.some((c) => c.label === catName)) {
                 showNotice('이미 존재하는 카테고리입니다.', '중복 카테고리', 'warning');
@@ -2523,8 +2601,8 @@ export default function App() {
                   handleAddAsset(a);
                   setIsEntryModalOpen(false);
                 }}
-                expenseCategories={allExpenseCategories}
-                incomeCategories={allIncomeCategories}
+                expenseCategories={activeExpenseCategories}
+                incomeCategories={activeIncomeCategories}
                 onAddRecurringRule={(r) => {
                   handleAddRecurringRule(r);
                   setIsEntryModalOpen(false);
