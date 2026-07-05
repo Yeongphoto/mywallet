@@ -182,6 +182,16 @@
     gap: 8px;
     align-items: center;
   }
+
+  .sync-mini-indicator {
+    min-height: 30px !important;
+    padding: 0 8px !important;
+    gap: 6px !important;
+  }
+
+  .sync-mini-indicator strong {
+    font-size: 0.72rem !important;
+  }
   
   .app-header .header-brand {
     display: flex;

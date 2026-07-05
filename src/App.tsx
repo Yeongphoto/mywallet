@@ -596,6 +596,7 @@ export default function App() {
     status: 'checking',
     message: '서버 저장 상태 확인 중',
   });
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmState | null>(null);
 
@@ -626,6 +627,16 @@ export default function App() {
     const syncTabFromHash = () => setActiveTab(getTabFromHash());
     window.addEventListener('hashchange', syncTabFromHash);
     return () => window.removeEventListener('hashchange', syncTabFromHash);
+  }, []);
+
+  useEffect(() => {
+    const updateOnlineState = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateOnlineState);
+    window.addEventListener('offline', updateOnlineState);
+    return () => {
+      window.removeEventListener('online', updateOnlineState);
+      window.removeEventListener('offline', updateOnlineState);
+    };
   }, []);
 
   // Sync state to LocalStorage and D1 (Debounced with Timestamp updates)
@@ -1786,6 +1797,14 @@ export default function App() {
     },
   ];
 
+  const topSyncStatus = !isOnline ? 'offline' : remoteSync.status;
+  const topSyncLabel = !isOnline ? '오프라인'
+    : remoteSync.status === 'saving' || remoteSync.status === 'pending' ? '저장 중'
+      : remoteSync.status === 'checking' ? '확인 중'
+        : remoteSync.status === 'error' ? '저장 실패'
+          : remoteSync.status === 'stale' ? '확인 필요'
+            : '저장됨';
+
   return (
     <main className="app-shell">
       {isLoading && (
@@ -1882,6 +1901,10 @@ export default function App() {
 
           {/* 헤더 우측 액션 그룹 */}
           <div className="header-actions">
+            <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
+              <span aria-hidden="true" />
+              <strong>{topSyncLabel}</strong>
+            </div>
             {/* 공통 월 선택 영역 */}
             <div className="month-picker-wrap">
               <div className="month-picker-display">

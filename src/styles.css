@@ -351,6 +351,63 @@ button:active {
   gap: 12px;
 }
 
+.sync-mini-indicator {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--border-input);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.sync-mini-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.12);
+}
+
+.sync-mini-indicator strong {
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.sync-mini-indicator.synced span {
+  background: var(--color-asset);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
+}
+
+.sync-mini-indicator.pending span,
+.sync-mini-indicator.saving span,
+.sync-mini-indicator.checking span {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.14);
+}
+
+.sync-mini-indicator.stale span {
+  background: var(--color-budget);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.16);
+}
+
+.sync-mini-indicator.error span,
+.sync-mini-indicator.offline span {
+  background: var(--color-expense);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
+}
+
+.sync-mini-indicator.offline,
+.sync-mini-indicator.error {
+  color: var(--color-expense);
+  border-color: rgba(239, 68, 68, 0.24);
+}
+
 .header-settings-btn {
   background: var(--bg-input);
   border: 1px solid var(--border-input);
