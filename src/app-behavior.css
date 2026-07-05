@@ -90,6 +90,10 @@ textarea,
   transition: none !important;
 }
 
+.touch-sort-source {
+  display: none !important;
+}
+
 .touch-sort-placeholder {
   min-height: 52px !important;
   margin: 4px 0 !important;
