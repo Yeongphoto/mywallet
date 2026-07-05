@@ -18,11 +18,10 @@ type TouchSortState = {
   pointerId: number;
   source: HTMLElement;
   list: HTMLElement;
-  placeholder: HTMLElement;
   ghost: HTMLElement;
   offsetX: number;
   offsetY: number;
-  previousDisplay: string;
+  target: HTMLElement | null;
 };
 
 type PendingTouchSort = {
@@ -67,14 +66,6 @@ function writeWalletData(data: WalletData) {
   });
 }
 
-function makePlaceholder(source: HTMLElement) {
-  const rect = source.getBoundingClientRect();
-  const placeholder = document.createElement('div');
-  placeholder.className = 'touch-sort-placeholder';
-  placeholder.style.height = `${rect.height}px`;
-  return placeholder;
-}
-
 function makeGhost(source: HTMLElement, rect: DOMRect) {
   const ghost = source.cloneNode(true) as HTMLElement;
   ghost.classList.add('touch-sort-ghost');
@@ -90,10 +81,10 @@ function makeGhost(source: HTMLElement, rect: DOMRect) {
   return ghost;
 }
 
-function getSortTarget(clientY: number, list: HTMLElement, source: HTMLElement, placeholder: HTMLElement) {
+function getSortTarget(clientY: number, list: HTMLElement, source: HTMLElement) {
   const rows = Array.from(list.children).filter((child): child is HTMLElement => {
     if (!(child instanceof HTMLElement)) return false;
-    if (child === source || child === placeholder) return false;
+    if (child === source) return false;
     return child.classList.contains('asset-row') || child.classList.contains('category-row');
   });
 
@@ -186,13 +177,9 @@ function activateTouchSort(pending: PendingTouchSort) {
   if (touchSortState || pendingTouchSort !== pending) return;
 
   const rect = pending.source.getBoundingClientRect();
-  const placeholder = makePlaceholder(pending.source);
   const ghost = makeGhost(pending.source, rect);
-  const previousDisplay = pending.source.style.display;
 
   pending.source.classList.add('touch-sort-source');
-  pending.source.parentElement?.insertBefore(placeholder, pending.source);
-  pending.source.style.display = 'none';
   pending.handle.style.cursor = 'grabbing';
 
   touchSortState = {
@@ -200,11 +187,10 @@ function activateTouchSort(pending: PendingTouchSort) {
     pointerId: pending.pointerId,
     source: pending.source,
     list: pending.list,
-    placeholder,
     ghost,
     offsetX: pending.startX - rect.left,
     offsetY: pending.startY - rect.top,
-    previousDisplay,
+    target: null,
   };
 
   pendingTouchSort = null;
@@ -253,17 +239,12 @@ function moveTouchSort(event: PointerEvent) {
   if (!touchSortState || touchSortState.pointerId !== event.pointerId) return;
 
   event.preventDefault();
-  const { ghost, list, placeholder, source, offsetX, offsetY } = touchSortState;
+  const { ghost, list, source, offsetX, offsetY } = touchSortState;
   ghost.style.left = `${event.clientX - offsetX}px`;
   ghost.style.top = `${event.clientY - offsetY}px`;
   autoScrollNearEdges(event.clientY);
 
-  const target = getSortTarget(event.clientY, list, source, placeholder);
-  if (target) {
-    list.insertBefore(placeholder, target);
-  } else {
-    list.appendChild(placeholder);
-  }
+  touchSortState.target = getSortTarget(event.clientY, list, source);
 }
 
 function finishTouchSort(event?: PointerEvent) {
@@ -271,13 +252,16 @@ function finishTouchSort(event?: PointerEvent) {
   if (!touchSortState) return;
   if (event && touchSortState.pointerId !== event.pointerId) return;
 
-  const { kind, source, list, placeholder, ghost, previousDisplay } = touchSortState;
-  source.style.display = previousDisplay;
+  const { kind, source, list, ghost, target } = touchSortState;
   source.classList.remove('touch-sort-source');
-  list.insertBefore(source, placeholder);
-  placeholder.remove();
   ghost.remove();
   document.body.classList.remove('touch-sort-active');
+
+  if (target) {
+    list.insertBefore(source, target);
+  } else {
+    list.appendChild(source);
+  }
 
   if (kind === 'asset') {
     persistAssetOrder(list);
