@@ -1,11 +1,12 @@
 /* Recurring ledger cleanup
-   Recurring rules auto-create monthly transactions, so the manual transaction button is hidden. */
+   Recurring rules auto-create monthly transactions, so the manual transaction button and hard-delete action are hidden. */
 .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table thead th:first-child,
 .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:first-child {
   display: none !important;
 }
 
-.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:last-child .primary-button {
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:last-child .primary-button,
+.content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody td:last-child button:last-child {
   display: none !important;
 }
 
