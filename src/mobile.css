@@ -83,9 +83,14 @@
   }
 
   :root {
-    --fab-right: 18px;
-    --fab-bottom: 132px;
-    --fab-gap: 10px;
+    --fab-right: 50%;
+    --fab-bottom: 86px;
+    --fab-gap: 8px;
+    --fab-offset-x: 50%;
+    --fab-bar-padding: 8px;
+    --fab-bar-radius: 26px;
+    --fab-bar-bg: rgba(15, 23, 42, 0.88);
+    --fab-bar-border: rgba(255, 255, 255, 0.16);
   }
   
   .sidebar nav {
@@ -140,7 +145,7 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: 110px 12px 160px 12px !important;
+    padding: 110px 12px 176px 12px !important;
     overflow-x: hidden;
   }
   
@@ -433,16 +438,28 @@
   }
 
   .floating-action {
-    min-height: 50px;
-    padding: 0 15px 0 10px;
+    min-height: 48px;
+    flex: 1;
+    padding: 0 12px 0 9px;
+    border-radius: 18px;
   }
 
   .floating-action span {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
   }
 
   .floating-action strong {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
+  }
+
+  .floating-action-layer {
+    width: min(360px, calc(100vw - 28px));
+    justify-content: center;
+  }
+
+  .floating-action-layer.multi .floating-action {
+    min-width: 0;
   }
 }
