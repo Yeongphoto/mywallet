@@ -1,5 +1,6 @@
 /* Bottom bars sync fix
-   Bottom nav may grow upward, while the floating action bar stays visible above it. */
+   Bottom nav may grow upward, while the floating action bar stays visible above it.
+   Modal layers must stay above the floating action bar so the bar is blurred behind dialogs. */
 @media (max-width: 992px) {
   :root {
     --mobile-nav-height: 92px;
@@ -31,6 +32,17 @@
     padding: 0 16px !important;
     transform: none !important;
     z-index: 100 !important;
+  }
+
+  .modal-backdrop,
+  .confirm-backdrop {
+    z-index: 1000 !important;
+  }
+
+  .modal-content,
+  .confirm-panel {
+    position: relative !important;
+    z-index: 1001 !important;
   }
 
   .content:not(:has(.calendar-view-container)) {
