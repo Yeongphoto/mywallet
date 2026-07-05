@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { preloadD1Cache } from './d1-cache-preload';
 import './asset-save-guard';
 import './app-behavior';
 import './asset-drag-fix';
@@ -20,8 +21,14 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+async function bootstrap() {
+  await preloadD1Cache();
+
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+void bootstrap();
