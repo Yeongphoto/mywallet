@@ -92,12 +92,11 @@
 
   .content:has(.split-ledger) .split-ledger .ledger-table tr {
     display: grid !important;
-    grid-template-columns: 1fr auto !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
     grid-template-areas:
-      "title amount"
-      "meta meta"
-      "actions actions" !important;
-    gap: 6px 10px !important;
+      "date title actions"
+      "category amount actions" !important;
+    gap: 4px 8px !important;
     width: 100% !important;
     min-width: 0 !important;
     padding: 12px !important;
@@ -106,6 +105,7 @@
     background: var(--bg-card) !important;
     box-sizing: border-box !important;
     box-shadow: none !important;
+    align-items: center !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td {
@@ -122,45 +122,64 @@
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(1) {
-    grid-area: meta !important;
+    grid-area: date !important;
     color: var(--text-secondary) !important;
-    font-size: 0.74rem !important;
-    font-weight: 700 !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    align-self: start !important;
+    white-space: nowrap !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(1)::before {
-    content: "날짜 ";
-    opacity: 0.72;
+    content: "" !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(2) {
     grid-area: amount !important;
-    align-self: start !important;
-    justify-self: end !important;
-    text-align: right !important;
-    font-size: 1rem !important;
+    justify-self: start !important;
+    text-align: left !important;
+    font-size: 0.96rem !important;
     font-weight: 900 !important;
     line-height: 1.15 !important;
     white-space: nowrap !important;
+    color: var(--text-primary) !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(3) {
     grid-area: title !important;
     font-size: 0.96rem !important;
     font-weight: 850 !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
     color: var(--text-primary) !important;
+    align-self: start !important;
+    white-space: nowrap !important;
   }
 
-  .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(4),
+  .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(4) {
+    grid-area: category !important;
+    justify-self: start !important;
+    align-self: end !important;
+  }
+
+  .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(4) > * {
+    max-height: 28px !important;
+    padding: 3px 8px !important;
+    border-radius: 9px !important;
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(5),
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(6) {
     grid-area: actions !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    justify-self: start !important;
-    font-size: 0.76rem !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+    justify-self: end !important;
+    align-self: center !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(n+7) {
@@ -168,8 +187,9 @@
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table button {
-    min-height: 32px !important;
-    padding: 4px 9px !important;
+    min-width: 42px !important;
+    min-height: 36px !important;
+    padding: 4px 8px !important;
     border-radius: 10px !important;
     font-size: 0.74rem !important;
     line-height: 1.1 !important;
@@ -190,9 +210,143 @@
     overflow: hidden !important;
   }
 
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .panel-header {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .panel-header h3 {
+    font-size: 1.15rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .panel-header strong {
+    font-size: 0.82rem !important;
+  }
+
   .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table-scroll {
-    overflow-x: auto !important;
+    overflow: visible !important;
     max-width: 100% !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table thead {
+    display: none !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tbody {
+    display: grid !important;
+    gap: 8px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tr {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "day title amount"
+      "type category actions" !important;
+    gap: 6px 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 12px !important;
+    border: 1px solid var(--border-card) !important;
+    border-radius: 16px !important;
+    background: var(--bg-card) !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(1) {
+    grid-area: type !important;
+    font-size: 0.78rem !important;
+    font-weight: 850 !important;
+    color: var(--color-expense) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(2) {
+    grid-area: day !important;
+    font-size: 0.82rem !important;
+    font-weight: 850 !important;
+    color: var(--text-secondary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(3) {
+    grid-area: category !important;
+    justify-self: start !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(3) > * {
+    max-height: 28px !important;
+    padding: 3px 8px !important;
+    border-radius: 9px !important;
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(4) {
+    grid-area: title !important;
+    font-size: 0.95rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(5) {
+    grid-area: amount !important;
+    justify-self: end !important;
+    text-align: right !important;
+    font-size: 0.95rem !important;
+    font-weight: 900 !important;
+    color: var(--text-primary) !important;
+    white-space: nowrap !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(6) {
+    display: none !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) {
+    grid-area: actions !important;
+    justify-self: end !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) > div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 5px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) button,
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(7) span {
+    min-height: 30px !important;
+    padding: 4px 8px !important;
+    border-radius: 9px !important;
+    font-size: 0.7rem !important;
+    line-height: 1.1 !important;
+    margin: 0 !important;
   }
 }
 
@@ -203,15 +357,34 @@
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table tr {
-    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
     padding: 10px !important;
   }
 
+  .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(1) {
+    font-size: 0.7rem !important;
+  }
+
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(2) {
-    font-size: 0.92rem !important;
+    font-size: 0.88rem !important;
   }
 
   .content:has(.split-ledger) .split-ledger .ledger-table td:nth-child(3) {
     font-size: 0.9rem !important;
+  }
+
+  .content:has(.split-ledger) .split-ledger .ledger-table button {
+    min-width: 38px !important;
+    padding: 4px 7px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table tr {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    padding: 10px !important;
+  }
+
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(4),
+  .content:has(.split-ledger) .glass-panel:has(.panel-header) .ledger-table td:nth-child(5) {
+    font-size: 0.88rem !important;
   }
 }
