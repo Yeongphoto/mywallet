@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './asset-save-guard';
 import './app-behavior';
 import './asset-drag-fix';
 import './touch-sortable';
