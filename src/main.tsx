@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './app-behavior';
+import './asset-drag-fix';
 import './styles.css';
 import './mobile.css';
 import './calendar.css';
