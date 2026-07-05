@@ -43,6 +43,18 @@
     border-radius: 14px !important;
   }
 
+  .managed-category-card .category-row.touch-sort-source {
+    border: 2px dashed rgba(2, 132, 199, 0.58) !important;
+    border-radius: 14px !important;
+    background:
+      linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(16, 185, 129, 0.07)) !important;
+    box-shadow: none !important;
+  }
+
+  .managed-category-card .category-row.touch-sort-source > * {
+    visibility: hidden !important;
+  }
+
   .managed-category-card .category-drag-handle {
     grid-column: 1 !important;
     width: 28px !important;

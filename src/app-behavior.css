@@ -83,13 +83,18 @@ textarea,
 }
 
 .touch-sort-ghost {
-  opacity: 0.96 !important;
-  border: 1px solid rgba(2, 132, 199, 0.38) !important;
-  border-radius: 14px !important;
-  background: var(--bg-card) !important;
+  opacity: 0.98 !important;
   box-shadow: 0 18px 38px rgba(15, 23, 42, 0.22) !important;
   transform: scale(1.015) !important;
   transition: none !important;
+}
+
+.touch-sort-ghost.asset-row {
+  border-radius: 12px !important;
+}
+
+.touch-sort-ghost.category-row {
+  border-radius: 14px !important;
 }
 
 .touch-sort-source {

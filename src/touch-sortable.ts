@@ -69,6 +69,7 @@ function writeWalletData(data: WalletData) {
 function makeGhost(source: HTMLElement, rect: DOMRect) {
   const ghost = source.cloneNode(true) as HTMLElement;
   ghost.classList.add('touch-sort-ghost');
+  ghost.classList.remove('touch-sort-source');
   ghost.style.position = 'fixed';
   ghost.style.left = `${rect.left}px`;
   ghost.style.top = `${rect.top}px`;
