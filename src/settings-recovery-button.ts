@@ -8,52 +8,75 @@ function openRecoveryPanel() {
   floatingButton?.click();
 }
 
-function findDataResetArea() {
-  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('button'));
-  const resetButton = buttons.find((button) => {
-    const text = button.textContent?.replace(/\s+/g, '') ?? '';
-    return text.includes('초기화') || text.includes('데이터초기화');
+function getCompactText(element: Element | null) {
+  return element?.textContent?.replace(/\s+/g, '') ?? '';
+}
+
+function findResetButton() {
+  return Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((button) => {
+    const text = getCompactText(button);
+    return text.includes('전체초기화') || text.includes('데이터초기화') || text === '초기화';
+  }) ?? null;
+}
+
+function findDataResetCard(resetButton: HTMLButtonElement) {
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>('section, article, .glass-panel, div'));
+
+  const titledCard = candidates.find((node) => {
+    const text = getCompactText(node);
+    return text.includes('데이터초기화') && node.contains(resetButton);
   });
 
-  if (!resetButton) return null;
-  return resetButton.closest<HTMLElement>('.settings-row, .glass-panel, section, article, div') ?? resetButton.parentElement;
+  return titledCard
+    ?? resetButton.closest<HTMLElement>('.glass-panel, section, article')
+    ?? resetButton.parentElement;
 }
 
 function mountSettingsRecoveryButton() {
-  const area = findDataResetArea();
-  if (!area || area.querySelector('.settings-local-recovery-button')) return;
+  document.querySelectorAll<HTMLElement>('.local-recovery-force-button, .local-recovery-button').forEach((button) => {
+    button.style.display = 'none';
+  });
+
+  const resetButton = findResetButton();
+  if (!resetButton) return;
+
+  const card = findDataResetCard(resetButton);
+  if (!card || card.querySelector('.settings-local-recovery-button')) return;
 
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'secondary-button settings-local-recovery-button';
   button.textContent = '로컬 데이터 복구';
   button.style.cssText = `
-    min-height: 42px;
-    min-width: 148px;
-    margin-top: 8px;
-    border-radius: 12px;
-    border: 1px solid rgba(14, 165, 183, .26);
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(14, 165, 183, .30);
     background: rgba(14, 165, 183, .10);
     color: var(--primary);
+    font-size: 1rem;
     font-weight: 900;
   `;
   button.onclick = openRecoveryPanel;
 
-  const actions = area.querySelector<HTMLElement>('.settings-actions, .confirm-actions')
-    ?? Array.from(area.querySelectorAll<HTMLElement>('div')).find((node) => node.querySelector('button'))
-    ?? area;
-
-  actions.appendChild(button);
+  resetButton.insertAdjacentElement('afterend', button);
 }
 
 function bootSettingsRecoveryButton() {
   mountSettingsRecoveryButton();
+  window.setTimeout(mountSettingsRecoveryButton, 100);
   window.setTimeout(mountSettingsRecoveryButton, 300);
-  window.setTimeout(mountSettingsRecoveryButton, 1000);
-  window.setTimeout(mountSettingsRecoveryButton, 2500);
+  window.setTimeout(mountSettingsRecoveryButton, 700);
+  window.setTimeout(mountSettingsRecoveryButton, 1500);
+  window.setTimeout(mountSettingsRecoveryButton, 3000);
 
   const observer = new MutationObserver(() => mountSettingsRecoveryButton());
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+  window.addEventListener('hashchange', () => window.setTimeout(mountSettingsRecoveryButton, 120));
+  window.addEventListener('focus', () => window.setTimeout(mountSettingsRecoveryButton, 120));
 }
 
 declare global {
