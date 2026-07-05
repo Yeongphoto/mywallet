@@ -261,13 +261,20 @@
     bottom: 72px !important; /* 모바일 내비바(72px) 바로 위에 오프셋 고정 */
     padding: 0 16px !important;
     height: 60px !important;
-    justify-content: center !important; /* 가로가 넓은 모바일 기기에서도 화면 중앙 정렬 */
+    justify-content: flex-end !important; /* 우측 정렬로 전환하여 엄지손가락 클릭 편의성 극대화 */
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
   }
 
   .fixed-bottom-bar-btn {
     padding: 8px 18px !important;
     font-size: 0.85rem !important;
+  }
+
+  /* 모바일 캘린더 높이 전체 반응형 꽉 채움 보정 */
+  .calendar-grid {
+    height: calc(100vh - 290px) !important; /* 헤더 및 하단 바 구역 여백을 제외하고 꽉 참 */
+    min-height: 380px !important;
+    grid-auto-rows: 1fr !important;
   }
 }
 

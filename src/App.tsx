@@ -1733,15 +1733,19 @@ export default function App() {
               </div>
             </div>
 
-            <div className="calendar-grid">
+            <div className="calendar-day-names-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '4px' }}>
               {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
                 <div
                   key={day}
                   className={`calendar-day-name ${idx === 0 ? 'sunday' : idx === 6 ? 'saturday' : ''}`}
+                  style={{ textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, padding: '6px 0' }}
                 >
                   {day}
                 </div>
               ))}
+            </div>
+
+            <div className="calendar-grid">
               {calendarDays.map((day) => {
                 const daySums = dateWiseSums[day.dateStr];
                 const isSelected = selectedDayData === day.dateStr;
