@@ -2944,25 +2944,25 @@ export default function App() {
                     className="modal-content" 
                     onClick={(e) => e.stopPropagation()} 
                     style={{ 
-                      width: '300px', 
-                      height: '260px', 
-                      padding: '16px', 
+                      width: '340px', 
+                      height: 'auto', 
+                      maxHeight: '340px',
+                      padding: '20px', 
                       boxSizing: 'border-box',
                       zIndex: 1110,
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'space-between',
                       borderRadius: '16px',
                       background: 'var(--bg-card)',
                       border: '1px solid var(--border-card)',
                       boxShadow: '0 12px 40px rgba(0,0,0,0.3)'
                     }}
                   >
-                    <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 'bold' }}>🎨 자율자재 색상 선택</h4>
+                    <h4 style={{ margin: '0 0 16px', fontSize: '1rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 'bold' }}>🎨 자율자재 색상 선택</h4>
                     
-                    {/* 색조 슬라이더 */}
-                    <div style={{ display: 'grid', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {/* 색조 슬라이더 그룹 */}
+                    <div style={{ display: 'grid', gap: '6px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         <span>색조 (Hue)</span>
                         <span>{pickerHue}°</span>
                       </div>
@@ -2985,9 +2985,9 @@ export default function App() {
                       />
                     </div>
 
-                    {/* 명도 슬라이더 */}
-                    <div style={{ display: 'grid', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {/* 명도 슬라이더 그룹 */}
+                    <div style={{ display: 'grid', gap: '6px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         <span>명도 (Lightness)</span>
                         <span>{pickerLight}%</span>
                       </div>
@@ -3011,17 +3011,17 @@ export default function App() {
                     </div>
 
                     {/* 미리보기 및 HEX 값 */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-balance-light)', padding: '6px 12px', borderRadius: '8px', height: '40px', boxSizing: 'border-box' }}>
-                      <span style={{ display: 'block', width: '24px', height: '24px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
-                      <strong style={{ fontSize: '0.8rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-balance-light)', padding: '8px 16px', borderRadius: '8px', height: '44px', boxSizing: 'border-box', marginBottom: '16px' }}>
+                      <span style={{ display: 'block', width: '28px', height: '28px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
                     </div>
 
-                    {/* 확인/취소 단추 */}
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
+                    {/* 확인/취소 단추 (정규 스타일 적용) */}
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '16px' }}>
                       <button 
                         type="button" 
                         className="secondary-button" 
-                        style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px', marginTop: 0 }} 
+                        style={{ flex: 1, height: '42px', marginTop: 0 }} 
                         onClick={() => setCustomPaletteOpen(false)}
                       >
                         취소
@@ -3029,7 +3029,7 @@ export default function App() {
                       <button 
                         type="button" 
                         className="primary-button" 
-                        style={{ height: '32px', fontSize: '0.8rem', padding: '0 12px', marginTop: 0 }}
+                        style={{ flex: 1, height: '42px', marginTop: 0 }}
                         onClick={() => {
                           setSelectedCategoryColor(currentCustomHex);
                           setCustomPaletteOpen(false);
