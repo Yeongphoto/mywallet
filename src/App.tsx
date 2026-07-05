@@ -924,6 +924,10 @@ export default function App() {
       let migrated = false;
       const next = prev.map((tx) => {
         const txMonth = tx.date.slice(0, 7);
+        if (!tx.recurringRuleId && !tx.id.startsWith('rec_')) {
+          return tx;
+        }
+
         const matchingRule = recurringRules.find((rule) => {
           const matchInfo = rule.type === tx.type &&
                             rule.title === tx.title &&
@@ -2285,18 +2289,22 @@ export default function App() {
                                     const targetDay = Math.min(rule.day, lastDay);
                                     const dateStr = `${selectedMonth}-${String(targetDay).padStart(2, '0')}`;
 
+                                    const recurringTxId = `rec_${rule.id}_${selectedMonth}`;
                                     const isDuplicate = transactions.some(
-                                      (t) => t.date === dateStr && t.amount === rule.amount && t.title === rule.title && t.category === rule.category
+                                      (t) => t.id === recurringTxId || (
+                                        t.date === dateStr && t.recurringRuleId === rule.id
+                                      )
                                     );
-                                    const addRecurringTransaction = () => {
-                                      handleAddTransaction({
-                                        id: `tx_${Date.now()}`,
-                                        type: rule.type,
-                                        date: dateStr,
-                                        amount: rule.amount,
-                                        title: rule.title,
-                                        category: rule.category
-                                      });
+                                      const addRecurringTransaction = () => {
+                                        handleAddTransaction({
+                                          id: recurringTxId,
+                                          type: rule.type,
+                                          date: dateStr,
+                                          amount: rule.amount,
+                                          title: rule.title,
+                                          category: rule.category,
+                                          recurringRuleId: rule.id,
+                                        });
                                       showNotice(`${dateStr} 자로 '${rule.title}' 거래가 등록되었습니다.`, '거래 등록 완료', 'success');
                                     };
 
@@ -2978,6 +2986,7 @@ export default function App() {
                         return (
                           <div
                             key={t.id}
+                            className="calendar-detail-card"
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
