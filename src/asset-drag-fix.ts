@@ -48,7 +48,7 @@ function prepareAssetRows() {
 
       row.classList.add('asset-row');
       row.setAttribute('draggable', 'true');
-      row.style.touchAction = 'none';
+      row.style.touchAction = 'pan-y';
       if (!row.dataset.assetId && assets[index]?.id) {
         row.dataset.assetId = assets[index].id;
       }
