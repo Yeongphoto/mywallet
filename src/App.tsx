@@ -2876,11 +2876,10 @@ export default function App() {
                     );
                   })}
 
-                  {/* 자율자재 선택 가능한 팔레트 칩 (창작 팝오버 피커!) */}
+                  {/* 자율자재 선택 가능한 팔레트 칩 (창작 피커 트리거!) */}
                   {(() => {
                     const presetColors = ['#ef4444', '#f97316', '#eab308', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#64748b'];
                     const isCustom = !presetColors.includes(selectedCategoryColor.toLowerCase());
-                    const currentCustomHex = hslToHex(pickerHue, pickerSat, pickerLight);
                     
                     return (
                       <div style={{ position: 'relative', display: 'inline-block', margin: 0, lineHeight: 1 }}>
@@ -2907,104 +2906,6 @@ export default function App() {
                           }}
                           title="커스텀 색상 선택"
                         />
-                        {customPaletteOpen && (
-                          <div 
-                            className="category-palette-popover" 
-                            style={{ 
-                              position: 'absolute', 
-                              bottom: '34px', 
-                              right: '0px', 
-                              zIndex: 1000, 
-                              background: 'var(--bg-card)', 
-                              border: '1px solid var(--border-card)', 
-                              borderRadius: '12px', 
-                              padding: '16px', 
-                              boxShadow: '0 8px 30px rgba(0,0,0,0.25)', 
-                              width: '230px',
-                              display: 'grid',
-                              gap: '12px'
-                            }}
-                          >
-                            <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', textAlign: 'left' }}>🎨 자율자재 색상 선택</h4>
-                            
-                            {/* 색조 슬라이더 */}
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                <span>색조 (Hue)</span>
-                                <span>{pickerHue}°</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="0" 
-                                max="360" 
-                                value={pickerHue} 
-                                onChange={(e) => setPickerHue(Number(e.target.value))}
-                                style={{
-                                  width: '100%',
-                                  height: '8px',
-                                  borderRadius: '4px',
-                                  outline: 'none',
-                                  WebkitAppearance: 'none',
-                                  background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                                  cursor: 'pointer'
-                                }}
-                              />
-                            </div>
-
-                            {/* 명도 슬라이더 */}
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                                <span>명도 (Lightness)</span>
-                                <span>{pickerLight}%</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="15" 
-                                max="85" 
-                                value={pickerLight} 
-                                onChange={(e) => setPickerLight(Number(e.target.value))}
-                                style={{
-                                  width: '100%',
-                                  height: '8px',
-                                  borderRadius: '4px',
-                                  outline: 'none',
-                                  WebkitAppearance: 'none',
-                                  background: `linear-gradient(to right, #111, hsl(${pickerHue}, 100%, 50%), #eee)`,
-                                  cursor: 'pointer'
-                                }}
-                              />
-                            </div>
-
-                            {/* 미리보기 및 HEX 값 */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-balance-light)', padding: '8px 12px', borderRadius: '8px' }}>
-                              <span style={{ display: 'block', width: '28px', height: '28px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
-                              <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
-                            </div>
-
-                            {/* 확인/취소 단추 */}
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '10px', marginTop: '4px' }}>
-                              <button 
-                                type="button" 
-                                className="secondary-button" 
-                                style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }} 
-                                onClick={() => setCustomPaletteOpen(false)}
-                              >
-                                취소
-                              </button>
-                              <button 
-                                type="button" 
-                                className="primary-button" 
-                                style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }}
-                                onClick={() => {
-                                  setSelectedCategoryColor(currentCustomHex);
-                                  setCustomPaletteOpen(false);
-                                }}
-                              >
-                                확인
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })()}
@@ -3029,6 +2930,109 @@ export default function App() {
                 </button>
               </div>
             </form>
+
+            {/* 자율자재 팝오버를 형제 요소로 격리 배치하여 Stacking Context 완벽 해소 */}
+            {customPaletteOpen && (() => {
+              const currentCustomHex = hslToHex(pickerHue, pickerSat, pickerLight);
+              return (
+                <div 
+                  className="category-palette-popover" 
+                  style={{ 
+                    position: 'absolute', 
+                    bottom: '96px', 
+                    right: '28px', 
+                    zIndex: 9999, 
+                    background: 'var(--bg-card)', 
+                    border: '1px solid var(--border-card)', 
+                    borderRadius: '12px', 
+                    padding: '16px', 
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.35)', 
+                    width: '230px',
+                    display: 'grid',
+                    gap: '12px'
+                  }}
+                >
+                  <h4 style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', textAlign: 'left' }}>🎨 자율자재 색상 선택</h4>
+                  
+                  {/* 색조 슬라이더 */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <span>색조 (Hue)</span>
+                      <span>{pickerHue}°</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="360" 
+                      value={pickerHue} 
+                      onChange={(e) => setPickerHue(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        height: '8px',
+                        borderRadius: '4px',
+                        outline: 'none',
+                        WebkitAppearance: 'none',
+                        background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+
+                  {/* 명도 슬라이더 */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <span>명도 (Lightness)</span>
+                      <span>{pickerLight}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="15" 
+                      max="85" 
+                      value={pickerLight} 
+                      onChange={(e) => setPickerLight(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        height: '8px',
+                        borderRadius: '4px',
+                        outline: 'none',
+                        WebkitAppearance: 'none',
+                        background: `linear-gradient(to right, #111, hsl(${pickerHue}, 100%, 50%), #eee)`,
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
+
+                  {/* 미리보기 및 HEX 값 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-balance-light)', padding: '8px 12px', borderRadius: '8px' }}>
+                    <span style={{ display: 'block', width: '28px', height: '28px', borderRadius: '50%', background: currentCustomHex, border: '1px solid var(--border-card)' }} />
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{currentCustomHex}</strong>
+                  </div>
+
+                  {/* 확인/취소 단추 */}
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '10px', marginTop: '4px' }}>
+                    <button 
+                      type="button" 
+                      className="secondary-button" 
+                      style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }} 
+                      onClick={() => setCustomPaletteOpen(false)}
+                    >
+                      취소
+                    </button>
+                    <button 
+                      type="button" 
+                      className="primary-button" 
+                      style={{ padding: '6px 12px', fontSize: '0.78rem', marginTop: 0 }}
+                      onClick={() => {
+                        setSelectedCategoryColor(currentCustomHex);
+                        setCustomPaletteOpen(false);
+                      }}
+                    >
+                      확인
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
