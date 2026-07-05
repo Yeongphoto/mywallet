@@ -490,6 +490,7 @@ export default function App() {
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
   const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -1920,6 +1921,7 @@ export default function App() {
                   ) : (
                     assets.map((asset, index) => {
                       const isDragging = draggedAssetIndex === index;
+                      const isHovered = hoveredRowIndex === index;
 
                       // 그림자 없는 1px 테두리 스트로크 및 8px 보더 반경
                       const baseRowStyle: React.CSSProperties = {
@@ -1927,11 +1929,12 @@ export default function App() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '8px 12px',
-                        transition: 'all 0.15s ease',
+                        transition: 'background-color 0.15s ease, border-color 0.15s ease',
                         boxSizing: 'border-box',
-                        border: '1px solid var(--border-card)',
+                        border: isHovered ? '1px solid var(--primary)' : '1px solid var(--border-card)',
                         borderRadius: '8px',
                         boxShadow: 'none',
+                        background: isHovered ? 'rgba(2, 132, 199, 0.06)' : 'var(--bg-card)',
                       };
                       
                       if (isDragging) {
@@ -1945,7 +1948,7 @@ export default function App() {
                             style={{
                               ...baseRowStyle,
                               border: '2px dashed var(--primary)',
-                              background: 'var(--bg-balance-light)',
+                              background: 'rgba(2, 132, 199, 0.08)',
                               opacity: 0.65,
                             }}
                           >
@@ -1953,7 +1956,7 @@ export default function App() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', visibility: 'hidden' }}>
                               <span style={{ fontSize: '1.1rem' }}>⠿</span>
                               <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                              <span style={{ fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(asset.amount)}</span>
+                              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
                               {asset.memo && (
                                 <span style={{ fontSize: '0.82rem' }}>({asset.memo})</span>
                               )}
@@ -1975,18 +1978,19 @@ export default function App() {
                           onDragEnter={() => handleAssetDragEnter(index)}
                           onDragEnd={handleAssetDragEnd}
                           onDrop={handleAssetDrop}
+                          onMouseEnter={() => setHoveredRowIndex(index)}
+                          onMouseLeave={() => setHoveredRowIndex(null)}
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
-                            background: 'var(--bg-card)',
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <span style={{ color: 'var(--text-secondary)', cursor: 'grab', fontSize: '1.1rem', userSelect: 'none' }}>⠿</span>
+                            <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
                             <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                            <span style={{ fontWeight: 700, fontSize: '1rem' }}>{formatCurrency(asset.amount)}</span>
+                            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
                             {asset.memo && (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>({asset.memo})</span>
+                              <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '8px' }}>({asset.memo})</span>
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: '6px' }}>
