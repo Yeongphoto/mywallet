@@ -472,7 +472,7 @@ export default function App() {
     });
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
-  const [settingsSection, setSettingsSection] = useState<'category' | 'app' | 'data'>('category');
+  const [settingsSection, setSettingsSection] = useState<'app' | 'data'>('app');
   
   // Filtering & Search states
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -501,6 +501,11 @@ export default function App() {
     label: '',
     color: '#0284c7',
   });
+  const [assetCatLabel, setAssetCatLabel] = useState('');
+  const [assetCatColor, setAssetCatColor] = useState('#0284c7');
+  const [planCatLabel, setPlanCatLabel] = useState('');
+  const [planCatColor, setPlanCatColor] = useState('#ef4444');
+  const [planCatType, setPlanCatType] = useState<CategoryScope>('expense');
   const [assetSection, setAssetSection] = useState({ showAsset: true, showPlan: false, showRecurring: false });
   const [openPaletteKey, setOpenPaletteKey] = useState<string | null>(null);
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
@@ -1097,6 +1102,66 @@ export default function App() {
       [categoryDraft.type]: [...(prev[categoryDraft.type] ?? targetList.map((category) => category.id)), generatedId],
     }));
     setCategoryDraft((prev) => ({ ...prev, label: '' }));
+    showNotice(`'${label}' 카테고리를 추가했습니다.`, '카테고리 추가', 'success');
+  }
+
+  function handleAddAssetCategory(labelVal: string, colorVal: string) {
+    const label = labelVal.trim();
+    if (!label) {
+      showNotice('카테고리 이름을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    if (activeAssetCategories.some((category) => category.label === label)) {
+      showNotice('이미 등록된 카테고리입니다.', '중복 카테고리', 'warning');
+      return;
+    }
+
+    const generatedId = `cat_${Date.now()}`;
+    const newCategory = { id: generatedId, label, color: colorVal };
+
+    setCustomAssetCategories((prev) => [...prev, newCategory]);
+    handleCategoryColorChange('asset', generatedId, colorVal);
+    setCategoryOrder((prev) => ({
+      ...prev,
+      asset: [...(prev.asset ?? activeAssetCategories.map((category) => category.id)), generatedId],
+    }));
+
+    setAssetCatLabel('');
+    showNotice(`'${label}' 자산 카테고리를 추가했습니다.`, '카테고리 추가', 'success');
+  }
+
+  function handleAddPlanCategory(labelVal: string, colorVal: string, typeVal: CategoryScope) {
+    const label = labelVal.trim();
+    if (!label) {
+      showNotice('카테고리 이름을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    const targetList = typeVal === 'expense' ? activeExpenseCategories : activeIncomeCategories;
+    if (targetList.some((category) => category.label === label)) {
+      showNotice('이미 등록된 카테고리입니다.', '중복 카테고리', 'warning');
+      return;
+    }
+
+    const generatedId = `cat_${Date.now()}`;
+    const newCategory = { id: generatedId, label, color: colorVal };
+
+    if (typeVal === 'expense') {
+      setCustomExpenseCategories((prev) => [...prev, newCategory]);
+      setPlans((prev) => [...prev, { category: generatedId, type: 'expense', plannedAmount: 0 }]);
+    } else {
+      setCustomIncomeCategories((prev) => [...prev, newCategory]);
+      setPlans((prev) => [...prev, { category: generatedId, type: 'income', plannedAmount: 0 }]);
+    }
+
+    handleCategoryColorChange(typeVal, generatedId, colorVal);
+    setCategoryOrder((prev) => ({
+      ...prev,
+      [typeVal]: [...(prev[typeVal] ?? targetList.map((category) => category.id)), generatedId],
+    }));
+
+    setPlanCatLabel('');
     showNotice(`'${label}' 카테고리를 추가했습니다.`, '카테고리 추가', 'success');
   }
 
@@ -2021,6 +2086,156 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 자산 카테고리 설정 카드 (이식 완료) */}
+              <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
+                <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
+                  <span>🏷️</span> 자산 카테고리 설정
+                </h3>
+                
+                {/* 등록 모달과 동일한 디자인의 폼 */}
+                <form
+                  style={{
+                    display: 'grid',
+                    gap: '16px',
+                    background: 'var(--bg-balance-light)',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-card)',
+                    marginBottom: '20px'
+                  }}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddAssetCategory(assetCatLabel, assetCatColor);
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>카테고리 이름</label>
+                      <input
+                        type="text"
+                        value={assetCatLabel}
+                        onChange={(e) => setAssetCatLabel(e.target.value)}
+                        placeholder="예: 예금, 적금, 주식 등"
+                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div style={{ width: '100px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>전용 색상</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
+                        <label className="category-color-field" style={{ margin: 0, cursor: 'pointer', display: 'block' }}>
+                          <span style={{ display: 'block', width: '36px', height: '36px', borderRadius: '8px', background: assetCatColor, border: '1px solid var(--border-card)' }} />
+                          <input
+                            type="color"
+                            value={assetCatColor}
+                            onChange={(e) => setAssetCatColor(e.target.value)}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <button type="submit" className="primary-button" style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      등록
+                    </button>
+                  </div>
+                </form>
+
+                {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
+                <div className="category-card-grid" style={{ display: 'grid', gap: '16px', marginTop: '16px' }}>
+                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>🏷️ 등록된 자산 카테고리</strong>
+                      <b>{activeAssetCategories.length}개</b>
+                    </div>
+                    <div className="category-table" style={{ padding: '8px 0' }}>
+                      {activeAssetCategories.map((category) => {
+                        const color = category.color || '#64748b';
+                        const paletteKey = getCategoryColorKey('asset', category.id);
+                        const isOpen = openPaletteKey === paletteKey;
+
+                        return (
+                          <div
+                            key={`asset-${category.id}`}
+                            className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'dragging' : ''}`}
+                            draggable
+                            onDragStart={() => setDragCategory({ type: 'asset', id: category.id })}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => handleCategoryDrop(event, 'asset', category.id, activeAssetCategories)}
+                            onDragEnd={() => setDragCategory(null)}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                          >
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
+                              <button
+                                type="button"
+                                className="category-color-swatch"
+                                style={{ background: color, width: '20px', height: '20px', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setPaletteDraftColor(color);
+                                  setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
+                                }}
+                                aria-label={`${category.label} 색상`}
+                              />
+                              {isOpen && (
+                                <div className="category-palette-popover" style={{ position: 'absolute', top: '24px', left: 0, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
+                                  <div className="category-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                                    {categoryColorPresets.map((preset) => (
+                                      <button
+                                        key={preset}
+                                        type="button"
+                                        className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
+                                        style={{ background: preset, width: '24px', height: '24px', borderRadius: '4px', border: preset.toLowerCase() === paletteDraftColor.toLowerCase() ? '2px solid var(--text-primary)' : 'none', cursor: 'pointer' }}
+                                        onClick={() => setPaletteDraftColor(preset)}
+                                      />
+                                    ))}
+                                  </div>
+                                  <label className="category-custom-color" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '4px', background: paletteDraftColor }} />
+                                    <input
+                                      type="color"
+                                      value={paletteDraftColor}
+                                      onChange={(event) => setPaletteDraftColor(event.target.value)}
+                                      style={{ display: 'none' }}
+                                    />
+                                    <strong style={{ fontSize: '0.85rem', cursor: 'pointer' }}>커스텀 색상 선택</strong>
+                                  </label>
+                                  <div className="category-palette-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setOpenPaletteKey(null)}>취소</button>
+                                    <button
+                                      type="button"
+                                      className="primary-button"
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
+                                      onClick={() => {
+                                        handleCategoryColorChange('asset', category.id, paletteDraftColor);
+                                        setOpenPaletteKey(null);
+                                      }}
+                                    >
+                                      확인
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="category-row-main" style={{ flex: 1 }}>
+                              <CategoryBadge categories={activeAssetCategories} idOrLabel={category.id} />
+                            </div>
+                            <button
+                              type="button"
+                              className="category-row-action"
+                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => handleArchiveCategory('asset', category.id, category.label)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              {/* 하단바 가림 방지 공백 */}
+              <div style={{ height: '80px' }} />
             </div>
           </>
         )}
@@ -2119,156 +2334,274 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </>
-        )}
+
+            {/* 계획 카테고리 설정 카드 (이식 완료) */}
+            <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
+                <span>🏷️</span> 지출/수입 카테고리 설정
+              </h3>
+              
+              {/* 등록 모달과 동일한 디자인의 폼 */}
+              <form
+                style={{
+                  display: 'grid',
+                  gap: '16px',
+                  background: 'var(--bg-balance-light)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-card)',
+                  marginBottom: '20px'
+                }}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddPlanCategory(planCatLabel, planCatColor, planCatType);
+                }}
+              >
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <div style={{ width: '120px' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>분류</label>
+                    <select
+                      value={planCatType}
+                      onChange={(e) => setPlanCatType(e.target.value as CategoryScope)}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
+                    >
+                      <option value="expense">지출 🔴</option>
+                      <option value="income">수입 🔵</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>카테고리 이름</label>
+                    <input
+                      type="text"
+                      value={planCatLabel}
+                      onChange={(e) => setPlanCatLabel(e.target.value)}
+                      placeholder="예: 식비, 교통비, 급여 등"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-card)', fontSize: '0.95rem', height: '42px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ width: '100px' }}>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>전용 색상</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '42px' }}>
+                      <label className="category-color-field" style={{ margin: 0, cursor: 'pointer', display: 'block' }}>
+                        <span style={{ display: 'block', width: '36px', height: '36px', borderRadius: '8px', background: planCatColor, border: '1px solid var(--border-card)' }} />
+                        <input
+                          type="color"
+                          value={planCatColor}
+                          onChange={(e) => setPlanCatColor(e.target.value)}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  <button type="submit" className="primary-button" style={{ marginTop: 0, padding: '10px 24px', borderRadius: '8px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    등록
+                    </button>
+                  </div>
+                </form>
+
+                {/* 지출 및 수입 카테고리 목록 표시 (2열 구성) */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
+                  
+                  {/* 지출 카테고리 목록 */}
+                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>🔴 지출 카테고리 목록</strong>
+                      <b>{activeExpenseCategories.length}개</b>
+                    </div>
+                    <div className="category-table" style={{ padding: '8px 0' }}>
+                      {activeExpenseCategories.map((category) => {
+                        const color = category.color || '#64748b';
+                        const paletteKey = getCategoryColorKey('expense', category.id);
+                        const isOpen = openPaletteKey === paletteKey;
+
+                        return (
+                          <div
+                            key={`expense-${category.id}`}
+                            className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'dragging' : ''}`}
+                            draggable
+                            onDragStart={() => setDragCategory({ type: 'expense', id: category.id })}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => handleCategoryDrop(event, 'expense', category.id, activeExpenseCategories)}
+                            onDragEnd={() => setDragCategory(null)}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                          >
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
+                              <button
+                                type="button"
+                                className="category-color-swatch"
+                                style={{ background: color, width: '20px', height: '20px', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setPaletteDraftColor(color);
+                                  setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
+                                }}
+                                aria-label={`${category.label} 색상`}
+                              />
+                              {isOpen && (
+                                <div className="category-palette-popover" style={{ position: 'absolute', top: '24px', left: 0, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
+                                  <div className="category-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                                    {categoryColorPresets.map((preset) => (
+                                      <button
+                                        key={preset}
+                                        type="button"
+                                        className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
+                                        style={{ background: preset, width: '24px', height: '24px', borderRadius: '4px', border: preset.toLowerCase() === paletteDraftColor.toLowerCase() ? '2px solid var(--text-primary)' : 'none', cursor: 'pointer' }}
+                                        onClick={() => setPaletteDraftColor(preset)}
+                                      />
+                                    ))}
+                                  </div>
+                                  <label className="category-custom-color" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '4px', background: paletteDraftColor }} />
+                                    <input
+                                      type="color"
+                                      value={paletteDraftColor}
+                                      onChange={(event) => setPaletteDraftColor(event.target.value)}
+                                      style={{ display: 'none' }}
+                                    />
+                                    <strong style={{ fontSize: '0.85rem', cursor: 'pointer' }}>커스텀 색상 선택</strong>
+                                  </label>
+                                  <div className="category-palette-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setOpenPaletteKey(null)}>취소</button>
+                                    <button
+                                      type="button"
+                                      className="primary-button"
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
+                                      onClick={() => {
+                                        handleCategoryColorChange('expense', category.id, paletteDraftColor);
+                                        setOpenPaletteKey(null);
+                                      }}
+                                    >
+                                      확인
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="category-row-main" style={{ flex: 1 }}>
+                              <CategoryBadge categories={activeExpenseCategories} idOrLabel={category.id} />
+                            </div>
+                            <button
+                              type="button"
+                              className="category-row-action"
+                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => handleArchiveCategory('expense', category.id, category.label)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+
+                  {/* 수입 카테고리 목록 */}
+                  <article className="category-table-card" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
+                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>🔵 수입 카테고리 목록</strong>
+                      <b>{activeIncomeCategories.length}개</b>
+                    </div>
+                    <div className="category-table" style={{ padding: '8px 0' }}>
+                      {activeIncomeCategories.map((category) => {
+                        const color = category.color || '#64748b';
+                        const paletteKey = getCategoryColorKey('income', category.id);
+                        const isOpen = openPaletteKey === paletteKey;
+
+                        return (
+                          <div
+                            key={`income-${category.id}`}
+                            className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'dragging' : ''}`}
+                            draggable
+                            onDragStart={() => setDragCategory({ type: 'income', id: category.id })}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => handleCategoryDrop(event, 'income', category.id, activeIncomeCategories)}
+                            onDragEnd={() => setDragCategory(null)}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                          >
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
+                              <button
+                                type="button"
+                                className="category-color-swatch"
+                                style={{ background: color, width: '20px', height: '20px', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
+                                onClick={() => {
+                                  setPaletteDraftColor(color);
+                                  setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
+                                }}
+                                aria-label={`${category.label} 색상`}
+                              />
+                              {isOpen && (
+                                <div className="category-palette-popover" style={{ position: 'absolute', top: '24px', left: 0, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
+                                  <div className="category-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                                    {categoryColorPresets.map((preset) => (
+                                      <button
+                                        key={preset}
+                                        type="button"
+                                        className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
+                                        style={{ background: preset, width: '24px', height: '24px', borderRadius: '4px', border: preset.toLowerCase() === paletteDraftColor.toLowerCase() ? '2px solid var(--text-primary)' : 'none', cursor: 'pointer' }}
+                                        onClick={() => setPaletteDraftColor(preset)}
+                                      />
+                                    ))}
+                                  </div>
+                                  <label className="category-custom-color" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '4px', background: paletteDraftColor }} />
+                                    <input
+                                      type="color"
+                                      value={paletteDraftColor}
+                                      onChange={(event) => setPaletteDraftColor(event.target.value)}
+                                      style={{ display: 'none' }}
+                                    />
+                                    <strong style={{ fontSize: '0.85rem', cursor: 'pointer' }}>커스텀 색상 선택</strong>
+                                  </label>
+                                  <div className="category-palette-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setOpenPaletteKey(null)}>취소</button>
+                                    <button
+                                      type="button"
+                                      className="primary-button"
+                                      style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
+                                      onClick={() => {
+                                        handleCategoryColorChange('income', category.id, paletteDraftColor);
+                                        setOpenPaletteKey(null);
+                                      }}
+                                    >
+                                      확인
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="category-row-main" style={{ flex: 1 }}>
+                              <CategoryBadge categories={activeIncomeCategories} idOrLabel={category.id} />
+                            </div>
+                            <button
+                              type="button"
+                              className="category-row-action"
+                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                              onClick={() => handleArchiveCategory('income', category.id, category.label)}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              {/* 하단바 가림 방지 공백 */}
+              <div style={{ height: '80px' }} />
+            </>
+          )}
 
         {activeTab === 'settings' && (
           <section className="glass-panel settings-hub">
             <div className="settings-head">
               <h2>설정</h2>
               <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
-                <button type="button" className={settingsSection === 'category' ? 'active' : ''} onClick={() => setSettingsSection('category')}>카테고리</button>
                 <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
                 <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
               </div>
             </div>
-
-            {settingsSection === 'category' && (
-              <div className="category-manager">
-                <div className="category-manager-head">
-                  <h3>카테고리 관리</h3>
-                  <span className="category-total-chip">
-                    {categoryManagerGroups.reduce((sum, group) => sum + group.categories.length, 0)}개
-                  </span>
-                </div>
-
-                <form id="category-create-form" className="category-create-card" onSubmit={handleAddManagedCategory}>
-                  <div className="category-create-copy">
-                    <strong>새 카테고리</strong>
-                  </div>
-                  <select
-                    value={categoryDraft.type}
-                    onChange={(event) => setCategoryDraft((prev) => ({ ...prev, type: event.target.value as CategoryScope }))}
-                    aria-label="카테고리 분류"
-                  >
-                    {categoryTypeOptions.map((option) => (
-                      <option key={option.type} value={option.type}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    value={categoryDraft.label}
-                    onChange={(event) => setCategoryDraft((prev) => ({ ...prev, label: event.target.value }))}
-                    placeholder="카테고리 이름"
-                    aria-label="카테고리 이름"
-                  />
-                  <label className="category-color-field">
-                    <span style={{ background: categoryDraft.color }} />
-                    <input
-                      type="color"
-                      value={categoryDraft.color}
-                      onChange={(event) => setCategoryDraft((prev) => ({ ...prev, color: event.target.value }))}
-                      aria-label="새 카테고리 색상"
-                    />
-                  </label>
-                </form>
-
-                <div className="category-card-grid">
-                  {categoryManagerGroups.map((group) => (
-                    <article key={group.type} className="category-table-card">
-                      <div className="category-table-head">
-                        <strong>{group.title}</strong>
-                        <b>{group.categories.length}개</b>
-                      </div>
-                      <div className="category-table">
-                        {group.categories.map((category) => {
-                          const color = category.color || '#64748b';
-                          const paletteKey = getCategoryColorKey(group.type, category.id);
-                          const isOpen = openPaletteKey === paletteKey;
-
-                          return (
-                            <div
-                              key={`${group.type}-${category.id}`}
-                              className={`category-row ${dragCategory?.type === group.type && dragCategory.id === category.id ? 'dragging' : ''}`}
-                              draggable
-                              onDragStart={() => setDragCategory({ type: group.type, id: category.id })}
-                              onDragOver={(event) => event.preventDefault()}
-                              onDrop={(event) => handleCategoryDrop(event, group.type, category.id, group.categories)}
-                              onDragEnd={() => setDragCategory(null)}
-                            >
-                              <span className="category-drag-handle" aria-hidden="true">⋮⋮</span>
-                              <div className="category-color-menu">
-                                <button
-                                  type="button"
-                                  className="category-color-swatch"
-                                  style={{ background: color }}
-                                  onClick={() => {
-                                    setPaletteDraftColor(color);
-                                    setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
-                                  }}
-                                  aria-label={`${category.label} 색상`}
-                                />
-                                {isOpen && (
-                                  <div className="category-palette-popover">
-                                    <div className="category-preset-grid">
-                                      {categoryColorPresets.map((preset) => (
-                                        <button
-                                          key={preset}
-                                          type="button"
-                                          className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
-                                          style={{ background: preset }}
-                                          onClick={() => setPaletteDraftColor(preset)}
-                                          aria-label={`${category.label} ${preset}`}
-                                        />
-                                      ))}
-                                    </div>
-                                    <label className="category-custom-color">
-                                      <span style={{ background: paletteDraftColor }} />
-                                      <input
-                                        type="color"
-                                        value={paletteDraftColor}
-                                        onChange={(event) => setPaletteDraftColor(event.target.value)}
-                                        aria-label="커스텀 색상"
-                                      />
-                                      <strong>커스텀</strong>
-                                    </label>
-                                    <div className="category-palette-actions">
-                                      <button type="button" className="secondary-button" onClick={() => setOpenPaletteKey(null)}>취소</button>
-                                      <button
-                                        type="button"
-                                        className="primary-button"
-                                        onClick={() => {
-                                          handleCategoryColorChange(group.type, category.id, paletteDraftColor);
-                                          setOpenPaletteKey(null);
-                                        }}
-                                      >
-                                        확인
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="category-row-main">
-                                <CategoryBadge categories={group.categories} idOrLabel={category.id} />
-                              </div>
-                              <button
-                                type="button"
-                                className="category-row-action"
-                                onClick={() => handleArchiveCategory(group.type, category.id, category.label)}
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {settingsSection === 'app' && (
               <div className="settings-stack">
@@ -2303,49 +2636,7 @@ export default function App() {
         )}
       </section>
 
-      {(activeTab === 'calendar' || activeTab === 'ledger' || activeTab === 'asset' || (activeTab === 'settings' && settingsSection === 'category')) && (
-        <div className="floating-action-layer">
-          {(activeTab === 'calendar' || activeTab === 'ledger') && (
-            <button
-              type="button"
-              className="floating-action"
-              onClick={() => setIsEntryModalOpen(true)}
-              aria-label="새 거래 등록"
-              title="새 거래 등록"
-            >
-              <span aria-hidden="true">+</span>
-              <strong>거래 등록</strong>
-            </button>
-          )}
-          {activeTab === 'asset' && (
-            <button
-              type="button"
-              className="floating-action"
-              onClick={() => {
-                setEditingAsset(null);
-                setIsAssetModalOpen(true);
-              }}
-              aria-label="자산 등록"
-              title="자산 등록"
-            >
-              <span aria-hidden="true">+</span>
-              <strong>자산 등록</strong>
-            </button>
-          )}
-          {activeTab === 'settings' && settingsSection === 'category' && (
-            <button
-              type="submit"
-              form="category-create-form"
-              className="floating-action"
-              aria-label="카테고리 등록"
-              title="카테고리 등록"
-            >
-              <span aria-hidden="true">+</span>
-              <strong>카테고리 등록</strong>
-            </button>
-          )}
-        </div>
-      )}
+
 
       {/* Date Detail View Modal (Calendar Cell Clicked) */}
       {selectedDayData && (
@@ -2779,6 +3070,54 @@ export default function App() {
               </button>
             </div>
           </section>
+        </div>
+      )}
+
+      {/* 4대 코어 탭 하단 고정 등록바 */}
+      {(activeTab === 'asset' || activeTab === 'plan' || activeTab === 'calendar' || activeTab === 'ledger') && (
+        <div className="fixed-bottom-bar">
+          {activeTab === 'asset' && (
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => setIsAssetModalOpen(true)}
+            >
+              <span>+</span> 자산 등록
+            </button>
+          )}
+          {activeTab === 'plan' && (
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => setIsCategoryModalOpen(true)}
+            >
+              <span>+</span> 카테고리 등록
+            </button>
+          )}
+          {activeTab === 'calendar' && (
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => {
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              }}
+            >
+              <span>+</span> 거래 등록
+            </button>
+          )}
+          {activeTab === 'ledger' && (
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => {
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              }}
+            >
+              <span>+</span> 거래 등록
+            </button>
+          )}
         </div>
       )}
     </main>

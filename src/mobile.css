@@ -581,4 +581,17 @@
   .floating-action-layer.multi .floating-action {
     min-width: 0;
   }
+
+  .fixed-bottom-bar {
+    left: 0 !important;
+    bottom: 60px !important; /* 모바일 하단바 높이 위에 안착 */
+    padding: 0 16px !important;
+    height: 60px !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .fixed-bottom-bar-btn {
+    padding: 8px 18px !important;
+    font-size: 0.85rem !important;
+  }
 }
