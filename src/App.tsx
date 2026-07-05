@@ -49,6 +49,7 @@ type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight';
+type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 
 interface NoticeState {
   id: number;
@@ -64,6 +65,14 @@ interface ConfirmState {
   cancelLabel?: string;
   tone?: 'default' | 'danger';
   onConfirm: () => void;
+}
+
+interface RemoteSyncState {
+  status: RemoteSyncStatus;
+  localUpdatedAt?: number;
+  remoteUpdatedAt?: number;
+  checkedAt?: number;
+  message: string;
 }
 
 function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
@@ -397,7 +406,7 @@ function saveRemoteD1(
   deletedRecurringTxs: string[],
   updatedAt: number
 ) {
-  fetch("/api/data", {
+  return fetch("/api/data", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -418,8 +427,6 @@ function saveRemoteD1(
       deletedRecurringTxs,
       updatedAt
     })
-  }).catch(() => {
-    // Ignore errors for offline fallback
   });
 }
 
@@ -436,6 +443,51 @@ function downloadCSV(csvContent: string, fileName: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function escapeCSVCell(value: unknown) {
+  const text = value == null ? '' : String(value);
+  if (!/[",\n\r]/.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function createCSVRow(values: unknown[]) {
+  return values.map(escapeCSVCell).join(',');
+}
+
+function parseCSVLine(line: string) {
+  const cells: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function formatSyncTime(value?: number) {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date(value));
 }
 
 export default function App() {
@@ -540,6 +592,10 @@ export default function App() {
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
+  const [remoteSync, setRemoteSync] = useState<RemoteSyncState>({
+    status: 'checking',
+    message: '서버 저장 상태 확인 중',
+  });
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmState | null>(null);
 
@@ -596,10 +652,30 @@ export default function App() {
     );
 
     // If still fetching initial DB data, do NOT upload/overwrite database
-    if (isLoading) return;
+    if (isLoading) {
+      setRemoteSync((prev) => ({
+        ...prev,
+        status: 'checking',
+        localUpdatedAt: newUpdatedAt,
+        message: '서버 데이터 확인 중',
+      }));
+      return;
+    }
+
+    setRemoteSync({
+      status: 'pending',
+      localUpdatedAt: newUpdatedAt,
+      message: '변경사항 저장 대기 중',
+    });
 
     // 2. Debounce D1 Database sync by 1 second (1000ms)
     const syncTimer = setTimeout(() => {
+      setRemoteSync((prev) => ({
+        ...prev,
+        status: 'saving',
+        localUpdatedAt: newUpdatedAt,
+        message: '서버에 저장 중',
+      }));
       saveRemoteD1(
         transactions, 
         assets, 
@@ -615,7 +691,31 @@ export default function App() {
         recurringRules, 
         deletedRecurringTxs,
         newUpdatedAt
-      );
+      )
+        .then((res) => {
+          if (!res.ok) throw new Error('remote save failed');
+          setRemoteSync((prev) => {
+            if (prev.localUpdatedAt && prev.localUpdatedAt > newUpdatedAt) return prev;
+            return {
+              status: 'synced',
+              localUpdatedAt: newUpdatedAt,
+              remoteUpdatedAt: newUpdatedAt,
+              checkedAt: Date.now(),
+              message: '서버 저장 완료',
+            };
+          });
+        })
+        .catch(() => {
+          setRemoteSync((prev) => {
+            if (prev.localUpdatedAt && prev.localUpdatedAt > newUpdatedAt) return prev;
+            return {
+              status: 'error',
+              localUpdatedAt: newUpdatedAt,
+              checkedAt: Date.now(),
+              message: '서버 저장 실패 - 로컬에는 보관됨',
+            };
+          });
+        });
     }, 1000);
 
     return () => {
@@ -684,7 +784,7 @@ export default function App() {
             if (hasLocalData) {
               const newTime = Date.now();
               setUpdatedAt(newTime);
-              saveRemoteD1(
+              void saveRemoteD1(
                 storedData.transactions,
                 storedData.assets,
                 storedData.budget,
@@ -699,7 +799,7 @@ export default function App() {
                 storedData.recurringRules,
                 storedData.deletedRecurringTxs,
                 newTime
-              );
+              ).catch(() => undefined);
             } else {
               setTransactions([]);
               setAssets([]);
@@ -730,6 +830,13 @@ export default function App() {
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
+            setRemoteSync({
+              status: 'synced',
+              localUpdatedAt: serverUpdatedAt,
+              remoteUpdatedAt: serverUpdatedAt,
+              checkedAt: Date.now(),
+              message: '서버 데이터 적용됨',
+            });
           } else {
             // 로컬 데이터가 더 최신이거나 DB가 완전히 비어있음
             if (
@@ -746,7 +853,7 @@ export default function App() {
             ) {
               const newTime = Date.now();
               setUpdatedAt(newTime);
-              saveRemoteD1(
+              void saveRemoteD1(
                 transactions,
                 assets,
                 budget,
@@ -761,13 +868,36 @@ export default function App() {
                 recurringRules,
                 deletedRecurringTxs,
                 newTime
-              );
+              )
+                .then((res) => {
+                  if (!res.ok) throw new Error('remote save failed');
+                  setRemoteSync({
+                    status: 'synced',
+                    localUpdatedAt: newTime,
+                    remoteUpdatedAt: newTime,
+                    checkedAt: Date.now(),
+                    message: '로컬 최신 데이터 서버 반영됨',
+                  });
+                })
+                .catch(() => {
+                  setRemoteSync({
+                    status: 'error',
+                    localUpdatedAt: newTime,
+                    checkedAt: Date.now(),
+                    message: '서버 저장 실패 - 로컬에는 보관됨',
+                  });
+                });
             }
           }
         }
       })
       .catch(() => {
-        // Fallback silently to LocalStorage if API fails or offline
+        setRemoteSync({
+          status: 'error',
+          localUpdatedAt: storedData.updatedAt || 0,
+          checkedAt: Date.now(),
+          message: '서버 확인 실패 - 로컬 데이터 사용 중',
+        });
       })
       .finally(() => {
         setIsLoading(false);
@@ -1063,7 +1193,7 @@ export default function App() {
 
     const newTime = Date.now();
     setUpdatedAt(newTime);
-    saveRemoteD1(
+    void saveRemoteD1(
       transactions,
       assets,
       budget,
@@ -1078,7 +1208,7 @@ export default function App() {
       recurringRules,
       deletedRecurringTxs,
       newTime
-    );
+    ).catch(() => undefined);
   }
 
   function handleAssetDrop(e: React.DragEvent) {
@@ -1259,7 +1389,7 @@ export default function App() {
       // 3. Push empty sync state to Server D1
       const newTime = Date.now();
       setUpdatedAt(newTime);
-      saveRemoteD1(
+      void saveRemoteD1(
         [],
         [],
         1000000,
@@ -1274,7 +1404,7 @@ export default function App() {
         [],
         [],
         newTime
-      );
+      ).catch(() => undefined);
       showNotice('가계부 데이터가 초기화되었습니다.', '초기화 완료', 'success');
       },
     });
@@ -1446,6 +1576,180 @@ export default function App() {
               setPlans(newPlans);
             }
             showNotice('백업 데이터를 복원했습니다.', '복원 완료', 'success');
+            },
+          });
+        } else {
+          showNotice('가져올 수 있는 유효한 가계부 데이터가 없습니다.', '복원 실패', 'warning');
+        }
+      } catch {
+        showNotice('CSV 파일 해석 중 오류가 발생했습니다.', '복원 실패', 'error');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function verifyRemoteSync(showToast = true) {
+    setRemoteSync((prev) => ({
+      ...prev,
+      status: 'checking',
+      message: '서버 저장 상태 확인 중',
+    }));
+
+    try {
+      const response = await fetch(`/api/data?check=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error('remote check failed');
+      const data = await response.json();
+      const remoteUpdatedAt = Number(data.updatedAt) || 0;
+      const isSynced = remoteUpdatedAt >= (updatedAt || 0);
+      setRemoteSync({
+        status: isSynced ? 'synced' : 'stale',
+        localUpdatedAt: updatedAt || 0,
+        remoteUpdatedAt,
+        checkedAt: Date.now(),
+        message: isSynced ? '서버와 로컬이 일치함' : '서버 반영 대기 또는 불일치',
+      });
+      if (showToast) {
+        showNotice(
+          isSynced ? '현재 데이터가 서버에 반영되어 있습니다.' : '서버 데이터가 로컬보다 오래되었습니다. 잠시 뒤 다시 확인하세요.',
+          isSynced ? '저장 확인' : '저장 대기',
+          isSynced ? 'success' : 'warning'
+        );
+      }
+    } catch {
+      setRemoteSync({
+        status: 'error',
+        localUpdatedAt: updatedAt || 0,
+        checkedAt: Date.now(),
+        message: '서버 확인 실패',
+      });
+      if (showToast) {
+        showNotice('서버 저장 상태를 확인하지 못했습니다.', '저장 확인 실패', 'error');
+      }
+    }
+  }
+
+  function exportFullCSV() {
+    const backupSettings = {
+      version: 2,
+      exportedAt: Date.now(),
+      budget,
+      theme,
+      customExpenseCategories,
+      customIncomeCategories,
+      customAssetCategories,
+      categoryColors,
+      categoryOrder,
+      hiddenCategories,
+      recurringRules,
+      deletedRecurringTxs,
+      updatedAt,
+    };
+
+    const rows = [
+      createCSVRow(['SECTION', 'ID', 'TYPE_OR_CATEGORY', 'DATE_OR_MEMO', 'AMOUNT', 'TITLE', 'EXTRA', 'JSON']),
+      createCSVRow(['SETTINGS', 'mywallet-v2', '', '', '', '', '', JSON.stringify(backupSettings)]),
+      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? ''])),
+      ...assets.map((a) => createCSVRow(['A', a.id, a.category, a.amount, a.memo, '', '', ''])),
+      ...plans.map((p) => createCSVRow(['P', p.category, p.type, p.plannedAmount, '', '', '', ''])),
+      createCSVRow(['BUDGET', budget, '', '', '', '', '', '']),
+    ];
+
+    downloadCSV(`${rows.join('\n')}\n`, `mywallet_full_backup_${selectedMonth.replace('-', '')}.csv`);
+  }
+
+  function handleImportFullCSV(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (!text) return;
+
+      try {
+        const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim());
+        const newTransactions: Transaction[] = [];
+        const newAssets: AssetItem[] = [];
+        const newPlans: CategoryPlan[] = [];
+        let importedSettings: Partial<{
+          budget: number;
+          theme: 'light' | 'dark';
+          customExpenseCategories: CategoryOption[];
+          customIncomeCategories: CategoryOption[];
+          customAssetCategories: CategoryOption[];
+          categoryColors: CategoryColorMap;
+          categoryOrder: CategoryOrderMap;
+          hiddenCategories: HiddenCategoryMap;
+          recurringRules: RecurringRule[];
+          deletedRecurringTxs: string[];
+        }> | null = null;
+        let newBudget = budget;
+
+        lines.forEach((line) => {
+          const cells = parseCSVLine(line);
+          if (cells[0] === 'SECTION') return;
+          if (cells[0] === 'T') {
+            newTransactions.push({
+              id: cells[1],
+              type: cells[2] as TransactionType,
+              date: cells[3],
+              amount: Number(cells[4]),
+              title: cells[5],
+              category: cells[6],
+              recurringRuleId: cells[7] || null,
+            });
+          } else if (cells[0] === 'A') {
+            newAssets.push({
+              id: cells[1],
+              category: cells[2],
+              amount: Number(cells[3]),
+              memo: cells[4],
+            });
+          } else if (cells[0] === 'P') {
+            newPlans.push({
+              category: cells[1],
+              type: cells[2] as TransactionType,
+              plannedAmount: Number(cells[3]) || 0,
+            });
+          } else if (cells[0] === 'BUDGET') {
+            newBudget = Number(cells[1]) || 1000000;
+          } else if (cells[0] === 'SETTINGS') {
+            const rawJson = cells[7] || cells[1] || '';
+            if (rawJson) {
+              importedSettings = JSON.parse(rawJson);
+              newBudget = Number(importedSettings?.budget) || newBudget;
+            }
+          }
+        });
+
+        if (newTransactions.length > 0 || newAssets.length > 0 || newPlans.length > 0 || importedSettings) {
+          requestConfirm({
+            title: 'CSV 복원',
+            message: `현재 데이터가 백업 파일 기준으로 교체됩니다. 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건${importedSettings ? ', 설정값 포함' : ''}을 복원할까요?`,
+            confirmLabel: '복원',
+            onConfirm: () => {
+              const nextTime = Date.now();
+              setTransactions(newTransactions);
+              setAssets(newAssets);
+              setBudget(newBudget);
+              setTheme(importedSettings?.theme === 'dark' ? 'dark' : 'light');
+              setCustomExpenseCategories(Array.isArray(importedSettings?.customExpenseCategories) ? importedSettings.customExpenseCategories : []);
+              setCustomIncomeCategories(Array.isArray(importedSettings?.customIncomeCategories) ? importedSettings.customIncomeCategories : []);
+              setCustomAssetCategories(Array.isArray(importedSettings?.customAssetCategories) ? importedSettings.customAssetCategories : []);
+              setCategoryColors(importedSettings?.categoryColors && typeof importedSettings.categoryColors === 'object' ? importedSettings.categoryColors : {});
+              setCategoryOrder(importedSettings?.categoryOrder && typeof importedSettings.categoryOrder === 'object' ? importedSettings.categoryOrder : {});
+              setHiddenCategories(importedSettings?.hiddenCategories && typeof importedSettings.hiddenCategories === 'object' ? importedSettings.hiddenCategories : {});
+              setRecurringRules(Array.isArray(importedSettings?.recurringRules) ? importedSettings.recurringRules : []);
+              setDeletedRecurringTxs(Array.isArray(importedSettings?.deletedRecurringTxs) ? importedSettings.deletedRecurringTxs : []);
+              setPlans(newPlans);
+              setUpdatedAt(nextTime);
+              setRemoteSync({
+                status: 'pending',
+                localUpdatedAt: nextTime,
+                message: '복원 데이터 서버 저장 대기 중',
+              });
+              showNotice('CSV 백업 데이터와 설정값을 복원했습니다.', '복원 완료', 'success');
             },
           });
         } else {
@@ -2581,7 +2885,36 @@ export default function App() {
             )}
 
             {settingsSection === 'data' && (
-              <div className="settings-stack">
+              <div className="settings-stack settings-data-stack">
+                <div className={`settings-sync-card ${remoteSync.status}`}>
+                  <div>
+                    <span className="settings-sync-kicker">SERVER SYNC</span>
+                    <strong>{remoteSync.message}</strong>
+                  </div>
+                  <button type="button" className="secondary-button" onClick={() => void verifyRemoteSync(true)}>
+                    서버 확인
+                  </button>
+                  <div className="settings-sync-meta">
+                    <span>로컬 {formatSyncTime(remoteSync.localUpdatedAt || updatedAt)}</span>
+                    <span>서버 {formatSyncTime(remoteSync.remoteUpdatedAt)}</span>
+                    <span>확인 {formatSyncTime(remoteSync.checkedAt)}</span>
+                  </div>
+                </div>
+                <div className="settings-data-grid">
+                  <article className="settings-data-card settings-csv-card">
+                    <div>
+                      <span>CSV DATA</span>
+                      <strong>CSV 백업 및 복원</strong>
+                    </div>
+                    <div className="settings-card-actions">
+                      <button type="button" className="primary-button" onClick={exportFullCSV}>백업</button>
+                      <label className="primary-button">
+                        복원
+                        <input type="file" accept=".csv" onChange={handleImportFullCSV} style={{ display: 'none' }} />
+                      </label>
+                    </div>
+                  </article>
+                </div>
                 <div className="settings-row">
                   <strong>백업 및 복원</strong>
                   <div className="settings-actions">
@@ -2591,10 +2924,6 @@ export default function App() {
                       <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
                     </label>
                   </div>
-                </div>
-                <div className="settings-row">
-                  <strong>데이터 초기화</strong>
-                  <button type="button" className="danger-button" onClick={handleReset}>전체 초기화</button>
                 </div>
               </div>
             )}

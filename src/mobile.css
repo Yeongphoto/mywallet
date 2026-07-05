@@ -441,6 +441,53 @@
     width: 100%;
   }
 
+  .settings-sync-card {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    padding: 16px 16px 16px 18px !important;
+  }
+
+  .settings-sync-card .secondary-button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 40px !important;
+  }
+
+  .settings-sync-meta {
+    gap: 6px !important;
+  }
+
+  .settings-data-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .settings-data-card {
+    min-height: 0 !important;
+    padding: 16px !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .settings-data-card .primary-button,
+  .settings-data-card .secondary-button,
+  .settings-data-card .danger-button {
+    flex: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+  }
+
+  .settings-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .settings-csv-card .primary-button {
+    width: 100% !important;
+  }
+
   .settings-row .primary-button,
   .settings-row .danger-button,
   .settings-actions .primary-button {
