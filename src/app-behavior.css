@@ -52,6 +52,29 @@ textarea,
   user-select: text;
 }
 
+[draggable="true"],
+[draggable="true"] *,
+.category-drag-handle,
+.category-drag-handle *,
+.asset-table-list > div,
+.asset-table-list > div *,
+.asset-table-list > div > div:first-child > span:first-child,
+.asset-table-list > div > div:first-child > span:first-child * {
+  -webkit-user-drag: element;
+}
+
+.category-drag-handle,
+.asset-table-list > div > div:first-child > span:first-child {
+  cursor: grab;
+  touch-action: none !important;
+}
+
+[draggable="true"]:active,
+.category-drag-handle:active,
+.asset-table-list > div > div:first-child > span:first-child:active {
+  cursor: grabbing;
+}
+
 button,
 a,
 input,
