@@ -1141,12 +1141,16 @@ export default function App() {
     showNotice('다음 달부터 반복 기록이 중단됩니다.', '정기 기록 중지', 'success');
   }
 
-  function handleStopRecurringFromTx(txId: string) {
-    if (!txId.startsWith('rec_')) return;
-    const lastUnderscoreIndex = txId.lastIndexOf('_');
-    if (lastUnderscoreIndex === -1) return;
-    const ruleId = txId.substring(4, lastUnderscoreIndex);
-    const txMonth = txId.substring(lastUnderscoreIndex + 1); // "YYYY-MM"
+  function handleStopRecurringFromTx(txIdOrRuleId: string, stopMonth?: string) {
+    let ruleId = txIdOrRuleId;
+    let txMonth = stopMonth || selectedMonth;
+
+    if (txIdOrRuleId.startsWith('rec_')) {
+      const lastUnderscoreIndex = txIdOrRuleId.lastIndexOf('_');
+      if (lastUnderscoreIndex === -1) return;
+      ruleId = txIdOrRuleId.substring(4, lastUnderscoreIndex);
+      txMonth = txIdOrRuleId.substring(lastUnderscoreIndex + 1); // "YYYY-MM"
+    }
     
     setRecurringRules((prev) =>
       prev.map((r) => (r.id === ruleId ? { ...r, endMonth: txMonth } : r))
@@ -3673,7 +3677,7 @@ function TransactionListTable({
   onDelete: (id: string) => void;
   onEdit: (t: Transaction) => void;
   categories: CategoryOption[];
-  onStopRecurring?: (id: string) => void;
+  onStopRecurring?: (id: string, stopMonth?: string) => void;
 }) {
 
   return (
@@ -3966,7 +3970,7 @@ function TransactionEditForm({
   onCancel: () => void;
   onAddRecurringRule?: (r: RecurringRule) => void;
   recurringRules: RecurringRule[];
-  onStopRecurring?: (id: string) => void;
+  onStopRecurring?: (id: string, stopMonth?: string) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [date, setDate] = useState(transaction.date);
@@ -4004,7 +4008,6 @@ function TransactionEditForm({
       ? recurringRules.find((rule) => rule.id === transaction.recurringRuleId && !rule.endMonth)
       : undefined;
     const wasRecurring = !!activeRecurringRule;
-    let updatedId = transaction.id;
     let nextRuleId = transaction.recurringRuleId || null;
 
     // Handle transitions
@@ -4025,18 +4028,16 @@ function TransactionEditForm({
         endMonth: null
       });
 
-      updatedId = `rec_${ruleId}_${date.slice(0, 7)}`;
       nextRuleId = ruleId;
       onNotify?.(`다음 달(${nextMonthStr})부터 매달 ${dy}일에 자동 등록됩니다.`, '정기 기록 설정', 'success');
     } else if (!isRecurring && wasRecurring && onStopRecurring) {
       // 2. Checked -> Unchecked: Stop recurring rules from next month
-      onStopRecurring(transaction.id);
+      onStopRecurring(transaction.recurringRuleId || transaction.id, date.slice(0, 7));
       nextRuleId = null;
     }
 
     onSave({
       ...transaction,
-      id: updatedId,
       date,
       amount: numericAmount,
       title: title.trim(),
