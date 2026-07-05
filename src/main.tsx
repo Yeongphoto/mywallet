@@ -5,6 +5,7 @@ import { preloadD1Cache } from './d1-cache-preload';
 import { registerPwaServiceWorker } from './pwa-register';
 import './asset-save-guard';
 import './local-recovery';
+import './local-recovery-visible';
 import './app-behavior';
 import './asset-drag-fix';
 import './touch-sortable';
