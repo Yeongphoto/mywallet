@@ -872,6 +872,211 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.category-manager {
+  display: grid;
+  gap: 18px;
+}
+
+.category-manager-head,
+.category-create-card,
+.category-table-head,
+.category-row {
+  display: flex;
+  align-items: center;
+}
+
+.category-manager-head {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.category-manager-head h2 {
+  margin: 0;
+}
+
+.category-total-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(var(--primary-rgb), 0.18);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.category-create-card {
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), rgba(15, 23, 42, 0.03));
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.category-create-copy {
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+
+.category-create-copy strong,
+.category-table-head strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.category-create-copy span,
+.category-table-head span {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.category-create-card select,
+.category-create-card input[type="text"] {
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-weight: 800;
+  padding: 0 12px;
+}
+
+.category-create-card input[type="text"] {
+  width: min(220px, 100%);
+}
+
+.category-color-field,
+.category-color-picker {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.category-color-field {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+}
+
+.category-color-field > span,
+.category-color-picker > span {
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+}
+
+.category-color-field > span {
+  width: 24px;
+  height: 24px;
+}
+
+.category-color-field input,
+.category-color-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.category-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.category-table-card {
+  min-width: 0;
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.category-table-head {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-card);
+  background: rgba(15, 23, 42, 0.025);
+}
+
+.category-table-head b {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.category-table {
+  display: grid;
+  padding: 8px;
+}
+
+.category-row {
+  gap: 10px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.category-row:hover {
+  background: var(--bg-balance-light);
+}
+
+.category-color-picker {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
+}
+
+.category-color-picker > span {
+  width: 18px;
+  height: 18px;
+}
+
+.category-row-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-row-main small {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.category-row-action {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--bg-expense-light);
+  color: var(--color-expense);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.category-row-action:disabled {
+  cursor: default;
+  background: var(--bg-balance-light);
+  color: var(--text-secondary);
+  border-color: var(--border-input);
+}
+
 /* Forms layout */
 .entry-grid {
   display: grid;

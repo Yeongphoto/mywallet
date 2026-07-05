@@ -94,6 +94,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       customAssetCategories: (cats.results || []).filter((c: any) => c.type === 'asset').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
       budget: Number(settingsMap['budget']) || 1000000,
       theme: settingsMap['theme'] || 'light',
+      categoryColors: settingsMap['categoryColors'] ? JSON.parse(settingsMap['categoryColors']) : {},
       recurringRules: rcRules.results || [],
       deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id),
       updatedAt: Number(settingsMap['updatedAt']) || 0
@@ -127,6 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       customExpenseCategories, 
       customIncomeCategories, 
       customAssetCategories,
+      categoryColors,
       budget, 
       theme, 
       recurringRules, 
@@ -206,6 +208,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(String(budget ?? 1000000)));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('theme', ?)")
       .bind(String(theme ?? 'light')));
+    statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryColors', ?)")
+      .bind(JSON.stringify(categoryColors && typeof categoryColors === 'object' ? categoryColors : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('updatedAt', ?)")
       .bind(String(updatedAt ?? 0)));
 
