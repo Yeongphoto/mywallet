@@ -12,6 +12,46 @@ body {
   touch-action: manipulation;
 }
 
+html,
+body,
+#root,
+.app-shell,
+.content,
+button,
+a,
+label,
+span,
+div,
+section,
+article,
+header,
+footer,
+nav,
+h1,
+h2,
+h3,
+h4,
+p,
+small,
+strong,
+b,
+li,
+th,
+td {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.allow-text-select,
+.allow-text-select *,
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 button,
 a,
 input,
