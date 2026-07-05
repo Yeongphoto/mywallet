@@ -2,6 +2,56 @@ interface Env {
   DB: D1Database;
 }
 
+async function ensureSchema(db: D1Database) {
+  await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      date TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      recurring_rule_id TEXT
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS assets (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      memo TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS plans (
+      category TEXT NOT NULL,
+      type TEXT NOT NULL,
+      plannedAmount INTEGER NOT NULL,
+      PRIMARY KEY (category, type)
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS custom_categories (
+      id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      label TEXT NOT NULL,
+      color TEXT,
+      PRIMARY KEY (id, type)
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS recurring_rules (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      day INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      startMonth TEXT NOT NULL,
+      endMonth TEXT
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS deleted_recurring_txs (
+      id TEXT PRIMARY KEY
+    )`)
+  ]);
+}
+
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.DB;
   if (!db) {
@@ -9,6 +59,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    await ensureSchema(db);
+
     const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
       db.prepare("SELECT * FROM transactions").all(),
       db.prepare("SELECT * FROM assets").all(),
@@ -26,7 +78,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     });
 
     const data = {
-      transactions: txs.results || [],
+      transactions: (txs.results || []).map((t: any) => ({
+        id: t.id,
+        type: t.type,
+        date: t.date,
+        amount: Number(t.amount),
+        title: t.title,
+        category: t.category,
+        recurringRuleId: t.recurring_rule_id || null
+      })),
       assets: asts.results || [],
       plans: plns.results || [],
       customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
@@ -57,6 +117,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    await ensureSchema(db);
+
     const body: any = await context.request.json();
     const { 
       transactions, 

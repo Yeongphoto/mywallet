@@ -36,6 +36,24 @@ const assetCategories: CategoryOption[] = [
 
 const STORAGE_KEY = 'mywallet:v2';
 
+type NoticeType = 'info' | 'success' | 'warning' | 'error';
+
+interface NoticeState {
+  id: number;
+  type: NoticeType;
+  title: string;
+  message: string;
+}
+
+interface ConfirmState {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  tone?: 'default' | 'danger';
+  onConfirm: () => void;
+}
+
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
   style: 'currency',
   currency: 'KRW',
@@ -48,6 +66,12 @@ function getToday() {
 
 function getCurrentMonth() {
   return getToday().slice(0, 7);
+}
+
+function getNextMonth(month: string) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const nextDate = new Date(year, monthNumber, 1);
+  return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function createId() {
@@ -352,6 +376,31 @@ export default function App() {
   const [assetSection, setAssetSection] = useState({ showAsset: true, showPlan: false, showRecurring: false });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmState | null>(null);
+
+  function showNotice(message: string, title = '알림', type: NoticeType = 'info') {
+    setNotice({
+      id: Date.now(),
+      type,
+      title,
+      message,
+    });
+  }
+
+  function requestConfirm(options: ConfirmState) {
+    setConfirmDialog(options);
+  }
+
+  function closeConfirmDialog() {
+    setConfirmDialog(null);
+  }
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   // Sync state to LocalStorage and D1 (Debounced with Timestamp updates)
   useEffect(() => {
@@ -437,17 +486,40 @@ export default function App() {
             (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||
             (Array.isArray(data.deletedRecurringTxs) && data.deletedRecurringTxs.length > 0);
 
+          const hasLocalData =
+            storedData.transactions.length > 0 ||
+            storedData.assets.length > 0 ||
+            storedData.customExpenseCategories.length > 0 ||
+            storedData.customIncomeCategories.length > 0 ||
+            storedData.customAssetCategories.length > 0 ||
+            storedData.recurringRules.length > 0 ||
+            storedData.deletedRecurringTxs.length > 0;
+
           if (!hasDbData && serverUpdatedAt === 0) {
-            localStorage.removeItem('mywallet_transactions');
-            localStorage.removeItem('mywallet_recurringRules');
-            localStorage.removeItem('mywallet_deletedRecurringTxs');
-            localStorage.removeItem('mywallet_assets');
-            setTransactions([]);
-            setAssets([]);
-            setRecurringRules([]);
-            setDeletedRecurringTxs([]);
-            setPlans([]);
-            setUpdatedAt(0);
+            if (hasLocalData) {
+              const newTime = Date.now();
+              setUpdatedAt(newTime);
+              saveRemoteD1(
+                storedData.transactions,
+                storedData.assets,
+                storedData.budget,
+                storedData.theme,
+                storedData.plans,
+                storedData.customExpenseCategories,
+                storedData.customIncomeCategories,
+                storedData.customAssetCategories,
+                storedData.recurringRules,
+                storedData.deletedRecurringTxs,
+                newTime
+              );
+            } else {
+              setTransactions([]);
+              setAssets([]);
+              setRecurringRules([]);
+              setDeletedRecurringTxs([]);
+              setPlans([]);
+              setUpdatedAt(0);
+            }
             setIsLoading(false);
             return;
           }
@@ -724,7 +796,7 @@ export default function App() {
     setRecurringRules((prev) =>
       prev.map((r) => (r.id === id ? { ...r, endMonth: selectedMonth } : r))
     );
-    alert('이후부터 반복 기록이 중단되도록 설정되었습니다.');
+    showNotice('다음 달부터 반복 기록이 중단됩니다.', '정기 기록 중지', 'success');
   }
 
   function handleStopRecurringFromTx(txId: string) {
@@ -737,13 +809,20 @@ export default function App() {
     setRecurringRules((prev) =>
       prev.map((r) => (r.id === ruleId ? { ...r, endMonth: txMonth } : r))
     );
-    alert(`해당 정기 결제 규칙이 ${txMonth}월까지 기록된 후 다음 달부터 중단되도록 설정되었습니다.`);
+    showNotice(`${txMonth}월까지 유지되고 다음 달부터 중단됩니다.`, '정기 기록 중지', 'success');
   }
 
   function handleDeleteRecurringRule(id: string) {
-    if (window.confirm('이 정기 규칙을 완전히 삭제할까요? (이미 기록된 정기 내역은 삭제되지 않습니다.)')) {
-      setRecurringRules((prev) => prev.filter((r) => r.id !== id));
-    }
+    requestConfirm({
+      title: '정기 기록 삭제',
+      message: '이 정기 기록 규칙을 삭제할까요? 이미 기록된 거래 내역은 삭제되지 않습니다.',
+      confirmLabel: '삭제',
+      tone: 'danger',
+      onConfirm: () => {
+        setRecurringRules((prev) => prev.filter((r) => r.id !== id));
+        showNotice('정기 기록 규칙을 삭제했습니다.', '삭제 완료', 'success');
+      },
+    });
   }
 
   function handleAddAsset(asset: AssetItem) {
@@ -760,7 +839,12 @@ export default function App() {
   }
 
   function handleReset() {
-    if (window.confirm('입력된 거래와 자산, 정기 반복 규칙을 모두 초기화할까요?')) {
+    requestConfirm({
+      title: '데이터 초기화',
+      message: '입력된 거래, 자산, 정기 기록 규칙을 모두 초기화할까요?',
+      confirmLabel: '초기화',
+      tone: 'danger',
+      onConfirm: () => {
       // 1. Wipe LocalStorage
       localStorage.removeItem('mywallet_transactions');
       localStorage.removeItem('mywallet_assets');
@@ -801,8 +885,9 @@ export default function App() {
         [],
         newTime
       );
-      alert('가계부 데이터가 성공적으로 완전 초기화되었습니다.');
-    }
+      showNotice('가계부 데이터가 초기화되었습니다.', '초기화 완료', 'success');
+      },
+    });
   }
 
   function toggleTheme() {
@@ -955,19 +1040,25 @@ export default function App() {
         });
 
         if (newTransactions.length > 0 || newAssets.length > 0 || newPlans.length > 0) {
-          if (window.confirm(`가계부 백업을 복원할까요? (현재 장부에 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건이 덮어쓰기됩니다.)`)) {
+          requestConfirm({
+            title: '백업 복원',
+            message: `현재 장부가 백업 데이터로 바뀝니다. 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건을 복원할까요?`,
+            confirmLabel: '복원',
+            onConfirm: () => {
             setTransactions(newTransactions);
             setAssets(newAssets);
             setBudget(newBudget);
             if (newPlans.length > 0) {
               setPlans(newPlans);
             }
-          }
+            showNotice('백업 데이터를 복원했습니다.', '복원 완료', 'success');
+            },
+          });
         } else {
-          alert('가져올 수 있는 유효한 가계부 데이터가 없습니다.');
+          showNotice('가져올 수 있는 유효한 가계부 데이터가 없습니다.', '복원 실패', 'warning');
         }
       } catch {
-        alert('CSV 파일 해석 중 오류가 발생했습니다.');
+        showNotice('CSV 파일 해석 중 오류가 발생했습니다.', '복원 실패', 'error');
       }
     };
     reader.readAsText(file, 'utf-8');
@@ -1442,21 +1533,29 @@ export default function App() {
                                     const isDuplicate = transactions.some(
                                       (t) => t.date === dateStr && t.amount === rule.amount && t.title === rule.title && t.category === rule.category
                                     );
-                                    if (isDuplicate) {
-                                      if (!confirm("동일한 예정일에 유사한 정기 거래 내역이 이미 등록되어 있습니다. 추가로 등록하시겠습니까?")) {
-                                        return;
-                                      }
-                                    }
-
-                                    handleAddTransaction({
+                                    const addRecurringTransaction = () => {
+                                      handleAddTransaction({
                                       id: `tx_${Date.now()}`,
                                       type: rule.type,
                                       date: dateStr,
                                       amount: rule.amount,
                                       title: rule.title,
                                       category: rule.category
-                                    });
-                                    alert(`${dateStr} 자로 '${rule.title}' (${formatCurrency(rule.amount)}) 거래가 등록되었습니다!`);
+                                      });
+                                      showNotice(`${dateStr} 자로 '${rule.title}' 거래가 등록되었습니다.`, '거래 등록 완료', 'success');
+                                    };
+
+                                    if (isDuplicate) {
+                                      requestConfirm({
+                                        title: '중복 거래 확인',
+                                        message: '동일한 예정일에 유사한 정기 거래가 이미 있습니다. 추가로 등록할까요?',
+                                        confirmLabel: '추가 등록',
+                                        onConfirm: addRecurringTransaction,
+                                      });
+                                      return;
+                                    }
+
+                                    addRecurringTransaction();
                                   }}
                                 >
                                   ⚡ 거래 등록
@@ -1883,6 +1982,7 @@ export default function App() {
                     expenseCategories={allExpenseCategories}
                     incomeCategories={allIncomeCategories}
                     onAddRecurringRule={handleAddRecurringRule}
+                    onNotify={showNotice}
                   />
                 </div>
               )}
@@ -1910,6 +2010,7 @@ export default function App() {
                 onAddRecurringRule={handleAddRecurringRule}
                 recurringRules={recurringRules}
                 onStopRecurring={handleStopRecurringFromTx}
+                onNotify={showNotice}
               />
             </div>
           </div>
@@ -1934,11 +2035,11 @@ export default function App() {
                 
                 const amount = Number(amountRaw) || 0;
                 if (!category) {
-                  alert('자산 종류를 선택해 주세요.');
+                  showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning');
                   return;
                 }
                 if (amount <= 0) {
-                  alert('올바른 금액을 입력해 주세요.');
+                  showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
                   return;
                 }
 
@@ -2028,7 +2129,7 @@ export default function App() {
               const catName = nameInput.value.trim();
 
               if (!catName) {
-                alert('카테고리명을 입력해주세요.');
+                showNotice('카테고리명을 입력해 주세요.', '입력 확인', 'warning');
                 return;
               }
 
@@ -2038,7 +2139,7 @@ export default function App() {
                 allAssetCategories;
 
               if (targetList.some((c) => c.label === catName)) {
-                alert('이미 존재하는 카테고리입니다.');
+                showNotice('이미 존재하는 카테고리입니다.', '중복 카테고리', 'warning');
                 return;
               }
 
@@ -2057,7 +2158,7 @@ export default function App() {
 
               nameInput.value = '';
               setIsCategoryModalOpen(false);
-              alert(`'${catName}' 카테고리가 추가되었습니다.`);
+              showNotice(`'${catName}' 카테고리가 추가되었습니다.`, '카테고리 추가', 'success');
             }} style={{ display: 'grid', gap: '20px', padding: '24px 28px' }}>
               
               <div className="form-group">
@@ -2157,10 +2258,52 @@ export default function App() {
                   handleAddRecurringRule(r);
                   setIsEntryModalOpen(false);
                 }}
+                onNotify={showNotice}
                 isQuickAdd={true}
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className={`app-toast ${notice.type}`} role="status" aria-live="polite">
+          <div className="app-toast-icon" aria-hidden="true" />
+          <div>
+            <strong>{notice.title}</strong>
+            <p>{notice.message}</p>
+          </div>
+          <button type="button" aria-label="알림 닫기" onClick={() => setNotice(null)}>
+            &times;
+          </button>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <div className="confirm-backdrop" role="presentation" onClick={closeConfirmDialog}>
+          <section className="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirm-title" onClick={(e) => e.stopPropagation()}>
+            <div className={`confirm-symbol ${confirmDialog.tone === 'danger' ? 'danger' : ''}`} aria-hidden="true" />
+            <div>
+              <h3 id="confirm-title">{confirmDialog.title}</h3>
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className="confirm-actions">
+              <button type="button" className="secondary-button" onClick={closeConfirmDialog}>
+                {confirmDialog.cancelLabel ?? '취소'}
+              </button>
+              <button
+                type="button"
+                className={confirmDialog.tone === 'danger' ? 'danger-button' : 'primary-button'}
+                onClick={() => {
+                  const action = confirmDialog.onConfirm;
+                  closeConfirmDialog();
+                  action();
+                }}
+              >
+                {confirmDialog.confirmLabel ?? '확인'}
+              </button>
+            </div>
+          </section>
         </div>
       )}
     </main>
@@ -2302,6 +2445,7 @@ function UnifiedEntryForm({
   expenseCategories,
   incomeCategories,
   onAddRecurringRule,
+  onNotify,
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
@@ -2310,6 +2454,7 @@ function UnifiedEntryForm({
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
   onAddRecurringRule?: (r: RecurringRule) => void;
+  onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
   const [isRecurring, setIsRecurring] = useState(false);
@@ -2344,7 +2489,7 @@ function UnifiedEntryForm({
     const amount = parseAmount(form.amount);
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      alert('올바른 금액을 입력해 주세요.');
+      onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
 
@@ -2359,17 +2504,18 @@ function UnifiedEntryForm({
     } else {
       // Income or Expense Registration
       if (!form.date) {
-        alert('날짜를 입력해 주세요.');
+        onNotify?.('날짜를 입력해 주세요.', '입력 확인', 'warning');
         return;
       }
       if (!form.title.trim()) {
-        alert('내용을 입력해 주세요.');
+        onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
         return;
       }
 
       if (isRecurring && onAddRecurringRule) {
         const day = Number(form.date.slice(8, 10)) || 1;
-        const startMonth = form.date.slice(0, 7); // "YYYY-MM"
+        const transactionMonth = form.date.slice(0, 7); // "YYYY-MM"
+        const startMonth = getNextMonth(transactionMonth);
         const ruleId = `rule_${Date.now()}`;
         onAddRecurringRule({
           id: ruleId,
@@ -2384,7 +2530,7 @@ function UnifiedEntryForm({
 
         // Write the current day transaction immediately using matching rec_ ID
         onAddTransaction({
-          id: `rec_${ruleId}_${startMonth}`,
+          id: `rec_${ruleId}_${transactionMonth}`,
           type: form.type as TransactionType,
           date: form.date,
           amount,
@@ -2413,7 +2559,7 @@ function UnifiedEntryForm({
     setIsRecurring(false);
 
     if (!isQuickAdd) {
-      alert('성공적으로 등록되었습니다!');
+      onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
     }
   }
 
@@ -2485,14 +2631,14 @@ function UnifiedEntryForm({
         </label>
 
         {form.type !== 'asset' && (
-          <label style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px', gridColumn: isQuickAdd ? 'span 1' : 'span 2', cursor: 'pointer', margin: '4px 0 8px' }}>
+          <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
             <input
               type="checkbox"
               checked={isRecurring}
               onChange={(e) => setIsRecurring(e.target.checked)}
-              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>🔄 매달 자동으로 해당일에 정기 기록으로 등록</span>
+            <span className="recurring-toggle-mark" aria-hidden="true" />
+            <span className="recurring-toggle-text">정기 기록</span>
           </label>
         )}
       </div>
@@ -2512,6 +2658,7 @@ function TransactionEditForm({
   onAddRecurringRule,
   recurringRules,
   onStopRecurring,
+  onNotify,
 }: {
   transaction: Transaction;
   onSave: (t: Transaction) => void;
@@ -2519,6 +2666,7 @@ function TransactionEditForm({
   onAddRecurringRule?: (r: RecurringRule) => void;
   recurringRules: RecurringRule[];
   onStopRecurring?: (id: string) => void;
+  onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [date, setDate] = useState(transaction.date);
   const [amount, setAmount] = useState(String(transaction.amount));
@@ -2547,25 +2695,22 @@ function TransactionEditForm({
     event.preventDefault();
     const numericAmount = parseAmount(amount);
     if (!date || !title.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
-      alert('금액과 내용을 올바르게 입력해주세요.');
+      onNotify?.('금액과 내용을 올바르게 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
 
-    const wasRecurring = !!transaction.recurringRuleId;
+    const activeRecurringRule = transaction.recurringRuleId
+      ? recurringRules.find((rule) => rule.id === transaction.recurringRuleId && !rule.endMonth)
+      : undefined;
+    const wasRecurring = !!activeRecurringRule;
     let updatedId = transaction.id;
     let nextRuleId = transaction.recurringRuleId || null;
 
     // Handle transitions
     if (isRecurring && !wasRecurring && onAddRecurringRule) {
       // 1. Unchecked -> Checked: Add recurring rule starting next month
-      const [yr, mo, dy] = date.split('-').map(Number);
-      let nextMo = mo + 1;
-      let nextYr = yr;
-      if (nextMo > 12) {
-        nextMo = 1;
-        nextYr++;
-      }
-      const nextMonthStr = `${nextYr}-${String(nextMo).padStart(2, '0')}`;
+      const dy = Number(date.slice(8, 10)) || 1;
+      const nextMonthStr = getNextMonth(date.slice(0, 7));
       const ruleId = `rule_${Date.now()}`;
 
       onAddRecurringRule({
@@ -2581,7 +2726,7 @@ function TransactionEditForm({
 
       updatedId = `rec_${ruleId}_${date.slice(0, 7)}`;
       nextRuleId = ruleId;
-      alert(`다음 달(${nextMonthStr})부터 매달 ${dy}일에 자동 등록되는 정기 기록으로 설정되었습니다.`);
+      onNotify?.(`다음 달(${nextMonthStr})부터 매달 ${dy}일에 자동 등록됩니다.`, '정기 기록 설정', 'success');
     } else if (!isRecurring && wasRecurring && onStopRecurring) {
       // 2. Checked -> Unchecked: Stop recurring rules from next month
       onStopRecurring(transaction.id);
@@ -2629,16 +2774,14 @@ function TransactionEditForm({
         </select>
       </label>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: '4px 0' }}>
+      <label className="recurring-toggle">
         <input
           type="checkbox"
           checked={isRecurring}
           onChange={(e) => setIsRecurring(e.target.checked)}
-          style={{ width: 'auto', height: 'auto', transform: 'scale(1.15)' }}
         />
-        <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-          매달 자동으로 정기 기록으로 등록 (다음 달부터 작동) 🔄
-        </span>
+        <span className="recurring-toggle-mark" aria-hidden="true" />
+        <span className="recurring-toggle-text">정기 기록</span>
       </label>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
