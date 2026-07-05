@@ -135,21 +135,11 @@ function openRecoveryPanel() {
   document.body.appendChild(panel);
 }
 
-function mountRecoveryButton() {
-  if (!document.body || document.querySelector('.local-recovery-force-button')) return;
-  const button = document.createElement('button');
-  button.className = 'local-recovery-force-button';
-  button.textContent = '로컬 복구';
-  button.style.cssText = 'position:fixed;left:12px;bottom:154px;z-index:99998;min-height:40px;padding:0 14px;border:1px solid rgba(23,32,51,.18);border-radius:999px;background:#fff;color:#172033;font-weight:900;box-shadow:0 10px 30px rgba(15,23,42,.22);';
-  button.onclick = openRecoveryPanel;
-  document.body.appendChild(button);
-}
-
 function bootRecoveryButton() {
   window.mywalletOpenLocalRecovery = openRecoveryPanel;
-  mountRecoveryButton();
-  window.setTimeout(mountRecoveryButton, 500);
-  window.setTimeout(mountRecoveryButton, 1500);
+  document.querySelectorAll<HTMLElement>('.local-recovery-force-button, .local-recovery-button').forEach((button) => {
+    button.style.display = 'none';
+  });
   if (new URLSearchParams(window.location.search).get('recovery') === '1') {
     window.setTimeout(openRecoveryPanel, 800);
   }
