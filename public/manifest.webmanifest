@@ -1,0 +1,21 @@
+{
+  "name": "MyWallet",
+  "short_name": "MyWallet",
+  "description": "스마트 가계부 캘린더",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f5f8",
+  "theme_color": "#172033",
+  "categories": ["finance", "productivity"],
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
