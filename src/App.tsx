@@ -1529,8 +1529,9 @@ export default function App() {
           activeTab === 'calendar' 
             ? { 
                 overflow: 'hidden', 
-                height: 'calc(100vh - 64px)', 
-                paddingBottom: 0,
+                height: '100vh', 
+                paddingTop: '74px', /* 모바일 헤더 높이 반영 */
+                paddingBottom: '142px', /* 이중 하단바 물리적 격리 마진선 */
                 boxSizing: 'border-box'
               } 
             : undefined
@@ -1732,7 +1733,20 @@ export default function App() {
 
         {/* Calendar View Tab */}
         {activeTab === 'calendar' && (
-          <section className="calendar-view-container" style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 }}>
+          <section 
+            className="calendar-view-container" 
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              boxShadow: 'none', 
+              padding: 0,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              boxSizing: 'border-box'
+            }}
+          >
             <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2>
                 {calendarYear}년 {calendarMonth + 1}월

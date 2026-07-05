@@ -272,7 +272,8 @@
 
   /* 모바일 캘린더 높이 전체 반응형 꽉 채움 보정 */
   .calendar-grid {
-    height: calc(100vh - 310px) !important; /* 380px -> 310px로 복구하여 캘린더 공간을 하단 등록바 위까지 최대 확보 */
+    height: 100% !important; /* height 계산식을 지우고 Flex 상속 */
+    flex: 1 !important;
     min-height: 380px !important;
     grid-auto-rows: 1fr !important;
   }
