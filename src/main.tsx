@@ -6,6 +6,7 @@ import './styles.css';
 import './mobile.css';
 import './calendar.css';
 import './app-behavior.css';
+import './ledger-mobile.css';
 
 const rootElement = document.getElementById('root');
 
