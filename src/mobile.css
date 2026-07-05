@@ -87,6 +87,7 @@
   }
 
   :root {
+    --mobile-action-bar-lift: 20px;
     --fab-right: 50%;
     --fab-bottom: 86px;
     --fab-gap: 8px;
@@ -258,7 +259,7 @@
 
   .fixed-bottom-bar {
     left: 0 !important;
-    bottom: 72px !important; /* 모바일 내비바(72px) 바로 위에 오프셋 고정 */
+    bottom: calc(72px + var(--mobile-action-bar-lift)) !important; /* 모바일 내비바 위로 살짝 띄워 iPhone 하단 조작 여유 확보 */
     padding: 0 16px !important;
     height: 60px !important;
     justify-content: flex-end !important; /* 우측 정렬로 전환하여 엄지손가락 클릭 편의성 극대화 */
