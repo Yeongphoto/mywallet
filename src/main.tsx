@@ -7,6 +7,7 @@ import './mobile.css';
 import './calendar.css';
 import './app-behavior.css';
 import './ledger-mobile.css';
+import './recurring-ledger-cleanup.css';
 
 const rootElement = document.getElementById('root');
 
