@@ -22,10 +22,25 @@ type TouchSortState = {
   ghost: HTMLElement;
   offsetX: number;
   offsetY: number;
+  previousDisplay: string;
+};
+
+type PendingTouchSort = {
+  kind: TouchSortKind;
+  pointerId: number;
+  source: HTMLElement;
+  list: HTMLElement;
+  handle: HTMLElement;
+  startX: number;
+  startY: number;
+  timer: number;
 };
 
 let touchSortState: TouchSortState | null = null;
+let pendingTouchSort: PendingTouchSort | null = null;
 let touchSortSaving = false;
+const TOUCH_SORT_DELAY = 170;
+const TOUCH_SORT_CANCEL_DISTANCE = 9;
 
 function readWalletData(): WalletData | null {
   try {
@@ -91,8 +106,8 @@ function getSortTarget(clientY: number, list: HTMLElement, source: HTMLElement, 
 }
 
 function autoScrollNearEdges(clientY: number) {
-  const margin = 86;
-  const speed = 14;
+  const margin = 58;
+  const speed = 7;
   const scrollTarget = document.querySelector<HTMLElement>('.content') ?? document.documentElement;
   if (clientY < margin) {
     scrollTarget.scrollBy({ top: -speed, behavior: 'auto' });
@@ -157,7 +172,44 @@ function getSortableFromHandle(handle: HTMLElement) {
   return null;
 }
 
-function startTouchSort(event: PointerEvent) {
+function activateTouchSort(pending: PendingTouchSort) {
+  if (touchSortState || pendingTouchSort !== pending) return;
+
+  const rect = pending.source.getBoundingClientRect();
+  const placeholder = makePlaceholder(pending.source);
+  const ghost = makeGhost(pending.source, rect);
+  const previousDisplay = pending.source.style.display;
+
+  pending.source.classList.add('touch-sort-source');
+  pending.source.parentElement?.insertBefore(placeholder, pending.source);
+  pending.source.style.display = 'none';
+  pending.handle.style.cursor = 'grabbing';
+
+  touchSortState = {
+    kind: pending.kind,
+    pointerId: pending.pointerId,
+    source: pending.source,
+    list: pending.list,
+    placeholder,
+    ghost,
+    offsetX: pending.startX - rect.left,
+    offsetY: pending.startY - rect.top,
+    previousDisplay,
+  };
+
+  pendingTouchSort = null;
+  document.body.classList.add('touch-sort-active');
+  try { pending.handle.setPointerCapture(pending.pointerId); } catch { /* noop */ }
+}
+
+function cancelPendingTouchSort(event?: PointerEvent) {
+  if (!pendingTouchSort) return;
+  if (event && pendingTouchSort.pointerId !== event.pointerId) return;
+  window.clearTimeout(pendingTouchSort.timer);
+  pendingTouchSort = null;
+}
+
+function queueTouchSort(event: PointerEvent) {
   if (event.button !== 0) return;
   const handle = (event.target as HTMLElement | null)?.closest<HTMLElement>('.category-drag-handle, .asset-drag-handle');
   if (!handle) return;
@@ -165,30 +217,28 @@ function startTouchSort(event: PointerEvent) {
   const sortable = getSortableFromHandle(handle);
   if (!sortable) return;
 
-  const rect = sortable.source.getBoundingClientRect();
-  const placeholder = makePlaceholder(sortable.source);
-  const ghost = makeGhost(sortable.source, rect);
-
-  sortable.source.classList.add('touch-sort-source');
-  sortable.source.parentElement?.insertBefore(placeholder, sortable.source.nextSibling);
-  sortable.source.style.display = 'none';
-  handle.style.cursor = 'grabbing';
-
-  touchSortState = {
+  cancelPendingTouchSort();
+  const pending: PendingTouchSort = {
     ...sortable,
     pointerId: event.pointerId,
-    placeholder,
-    ghost,
-    offsetX: event.clientX - rect.left,
-    offsetY: event.clientY - rect.top,
+    handle,
+    startX: event.clientX,
+    startY: event.clientY,
+    timer: 0,
   };
-
-  document.body.classList.add('touch-sort-active');
-  event.preventDefault();
-  try { handle.setPointerCapture(event.pointerId); } catch { /* noop */ }
+  pending.timer = window.setTimeout(() => activateTouchSort(pending), TOUCH_SORT_DELAY);
+  pendingTouchSort = pending;
 }
 
 function moveTouchSort(event: PointerEvent) {
+  if (pendingTouchSort && pendingTouchSort.pointerId === event.pointerId) {
+    const moved = Math.hypot(event.clientX - pendingTouchSort.startX, event.clientY - pendingTouchSort.startY);
+    if (moved > TOUCH_SORT_CANCEL_DISTANCE) {
+      cancelPendingTouchSort(event);
+    }
+    return;
+  }
+
   if (!touchSortState || touchSortState.pointerId !== event.pointerId) return;
 
   event.preventDefault();
@@ -206,11 +256,12 @@ function moveTouchSort(event: PointerEvent) {
 }
 
 function finishTouchSort(event?: PointerEvent) {
+  cancelPendingTouchSort(event);
   if (!touchSortState) return;
   if (event && touchSortState.pointerId !== event.pointerId) return;
 
-  const { kind, source, list, placeholder, ghost } = touchSortState;
-  source.style.display = '';
+  const { kind, source, list, placeholder, ghost, previousDisplay } = touchSortState;
+  source.style.display = previousDisplay;
   source.classList.remove('touch-sort-source');
   list.insertBefore(source, placeholder);
   placeholder.remove();
@@ -233,7 +284,7 @@ function prepareTouchSortableRows() {
 }
 
 if (typeof window !== 'undefined') {
-  document.addEventListener('pointerdown', startTouchSort, true);
+  document.addEventListener('pointerdown', queueTouchSort, true);
   document.addEventListener('pointermove', moveTouchSort, true);
   document.addEventListener('pointerup', finishTouchSort, true);
   document.addEventListener('pointercancel', finishTouchSort, true);
