@@ -96,6 +96,9 @@
     --fab-bar-radius: 26px;
     --fab-bar-bg: rgba(15, 23, 42, 0.88);
     --fab-bar-border: rgba(255, 255, 255, 0.16);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --header-height: calc(54px + var(--safe-top));
+    --footer-height: calc(92px + env(safe-area-inset-bottom, 0px));
   }
   
   .sidebar nav {
@@ -150,13 +153,20 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    /* Fallback for environments failing calc+env parsing */
-    padding-top: 130px !important;
-    padding-top: calc(84px + env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: 176px !important;
+    position: fixed !important;
+    top: var(--header-height) !important;
+    bottom: var(--footer-height) !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding-top: 16px !important;
+    padding-bottom: 24px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
-    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+    box-sizing: border-box;
   }
   
   
@@ -166,10 +176,8 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 54px; /* Fallback */
-    height: calc(54px + env(safe-area-inset-top, 0px));
-    padding-top: 0; /* Fallback */
-    padding-top: env(safe-area-inset-top, 0px);
+    height: var(--header-height);
+    padding-top: var(--safe-top);
     padding-left: 16px;
     padding-right: 16px;
     padding-bottom: 0;
