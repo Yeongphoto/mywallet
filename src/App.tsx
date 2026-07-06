@@ -2978,13 +2978,14 @@ export default function App() {
               </div>
 
               {/* 자산 카테고리 설정 카드 (이식 완료) */}
-              <div style={{ width: '100%', marginTop: '0px' }}>
-                  <article className="category-table-card managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
-                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
-                      <strong>🏷️ 등록된 자산 카테고리</strong>
-                      <b>{activeAssetCategories.length}개</b>
-                    </div>
-                    <div className="category-table" style={{ padding: '8px 0' }}>
+              <article className="glass-panel managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AppIcon name="settings" size={19} /> 등록된 자산 카테고리
+                  </span>
+                  <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeAssetCategories.length}개</b>
+                </h3>
+                <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeAssetCategories.map((category) => {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('asset', category.id);
@@ -3001,7 +3002,7 @@ export default function App() {
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'asset', category.id, activeAssetCategories)}
                             onDragEnd={() => setDragCategory(null)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
@@ -3071,7 +3072,6 @@ export default function App() {
                       })}
                     </div>
                   </article>
-                </div>
 
               {/* 하단바 가림 방지 공백 */}
               <div style={{ height: '80px' }} />
@@ -3178,12 +3178,14 @@ export default function App() {
             <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '0px' }}>
                   
                   {/* 지출 카테고리 목록 */}
-                  <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
-                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
-                      <strong>🔴 지출 카테고리 목록</strong>
-                      <b>{activeExpenseCategories.length}개</b>
-                    </div>
-                    <div className="category-table" style={{ padding: '8px 0' }}>
+                  <article className="glass-panel managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ padding: '16px', marginBottom: '0px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="settings" size={19} /> 지출 카테고리 목록
+                      </span>
+                      <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeExpenseCategories.length}개</b>
+                    </h3>
+                    <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeExpenseCategories.map((category) => {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('expense', category.id);
@@ -3200,7 +3202,7 @@ export default function App() {
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'expense', category.id, activeExpenseCategories)}
                             onDragEnd={() => setDragCategory(null)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
@@ -3272,12 +3274,14 @@ export default function App() {
                   </article>
 
                   {/* 수입 카테고리 목록 */}
-                  <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="income" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
-                    <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
-                      <strong>🔵 수입 카테고리 목록</strong>
-                      <b>{activeIncomeCategories.length}개</b>
-                    </div>
-                    <div className="category-table" style={{ padding: '8px 0' }}>
+                  <article className="glass-panel managed-category-card managed-category-card-plan" data-category-scope="income" style={{ padding: '16px', marginBottom: '0px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="settings" size={19} /> 수입 카테고리 목록
+                      </span>
+                      <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeIncomeCategories.length}개</b>
+                    </h3>
+                    <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeIncomeCategories.map((category) => {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('income', category.id);
@@ -3294,7 +3298,7 @@ export default function App() {
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'income', category.id, activeIncomeCategories)}
                             onDragEnd={() => setDragCategory(null)}
-                            style={{ display: 'flex', alignItems: 'center', padding: '8px 16px', borderBottom: '1px solid var(--border-card)' }}
+                            style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
