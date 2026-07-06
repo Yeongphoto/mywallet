@@ -101,29 +101,15 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
 
 function MyWalletLogo({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={`mywallet-logo ${className}`} style={style} viewBox="0 0 64 64" role="img" aria-label="MyWallet 로고" focusable="false">
-      <defs>
-        <linearGradient id="mw-wallet-gradient" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#38bdf8" />
-          <stop offset="0.5" stopColor="#0ea5e9" />
-          <stop offset="1" stopColor="#0284c7" />
-        </linearGradient>
-        <linearGradient id="mw-cyan-gradient" x1="20" y1="36" x2="43" y2="55" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#67e8f9" />
-          <stop offset="1" stopColor="#22d3ee" />
-        </linearGradient>
-      </defs>
-      <rect x="7" y="16" width="49" height="41" rx="14" fill="url(#mw-wallet-gradient)" />
-      <path d="M18 17c1.8-6 6.4-8.8 13.6-8.8H44c2.6 0 4.7 2.1 4.7 4.7V17H18Z" fill="#475569" />
-      <path d="M20.5 16c1.9-3.2 5.1-4.7 10.2-4.7H43c1 0 1.8.8 1.8 1.8V16H20.5Z" fill="#cbd5e1" opacity="0.95" />
-      <path d="M17.5 14.5c-3.8 0-7 3.1-7 7v2.2h10.8" fill="none" stroke="#38bdf8" strokeWidth="4.6" strokeLinecap="round" />
-      <path d="M26.5 8.5v7M34 8.5v7M41.5 8.5v7" stroke="#22d3ee" strokeWidth="4.3" strokeLinecap="round" />
-      <path d="M45 30h10c3.3 0 6 2.7 6 6v6c0 3.3-2.7 6-6 6H45c-5 0-9-4-9-9s4-9 9-9Z" fill="#0f172a" />
-      <path d="M46 34h8.2c1.5 0 2.8 1.2 2.8 2.8v4.4c0 1.5-1.2 2.8-2.8 2.8H46c-2.8 0-5-2.2-5-5s2.2-5 5-5Z" fill="#1e3a8a" />
-      <circle cx="50.5" cy="39" r="2.8" fill="#bfdbfe" />
-      <path d="M14.3 43.8V27h5.7l5.4 8.1 5.4-8.1h5.7v16.8h-5.8v-8.4l-4.2 6.1h-2.2l-4.2-6.1v8.4h-5.8Z" fill="#ffffff" />
-      <path d="M21.5 50.5 17.6 36.7h5.2l1.6 7.2 2.3-7.2h4l2.3 7.2 1.6-7.2h5.2l-3.9 13.8h-5.2l-2-6.2-2 6.2h-5.2Z" fill="url(#mw-cyan-gradient)" />
-    </svg>
+    <img 
+      src="/logo.png" 
+      alt="MyWallet 로고" 
+      className={`mywallet-logo ${className}`} 
+      style={{ 
+        objectFit: 'contain',
+        ...style 
+      }} 
+    />
   );
 }
 
