@@ -135,7 +135,7 @@
 
   @supports selector(.content:has(.calendar-view-container)) {
     .content:has(.calendar-view-container) {
-      padding-top: calc(var(--calendar-header-height) + 10px) !important;
+      padding-top: var(--calendar-mobile-x-padding) !important;
       padding-right: var(--calendar-mobile-x-padding) !important;
       padding-bottom: calc(var(--calendar-bottom-action-height) + var(--calendar-bottom-clearance)) !important;
       padding-left: var(--calendar-mobile-x-padding) !important;

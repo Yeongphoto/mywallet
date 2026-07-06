@@ -44,11 +44,8 @@
     position: relative !important;
     z-index: 1001 !important;
   }
-
-  .content:not(:has(.calendar-view-container)) {
-    padding-bottom: var(--mobile-content-bottom-space) !important;
-  }
 }
+
 
 @media (max-width: 420px) {
   :root {
