@@ -2034,9 +2034,9 @@ export default function App() {
           activeTab === 'calendar' 
             ? { 
                 overflow: 'hidden', 
-                height: '100vh', 
-                paddingTop: 'calc(64px + env(safe-area-inset-top, 0px))', /* 모바일 헤더 높이 및 iPhone safe-area 반영 */
-                paddingBottom: '142px', /* 이중 하단바 물리적 격리 마진선 */
+                height: '100dvh', 
+                paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))', /* 상단 타이틀 수평 동기화 */
+                paddingBottom: '164px', /* 하단바 및 거래등록 플로팅 단추의 가림 완벽 방지 */
                 boxSizing: 'border-box'
               } 
             : undefined
