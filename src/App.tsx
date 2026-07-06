@@ -2566,7 +2566,7 @@ export default function App() {
 
             {/* Category summary table */}
             <section className="glass-panel summary-table-grid" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
+              <div className="panel-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
                 <div>
                   <p className="eyebrow">Category Summary</p>
                   <h2 style={{ margin: 0, fontSize: '0.94rem', whiteSpace: 'nowrap' }}>카테고리별 합계 요약</h2>
