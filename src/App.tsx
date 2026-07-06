@@ -797,6 +797,7 @@ export default function App() {
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
+    const startTime = Date.now();
     fetch("/api/data")
       .then((res) => {
         if (!res.ok) throw new Error("API error");
@@ -859,7 +860,6 @@ export default function App() {
               setPlans([]);
               setUpdatedAt(0);
             }
-            setIsLoading(false);
             return;
           }
 
@@ -951,7 +951,11 @@ export default function App() {
         });
       })
       .finally(() => {
-        setIsLoading(false);
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 2000 - elapsed);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, remaining);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1878,24 +1882,69 @@ export default function App() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          background: 'var(--bg-app)',
+          background: 'radial-gradient(circle at center, #0f172a 0%, #030712 100%)',
           zIndex: 99999,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '16px'
+          gap: '24px'
         }}>
+          {/* Logo container with pulsing animation */}
           <div style={{
-            width: '44px',
-            height: '44px',
-            border: '4px solid var(--border-card)',
-            borderTop: '4px solid var(--primary)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-          <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 800 }}>데이터베이스 연결 중...</strong>
-          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>가계부의 실시간 D1 데이터를 불러오는 중입니다.</span>
+            width: '110px',
+            height: '110px',
+            animation: 'logoPulse 2s infinite ease-in-out'
+          }}>
+            <MyWalletLogo />
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
+            textAlign: 'center'
+          }}>
+            <h1 style={{
+              margin: 0,
+              fontSize: '1.9rem',
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              color: '#ffffff',
+              fontFamily: 'system-ui, -apple-system, sans-serif'
+            }}>
+              <span style={{ color: '#ffffff' }}>My</span>
+              <span style={{ color: 'var(--primary)' }}>Wallet</span>
+            </h1>
+            <p style={{
+              margin: 0,
+              fontSize: '0.9rem',
+              color: '#94a3b8',
+              fontWeight: 500,
+              letterSpacing: '-0.01em'
+            }}>
+              안전한 클라우드 연결을 통해 재정 데이터를 동기화하고 있습니다
+            </p>
+          </div>
+
+          {/* Premium Progress Bar */}
+          <div style={{
+            width: '220px',
+            height: '4px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            marginTop: '12px'
+          }}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(90deg, var(--primary) 0%, #22d3ee 100%)',
+              borderRadius: '10px',
+              animation: 'progressFill 2s infinite linear'
+            }} />
+          </div>
         </div>
       )}
       {/* Sidebar Navigation (Fixed bottom bar on mobile) */}
