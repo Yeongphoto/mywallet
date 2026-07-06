@@ -1004,64 +1004,65 @@ export default function App() {
 
     const todayStr = getToday();
     const [todayYr, todayMo] = todayStr.split('-').map(Number);
-    const newTxs: Transaction[] = [];
 
-    recurringRules.forEach((rule) => {
-      let [startYear, startMonth] = rule.startMonth.split('-').map(Number);
-      const [endYear, endMonth] = rule.endMonth ? rule.endMonth.split('-').map(Number) : [9999, 12];
+    setTransactions((prev) => {
+      const newTxs: Transaction[] = [];
 
-      let yr = startYear;
-      let mo = startMonth;
+      recurringRules.forEach((rule) => {
+        let [startYear, startMonth] = rule.startMonth.split('-').map(Number);
+        const [endYear, endMonth] = rule.endMonth ? rule.endMonth.split('-').map(Number) : [9999, 12];
 
-      while (yr < todayYr || (yr === todayYr && mo <= todayMo)) {
-        if (yr > endYear || (yr === endYear && mo > endMonth)) {
-          break;
-        }
+        let yr = startYear;
+        let mo = startMonth;
 
-        const moStr = String(mo).padStart(2, '0');
-        const lastDay = new Date(yr, mo, 0).getDate();
-        const targetDay = Math.min(rule.day, lastDay);
-        const dayStr = String(targetDay).padStart(2, '0');
-        const ruleDateStr = `${yr}-${moStr}-${dayStr}`;
+        while (yr < todayYr || (yr === todayYr && mo <= todayMo)) {
+          if (yr > endYear || (yr === endYear && mo > endMonth)) {
+            break;
+          }
 
-        // Skip future dates
-        if (ruleDateStr > todayStr) {
+          const moStr = String(mo).padStart(2, '0');
+          const lastDay = new Date(yr, mo, 0).getDate();
+          const targetDay = Math.min(rule.day, lastDay);
+          const dayStr = String(targetDay).padStart(2, '0');
+          const ruleDateStr = `${yr}-${moStr}-${dayStr}`;
+
+          // Skip future dates
+          if (ruleDateStr > todayStr) {
+            mo++;
+            if (mo > 12) {
+              mo = 1;
+              yr++;
+            }
+            continue;
+          }
+
+          const txId = `rec_${rule.id}_${yr}-${moStr}`;
+
+          const exists = prev.some((t) => t.id === txId);
+          const isDeleted = deletedRecurringTxs.includes(txId);
+          if (!exists && !isDeleted) {
+            newTxs.push({
+              id: txId,
+              type: rule.type,
+              date: ruleDateStr,
+              amount: rule.amount,
+              title: rule.title,
+              category: rule.category,
+              recurringRuleId: rule.id
+            });
+          }
+
           mo++;
           if (mo > 12) {
             mo = 1;
             yr++;
           }
-          continue;
         }
+      });
 
-        const txId = `rec_${rule.id}_${yr}-${moStr}`;
-
-        const exists = transactions.some((t) => t.id === txId);
-        const isDeleted = deletedRecurringTxs.includes(txId);
-        if (!exists && !isDeleted) {
-          newTxs.push({
-            id: txId,
-            type: rule.type,
-            date: ruleDateStr,
-            amount: rule.amount,
-            title: rule.title,
-            category: rule.category,
-            recurringRuleId: rule.id
-          });
-        }
-
-        mo++;
-        if (mo > 12) {
-          mo = 1;
-          yr++;
-        }
-      }
+      return newTxs.length > 0 ? [...prev, ...newTxs] : prev;
     });
-
-    if (newTxs.length > 0) {
-      setTransactions((prev) => [...prev, ...newTxs]);
-    }
-  }, [recurringRules, transactions, deletedRecurringTxs, isLoading]);
+  }, [recurringRules, deletedRecurringTxs, isLoading]);
 
   // Sync calendar when selectedMonth changes
   useEffect(() => {
@@ -1187,6 +1188,12 @@ export default function App() {
 
   function handleAddRecurringRule(rule: RecurringRule) {
     setRecurringRules((prev) => [...prev, rule]);
+  }
+
+  function handleUpdateRecurringRule(updated: RecurringRule) {
+    setRecurringRules((prev) =>
+      prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
+    );
   }
 
   function handleStopRecurringRule(id: string) {
@@ -3129,6 +3136,7 @@ export default function App() {
                 onSave={(updated) => handleUpdateTransaction(editingTransaction.id, updated)}
                 onCancel={() => setEditingTransaction(null)}
                 onAddRecurringRule={handleAddRecurringRule}
+                onUpdateRecurringRule={handleUpdateRecurringRule}
                 recurringRules={recurringRules}
                 onStopRecurring={handleStopRecurringFromTx}
                 onNotify={showNotice}
@@ -4023,6 +4031,7 @@ function TransactionEditForm({
   onSave,
   onCancel,
   onAddRecurringRule,
+  onUpdateRecurringRule,
   recurringRules,
   onStopRecurring,
   onNotify,
@@ -4031,6 +4040,7 @@ function TransactionEditForm({
   onSave: (t: Transaction) => void;
   onCancel: () => void;
   onAddRecurringRule?: (r: RecurringRule) => void;
+  onUpdateRecurringRule?: (r: RecurringRule) => void;
   recurringRules: RecurringRule[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
@@ -4096,6 +4106,17 @@ function TransactionEditForm({
       // 2. Checked -> Unchecked: Stop recurring rules from next month
       onStopRecurring(transaction.recurringRuleId || transaction.id, date.slice(0, 7));
       nextRuleId = null;
+    } else if (isRecurring && wasRecurring && activeRecurringRule && onUpdateRecurringRule) {
+      // 3. Checked -> Checked (Keep recurring, but update information)
+      const dy = Number(date.slice(8, 10)) || 1;
+      onUpdateRecurringRule({
+        ...activeRecurringRule,
+        day: dy,
+        amount: numericAmount,
+        title: title.trim(),
+        category,
+      });
+      onNotify?.('정기 반복 결제 정보가 변경되었습니다.', '정기 기록 수정', 'success');
     }
 
     onSave({
