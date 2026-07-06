@@ -1071,6 +1071,14 @@ textarea:focus {
   color: var(--text-primary);
 }
 
+.theme-settings-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 14px;
+}
+
 .settings-row .primary-button,
 .settings-row .danger-button,
 .settings-actions .primary-button {
@@ -1091,15 +1099,20 @@ textarea:focus {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: min(360px, 100%);
-  min-height: 46px;
+  min-height: 52px;
   padding: 4px;
   border: 1px solid var(--border-card);
   border-radius: 14px;
   background: var(--bg-input);
 }
 
+.theme-settings-row .theme-toggle {
+  width: 100%;
+  max-width: none;
+}
+
 .theme-toggle button {
-  min-height: 38px;
+  min-height: 44px;
   border-radius: 10px;
   background: transparent;
   color: var(--text-secondary);

@@ -2910,7 +2910,7 @@ export default function App() {
 
             {settingsSection === 'app' && (
               <div className="settings-stack">
-                <div className="settings-row">
+                <div className="settings-row theme-settings-row">
                   <strong>화면 테마</strong>
                   <div className="theme-toggle" role="group" aria-label="화면 테마">
                     <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
