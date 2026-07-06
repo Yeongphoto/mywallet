@@ -2432,13 +2432,12 @@ textarea:focus {
 /* Loading Landing Page Keyframes */
 @keyframes logoPulse {
   0%, 100% {
-    transform: scale(0.95);
-    opacity: 0.8;
+    opacity: 0.75;
+    filter: drop-shadow(0 0 4px rgba(11, 142, 199, 0.15));
   }
   50% {
-    transform: scale(1.05);
     opacity: 1;
-    filter: drop-shadow(0 0 16px rgba(11, 142, 199, 0.45));
+    filter: drop-shadow(0 0 24px rgba(11, 142, 199, 0.55));
   }
 }
 
