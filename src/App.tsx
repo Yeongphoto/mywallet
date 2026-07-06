@@ -2094,11 +2094,7 @@ export default function App() {
             </section>
 
 
-            {/* Flow Panel */}
-            <section className="glass-panel flow-panel">
-              <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" segments={expenseFlowSegments} />
-              <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" segments={incomeFlowSegments} />
-            </section>
+
 
             {/* 자산 분배 현황 원형 그래프 패널 */}
             <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
