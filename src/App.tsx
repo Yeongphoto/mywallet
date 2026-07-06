@@ -2272,7 +2272,7 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px' }}>
+            <section className="glass-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px', overflow: 'visible' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <p className="eyebrow">Annual Analytics</p>
@@ -2510,47 +2510,49 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 실시간 대화형 오버레이 팝업 (가장자리 찌그러짐 완전 방지 구조) */}
+              {/* 실시간 대화형 오버레이 팝업 (50% 축소, -32px 하강 월 라벨 노출, 28%~72% 슬라이딩 보정) */}
               {hoveredChartIndex !== null && (
                 <div style={{
                   position: 'absolute',
-                  left: '50%',
-                  bottom: '12px',
+                  left: `calc(30% + ${(hoveredChartIndex / 11) * 40}%)`, /* 1월은 우측(30%), 12월은 좌측(70%) 쪽으로 편향 보정 */
+                  bottom: '-32px', /* 월 표시 아래로 완전히 내려 가리지 않게 피신 */
                   transform: 'translateX(-50%)',
-                  width: 'calc(100% - 24px)',
-                  maxWidth: '300px',
+                  width: '52%', /* 획기적으로 50% 수준으로 축소 */
+                  minWidth: '176px',
+                  maxWidth: '230px',
                   background: 'rgba(15, 23, 42, 0.96)',
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
                   color: '#ffffff',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  fontSize: '0.82rem',
-                  zIndex: 100,
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  fontSize: '0.76rem',
+                  zIndex: 1000, /* 라운드 박스를 완전히 넘어 앞으로 튀어나오게 처리 */
                   pointerEvents: 'none',
-                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.28)',
+                  boxShadow: '0 6px 20px rgba(15, 23, 42, 0.35)',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   fontFamily: 'system-ui, -apple-system, sans-serif',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  transition: 'left 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)' /* 팝업이 기둥 따라 부드럽게 좌우로 미끄러짐 */
                 }}>
-                  <strong style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', color: '#f1f5f9', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '4px' }}>
-                    {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month} 상세 내역
+                  <strong style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', color: '#f1f5f9', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '3px' }}>
+                    {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month} 상세
                   </strong>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     {(chartFilter === 'both' || chartFilter === 'income') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 총 수입:</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 수입:</span>
                         <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].income)}</span>
                       </div>
                     )}
                     {(chartFilter === 'both' || chartFilter === 'expense') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                        <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 총 지출:</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 지출:</span>
                         <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].expense)}</span>
                       </div>
                     )}
                     {chartFilter === 'both' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '4px', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '2px', marginTop: '2px' }}>
                         <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
                         <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
                           {formatCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
