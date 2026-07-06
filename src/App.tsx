@@ -1867,9 +1867,9 @@ export default function App() {
       <aside className="sidebar">
         <div>
           <div className="brand">
-            <span>MW</span>
+            <span className="logo-box"><b>M</b><b>W</b></span>
             <div>
-              <strong>MYWALLET</strong>
+              <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
             </div>
           </div>
           <nav>
@@ -1915,9 +1915,9 @@ export default function App() {
         <header className="app-header">
           {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
           <div className="header-brand">
-            <span className="logo-box">MW</span>
+            <span className="logo-box"><b>M</b><b>W</b></span>
             <div className="brand-text">
-              <strong>MYWALLET</strong>
+              <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
             </div>
           </div>
 

@@ -198,24 +198,16 @@
   }
   
   .app-header .logo-box {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 45%, #14b8a6 100%);
-    color: #fff;
-    font-weight: 900;
-    font-size: 0.72rem;
-    letter-spacing: -0.08em;
-    display: grid;
-    place-items: center;
+    --logo-size: 32px;
   }
   
   .app-header .brand-text strong {
-    font-size: 0.82rem;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .app-header .brand-wordmark span:first-child {
     color: #fff;
-    display: block;
-    line-height: 1.1;
-    letter-spacing: 0.04em;
   }
   
   /* Mobile month picker adapt */
