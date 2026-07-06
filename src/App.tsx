@@ -50,6 +50,7 @@ type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
+type FlowSegment = { id: string; label: string; value: number; color: string };
 
 interface NoticeState {
   id: number;
@@ -147,6 +148,17 @@ function parseNumberInput(value: string) {
 
 function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
   return categories.find((category) => category.id === idOrLabel || category.label === idOrLabel)?.label ?? idOrLabel;
+}
+
+function buildCategorySegments(categories: CategoryOption[], values: Record<string, number>): FlowSegment[] {
+  return categories
+    .map((category) => ({
+      id: category.id,
+      label: category.label,
+      value: values[category.id] ?? 0,
+      color: category.color || '#64748b',
+    }))
+    .filter((segment) => segment.value > 0);
 }
 
 function getCategoryColorKey(type: CategoryScope, id: string) {
@@ -1095,6 +1107,21 @@ export default function App() {
     }, {});
   }, [assets]);
 
+  const expenseFlowSegments = useMemo(
+    () => buildCategorySegments(activeExpenseCategories, expenseSummary),
+    [activeExpenseCategories, expenseSummary]
+  );
+
+  const incomeFlowSegments = useMemo(
+    () => buildCategorySegments(activeIncomeCategories, incomeSummary),
+    [activeIncomeCategories, incomeSummary]
+  );
+
+  const assetFlowSegments = useMemo(
+    () => buildCategorySegments(activeAssetCategories, assetSummary),
+    [activeAssetCategories, assetSummary]
+  );
+
   // Filtered Transactions for Ledger view
   const filteredLedgerTransactions = useMemo(() => {
     return monthlyTransactions.filter((transaction) => {
@@ -1969,9 +1996,9 @@ export default function App() {
 
             {/* Flow Panel */}
             <section className="glass-panel flow-panel">
-              <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" />
-              <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" />
-              <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" />
+              <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" segments={expenseFlowSegments} />
+              <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" segments={incomeFlowSegments} />
+              <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" segments={assetFlowSegments} />
             </section>
 
             {/* 계획 대비 실적 비교 그래프 패널 */}
@@ -2083,9 +2110,9 @@ export default function App() {
                   <h2>카테고리별 합계</h2>
                 </div>
               </div>
-              <CategorySummaryColumn title="지출 카테고리" categories={expenseCategories} values={expenseSummary} />
-              <CategorySummaryColumn title="수입 카테고리" categories={incomeCategories} values={incomeSummary} />
-              <CategorySummaryColumn title="자산 분배 상태" categories={assetCategories} values={assetSummary} />
+              <CategorySummaryColumn title="지출 카테고리" categories={activeExpenseCategories} values={expenseSummary} />
+              <CategorySummaryColumn title="수입 카테고리" categories={activeIncomeCategories} values={incomeSummary} />
+              <CategorySummaryColumn title="자산 분배 상태" categories={activeAssetCategories} values={assetSummary} />
             </section>
           </>
         )}
@@ -3621,7 +3648,19 @@ export default function App() {
 }
 
 // Flow bar sub-component
-function FlowRowItem({ label, value, max, tone }: { label: string; value: number; max: number; tone: 'expense' | 'income' | 'asset' }) {
+function FlowRowItem({
+  label,
+  value,
+  max,
+  tone,
+  segments,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  tone: 'expense' | 'income' | 'asset';
+  segments: FlowSegment[];
+}) {
   const width = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="flow-row">
@@ -3630,7 +3669,19 @@ function FlowRowItem({ label, value, max, tone }: { label: string; value: number
         <span>{formatCurrency(value)}</span>
       </div>
       <div className="flow-track">
-        <i className={tone} style={{ width: `${width}%` }} />
+        <div className={`flow-fill ${tone}`} style={{ width: `${width}%` }}>
+          {segments.length > 0 ? (
+            segments.map((segment) => (
+              <i
+                key={segment.id}
+                title={`${segment.label} ${formatCurrency(segment.value)}`}
+                style={{ width: `${(segment.value / value) * 100}%`, background: segment.color }}
+              />
+            ))
+          ) : (
+            <i />
+          )}
+        </div>
       </div>
     </div>
   );
