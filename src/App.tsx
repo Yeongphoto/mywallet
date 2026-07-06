@@ -99,9 +99,9 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
   );
 }
 
-function MyWalletLogo({ className = '' }: { className?: string }) {
+function MyWalletLogo({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={`mywallet-logo ${className}`} viewBox="0 0 64 64" role="img" aria-label="MyWallet 로고" focusable="false">
+    <svg className={`mywallet-logo ${className}`} style={style} viewBox="0 0 64 64" role="img" aria-label="MyWallet 로고" focusable="false">
       <defs>
         <linearGradient id="mw-wallet-gradient" x1="8" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
           <stop stopColor="#38bdf8" />
@@ -1896,7 +1896,7 @@ export default function App() {
             height: '110px',
             animation: 'logoPulse 2s infinite ease-in-out'
           }}>
-            <MyWalletLogo />
+            <MyWalletLogo style={{ width: '100%', height: '100%' }} />
           </div>
 
           <div style={{
