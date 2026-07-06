@@ -2085,16 +2085,17 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '12px 8px' }}>
-                {/* 파이 원형 그래프 (2배 이상 확대) */}
-                <div style={{ position: 'relative', width: '100%', maxWidth: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '0' }}>
+                {/* 파이 원형 그래프 (2배 이상 확대 & 여백 완전 밀착) */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg 
                     width="100%" 
-                    height="360" 
+                    height="auto" 
                     viewBox="0 0 380 340" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
+                      aspectRatio: '380 / 340',
                       filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.22))'
                     }}
                   >
@@ -2230,44 +2231,6 @@ export default function App() {
                       })()
                     )}
                   </svg>
-                </div>
-
-                {/* 2. 범례 리스트 (가로 배치 컴팩트 칩스) */}
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '6px 10px', width: '100%', maxWidth: '500px', marginTop: '16px' }}>
-                  {assetFlowSegments.map((segment) => {
-                    const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
-                    return (
-                      <div 
-                        key={segment.id} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '6px', 
-                          padding: '4px 10px', 
-                          borderRadius: '20px',
-                          background: 'var(--bg-input)',
-                          border: '1px solid var(--border-input)',
-                          fontSize: '0.76rem',
-                          fontWeight: 'bold',
-                          boxShadow: 'var(--shadow-sm)',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        <span 
-                          style={{ 
-                            width: '8px', 
-                            height: '8px', 
-                            borderRadius: '50%', 
-                            background: segment.color, 
-                            display: 'inline-block',
-                            boxShadow: `0 0 6px ${segment.color}`
-                          }} 
-                        />
-                        <span style={{ color: 'var(--text-primary)' }}>{segment.label}</span>
-                        <span style={{ color: 'var(--primary)', marginLeft: '2px' }}>{percent.toFixed(1)}%</span>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             </section>
