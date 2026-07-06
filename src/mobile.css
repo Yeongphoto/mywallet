@@ -150,7 +150,12 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: calc(84px + env(safe-area-inset-top, 0px)) 12px 176px 12px !important;
+    /* Fallback for environments failing calc+env parsing */
+    padding-top: 130px !important;
+    padding-top: calc(84px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 176px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
     overflow-x: hidden;
   }
   
@@ -161,8 +166,13 @@
     top: 0;
     left: 0;
     right: 0;
+    height: 54px; /* Fallback */
     height: calc(54px + env(safe-area-inset-top, 0px));
-    padding: env(safe-area-inset-top, 0px) 16px 0;
+    padding-top: 0; /* Fallback */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 0;
     box-sizing: border-box;
     background: rgba(15, 23, 42, 1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
