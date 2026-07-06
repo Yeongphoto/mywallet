@@ -150,7 +150,7 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: 110px 12px 176px 12px !important;
+    padding: calc(110px + env(safe-area-inset-top, 0px)) 12px 176px 12px !important;
     overflow-x: hidden;
   }
   
@@ -160,8 +160,9 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 64px;
-    padding: 0 16px;
+    height: calc(64px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 16px 0;
+    box-sizing: border-box;
     background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -195,15 +196,16 @@
     gap: 8px;
     align-items: center;
     text-align: left;
+    min-width: 0;
   }
   
   .app-header .mywallet-logo {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
   
   .app-header .brand-text strong {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     line-height: 1;
   }
 
