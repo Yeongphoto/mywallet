@@ -3082,19 +3082,19 @@ export default function App() {
         {/* Plans Tab */}
         {activeTab === 'plan' && (
           <>
-            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>월간 계획 설정</h1>
               </div>
             </div>
 
-            <div className="asset-accordion-group" style={{ display: 'grid', gap: '24px' }}>
-              <div className="glass-panel" style={{ padding: '24px' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
+            <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
+              <div className="glass-panel" style={{ padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
                 </h3>
 
-                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   {/* 지출 계획 */}
                   <div>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -25,10 +25,10 @@
   --bg-balance-light: #f8fafc;
   --bg-budget-light: #fffbeb;
   
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 14px 34px rgba(15, 23, 42, 0.08);
-  --shadow-xl: 0 24px 54px rgba(15, 23, 42, 0.12);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.02);
+  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 8px 20px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 16px 36px rgba(15, 23, 42, 0.07);
   
   --glass-bg: rgba(255, 255, 255, 0.78);
   --glass-blur: blur(18px);
@@ -76,10 +76,10 @@
   --bg-balance-light: rgba(255, 255, 255, 0.06);
   --bg-budget-light: rgba(245, 158, 11, 0.15);
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 16px 28px rgba(0, 0, 0, 0.35);
   
   --glass-bg: rgba(15, 23, 42, 0.75);
   --glass-blur: blur(20px);
@@ -269,7 +269,7 @@ button:active {
 
 /* Main Content */
 .content {
-  padding: 96px 48px 40px 48px;
+  padding: 88px 20px 40px 20px;
   overflow-y: auto;
 }
 
@@ -284,7 +284,7 @@ button:active {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 48px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border-card);
   z-index: 90;
 }
@@ -612,17 +612,17 @@ textarea:focus {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
+  border-radius: 16px;
   box-shadow: var(--shadow-lg);
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: 16px;
+  margin-bottom: 14px;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .summary-card {
@@ -637,7 +637,7 @@ textarea:focus {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
+  border-radius: 14px;
   box-shadow: var(--shadow-md);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
