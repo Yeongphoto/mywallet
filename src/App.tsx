@@ -2074,7 +2074,132 @@ export default function App() {
             <section className="glass-panel flow-panel">
               <FlowRowItem label="지출" value={expenseTotal} max={maxFlow} tone="expense" segments={expenseFlowSegments} />
               <FlowRowItem label="수입" value={incomeTotal} max={maxFlow} tone="income" segments={incomeFlowSegments} />
-              <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" segments={assetFlowSegments} />
+            </section>
+
+            {/* 자산 분배 현황 원형 그래프 패널 */}
+            <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">Asset Allocation</p>
+                  <h2 style={{ margin: 0 }}>자산 분배 현황</h2>
+                </div>
+              </div>
+
+              <div className="asset-donut-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '48px', padding: '12px 16px' }}>
+                {/* 1. 도넛 원형 그래프 */}
+                <div style={{ position: 'relative', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="200" height="200" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}>
+                    {/* Background Circle */}
+                    <circle
+                      cx="70"
+                      cy="70"
+                      r="48"
+                      fill="transparent"
+                      stroke="var(--border-card)"
+                      strokeWidth="12"
+                      opacity="0.3"
+                    />
+
+                    {/* Segments Circles */}
+                    {(() => {
+                      const donutRadius = 48;
+                      const circumference = 2 * Math.PI * donutRadius; // ~301.59
+                      let accumulatedPercent = 0;
+
+                      return assetFlowSegments.map((segment) => {
+                        const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
+                        const strokeLength = (percent / 100) * circumference;
+                        const strokeOffset = circumference - (accumulatedPercent / 100) * circumference;
+                        accumulatedPercent += percent;
+
+                        return (
+                          <circle
+                            key={segment.id}
+                            cx="70"
+                            cy="70"
+                            r={donutRadius}
+                            fill="transparent"
+                            stroke={segment.color}
+                            strokeWidth="12"
+                            strokeDasharray={`${strokeLength} ${circumference}`}
+                            strokeDashoffset={strokeOffset}
+                            strokeLinecap="round"
+                            style={{ 
+                              transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                              filter: `drop-shadow(0 0 2px ${segment.color}50)`
+                            }}
+                          />
+                        );
+                      });
+                    })()}
+                  </svg>
+
+                  {/* 도넛 중심부 총자산 표시 */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none'
+                  }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.5px' }}>총 관리 자산</span>
+                    <strong style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px', letterSpacing: '-0.5px' }}>
+                      {formatCurrency(assetTotal)}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* 2. 범례 리스트 */}
+                <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {assetFlowSegments.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '20px 0' }}>
+                      자산 데이터가 없습니다.<br />자산 탭에서 관리 자산을 등록해 보세요.
+                    </div>
+                  ) : (
+                    assetFlowSegments.map((segment) => {
+                      const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
+                      return (
+                        <div 
+                          key={segment.id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '8px 12px', 
+                            borderRadius: '8px',
+                            background: 'var(--bg-input)',
+                            border: '1px solid var(--border-input)',
+                            boxShadow: 'var(--shadow-sm)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span 
+                              style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                borderRadius: '50%', 
+                                background: segment.color, 
+                                display: 'inline-block',
+                                boxShadow: `0 0 8px ${segment.color}`
+                              }} 
+                            />
+                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>{segment.label}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700 }}>{percent.toFixed(1)}%</span>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--text-primary)' }}>{formatCurrency(segment.value)}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
