@@ -2272,7 +2272,7 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel" style={{ position: 'relative' }}>
+            <section className="glass-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px' }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <p className="eyebrow">Annual Analytics</p>
@@ -2390,9 +2390,9 @@ export default function App() {
                             return (
                               <g key={idx}>
                                 <line 
-                                  x1="42" 
+                                  x1="28" 
                                   y1={y} 
-                                  x2="505" 
+                                  x2="515" 
                                   y2={y} 
                                   stroke="var(--border-card)" 
                                   strokeDasharray="4 4" 
@@ -2400,7 +2400,7 @@ export default function App() {
                                   opacity="0.5"
                                 />
                                 <text 
-                                  x="32" 
+                                  x="22" 
                                   y={y + 4} 
                                   textAnchor="end" 
                                   fontSize="9.5" 
@@ -2421,11 +2421,11 @@ export default function App() {
                           })}
 
                           {/* X축 기본 라인 */}
-                          <line x1="42" y1="190" x2="505" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
+                          <line x1="28" y1="190" x2="515" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
 
                           {/* 12개월 바 차트 렌더 */}
                           {yearlyData.map((d, idx) => {
-                            const xCenter = 42 + idx * 38 + 19; // 시작 오프셋 당겨서 좌우 폭 463px 가량으로 극대화
+                            const xCenter = 28 + idx * 40 + 20; // X축 마진을 28px까지 바짝 밀고 간격을 40px로 획기적 확장
                             
                             const incHeight = d.income * scale;
                             const expHeight = d.expense * scale;
@@ -2448,9 +2448,9 @@ export default function App() {
                               >
                                 {/* 백그라운드 마우스 감지 보이지 않는 바 */}
                                 <rect 
-                                  x={xCenter - 18} 
+                                  x={xCenter - 20} 
                                   y="20" 
-                                  width="36" 
+                                  width="40" 
                                   height="180" 
                                   fill="transparent"
                                 />
@@ -2458,9 +2458,9 @@ export default function App() {
                                 {/* 수입 막대 */}
                                 {showIncome && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter - 11 : xCenter - 8}
+                                    x={chartFilter === 'both' ? xCenter - 12 : xCenter - 9}
                                     y={190 - incHeight}
-                                    width={chartFilter === 'both' ? '9' : '16'}
+                                    width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
                                     ry="3"
@@ -2473,9 +2473,9 @@ export default function App() {
                                 {/* 지출 막대 */}
                                 {showExpense && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 8}
+                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
                                     y={190 - expHeight}
-                                    width={chartFilter === 'both' ? '9' : '16'}
+                                    width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
                                     ry="3"
