@@ -2912,9 +2912,14 @@ export default function App() {
               <div className="settings-stack">
                 <div className="settings-row">
                   <strong>화면 테마</strong>
-                  <button type="button" className="primary-button" onClick={toggleTheme}>
-                    {theme === 'light' ? '다크 모드' : '라이트 모드'}
-                  </button>
+                  <div className="theme-toggle" role="group" aria-label="화면 테마">
+                    <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
+                      라이트 모드
+                    </button>
+                    <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
+                      다크 모드
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

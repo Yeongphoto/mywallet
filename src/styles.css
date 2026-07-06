@@ -1087,6 +1087,32 @@ textarea:focus {
   flex-wrap: wrap;
 }
 
+.theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(360px, 100%);
+  min-height: 46px;
+  padding: 4px;
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  background: var(--bg-input);
+}
+
+.theme-toggle button {
+  min-height: 38px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+.theme-toggle button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
 .settings-data-stack > .settings-data-grid + .settings-row {
   display: none;
 }
@@ -2241,13 +2267,16 @@ textarea:focus {
 .fixed-bottom-bar-btn {
   margin-top: 0 !important;
   border-radius: 30px !important;
-  padding: 10px 24px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 24px !important;
   font-size: 0.92rem !important;
   font-weight: 700 !important;
   display: flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 8px !important;
-  box-shadow: 0 8px 18px rgba(var(--primary-rgb), 0.2) !important;
+  box-shadow: none !important;
   border: 1px solid rgba(255, 255, 255, 0.42) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
@@ -2259,7 +2288,7 @@ textarea:focus {
 
 .fixed-bottom-bar-btn:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 10px 24px rgba(var(--primary-rgb), 0.28) !important;
+  box-shadow: none !important;
 }
 
 /* 다크모드 대응 고정 하단바 */
