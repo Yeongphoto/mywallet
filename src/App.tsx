@@ -101,49 +101,15 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
 
 function MyWalletLogo({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg 
+    <img 
+      src="/logo.png" 
+      alt="MyWallet 로고" 
       className={`mywallet-logo ${className}`} 
-      style={style} 
-      viewBox="0 0 64 64" 
-      role="img" 
-      aria-label="MyWallet 로고" 
-      focusable="false"
-    >
-      <defs>
-        <linearGradient id="mw-wallet-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="60%" stopColor="#0ea5e9" />
-          <stop offset="100%" stopColor="#0284c7" />
-        </linearGradient>
-        <linearGradient id="mw-clip-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#0284c7" />
-        </linearGradient>
-      </defs>
-      {/* 1. Wallet Body */}
-      <rect x="6" y="14" width="46" height="42" rx="13" fill="url(#mw-wallet-grad)" />
-      
-      {/* 2. Wallet Opening Line (Smooth path matching the mockup) */}
-      <path d="M 16 23.5 C 24 23.5, 27 20, 46 20" fill="none" stroke="#ffffff" strokeWidth="4.2" strokeLinecap="round" opacity="0.95" />
-
-      {/* 3. Button Snap/Clip on the right edge */}
-      <rect x="43" y="30.5" width="15" height="13" rx="4.5" fill="url(#mw-clip-grad)" stroke="#ffffff" strokeWidth="2.8" />
-      <circle cx="50.5" cy="37" r="2" fill="#ffffff" />
-
-      {/* 4. MW Text - bold and clean */}
-      <text 
-        x="26.5" 
-        y="46.5" 
-        fontFamily="'Inter', system-ui, -apple-system, sans-serif" 
-        fontWeight="900" 
-        fontSize="15px" 
-        fill="#ffffff" 
-        textAnchor="middle" 
-        letterSpacing="-0.5px"
-      >
-        MW
-      </text>
-    </svg>
+      style={{ 
+        objectFit: 'contain',
+        ...style 
+      }} 
+    />
   );
 }
 
