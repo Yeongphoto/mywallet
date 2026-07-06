@@ -2085,53 +2085,56 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '48px', padding: '12px 16px' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', padding: '12px 16px' }}>
                 {/* 1. 도넛 원형 그래프 */}
                 <div style={{ position: 'relative', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="200" height="200" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}>
-                    {/* Background Circle */}
-                    <circle
-                      cx="70"
-                      cy="70"
-                      r="48"
-                      fill="transparent"
-                      stroke="var(--border-card)"
-                      strokeWidth="12"
-                      opacity="0.3"
-                    />
+                  <svg width="200" height="200" viewBox="0 0 140 140" style={{ display: 'block', overflow: 'visible' }}>
+                    {/* SVG Rotation Group centered at (70, 70) to prevent position drift */}
+                    <g transform="rotate(-90 70 70)">
+                      {/* Background Circle */}
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r="48"
+                        fill="transparent"
+                        stroke="var(--border-card)"
+                        strokeWidth="12"
+                        opacity="0.3"
+                      />
 
-                    {/* Segments Circles */}
-                    {(() => {
-                      const donutRadius = 48;
-                      const circumference = 2 * Math.PI * donutRadius; // ~301.59
-                      let accumulatedPercent = 0;
+                      {/* Segments Circles */}
+                      {(() => {
+                        const donutRadius = 48;
+                        const circumference = 2 * Math.PI * donutRadius; // ~301.59
+                        let accumulatedPercent = 0;
 
-                      return assetFlowSegments.map((segment) => {
-                        const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
-                        const strokeLength = (percent / 100) * circumference;
-                        const strokeOffset = circumference - (accumulatedPercent / 100) * circumference;
-                        accumulatedPercent += percent;
+                        return assetFlowSegments.map((segment) => {
+                          const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
+                          const strokeLength = (percent / 100) * circumference;
+                          const strokeOffset = circumference - (accumulatedPercent / 100) * circumference;
+                          accumulatedPercent += percent;
 
-                        return (
-                          <circle
-                            key={segment.id}
-                            cx="70"
-                            cy="70"
-                            r={donutRadius}
-                            fill="transparent"
-                            stroke={segment.color}
-                            strokeWidth="12"
-                            strokeDasharray={`${strokeLength} ${circumference}`}
-                            strokeDashoffset={strokeOffset}
-                            strokeLinecap="round"
-                            style={{ 
-                              transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                              filter: `drop-shadow(0 0 2px ${segment.color}50)`
-                            }}
-                          />
-                        );
-                      });
-                    })()}
+                          return (
+                            <circle
+                              key={segment.id}
+                              cx="70"
+                              cy="70"
+                              r={donutRadius}
+                              fill="transparent"
+                              stroke={segment.color}
+                              strokeWidth="12"
+                              strokeDasharray={`${strokeLength} ${circumference}`}
+                              strokeDashoffset={strokeOffset}
+                              strokeLinecap="round"
+                              style={{ 
+                                transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                                filter: `drop-shadow(0 0 2px ${segment.color}50)`
+                              }}
+                            />
+                          );
+                        });
+                      })()}
+                    </g>
                   </svg>
 
                   {/* 도넛 중심부 총자산 표시 */}
@@ -2154,11 +2157,11 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 2. 범례 리스트 */}
-                <div style={{ flex: '1 1 280px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* 2. 범례 리스트 (가로 배치로 컴팩트하게 나열) */}
+                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '8px 12px', width: '100%', maxWidth: '500px' }}>
                   {assetFlowSegments.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '20px 0' }}>
-                      자산 데이터가 없습니다.<br />자산 탭에서 관리 자산을 등록해 보세요.
+                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '10px 0' }}>
+                      자산 데이터가 없습니다. 자산 탭에서 관리 자산을 등록해 보세요.
                     </div>
                   ) : (
                     assetFlowSegments.map((segment) => {
@@ -2169,31 +2172,29 @@ export default function App() {
                           style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            justifyContent: 'space-between', 
-                            padding: '8px 12px', 
-                            borderRadius: '8px',
+                            gap: '6px', 
+                            padding: '4px 10px', 
+                            borderRadius: '20px',
                             background: 'var(--bg-input)',
                             border: '1px solid var(--border-input)',
-                            boxShadow: 'var(--shadow-sm)'
+                            fontSize: '0.78rem',
+                            fontWeight: 'bold',
+                            boxShadow: 'var(--shadow-sm)',
+                            whiteSpace: 'nowrap'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span 
-                              style={{ 
-                                width: '12px', 
-                                height: '12px', 
-                                borderRadius: '50%', 
-                                background: segment.color, 
-                                display: 'inline-block',
-                                boxShadow: `0 0 8px ${segment.color}`
-                              }} 
-                            />
-                            <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>{segment.label}</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 700 }}>{percent.toFixed(1)}%</span>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--text-primary)' }}>{formatCurrency(segment.value)}</span>
-                          </div>
+                          <span 
+                            style={{ 
+                              width: '8px', 
+                              height: '8px', 
+                              borderRadius: '50%', 
+                              background: segment.color, 
+                              display: 'inline-block',
+                              boxShadow: `0 0 6px ${segment.color}`
+                            }} 
+                          />
+                          <span style={{ color: 'var(--text-primary)' }}>{segment.label}</span>
+                          <span style={{ color: 'var(--primary)', marginLeft: '2px' }}>{percent.toFixed(1)}%</span>
                         </div>
                       );
                     })
