@@ -530,9 +530,10 @@ export default function App() {
   const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(storedData.categoryColors || {});
   const [categoryOrder, setCategoryOrder] = useState<CategoryOrderMap>(storedData.categoryOrder || {});
   const [hiddenCategories, setHiddenCategories] = useState<HiddenCategoryMap>(storedData.hiddenCategories || {});
-  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
+   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
   const [deletedRecurringTxs, setDeletedRecurringTxs] = useState<string[]>(storedData.deletedRecurringTxs || []);
   const [updatedAt, setUpdatedAt] = useState<number>(storedData.updatedAt || 0);
+
   
   const allExpenseCategories = useMemo(
     () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryOrder),
@@ -576,10 +577,31 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
   const [settingsSection, setSettingsSection] = useState<'app' | 'data'>('app');
   
+  // Dashboard Chart states
+  const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense'>('both');
+  const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
+  const [hoveredChartPos, setHoveredChartPos] = useState<{ x: number; y: number } | null>(null);
+
   // Filtering & Search states
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+
+  const yearlyData = useMemo(() => {
+    const year = selectedMonth.slice(0, 4);
+    const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+    return months.map((mo) => {
+      const monthStr = `${year}-${mo}`;
+      const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr));
+      const income = monthlyTxs.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = monthlyTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      return {
+        month: `${Number(mo)}월`,
+        income,
+        expense,
+      };
+    });
+  }, [transactions, selectedMonth]);
 
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
@@ -2054,105 +2076,270 @@ export default function App() {
               <FlowRowItem label="자산" value={assetTotal} max={maxFlow} tone="asset" segments={assetFlowSegments} />
             </section>
 
-            {/* 계획 대비 실적 비교 그래프 패널 */}
-            <section className="glass-panel">
-              <div className="panel-header">
+            {/* 연간 수입/지출 분석 그래프 패널 */}
+            <section className="glass-panel" style={{ position: 'relative' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <p className="eyebrow">Plan vs Actual</p>
-                  <h2>이번 달 계획 대비 실적 비교</h2>
+                  <p className="eyebrow">Annual Analytics</p>
+                  <h2 style={{ margin: 0 }}>{selectedMonth.slice(0, 4)}년 연간 수입 · 지출 추이</h2>
+                </div>
+                
+                {/* 필터 칩 선택기 */}
+                <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-input)', padding: '3px 4px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setChartFilter('both')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: chartFilter === 'both' ? 'var(--bg-app)' : 'transparent',
+                      color: chartFilter === 'both' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      boxShadow: chartFilter === 'both' ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    전체 비교
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setChartFilter('income')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: chartFilter === 'income' ? 'var(--bg-app)' : 'transparent',
+                      color: chartFilter === 'income' ? 'var(--color-income)' : 'var(--text-secondary)',
+                      boxShadow: chartFilter === 'income' ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    수입만
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setChartFilter('expense')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: chartFilter === 'expense' ? 'var(--bg-app)' : 'transparent',
+                      color: chartFilter === 'expense' ? 'var(--color-expense)' : 'var(--text-secondary)',
+                      boxShadow: chartFilter === 'expense' ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    지출만
+                  </button>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '12px' }} className="compare-grid">
-                {/* 종합 계획 대비 실적 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>종합 달성 현황</h3>
-                  
-                  {/* 수입 비교 */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', fontWeight: 700 }}>
-                      <span>총 수입 실적: {formatCurrency(incomeTotal)}</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>목표: {formatCurrency(plannedIncomeTotal)}</span>
-                    </div>
-                    <div className="budget-progress-bar" style={{ height: '14px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div 
-                        className="budget-progress-fill" 
-                        style={{ 
-                          width: `${plannedIncomeTotal > 0 ? Math.min((incomeTotal / plannedIncomeTotal) * 100, 100) : 0}%`,
-                          height: '100%',
-                          background: 'var(--color-income)',
-                          borderRadius: '10px',
-                          transition: 'width 0.4s ease'
-                        }} 
-                      />
-                    </div>
-                    <small style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                      달성률: {plannedIncomeTotal > 0 ? Math.round((incomeTotal / plannedIncomeTotal) * 100) : 0}%
-                    </small>
-                  </div>
+              {/* 연간 차트 영역 */}
+              <div className="ledger-table-scroll" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <div style={{ minWidth: '680px', position: 'relative' }}>
+                  <svg width="100%" height="240" viewBox="0 0 800 240" style={{ display: 'block', overflow: 'visible' }}>
+                    {/* SVG Definition for Gradients */}
+                    <defs>
+                      <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#34d399" />
+                        <stop offset="100%" stopColor="#10b981" />
+                      </linearGradient>
+                      <linearGradient id="chart-expense-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f87171" />
+                        <stop offset="100%" stopColor="#ef4444" />
+                      </linearGradient>
+                    </defs>
 
-                  {/* 지출 비교 */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', fontWeight: 700 }}>
-                      <span>총 지출 실적: {formatCurrency(expenseTotal)}</span>
-                      <span style={{ color: 'var(--text-secondary)' }}>예산: {formatCurrency(plannedExpenseTotal)}</span>
-                    </div>
-                    <div className="budget-progress-bar" style={{ height: '14px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div 
-                        className="budget-progress-fill" 
-                        style={{ 
-                          width: `${plannedExpenseTotal > 0 ? Math.min((expenseTotal / plannedExpenseTotal) * 100, 100) : 0}%`,
-                          height: '100%',
-                          background: expenseTotal > plannedExpenseTotal ? 'var(--color-expense)' : 'var(--primary)',
-                          borderRadius: '10px',
-                          transition: 'width 0.4s ease'
-                        }} 
-                      />
-                    </div>
-                    <small style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                      소비율: {plannedExpenseTotal > 0 ? Math.round((expenseTotal / plannedExpenseTotal) * 100) : 0}%
-                    </small>
-                  </div>
-                </div>
-
-                {/* 카테고리별 지출 계획 대비 실적 */}
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>주요 지출 카테고리별 현황</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {allExpenseCategories.slice(0, 5).map((c: CategoryOption) => {
-                      const plan = plans.find(p => p.category === c.id && p.type === 'expense');
-                      const plannedAmt = plan ? plan.plannedAmount : 0;
-                      const actualAmt = transactions
-                          .filter(t => t.type === 'expense' && t.category === c.id && t.date.slice(0, 7) === selectedMonth)
-                        .reduce((sum, t) => sum + t.amount, 0);
-                      const pct = plannedAmt > 0 ? Math.round((actualAmt / plannedAmt) * 100) : 0;
-                      let toneColor = 'var(--primary)';
-                      if (pct >= 100) toneColor = 'var(--color-expense)';
-                      else if (pct >= 80) toneColor = '#f59e0b';
+                    {/* Y축 그리드 라인 & 라벨 */}
+                    {(() => {
+                      const maxVal = Math.max(
+                        ...yearlyData.map(d => {
+                          if (chartFilter === 'income') return d.income;
+                          if (chartFilter === 'expense') return d.expense;
+                          return Math.max(d.income, d.expense);
+                        }),
+                        1000000
+                      );
+                      const steps = 4;
+                      const gridLines = Array.from({ length: steps + 1 }, (_, i) => i / steps);
 
                       return (
-                        <div key={c.id}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '2px', fontWeight: 700 }}>
-                            <span>{c.label}: {formatCurrency(actualAmt)}</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>계획: {formatCurrency(plannedAmt)} ({pct}%)</span>
-                          </div>
-                          <div className="budget-progress-bar" style={{ height: '8px', background: 'var(--bg-balance-light)', borderRadius: '10px', overflow: 'hidden' }}>
-                            <div 
-                              style={{ 
-                                width: `${plannedAmt > 0 ? Math.min((actualAmt / plannedAmt) * 100, 100) : 0}%`,
-                                height: '100%',
-                                background: toneColor,
-                                borderRadius: '10px',
-                                transition: 'width 0.4s ease'
-                              }} 
-                            />
-                          </div>
-                        </div>
+                        <g>
+                          {gridLines.map((ratio, idx) => {
+                            const val = maxVal * ratio;
+                            const y = 190 - ratio * 150; // 차트 높이 기준 Y 좌표 (y=40 ~ y=190)
+                            return (
+                              <g key={idx}>
+                                <line 
+                                  x1="65" 
+                                  y1={y} 
+                                  x2="780" 
+                                  y2={y} 
+                                  stroke="var(--border-card)" 
+                                  strokeDasharray="4 4" 
+                                  strokeWidth="1" 
+                                  opacity="0.5"
+                                />
+                                <text 
+                                  x="55" 
+                                  y={y + 4} 
+                                  textAnchor="end" 
+                                  fontSize="10" 
+                                  fontWeight="600"
+                                  fill="var(--text-secondary)"
+                                >
+                                  {val >= 100000000 
+                                    ? `${(val / 100000000).toFixed(1)}억원` 
+                                    : val >= 10000 
+                                    ? `${Math.round(val / 10000).toLocaleString()}만원` 
+                                    : `${val.toLocaleString()}원`
+                                  }
+                                </text>
+                              </g>
+                            );
+                          })}
+
+                          {/* X축 기본 라인 */}
+                          <line x1="65" y1="190" x2="780" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
+
+                          {/* 12개월 바 차트 렌더 */}
+                          {yearlyData.map((d, idx) => {
+                            const xCenter = 65 + idx * 58 + 29; // X 축 간격 정밀 정렬
+                            const scale = 150 / maxVal;
+                            
+                            const incHeight = d.income * scale;
+                            const expHeight = d.expense * scale;
+                            
+                            const showIncome = chartFilter === 'both' || chartFilter === 'income';
+                            const showExpense = chartFilter === 'both' || chartFilter === 'expense';
+
+                            return (
+                              <g 
+                                key={idx} 
+                                onMouseEnter={(e) => {
+                                  setHoveredChartIndex(idx);
+                                  setHoveredChartPos({ x: e.clientX, y: e.clientY });
+                                }}
+                                onMouseMove={(e) => {
+                                  setHoveredChartPos({ x: e.clientX, y: e.clientY });
+                                }}
+                                onMouseLeave={() => setHoveredChartIndex(null)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {/* 백그라운드 마우스 감지 보이지 않는 바 */}
+                                <rect 
+                                  x={xCenter - 25} 
+                                  y="20" 
+                                  width="50" 
+                                  height="180" 
+                                  fill="transparent"
+                                />
+
+                                {/* 수입 막대 */}
+                                {showIncome && (
+                                  <rect
+                                    x={chartFilter === 'both' ? xCenter - 13 : xCenter - 9}
+                                    y={190 - incHeight}
+                                    width={chartFilter === 'both' ? '11' : '18'}
+                                    height={Math.max(incHeight, 2)}
+                                    rx="3"
+                                    ry="3"
+                                    fill="url(#chart-income-grad)"
+                                    opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
+                                    style={{ transition: 'all 0.2s ease-in-out' }}
+                                  />
+                                )}
+
+                                {/* 지출 막대 */}
+                                {showExpense && (
+                                  <rect
+                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
+                                    y={190 - expHeight}
+                                    width={chartFilter === 'both' ? '11' : '18'}
+                                    height={Math.max(expHeight, 2)}
+                                    rx="3"
+                                    ry="3"
+                                    fill="url(#chart-expense-grad)"
+                                    opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
+                                    style={{ transition: 'all 0.2s ease-in-out' }}
+                                  />
+                                )}
+
+                                {/* X축 월 이름 라벨 */}
+                                <text
+                                  x={xCenter}
+                                  y="210"
+                                  textAnchor="middle"
+                                  fontSize="11"
+                                  fontWeight="bold"
+                                  fill={selectedMonth.endsWith(String(idx + 1).padStart(2, '0')) ? 'var(--primary)' : 'var(--text-secondary)'}
+                                >
+                                  {d.month}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
                       );
-                    })}
-                  </div>
+                    })()}
+                  </svg>
                 </div>
               </div>
+
+              {/* 실시간 대화형 툴팁 */}
+              {hoveredChartIndex !== null && (
+                <div style={{
+                  position: 'fixed',
+                  left: hoveredChartPos?.x ? hoveredChartPos.x + 12 : 0,
+                  top: hoveredChartPos?.y ? hoveredChartPos.y - 95 : 0,
+                  background: 'rgba(15, 23, 42, 0.96)',
+                  backdropFilter: 'blur(4px)',
+                  color: '#ffffff',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  zIndex: 99999,
+                  pointerEvents: 'none',
+                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.35)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                }}>
+                  <strong style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', color: '#e2e8f0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '4px' }}>
+                    {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month}
+                  </strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {(chartFilter === 'both' || chartFilter === 'income') && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                        <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 총 수입:</span>
+                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].income)}</span>
+                      </div>
+                    )}
+                    {(chartFilter === 'both' || chartFilter === 'expense') && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                        <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 총 지출:</span>
+                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].expense)}</span>
+                      </div>
+                    )}
+                    {chartFilter === 'both' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '4px', marginTop: '4px' }}>
+                        <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
+                        <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
+                          {formatCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Category summary table */}
