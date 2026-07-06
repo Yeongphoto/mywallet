@@ -2085,120 +2085,189 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', padding: '12px 16px' }}>
-                {/* 1. 도넛 원형 그래프 */}
-                <div style={{ position: 'relative', width: '200px', height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <svg width="200" height="200" viewBox="0 0 140 140" style={{ display: 'block', overflow: 'visible' }}>
-                    {/* SVG Rotation Group centered at (70, 70) to prevent position drift */}
-                    <g transform="rotate(-90 70 70)">
-                      {/* Background Circle */}
-                      <circle
-                        cx="70"
-                        cy="70"
-                        r="48"
-                        fill="transparent"
-                        stroke="var(--border-card)"
-                        strokeWidth="12"
-                        opacity="0.3"
-                      />
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '12px 8px' }}>
+                {/* 파이 원형 그래프 */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg 
+                    width="100%" 
+                    height="280" 
+                    viewBox="0 0 280 280" 
+                    style={{ 
+                      display: 'block', 
+                      overflow: 'visible',
+                      filter: 'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2))'
+                    }}
+                  >
+                    {/* Background Circle */}
+                    <circle cx="140" cy="140" r="65" fill="#1e293b" opacity="0.4" />
 
-                      {/* Segments Circles */}
-                      {(() => {
-                        const donutRadius = 48;
-                        const circumference = 2 * Math.PI * donutRadius; // ~301.59
-                        let accumulatedLength = 0;
+                    {assetFlowSegments.length === 0 ? (
+                      <text x="140" y="145" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontWeight="bold">
+                        자산 데이터가 없습니다.
+                      </text>
+                    ) : (
+                      (() => {
+                        const R = 65;
+                        const CX = 140;
+                        const CY = 140;
+                        let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
 
                         return assetFlowSegments.map((segment) => {
                           const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
-                          const strokeLength = (percent / 100) * circumference;
-                          const strokeOffset = -accumulatedLength;
-                          accumulatedLength += strokeLength;
+                          const angle = (percent / 100) * 360;
+                          
+                          const startAngle = accumulatedAngle;
+                          const endAngle = accumulatedAngle + angle;
+                          accumulatedAngle = endAngle;
+
+                          // 삼각함수로 조각 호의 외곽 좌표 계산
+                          const x1 = CX + R * Math.cos((startAngle * Math.PI) / 180);
+                          const y1 = CY + R * Math.sin((startAngle * Math.PI) / 180);
+                          const x2 = CX + R * Math.cos((endAngle * Math.PI) / 180);
+                          const y2 = CY + R * Math.sin((endAngle * Math.PI) / 180);
+
+                          const largeArcFlag = angle > 180 ? 1 : 0;
+                          const pathData = `M ${CX} ${CY} L ${x1} ${y1} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+                          // 텍스트 라벨 & 지시선 각도 좌표 계산 (가운데 각도 구하기)
+                          const midAngle = startAngle + angle / 2;
+                          const rad = (midAngle * Math.PI) / 180;
+                          const isLarge = percent >= 12; // 12% 이상이면 조각 내부에 흰색 텍스트 배치
+
+                          // 내부 텍스트 좌표
+                          const txInternal = CX + R * 0.62 * Math.cos(rad);
+                          const tyInternal = CY + R * 0.62 * Math.sin(rad);
+
+                          // 외부 텍스트 및 꺾은선 지시선 좌표
+                          const lxStart = CX + R * 0.9 * Math.cos(rad);
+                          const lyStart = CY + R * 0.9 * Math.sin(rad);
+                          
+                          const lxMid = CX + R * 1.18 * Math.cos(rad);
+                          const lyMid = CY + R * 1.18 * Math.sin(rad);
+                          
+                          const isRightSide = Math.cos(rad) >= 0;
+                          const lxEnd = lxMid + (isRightSide ? 12 : -12);
+                          const lyEnd = lyMid;
+                          
+                          const txExternal = lxEnd + (isRightSide ? 4 : -4);
+                          const tyExternal = lyEnd;
 
                           return (
-                            <circle
-                              key={segment.id}
-                              cx="70"
-                              cy="70"
-                              r={donutRadius}
-                              fill="transparent"
-                              stroke={segment.color}
-                              strokeWidth="12"
-                              strokeDasharray={`${strokeLength} ${circumference}`}
-                              strokeDashoffset={strokeOffset}
-                              strokeLinecap="butt"
-                              style={{ 
-                                transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                                filter: `drop-shadow(0 0 1px ${segment.color}40)`
-                              }}
-                            />
+                            <g key={segment.id}>
+                              {/* 1. 파이 조각 단면 */}
+                              <path 
+                                d={pathData} 
+                                fill={segment.color}
+                                stroke="var(--bg-card)"
+                                strokeWidth="1.5"
+                                style={{ transition: 'all 0.3s ease' }}
+                              />
+
+                              {/* 2. 자막 라벨 텍스트 */}
+                              {isLarge ? (
+                                <g>
+                                  <text
+                                    x={txInternal}
+                                    y={tyInternal - 2}
+                                    textAnchor="middle"
+                                    fill="#ffffff"
+                                    fontSize="10"
+                                    fontWeight="900"
+                                    style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
+                                  >
+                                    {segment.label}
+                                  </text>
+                                  <text
+                                    x={txInternal}
+                                    y={tyInternal + 9}
+                                    textAnchor="middle"
+                                    fill="#ffffff"
+                                    fontSize="9"
+                                    fontWeight="bold"
+                                    style={{ pointerEvents: 'none', opacity: 0.9, textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
+                                  >
+                                    ({percent.toFixed(1)}%)
+                                  </text>
+                                </g>
+                              ) : (
+                                <g>
+                                  {/* 지시선 (꺾은선) */}
+                                  <polyline
+                                    points={`${lxStart},${lyStart} ${lxMid},${lyMid} ${lxEnd},${lyEnd}`}
+                                    fill="none"
+                                    stroke={segment.color}
+                                    strokeWidth="1.2"
+                                    opacity="0.85"
+                                  />
+                                  <circle cx={lxStart} cy={lyStart} r="2" fill={segment.color} />
+
+                                  {/* 외부 텍스트 */}
+                                  <text
+                                    x={txExternal}
+                                    y={tyExternal - 3}
+                                    textAnchor={isRightSide ? "start" : "end"}
+                                    fill="var(--text-primary)"
+                                    fontSize="10"
+                                    fontWeight="900"
+                                  >
+                                    {segment.label}
+                                  </text>
+                                  <text
+                                    x={txExternal}
+                                    y={tyExternal + 8}
+                                    textAnchor={isRightSide ? "start" : "end"}
+                                    fill="var(--primary)"
+                                    fontSize="9"
+                                    fontWeight="bold"
+                                  >
+                                    ({percent.toFixed(1)}%)
+                                  </text>
+                                </g>
+                              )}
+                            </g>
                           );
                         });
-                      })()}
-                    </g>
+                      })()
+                    )}
                   </svg>
-
-                  {/* 도넛 중심부 총자산 표시 */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    pointerEvents: 'none'
-                  }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.5px' }}>총 관리 자산</span>
-                    <strong style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px', letterSpacing: '-0.5px' }}>
-                      {formatCurrency(assetTotal)}
-                    </strong>
-                  </div>
                 </div>
 
-                {/* 2. 범례 리스트 (가로 배치로 컴팩트하게 나열) */}
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '8px 12px', width: '100%', maxWidth: '500px' }}>
-                  {assetFlowSegments.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem', padding: '10px 0' }}>
-                      자산 데이터가 없습니다. 자산 탭에서 관리 자산을 등록해 보세요.
-                    </div>
-                  ) : (
-                    assetFlowSegments.map((segment) => {
-                      const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
-                      return (
-                        <div 
-                          key={segment.id} 
+                {/* 2. 범례 리스트 (가로 배치 컴팩트 칩스) */}
+                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '6px 10px', width: '100%', maxWidth: '500px', marginTop: '4px' }}>
+                  {assetFlowSegments.map((segment) => {
+                    const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
+                    return (
+                      <div 
+                        key={segment.id} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          padding: '4px 10px', 
+                          borderRadius: '20px',
+                          background: 'var(--bg-input)',
+                          border: '1px solid var(--border-input)',
+                          fontSize: '0.76rem',
+                          fontWeight: 'bold',
+                          boxShadow: 'var(--shadow-sm)',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        <span 
                           style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '6px', 
-                            padding: '4px 10px', 
-                            borderRadius: '20px',
-                            background: 'var(--bg-input)',
-                            border: '1px solid var(--border-input)',
-                            fontSize: '0.78rem',
-                            fontWeight: 'bold',
-                            boxShadow: 'var(--shadow-sm)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <span 
-                            style={{ 
-                              width: '8px', 
-                              height: '8px', 
-                              borderRadius: '50%', 
-                              background: segment.color, 
-                              display: 'inline-block',
-                              boxShadow: `0 0 6px ${segment.color}`
-                            }} 
-                          />
-                          <span style={{ color: 'var(--text-primary)' }}>{segment.label}</span>
-                          <span style={{ color: 'var(--primary)', marginLeft: '2px' }}>{percent.toFixed(1)}%</span>
-                        </div>
-                      );
-                    })
-                  )}
+                            width: '8px', 
+                            height: '8px', 
+                            borderRadius: '50%', 
+                            background: segment.color, 
+                            display: 'inline-block',
+                            boxShadow: `0 0 6px ${segment.color}`
+                          }} 
+                        />
+                        <span style={{ color: 'var(--text-primary)' }}>{segment.label}</span>
+                        <span style={{ color: 'var(--primary)', marginLeft: '2px' }}>{percent.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </section>
