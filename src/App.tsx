@@ -2077,8 +2077,8 @@ export default function App() {
             </section>
 
             {/* 자산 분배 현황 원형 그래프 패널 */}
-            <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="panel-header">
+            <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
+              <div className="panel-header" style={{ marginBottom: '0px' }}>
                 <div>
                   <p className="eyebrow">Asset Allocation</p>
                   <h2 style={{ margin: 0 }}>자산 분배 현황</h2>
@@ -2091,26 +2091,26 @@ export default function App() {
                   <svg 
                     width="100%" 
                     height="auto" 
-                    viewBox="0 0 380 340" 
+                    viewBox="0 0 380 260" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
-                      aspectRatio: '380 / 340',
-                      filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.22))'
+                      aspectRatio: '380 / 260',
+                      filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
                     {/* Background Circle */}
-                    <circle cx="190" cy="170" r="95" fill="#1e293b" opacity="0.4" />
+                    <circle cx="190" cy="130" r="98" fill="#1e293b" opacity="0.4" />
 
                     {assetFlowSegments.length === 0 ? (
-                      <text x="190" y="175" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
+                      <text x="190" y="135" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
                         자산 데이터가 없습니다.
                       </text>
                     ) : (
                       (() => {
-                        const R = 95;
+                        const R = 98;
                         const CX = 190;
-                        const CY = 170;
+                        const CY = 130;
                         let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
 
                         return assetFlowSegments.map((segment) => {
