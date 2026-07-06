@@ -2113,6 +2113,12 @@ export default function App() {
                         const CY = 130;
                         let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
 
+                        // 작은 세그먼트들만 걸러서 지그재그 인덱스를 부여하기 위한 배열
+                        const smallSegments = assetFlowSegments.filter(s => {
+                          const p = assetTotal > 0 ? (s.value / assetTotal) * 100 : 0;
+                          return p < 12;
+                        });
+
                         return assetFlowSegments.map((segment) => {
                           const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
                           const angle = (percent / 100) * 360;
@@ -2139,15 +2145,21 @@ export default function App() {
                           const txInternal = CX + R * 0.62 * Math.cos(rad);
                           const tyInternal = CY + R * 0.62 * Math.sin(rad);
 
+                          // 작은 조각 지그재그 오프셋 계산 (인접 겹침 완벽 소멸 솔루션)
+                          const smallIndex = smallSegments.findIndex(s => s.id === segment.id);
+                          // 3단계 지그재그 배율: smallIndex에 따라 1.18, 1.34, 1.50로 지선 길이 엇갈림 분산
+                          const lineScale = 1.18 + (smallIndex !== -1 ? (smallIndex % 3) * 0.16 : 0);
+                          const horizontalLength = 12 + (smallIndex !== -1 ? (smallIndex % 3) * 6 : 0); // 수평선 길이도 12, 18, 24px로 엇갈림
+
                           // 외부 텍스트 및 꺾은선 지시선 좌표
                           const lxStart = CX + R * 0.95 * Math.cos(rad);
                           const lyStart = CY + R * 0.95 * Math.sin(rad);
                           
-                          const lxMid = CX + R * 1.25 * Math.cos(rad);
-                          const lyMid = CY + R * 1.25 * Math.sin(rad);
+                          const lxMid = CX + R * lineScale * Math.cos(rad);
+                          const lyMid = CY + R * lineScale * Math.sin(rad);
                           
                           const isRightSide = Math.cos(rad) >= 0;
-                          const lxEnd = lxMid + (isRightSide ? 16 : -16);
+                          const lxEnd = lxMid + (isRightSide ? horizontalLength : -horizontalLength);
                           const lyEnd = lyMid;
                           
                           const txExternal = lxEnd + (isRightSide ? 6 : -6);
