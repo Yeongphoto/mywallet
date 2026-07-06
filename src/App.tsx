@@ -2339,9 +2339,9 @@ export default function App() {
               </div>
 
               {/* 연간 차트 영역 */}
-              <div className="ledger-table-scroll" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <div style={{ minWidth: '680px', position: 'relative' }}>
-                  <svg width="100%" height="240" viewBox="0 0 800 240" style={{ display: 'block', overflow: 'visible' }}>
+              <div style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ width: '100%', position: 'relative' }}>
+                  <svg width="100%" height="240" viewBox="0 0 520 240" style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
@@ -2377,7 +2377,7 @@ export default function App() {
                                 <line 
                                   x1="65" 
                                   y1={y} 
-                                  x2="780" 
+                                  x2="505" 
                                   y2={y} 
                                   stroke="var(--border-card)" 
                                   strokeDasharray="4 4" 
@@ -2404,11 +2404,11 @@ export default function App() {
                           })}
 
                           {/* X축 기본 라인 */}
-                          <line x1="65" y1="190" x2="780" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
+                          <line x1="65" y1="190" x2="505" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
 
                           {/* 12개월 바 차트 렌더 */}
                           {yearlyData.map((d, idx) => {
-                            const xCenter = 65 + idx * 58 + 29; // X 축 간격 정밀 정렬
+                            const xCenter = 65 + idx * 36 + 18; // X 축 간격을 58px -> 36px로 축소하여 모바일 해상도 완전 속박
                             const scale = 150 / maxVal;
                             
                             const incHeight = d.income * scale;
@@ -2432,9 +2432,9 @@ export default function App() {
                               >
                                 {/* 백그라운드 마우스 감지 보이지 않는 바 */}
                                 <rect 
-                                  x={xCenter - 25} 
+                                  x={xCenter - 16} 
                                   y="20" 
-                                  width="50" 
+                                  width="32" 
                                   height="180" 
                                   fill="transparent"
                                 />
@@ -2442,9 +2442,9 @@ export default function App() {
                                 {/* 수입 막대 */}
                                 {showIncome && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter - 13 : xCenter - 9}
+                                    x={chartFilter === 'both' ? xCenter - 10 : xCenter - 7}
                                     y={190 - incHeight}
-                                    width={chartFilter === 'both' ? '11' : '18'}
+                                    width={chartFilter === 'both' ? '8' : '14'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
                                     ry="3"
@@ -2457,9 +2457,9 @@ export default function App() {
                                 {/* 지출 막대 */}
                                 {showExpense && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
+                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 7}
                                     y={190 - expHeight}
-                                    width={chartFilter === 'both' ? '11' : '18'}
+                                    width={chartFilter === 'both' ? '8' : '14'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
                                     ry="3"
