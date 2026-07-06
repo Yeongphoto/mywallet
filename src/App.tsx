@@ -2115,11 +2115,11 @@ export default function App() {
                   <svg 
                     width="100%" 
                     height="auto" 
-                    viewBox="0 0 380 260" 
+                    viewBox="0 0 380 276" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
-                      aspectRatio: '380 / 260',
+                      aspectRatio: '380 / 276',
                       filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
@@ -2218,30 +2218,18 @@ export default function App() {
 
                               {/* 2. 자막 라벨 텍스트 */}
                               {isLarge ? (
-                                <g>
-                                  <text
-                                    x={txInternal}
-                                    y={tyInternal - 2}
-                                    textAnchor="middle"
-                                    fill="#ffffff"
-                                    fontSize="11"
-                                    fontWeight="900"
-                                    style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
-                                  >
-                                    {segment.label}
-                                  </text>
-                                  <text
-                                    x={txInternal}
-                                    y={tyInternal + 10}
-                                    textAnchor="middle"
-                                    fill="#ffffff"
-                                    fontSize="10"
-                                    fontWeight="bold"
-                                    style={{ pointerEvents: 'none', opacity: 0.9, textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
-                                  >
-                                    ({segment.actualPercent.toFixed(1)}%)
-                                  </text>
-                                </g>
+                                <text
+                                  x={txInternal}
+                                  y={tyInternal}
+                                  textAnchor="middle"
+                                  fill="#ffffff"
+                                  fontSize="11"
+                                  fontWeight="900"
+                                  style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
+                                >
+                                  <tspan x={txInternal} dy="-4" textAnchor="middle">{segment.label}</tspan>
+                                  <tspan x={txInternal} dy="12" fontSize="9.5" fontWeight="bold" textAnchor="middle" opacity="0.9">({segment.actualPercent.toFixed(1)}%)</tspan>
+                                </text>
                               ) : (
                                 <g>
                                   {/* 지시선 (꺾은선) */}
