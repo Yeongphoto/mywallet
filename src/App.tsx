@@ -99,6 +99,34 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
   );
 }
 
+function MyWalletLogo({ className = '' }: { className?: string }) {
+  return (
+    <svg className={`mywallet-logo ${className}`} viewBox="0 0 64 64" role="img" aria-label="MyWallet 로고" focusable="false">
+      <defs>
+        <linearGradient id="mw-wallet-gradient" x1="13" y1="10" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#38bdf8" />
+          <stop offset="0.52" stopColor="#0ea5e9" />
+          <stop offset="1" stopColor="#0284c7" />
+        </linearGradient>
+        <linearGradient id="mw-cyan-gradient" x1="22" y1="34" x2="42" y2="54" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#67e8f9" />
+          <stop offset="1" stopColor="#22d3ee" />
+        </linearGradient>
+      </defs>
+      <rect x="9" y="18" width="44" height="38" rx="13" fill="url(#mw-wallet-gradient)" />
+      <path d="M17 19c1.5-6.1 6.1-9 13.6-9H42c2.6 0 4.8 2.1 4.8 4.8V19H17Z" fill="#475569" />
+      <path d="M19 18c1.6-3.8 5-5.6 10.8-5.6h12c1 0 1.8.8 1.8 1.8V18H19Z" fill="#cbd5e1" opacity="0.92" />
+      <path d="M18 16c-3.5 0-6.4 2.9-6.4 6.4v2.1H20" fill="none" stroke="#38bdf8" strokeWidth="4.2" strokeLinecap="round" />
+      <path d="M26.5 9.5v7M34 9.5v7M41.5 9.5v7" stroke="#22d3ee" strokeWidth="4" strokeLinecap="round" />
+      <path d="M46 31h9.5c3.1 0 5.5 2.5 5.5 5.5v5c0 3.1-2.5 5.5-5.5 5.5H46c-4.4 0-8-3.6-8-8s3.6-8 8-8Z" fill="#0f172a" />
+      <path d="M46.5 34h8.1c1.5 0 2.7 1.2 2.7 2.7v4.6c0 1.5-1.2 2.7-2.7 2.7h-8.1c-2.8 0-5-2.2-5-5s2.2-5 5-5Z" fill="#1e3a8a" />
+      <circle cx="50.3" cy="39" r="2.7" fill="#bfdbfe" />
+      <path d="M16.2 44.7V28.5h5.1l5.3 8 5.2-8h5.1v16.2h-5.3v-8.5l-4.1 6h-1.9l-4.1-6v8.5h-5.3Z" fill="#ffffff" />
+      <path d="M22.5 49.2 18.8 36h4.8l1.7 7.1 2.2-7.1h3.8l2.2 7.1 1.7-7.1h4.8l-3.7 13.2h-4.8l-2.1-6.3-2.1 6.3h-4.8Z" fill="url(#mw-cyan-gradient)" />
+    </svg>
+  );
+}
+
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
   style: 'currency',
   currency: 'KRW',
@@ -1867,7 +1895,7 @@ export default function App() {
       <aside className="sidebar">
         <div>
           <div className="brand">
-            <span className="logo-box"><b>M</b><b>W</b></span>
+            <MyWalletLogo />
             <div>
               <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
             </div>
@@ -1915,7 +1943,7 @@ export default function App() {
         <header className="app-header">
           {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
           <div className="header-brand">
-            <span className="logo-box"><b>M</b><b>W</b></span>
+            <MyWalletLogo />
             <div className="brand-text">
               <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
             </div>

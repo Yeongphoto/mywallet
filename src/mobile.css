@@ -197,8 +197,9 @@
     text-align: left;
   }
   
-  .app-header .logo-box {
-    --logo-size: 32px;
+  .app-header .mywallet-logo {
+    width: 32px;
+    height: 32px;
   }
   
   .app-header .brand-text strong {
