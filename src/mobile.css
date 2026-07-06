@@ -184,13 +184,10 @@
   }
 
   .sync-mini-indicator {
-    min-height: 30px !important;
-    padding: 0 8px !important;
-    gap: 6px !important;
-  }
-
-  .sync-mini-indicator strong {
-    font-size: 0.72rem !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
   }
   
   .app-header .header-brand {
@@ -201,29 +198,24 @@
   }
   
   .app-header .logo-box {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--primary), #0d9488);
+    background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 45%, #14b8a6 100%);
     color: #fff;
-    font-weight: 800;
-    font-size: 0.95rem;
+    font-weight: 900;
+    font-size: 0.72rem;
+    letter-spacing: -0.08em;
     display: grid;
     place-items: center;
   }
   
   .app-header .brand-text strong {
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     color: #fff;
     display: block;
     line-height: 1.1;
-  }
-  
-  .app-header .brand-text small {
-    font-size: 0.65rem;
-    color: #94a3b8;
-    display: block;
-    margin-top: 2px;
+    letter-spacing: 0.04em;
   }
   
   /* Mobile month picker adapt */
@@ -411,8 +403,8 @@
   }
   
   .summary-card {
-    min-height: 110px;
-    padding: 16px 20px;
+    min-height: 86px;
+    padding: 14px 18px;
   }
   
   .calendar-cell {

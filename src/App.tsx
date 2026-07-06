@@ -1833,12 +1833,6 @@ export default function App() {
   ];
 
   const topSyncStatus = !isOnline ? 'offline' : remoteSync.status;
-  const topSyncLabel = !isOnline ? '오프라인'
-    : remoteSync.status === 'saving' || remoteSync.status === 'pending' ? '저장 중'
-      : remoteSync.status === 'checking' ? '확인 중'
-        : remoteSync.status === 'error' ? '저장 실패'
-          : remoteSync.status === 'stale' ? '확인 필요'
-            : '저장됨';
 
   return (
     <main className="app-shell">
@@ -1875,8 +1869,7 @@ export default function App() {
           <div className="brand">
             <span>MW</span>
             <div>
-              <strong>MyWallet</strong>
-              <small>스마트 가계부 캘린더</small>
+              <strong>MYWALLET</strong>
             </div>
           </div>
           <nav>
@@ -1924,8 +1917,7 @@ export default function App() {
           <div className="header-brand">
             <span className="logo-box">MW</span>
             <div className="brand-text">
-              <strong>MyWallet</strong>
-              <small>스마트 가계부 캘린더</small>
+              <strong>MYWALLET</strong>
             </div>
           </div>
 
@@ -1938,7 +1930,6 @@ export default function App() {
           <div className="header-actions">
             <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
               <span aria-hidden="true" />
-              <strong>{topSyncLabel}</strong>
             </div>
             {/* 공통 월 선택 영역 */}
             <div className="month-picker-wrap">
