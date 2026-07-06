@@ -7,6 +7,21 @@
   --calendar-desktop-x-padding: 48px;
   --calendar-mobile-x-padding: 12px;
   --calendar-view-gap: 8px;
+  --calendar-cell-bg: rgba(255, 255, 255, 0.9);
+  --calendar-cell-border: rgba(148, 163, 184, 0.24);
+  --calendar-cell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 1px 2px rgba(15, 23, 42, 0.035);
+  --calendar-cell-hover-border: rgba(var(--primary-rgb), 0.54);
+  --calendar-cell-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 3px 10px rgba(15, 23, 42, 0.08);
+  --calendar-muted-cell-bg: transparent;
+}
+
+[data-theme="dark"] {
+  --calendar-cell-bg: rgba(31, 41, 55, 0.86);
+  --calendar-cell-border: rgba(148, 163, 184, 0.28);
+  --calendar-cell-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.26);
+  --calendar-cell-hover-border: rgba(var(--primary-rgb), 0.62);
+  --calendar-cell-hover-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 3px 10px rgba(0, 0, 0, 0.34);
+  --calendar-muted-cell-bg: rgba(15, 23, 42, 0.72);
 }
 
 @supports selector(.content:has(.calendar-view-container)) {
@@ -71,15 +86,20 @@
     overflow: hidden;
     padding: 6px 8px !important;
     border-radius: 6px !important;
-    border-color: rgba(148, 163, 184, 0.24) !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 1px 2px rgba(15, 23, 42, 0.035) !important;
+    border-color: var(--calendar-cell-border) !important;
+    background: var(--calendar-cell-bg) !important;
+    box-shadow: var(--calendar-cell-shadow) !important;
   }
 
   .content:has(.calendar-view-container) .calendar-cell:hover {
     transform: none !important;
-    border-color: rgba(var(--primary-rgb), 0.54) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 3px 10px rgba(15, 23, 42, 0.08) !important;
+    border-color: var(--calendar-cell-hover-border) !important;
+    box-shadow: var(--calendar-cell-hover-shadow) !important;
+  }
+
+  .content:has(.calendar-view-container) .calendar-cell.prev-month,
+  .content:has(.calendar-view-container) .calendar-cell.next-month {
+    background: var(--calendar-muted-cell-bg) !important;
   }
 
   .content:has(.calendar-view-container) .calendar-cell.today,

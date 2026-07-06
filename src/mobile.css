@@ -273,9 +273,9 @@
     padding: 0 16px !important;
     height: 60px !important;
     justify-content: flex-end !important; /* 우측 정렬로 전환하여 엄지손가락 클릭 편의성 극대화 */
-    background: rgba(248, 250, 252, 0.9) !important;
-    border-top: 1px solid rgba(148, 163, 184, 0.18) !important;
-    box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.1) !important;
+    background: color-mix(in srgb, var(--bg-app) 90%, transparent) !important;
+    border-top: 1px solid var(--border-card) !important;
+    box-shadow: var(--shadow-lg) !important;
   }
 
   .fixed-bottom-bar-btn {
