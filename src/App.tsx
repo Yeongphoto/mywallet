@@ -2978,7 +2978,7 @@ export default function App() {
               </div>
 
               {/* 자산 카테고리 설정 카드 (이식 완료) */}
-              <div style={{ width: '100%', marginTop: '14px' }}>
+              <div style={{ width: '100%', marginTop: '0px' }}>
                   <article className="category-table-card managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🏷️ 등록된 자산 카테고리</strong>
@@ -3175,7 +3175,7 @@ export default function App() {
             </div>
 
             {/* 계획 카테고리 설정 카드 (이식 완료) */}
-            <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '14px' }}>
+            <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '0px' }}>
                   
                   {/* 지출 카테고리 목록 */}
                   <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>

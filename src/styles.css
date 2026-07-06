@@ -1435,7 +1435,7 @@ textarea:focus {
 .category-table-card {
   min-width: 0;
   border: 1px solid var(--border-card);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--bg-card);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
