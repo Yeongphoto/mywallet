@@ -2518,13 +2518,7 @@ export default function App() {
               </div>
 
               {/* 자산 카테고리 설정 카드 (이식 완료) */}
-              <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-                  <span>🏷️</span> 자산 카테고리 설정
-                </h3>
-                
-                {/* 자산 카테고리 목록 표시 및 드래그 소팅 */}
-                <div style={{ width: '100%', marginTop: '16px' }}>
+              <div style={{ width: '100%', marginTop: '24px' }}>
                   <article className="category-table-card managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', boxShadow: 'none', border: '1px solid var(--border-card)' }}>
                     <div className="category-table-head" style={{ padding: '12px 16px', background: 'var(--bg-balance-light)', borderBottom: '1px solid var(--border-card)', display: 'flex', justifyContent: 'space-between' }}>
                       <strong>🏷️ 등록된 자산 카테고리</strong>
@@ -2618,7 +2612,6 @@ export default function App() {
                     </div>
                   </article>
                 </div>
-              </div>
 
               {/* 하단바 가림 방지 공백 */}
               <div style={{ height: '80px' }} />
@@ -2722,13 +2715,7 @@ export default function App() {
             </div>
 
             {/* 계획 카테고리 설정 카드 (이식 완료) */}
-            <div className="glass-panel" style={{ padding: '24px', marginTop: '24px' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-                <span>🏷️</span> 지출/수입 카테고리 설정
-              </h3>
-              
-              {/* 지출 및 수입 카테고리 목록 표시 (2열 구성) */}
-                <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px' }}>
+            <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
                   
                   {/* 지출 카테고리 목록 */}
                   <article className="category-table-card managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ boxShadow: 'none', border: '1px solid var(--border-card)' }}>
@@ -2917,7 +2904,6 @@ export default function App() {
                       })}
                     </div>
                   </article>
-                </div>
               </div>
 
               {/* 하단바 가림 방지 공백 */}
