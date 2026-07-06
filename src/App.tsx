@@ -1926,6 +1926,52 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
+      <header className="app-header">
+        {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
+        <div className="header-brand">
+          <MyWalletLogo />
+          <div className="brand-text">
+            <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
+          </div>
+        </div>
+
+        {/* PC 전용 헤더 좌측 타이틀 (선택 월에 연동, 모바일에서는 CSS로 숨김) */}
+        <h1 className="header-title">
+          {selectedMonth.replace('-', '.')} 재정 현황
+        </h1>
+
+        {/* 헤더 우측 액션 그룹 */}
+        <div className="header-actions">
+          <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
+            <span aria-hidden="true" />
+          </div>
+          {/* 공통 월 선택 영역 */}
+          <div className="month-picker-wrap">
+            <div className="month-picker-display">
+              {selectedMonth.replace('-', '.')} <AppIcon name="calendar" size={16} />
+            </div>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
+
+          {/* 설정 바로가기 버튼 */}
+          <button
+            type="button"
+            className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => {
+              window.location.hash = 'settings';
+              setActiveTab('settings');
+            }}
+            title="환경 설정"
+          >
+            <span><AppIcon name="settings" size={21} /></span>
+          </button>
+        </div>
+      </header>
+
       <section 
         className="content" 
         style={
@@ -1940,51 +1986,6 @@ export default function App() {
             : undefined
         }
       >
-        <header className="app-header">
-          {/* 모바일 전용 로고 영역 (PC 뷰에서는 CSS로 숨김) */}
-          <div className="header-brand">
-            <MyWalletLogo />
-            <div className="brand-text">
-              <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
-            </div>
-          </div>
-
-          {/* PC 전용 헤더 좌측 타이틀 (선택 월에 연동, 모바일에서는 CSS로 숨김) */}
-          <h1 className="header-title">
-            {selectedMonth.replace('-', '.')} 재정 현황
-          </h1>
-
-          {/* 헤더 우측 액션 그룹 */}
-          <div className="header-actions">
-            <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
-              <span aria-hidden="true" />
-            </div>
-            {/* 공통 월 선택 영역 */}
-            <div className="month-picker-wrap">
-              <div className="month-picker-display">
-                {selectedMonth.replace('-', '.')} <AppIcon name="calendar" size={16} />
-              </div>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-              />
-            </div>
-
-            {/* 설정 바로가기 버튼 */}
-            <button
-              type="button"
-              className={`header-settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => {
-                window.location.hash = 'settings';
-                setActiveTab('settings');
-              }}
-              title="환경 설정"
-            >
-              <span><AppIcon name="settings" size={21} /></span>
-            </button>
-          </div>
-        </header>
 
         {/* Dashboard Tab */}
         {activeTab === 'summary' && (
