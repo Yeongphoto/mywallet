@@ -84,7 +84,7 @@
   .content:has(.calendar-view-container) .calendar-cell {
     min-height: 0;
     overflow: hidden;
-    padding: 6px 8px !important;
+    padding: 4px 4px !important;
     border-radius: 6px !important;
     border-color: var(--calendar-cell-border) !important;
     background: var(--calendar-cell-bg) !important;
@@ -129,7 +129,7 @@
     --calendar-header-height: 64px;
     --calendar-bottom-nav-height: 72px;
     --calendar-bottom-action-lift: 20px;
-    --calendar-bottom-action-height: calc(60px + var(--calendar-bottom-nav-height) + var(--calendar-bottom-action-lift) + env(safe-area-inset-bottom, 0px));
+    --calendar-bottom-action-height: calc(88px + var(--calendar-bottom-nav-height) + var(--calendar-bottom-action-lift) + env(safe-area-inset-bottom, 0px));
     --calendar-view-gap: 6px;
   }
 
@@ -155,7 +155,7 @@
 @media (max-width: 480px) {
   @supports selector(.content:has(.calendar-view-container)) {
     .content:has(.calendar-view-container) .calendar-cell {
-      padding: 5px 6px !important;
+      padding: 3px 4px !important;
       border-radius: 5px !important;
     }
 
