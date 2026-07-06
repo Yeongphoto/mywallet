@@ -2506,51 +2506,53 @@ export default function App() {
                 </div>
               </div>
 
-              {/* 실시간 대화형 툴팁 */}
-              {hoveredChartIndex !== null && (
-                <div style={{
-                  position: 'fixed',
-                  left: hoveredChartPos?.x ? hoveredChartPos.x + 12 : 0,
-                  top: hoveredChartPos?.y ? hoveredChartPos.y - 95 : 0,
-                  background: 'rgba(15, 23, 42, 0.96)',
-                  backdropFilter: 'blur(4px)',
-                  color: '#ffffff',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  zIndex: 99999,
-                  pointerEvents: 'none',
-                  boxShadow: '0 12px 30px rgba(0, 0, 0, 0.35)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  fontFamily: 'system-ui, -apple-system, sans-serif'
-                }}>
-                  <strong style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', color: '#e2e8f0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '4px' }}>
-                    {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month}
-                  </strong>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {(chartFilter === 'both' || chartFilter === 'income') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 총 수입:</span>
-                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].income)}</span>
-                      </div>
-                    )}
-                    {(chartFilter === 'both' || chartFilter === 'expense') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                        <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 총 지출:</span>
-                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].expense)}</span>
-                      </div>
-                    )}
-                    {chartFilter === 'both' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '4px', marginTop: '4px' }}>
-                        <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
-                        <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
-                          {formatCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
+              {/* 실시간 대화형 정보창 패널 */}
+              <div style={{
+                marginTop: '16px',
+                padding: '10px 12px',
+                background: 'var(--bg-input)',
+                borderRadius: '10px',
+                border: '1px solid var(--border-input)',
+                fontSize: '0.8rem',
+                minHeight: '62px', /* 가변 높이 흔들림 방지 */
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease'
+              }}>
+                {hoveredChartIndex !== null ? (
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '4px', fontSize: '0.84rem', color: 'var(--text-primary)' }}>
+                      {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month} 상세 내역
+                    </strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', alignItems: 'center' }}>
+                      {(chartFilter === 'both' || chartFilter === 'income') && (
+                        <span style={{ color: 'var(--color-income)', fontWeight: 700 }}>
+                          🟢 수입: {formatCurrency(yearlyData[hoveredChartIndex].income)}
                         </span>
-                      </div>
-                    )}
+                      )}
+                      {(chartFilter === 'both' || chartFilter === 'expense') && (
+                        <span style={{ color: 'var(--color-expense)', fontWeight: 700 }}>
+                          🔴 지출: {formatCurrency(yearlyData[hoveredChartIndex].expense)}
+                        </span>
+                      )}
+                      {chartFilter === 'both' && (
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? 'var(--color-income)' : 'var(--color-expense)' 
+                        }}>
+                          ⚖️ 순수익: {formatCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.78rem' }}>
+                    💡 막대 그래프를 터치하거나 마우스를 올리면 월별 상세 금액이 표출됩니다.
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Category summary table */}
