@@ -2592,8 +2592,8 @@ export default function App() {
                   }}
                 >
                   <option value="expense">🔴 지출</option>
-                  <option value="income">🟢 수입</option>
-                  <option value="asset">🔵 자산</option>
+                  <option value="income">🔵 수입</option>
+                  <option value="asset">🟢 자산</option>
                 </select>
               </div>
 
