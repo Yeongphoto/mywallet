@@ -581,6 +581,7 @@ export default function App() {
   const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense'>('both');
   const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
   const [hoveredChartPos, setHoveredChartPos] = useState<{ x: number; y: number } | null>(null);
+  const [summaryType, setSummaryType] = useState<'expense' | 'income' | 'asset'>('expense');
 
   // Filtering & Search states
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
@@ -2343,16 +2344,49 @@ export default function App() {
             </section>
 
             {/* Category summary table */}
-            <section className="glass-panel summary-table-grid">
-              <div className="panel-header" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+            <section className="glass-panel summary-table-grid" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
                 <div>
                   <p className="eyebrow">Category Summary</p>
-                  <h2>카테고리별 합계</h2>
+                  <h2 style={{ margin: 0 }}>카테고리별 합계 요약</h2>
                 </div>
+                
+                {/* 드롭다운 셀렉트 박스 */}
+                <select 
+                  value={summaryType} 
+                  onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-input)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    minWidth: '160px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <option value="expense">🔴 지출 카테고리</option>
+                  <option value="income">🟢 수입 카테고리</option>
+                  <option value="asset">🔵 자산 분배 상태</option>
+                </select>
               </div>
-              <CategorySummaryColumn title="지출 카테고리" categories={activeExpenseCategories} values={expenseSummary} />
-              <CategorySummaryColumn title="수입 카테고리" categories={activeIncomeCategories} values={incomeSummary} />
-              <CategorySummaryColumn title="자산 분배 상태" categories={activeAssetCategories} values={assetSummary} />
+
+              {/* 선택된 요약 테이블만 렌더링 */}
+              <div style={{ width: '100%', gridColumn: '1 / -1' }}>
+                {summaryType === 'expense' && (
+                  <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} />
+                )}
+                {summaryType === 'income' && (
+                  <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} />
+                )}
+                {summaryType === 'asset' && (
+                  <CategorySummaryColumn title="자산 분배 상태 요약" categories={activeAssetCategories} values={assetSummary} />
+                )}
+              </div>
             </section>
           </>
         )}
