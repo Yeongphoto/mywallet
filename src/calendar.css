@@ -129,7 +129,7 @@
     --calendar-header-height: 64px;
     --calendar-bottom-nav-height: 72px;
     --calendar-bottom-action-lift: 20px;
-    --calendar-bottom-action-height: calc(88px + var(--calendar-bottom-nav-height) + var(--calendar-bottom-action-lift) + env(safe-area-inset-bottom, 0px));
+    --calendar-bottom-action-height: calc(40px + var(--calendar-bottom-nav-height) + var(--calendar-bottom-action-lift) + env(safe-area-inset-bottom, 0px));
     --calendar-view-gap: 6px;
   }
 

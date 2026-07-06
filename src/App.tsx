@@ -2036,7 +2036,7 @@ export default function App() {
                 overflow: 'hidden', 
                 height: '100dvh', 
                 paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))', /* 상단 타이틀 수평 동기화 */
-                paddingBottom: '164px', /* 하단바 및 거래등록 플로팅 단추의 가림 완벽 방지 */
+                paddingBottom: '135px', /* 하단바 및 거래등록 플로팅 단추의 가림 완벽 방지 */
                 boxSizing: 'border-box'
               } 
             : undefined
