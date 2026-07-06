@@ -2362,20 +2362,35 @@ export default function App() {
                           if (chartFilter === 'expense') return d.expense;
                           return Math.max(d.income, d.expense);
                         }),
-                        1000000
+                        100000
                       );
-                      const steps = 4;
-                      const gridLines = Array.from({ length: steps + 1 }, (_, i) => i / steps);
+
+                      // 100만 원 이상일 때는 100만 단위 배수, 미만일 때는 10만 단위 배수로 스텝 사이즈 결정
+                      let stepSize = 1000000;
+                      if (maxVal < 1000000) {
+                        stepSize = 100000; // 10만 원 단위
+                      } else if (maxVal > 10000000) {
+                        stepSize = 5000000; // 1000만 원 초과 시 500만 원 단위
+                      } else if (maxVal > 5000000) {
+                        stepSize = 2000000; // 500만 원 초과 시 200만 원 단위
+                      }
+                      
+                      const chartMaxY = Math.ceil(maxVal / stepSize) * stepSize;
+                      const scale = 150 / chartMaxY;
+
+                      const gridValues = [];
+                      for (let val = 0; val <= chartMaxY; val += stepSize) {
+                        gridValues.push(val);
+                      }
 
                       return (
                         <g>
-                          {gridLines.map((ratio, idx) => {
-                            const val = maxVal * ratio;
-                            const y = 190 - ratio * 150; // 차트 높이 기준 Y 좌표 (y=40 ~ y=190)
+                          {gridValues.map((val, idx) => {
+                            const y = 190 - (val / chartMaxY) * 150; // 차트 높이 기준 Y 좌표 (y=40 ~ y=190)
                             return (
                               <g key={idx}>
                                 <line 
-                                  x1="65" 
+                                  x1="42" 
                                   y1={y} 
                                   x2="505" 
                                   y2={y} 
@@ -2385,18 +2400,20 @@ export default function App() {
                                   opacity="0.5"
                                 />
                                 <text 
-                                  x="55" 
+                                  x="32" 
                                   y={y + 4} 
                                   textAnchor="end" 
-                                  fontSize="10" 
+                                  fontSize="9.5" 
                                   fontWeight="600"
                                   fill="var(--text-secondary)"
                                 >
-                                  {val >= 100000000 
-                                    ? `${(val / 100000000).toFixed(1)}억원` 
+                                  {val === 0 
+                                    ? '0' 
+                                    : val >= 100000000 
+                                    ? `${(val / 100000000).toFixed(1)}억` 
                                     : val >= 10000 
-                                    ? `${Math.round(val / 10000).toLocaleString()}만원` 
-                                    : `${val.toLocaleString()}원`
+                                    ? `${Math.round(val / 10000)}만` 
+                                    : `${val}`
                                   }
                                 </text>
                               </g>
@@ -2404,12 +2421,11 @@ export default function App() {
                           })}
 
                           {/* X축 기본 라인 */}
-                          <line x1="65" y1="190" x2="505" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
+                          <line x1="42" y1="190" x2="505" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
 
                           {/* 12개월 바 차트 렌더 */}
                           {yearlyData.map((d, idx) => {
-                            const xCenter = 65 + idx * 36 + 18; // X 축 간격을 58px -> 36px로 축소하여 모바일 해상도 완전 속박
-                            const scale = 150 / maxVal;
+                            const xCenter = 42 + idx * 38 + 19; // 시작 오프셋 당겨서 좌우 폭 463px 가량으로 극대화
                             
                             const incHeight = d.income * scale;
                             const expHeight = d.expense * scale;
@@ -2432,9 +2448,9 @@ export default function App() {
                               >
                                 {/* 백그라운드 마우스 감지 보이지 않는 바 */}
                                 <rect 
-                                  x={xCenter - 16} 
+                                  x={xCenter - 18} 
                                   y="20" 
-                                  width="32" 
+                                  width="36" 
                                   height="180" 
                                   fill="transparent"
                                 />
@@ -2442,9 +2458,9 @@ export default function App() {
                                 {/* 수입 막대 */}
                                 {showIncome && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter - 10 : xCenter - 7}
+                                    x={chartFilter === 'both' ? xCenter - 11 : xCenter - 8}
                                     y={190 - incHeight}
-                                    width={chartFilter === 'both' ? '8' : '14'}
+                                    width={chartFilter === 'both' ? '9' : '16'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
                                     ry="3"
@@ -2457,9 +2473,9 @@ export default function App() {
                                 {/* 지출 막대 */}
                                 {showExpense && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 7}
+                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 8}
                                     y={190 - expHeight}
-                                    width={chartFilter === 'both' ? '8' : '14'}
+                                    width={chartFilter === 'both' ? '9' : '16'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
                                     ry="3"
