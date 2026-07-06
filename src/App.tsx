@@ -2085,31 +2085,31 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '12px 8px' }}>
-                {/* 파이 원형 그래프 */}
-                <div style={{ position: 'relative', width: '100%', maxWidth: '340px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', padding: '12px 8px' }}>
+                {/* 파이 원형 그래프 (2배 이상 확대) */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '520px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg 
                     width="100%" 
-                    height="280" 
-                    viewBox="0 0 280 280" 
+                    height="360" 
+                    viewBox="0 0 380 340" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
-                      filter: 'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2))'
+                      filter: 'drop-shadow(0 10px 20px rgba(0, 0, 0, 0.22))'
                     }}
                   >
                     {/* Background Circle */}
-                    <circle cx="140" cy="140" r="65" fill="#1e293b" opacity="0.4" />
+                    <circle cx="190" cy="170" r="95" fill="#1e293b" opacity="0.4" />
 
                     {assetFlowSegments.length === 0 ? (
-                      <text x="140" y="145" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontWeight="bold">
+                      <text x="190" y="175" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
                         자산 데이터가 없습니다.
                       </text>
                     ) : (
                       (() => {
-                        const R = 65;
-                        const CX = 140;
-                        const CY = 140;
+                        const R = 95;
+                        const CX = 190;
+                        const CY = 170;
                         let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
 
                         return assetFlowSegments.map((segment) => {
@@ -2139,17 +2139,17 @@ export default function App() {
                           const tyInternal = CY + R * 0.62 * Math.sin(rad);
 
                           // 외부 텍스트 및 꺾은선 지시선 좌표
-                          const lxStart = CX + R * 0.9 * Math.cos(rad);
-                          const lyStart = CY + R * 0.9 * Math.sin(rad);
+                          const lxStart = CX + R * 0.95 * Math.cos(rad);
+                          const lyStart = CY + R * 0.95 * Math.sin(rad);
                           
-                          const lxMid = CX + R * 1.18 * Math.cos(rad);
-                          const lyMid = CY + R * 1.18 * Math.sin(rad);
+                          const lxMid = CX + R * 1.25 * Math.cos(rad);
+                          const lyMid = CY + R * 1.25 * Math.sin(rad);
                           
                           const isRightSide = Math.cos(rad) >= 0;
-                          const lxEnd = lxMid + (isRightSide ? 12 : -12);
+                          const lxEnd = lxMid + (isRightSide ? 16 : -16);
                           const lyEnd = lyMid;
                           
-                          const txExternal = lxEnd + (isRightSide ? 4 : -4);
+                          const txExternal = lxEnd + (isRightSide ? 6 : -6);
                           const tyExternal = lyEnd;
 
                           return (
@@ -2171,7 +2171,7 @@ export default function App() {
                                     y={tyInternal - 2}
                                     textAnchor="middle"
                                     fill="#ffffff"
-                                    fontSize="10"
+                                    fontSize="11"
                                     fontWeight="900"
                                     style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
                                   >
@@ -2179,10 +2179,10 @@ export default function App() {
                                   </text>
                                   <text
                                     x={txInternal}
-                                    y={tyInternal + 9}
+                                    y={tyInternal + 10}
                                     textAnchor="middle"
                                     fill="#ffffff"
-                                    fontSize="9"
+                                    fontSize="10"
                                     fontWeight="bold"
                                     style={{ pointerEvents: 'none', opacity: 0.9, textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
                                   >
@@ -2207,7 +2207,7 @@ export default function App() {
                                     y={tyExternal - 3}
                                     textAnchor={isRightSide ? "start" : "end"}
                                     fill="var(--text-primary)"
-                                    fontSize="10"
+                                    fontSize="11"
                                     fontWeight="900"
                                   >
                                     {segment.label}
@@ -2217,7 +2217,7 @@ export default function App() {
                                     y={tyExternal + 8}
                                     textAnchor={isRightSide ? "start" : "end"}
                                     fill="var(--primary)"
-                                    fontSize="9"
+                                    fontSize="10"
                                     fontWeight="bold"
                                   >
                                     ({percent.toFixed(1)}%)
@@ -2233,7 +2233,7 @@ export default function App() {
                 </div>
 
                 {/* 2. 범례 리스트 (가로 배치 컴팩트 칩스) */}
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '6px 10px', width: '100%', maxWidth: '500px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '6px 10px', width: '100%', maxWidth: '500px', marginTop: '16px' }}>
                   {assetFlowSegments.map((segment) => {
                     const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
                     return (
