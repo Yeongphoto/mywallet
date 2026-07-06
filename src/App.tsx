@@ -2577,16 +2577,17 @@ export default function App() {
                   value={summaryType} 
                   onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
                   style={{
-                    padding: '6px 10px',
-                    borderRadius: '10px',
+                    padding: '4px 20px 4px 6px',
+                    borderRadius: '6px',
                     border: '1px solid var(--border-input)',
                     background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontWeight: 'bold',
-                    fontSize: '0.78rem',
+                    fontSize: '0.76rem',
                     cursor: 'pointer',
                     outline: 'none',
-                    minWidth: '92px',
+                    minWidth: '68px',
+                    width: '68px',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
