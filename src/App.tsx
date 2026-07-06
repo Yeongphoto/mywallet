@@ -2566,10 +2566,10 @@ export default function App() {
 
             {/* Category summary table */}
             <section className="glass-panel summary-table-grid" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '32px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
                 <div>
                   <p className="eyebrow">Category Summary</p>
-                  <h2 style={{ margin: 0 }}>카테고리별 합계 요약</h2>
+                  <h2 style={{ margin: 0, fontSize: '0.94rem', whiteSpace: 'nowrap' }}>카테고리별 합계 요약</h2>
                 </div>
                 
                 {/* 드롭다운 셀렉트 박스 */}
@@ -2577,22 +2577,22 @@ export default function App() {
                   value={summaryType} 
                   onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
                   style={{
-                    padding: '8px 16px',
+                    padding: '6px 10px',
                     borderRadius: '10px',
                     border: '1px solid var(--border-input)',
                     background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontWeight: 'bold',
-                    fontSize: '0.85rem',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
                     outline: 'none',
-                    minWidth: '160px',
+                    minWidth: '92px',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  <option value="expense">🔴 지출 카테고리</option>
-                  <option value="income">🟢 수입 카테고리</option>
-                  <option value="asset">🔵 자산 분배 상태</option>
+                  <option value="expense">🔴 지출</option>
+                  <option value="income">🟢 수입</option>
+                  <option value="asset">🔵 자산</option>
                 </select>
               </div>
 
