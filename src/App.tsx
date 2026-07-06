@@ -4136,7 +4136,22 @@ function FlowRowItem({
 
 // Category summary sub-column
 function CategorySummaryColumn({ title, categories, values }: { title: string; categories: CategoryOption[]; values: Record<string, number> }) {
-  const total = categories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
+  const validCategories = categories.filter(category => (values[category.id] ?? 0) !== 0);
+  const total = validCategories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
+
+  let emptyMsg = "표시할 내역이 없습니다.";
+  if (title.includes("지출")) emptyMsg = "표시할 지출이 없습니다.";
+  else if (title.includes("수입")) emptyMsg = "표시할 수입이 없습니다.";
+  else if (title.includes("자산")) emptyMsg = "표시할 자산이 없습니다.";
+
+  if (validCategories.length === 0) {
+    return (
+      <article className="summary-column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', background: 'var(--bg-input)', borderRadius: '16px', border: '1px dashed var(--border-input)' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: 'bold', margin: 0 }}>{emptyMsg}</p>
+      </article>
+    );
+  }
+
   return (
     <article className="summary-column">
       <h3>{title}</h3>
@@ -4148,7 +4163,7 @@ function CategorySummaryColumn({ title, categories, values }: { title: string; c
           </tr>
         </thead>
         <tbody>
-          {categories.map((category) => (
+          {validCategories.map((category) => (
             <tr key={category.id}>
               <td>{category.label}</td>
               <td>{formatCurrency(values[category.id] ?? 0)}</td>
