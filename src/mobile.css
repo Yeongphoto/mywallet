@@ -150,9 +150,10 @@
   
   /* Bottom padding in main content to prevent menu overlap */
   .content {
-    padding: calc(110px + env(safe-area-inset-top, 0px)) 12px 176px 12px !important;
+    padding: calc(84px + env(safe-area-inset-top, 0px)) 12px 176px 12px !important;
     overflow-x: hidden;
   }
+  
   
   /* Mobile Header Fixed Top Bar */
   .app-header {
@@ -160,12 +161,10 @@
     top: 0;
     left: 0;
     right: 0;
-    height: calc(64px + env(safe-area-inset-top, 0px));
+    height: calc(54px + env(safe-area-inset-top, 0px));
     padding: env(safe-area-inset-top, 0px) 16px 0;
     box-sizing: border-box;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(15, 23, 42, 1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
@@ -215,8 +214,8 @@
   
   /* Mobile month picker adapt */
   .app-header .month-picker-wrap {
-    padding: 8px 12px;
-    font-size: 0.9rem;
+    padding: 6px 10px;
+    font-size: 0.85rem;
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.15);
   }
@@ -226,11 +225,11 @@
   }
   
   .app-header .header-settings-btn {
-    padding: 8px 12px;
+    padding: 6px 10px;
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.15);
     color: #fff;
-    min-height: 37px;
+    min-height: 32px;
   }
   
   .app-header .header-settings-btn .settings-text {

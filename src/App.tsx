@@ -1933,7 +1933,7 @@ export default function App() {
             ? { 
                 overflow: 'hidden', 
                 height: '100vh', 
-                paddingTop: 'calc(74px + env(safe-area-inset-top, 0px))', /* 모바일 헤더 높이 및 iPhone safe-area 반영 */
+                paddingTop: 'calc(64px + env(safe-area-inset-top, 0px))', /* 모바일 헤더 높이 및 iPhone safe-area 반영 */
                 paddingBottom: '142px', /* 이중 하단바 물리적 격리 마진선 */
                 boxSizing: 'border-box'
               } 
