@@ -149,9 +149,18 @@ function formatCurrency(value: number) {
 }
 
 function formatMobileCalendarAmount(amount: number) {
-  if (amount < 1000) {
-    return `${amount}`;
+  // 1. 창 너비가 768px 이상(PC/태블릿)이면 100% 원래 숫자로 포맷 표기
+  if (window.innerWidth >= 768) {
+    return formatCurrency(amount);
   }
+  
+  // 2. 모바일 뷰포트(768px 미만)일 때의 콤팩트 축약 규칙:
+  if (amount < 10000) {
+    // 1만원 미만은 K 축약하지 않고 원화 기호/콤마만 제거한 순수 원본 숫자로 표기하여 최대 보존 (예: 7890, 850)
+    return amount.toString();
+  }
+  
+  // 3. 1만원 이상일 때만 K 축약 적용
   const k = amount / 1000;
   if (k % 1 === 0) {
     return `${k}k`;
