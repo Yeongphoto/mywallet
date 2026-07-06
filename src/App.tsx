@@ -2113,15 +2113,31 @@ export default function App() {
                         const CY = 130;
                         let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
 
-                        // 작은 세그먼트들만 걸러서 지그재그 인덱스를 부여하기 위한 배열
-                        const smallSegments = assetFlowSegments.filter(s => {
-                          const p = assetTotal > 0 ? (s.value / assetTotal) * 100 : 0;
-                          return p < 12;
+                        // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(4.2%) 적용
+                        const minPercent = 4.2;
+                        let tempSegments = assetFlowSegments.map(s => {
+                          const actualPercent = assetTotal > 0 ? (s.value / assetTotal) * 100 : 0;
+                          return {
+                            ...s,
+                            actualPercent,
+                            // 비율이 있고 minPercent보다 작으면 minPercent로 임시 보정
+                            renderPercent: (actualPercent > 0 && actualPercent < minPercent) ? minPercent : actualPercent
+                          };
                         });
 
-                        return assetFlowSegments.map((segment) => {
-                          const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
-                          const angle = (percent / 100) * 360;
+                        // 2단계: 합산율 정규화 (100%로 총합 맞춤)
+                        const totalRenderSum = tempSegments.reduce((sum, item) => sum + item.renderPercent, 0);
+                        const normalizedSegments = tempSegments.map(item => ({
+                          ...item,
+                          renderPercent: totalRenderSum > 0 ? (item.renderPercent / totalRenderSum) * 100 : 0
+                        }));
+
+                        // 작은 세그먼트들만 걸러서 지그재그 인덱스 매칭 (보정된 renderPercent 기준)
+                        const smallSegments = normalizedSegments.filter(s => s.actualPercent < 12);
+
+                        return normalizedSegments.map((segment) => {
+                          // 파이 조각 렌더링과 위치 각도는 보정 비율(renderPercent) 적용
+                          const angle = (segment.renderPercent / 100) * 360;
                           
                           const startAngle = accumulatedAngle;
                           const endAngle = accumulatedAngle + angle;
@@ -2139,7 +2155,7 @@ export default function App() {
                           // 텍스트 라벨 & 지시선 각도 좌표 계산 (가운데 각도 구하기)
                           const midAngle = startAngle + angle / 2;
                           const rad = (midAngle * Math.PI) / 180;
-                          const isLarge = percent >= 12; // 12% 이상이면 조각 내부에 흰색 텍스트 배치
+                          const isLarge = segment.actualPercent >= 12; // 실제 비율 기준으로 내외부 판정
 
                           // 내부 텍스트 좌표
                           const txInternal = CX + R * 0.62 * Math.cos(rad);
@@ -2199,7 +2215,7 @@ export default function App() {
                                     fontWeight="bold"
                                     style={{ pointerEvents: 'none', opacity: 0.9, textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
                                   >
-                                    ({percent.toFixed(1)}%)
+                                    ({segment.actualPercent.toFixed(1)}%)
                                   </text>
                                 </g>
                               ) : (
@@ -2233,7 +2249,7 @@ export default function App() {
                                     fontSize="10"
                                     fontWeight="bold"
                                   >
-                                    ({percent.toFixed(1)}%)
+                                    ({segment.actualPercent.toFixed(1)}%)
                                   </text>
                                 </g>
                               )}
