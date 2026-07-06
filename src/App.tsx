@@ -1917,15 +1917,6 @@ export default function App() {
               <span style={{ color: '#ffffff' }}>My</span>
               <span style={{ color: 'var(--primary)' }}>Wallet</span>
             </h1>
-            <p style={{
-              margin: 0,
-              fontSize: '0.9rem',
-              color: '#94a3b8',
-              fontWeight: 500,
-              letterSpacing: '-0.01em'
-            }}>
-              안전한 클라우드 연결을 통해 재정 데이터를 동기화하고 있습니다
-            </p>
           </div>
 
           {/* Premium Progress Bar */}
