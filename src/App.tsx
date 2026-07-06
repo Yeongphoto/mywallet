@@ -148,6 +148,21 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function formatMobileCalendarAmount(amount: number) {
+  if (amount < 1000) {
+    return `${amount}`;
+  }
+  const k = amount / 1000;
+  if (k % 1 === 0) {
+    return `${k}k`;
+  }
+  const formatted = k.toFixed(1);
+  if (formatted.endsWith('.0')) {
+    return `${formatted.slice(0, -2)}k`;
+  }
+  return `${formatted}k`;
+}
+
 function formatNumberInput(value: number) {
   return value > 0 ? numberFormatter.format(value) : '';
 }
@@ -2641,10 +2656,10 @@ export default function App() {
                     <span className="date-number">{day.dayNum}</span>
                     <div className="day-values">
                       {daySums?.income > 0 && (
-                        <span className="calendar-value-badge income">+{formatCurrency(daySums.income)}</span>
+                        <span className="calendar-value-badge income">+{formatMobileCalendarAmount(daySums.income)}</span>
                       )}
                       {daySums?.expense > 0 && (
-                        <span className="calendar-value-badge expense">-{formatCurrency(daySums.expense)}</span>
+                        <span className="calendar-value-badge expense">-{formatMobileCalendarAmount(daySums.expense)}</span>
                       )}
                     </div>
                   </div>
