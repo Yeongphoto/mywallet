@@ -2586,8 +2586,8 @@ export default function App() {
                     fontSize: '0.76rem',
                     cursor: 'pointer',
                     outline: 'none',
-                    minWidth: '68px',
-                    width: '68px',
+                    minWidth: '78px',
+                    width: '78px',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
