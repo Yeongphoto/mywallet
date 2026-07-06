@@ -2106,13 +2106,13 @@ export default function App() {
                       {(() => {
                         const donutRadius = 48;
                         const circumference = 2 * Math.PI * donutRadius; // ~301.59
-                        let accumulatedPercent = 0;
+                        let accumulatedLength = 0;
 
                         return assetFlowSegments.map((segment) => {
                           const percent = assetTotal > 0 ? (segment.value / assetTotal) * 100 : 0;
                           const strokeLength = (percent / 100) * circumference;
-                          const strokeOffset = circumference - (accumulatedPercent / 100) * circumference;
-                          accumulatedPercent += percent;
+                          const strokeOffset = -accumulatedLength;
+                          accumulatedLength += strokeLength;
 
                           return (
                             <circle
@@ -2125,10 +2125,10 @@ export default function App() {
                               strokeWidth="12"
                               strokeDasharray={`${strokeLength} ${circumference}`}
                               strokeDashoffset={strokeOffset}
-                              strokeLinecap="round"
+                              strokeLinecap="butt"
                               style={{ 
                                 transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                                filter: `drop-shadow(0 0 2px ${segment.color}50)`
+                                filter: `drop-shadow(0 0 1px ${segment.color}40)`
                               }}
                             />
                           );
