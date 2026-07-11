@@ -3588,7 +3588,7 @@ export default function App() {
                                   </span>
                                 )}
                               </strong>
-                              <CategoryBadge categories={isIncome ? incomeCategories : expenseCategories} idOrLabel={t.category} />
+                              <CategoryBadge categories={isIncome ? allIncomeCategories : allExpenseCategories} idOrLabel={t.category} />
                             </div>
 
                             {/* 하단: 금액 표시 */}
@@ -3627,6 +3627,8 @@ export default function App() {
                 onAddRecurringRule={handleAddRecurringRule}
                 onUpdateRecurringRule={handleUpdateRecurringRule}
                 recurringRules={recurringRules}
+                expenseCategories={allExpenseCategories}
+                incomeCategories={allIncomeCategories}
                 onStopRecurring={handleStopRecurringFromTx}
                 onNotify={showNotice}
               />
@@ -4541,6 +4543,8 @@ function TransactionEditForm({
   onAddRecurringRule,
   onUpdateRecurringRule,
   recurringRules,
+  expenseCategories,
+  incomeCategories,
   onStopRecurring,
   onNotify,
 }: {
@@ -4550,6 +4554,8 @@ function TransactionEditForm({
   onAddRecurringRule?: (r: RecurringRule) => void;
   onUpdateRecurringRule?: (r: RecurringRule) => void;
   recurringRules: RecurringRule[];
+  expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
