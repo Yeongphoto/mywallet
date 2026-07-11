@@ -16,6 +16,7 @@ type StoredWalletData = {
   customIncomeCategories?: StoredCategory[];
   customAssetCategories?: StoredCategory[];
   categoryColors?: Record<string, string>;
+  categoryLabels?: Record<string, string>;
   categoryOrder?: Partial<Record<CategoryScopeName, string[]>>;
   hiddenCategories?: Record<string, boolean>;
   recurringRules?: unknown[];
@@ -138,9 +139,12 @@ function persistManagedCategoryOrder(card: HTMLElement) {
   if (!type || !data) return;
 
   const knownCategories = getKnownCategories(data, type);
-  const labelToId = new Map(knownCategories.map((category) => [normalizeCategoryLabel(category.label), category.id]));
+  const labelToId = new Map(knownCategories.map((category) => {
+    const label = data.categoryLabels?.[`${type}:${category.id}`] ?? category.label;
+    return [normalizeCategoryLabel(label), category.id];
+  }));
   const orderedIds = Array.from(card.querySelectorAll<HTMLElement>('.category-row'))
-    .map((row) => labelToId.get(getManagedCategoryRowLabel(row)))
+    .map((row) => row.dataset.categoryId || labelToId.get(getManagedCategoryRowLabel(row)))
     .filter((id): id is string => Boolean(id));
 
   if (orderedIds.length === 0) return;

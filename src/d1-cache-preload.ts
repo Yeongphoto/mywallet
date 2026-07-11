@@ -9,6 +9,7 @@ type WalletPayload = {
   customIncomeCategories?: unknown[];
   customAssetCategories?: unknown[];
   categoryColors?: Record<string, unknown>;
+  categoryLabels?: Record<string, unknown>;
   categoryOrder?: Record<string, unknown>;
   hiddenCategories?: Record<string, unknown>;
   recurringRules?: unknown[];
@@ -26,6 +27,7 @@ function hasRemoteWalletData(data: WalletPayload) {
     (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0) ||
     (Array.isArray(data.customAssetCategories) && data.customAssetCategories.length > 0) ||
     (data.categoryColors && typeof data.categoryColors === 'object' && Object.keys(data.categoryColors).length > 0) ||
+    (data.categoryLabels && typeof data.categoryLabels === 'object' && Object.keys(data.categoryLabels).length > 0) ||
     (data.categoryOrder && typeof data.categoryOrder === 'object' && Object.keys(data.categoryOrder).length > 0) ||
     (data.hiddenCategories && typeof data.hiddenCategories === 'object' && Object.keys(data.hiddenCategories).length > 0) ||
     (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||

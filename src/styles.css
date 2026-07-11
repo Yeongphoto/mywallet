@@ -1640,11 +1640,50 @@ textarea:focus {
   font-weight: 900;
 }
 
+.category-row-action-edit {
+  background: var(--bg-income-light);
+  color: var(--primary-dark);
+  border-color: rgba(var(--primary-rgb), 0.16);
+}
+
+.category-row-action-save {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.category-row-action-muted {
+  background: var(--bg-balance-light);
+  color: var(--text-secondary);
+  border-color: var(--border-input);
+}
+
 .category-row-action:disabled {
   cursor: default;
   background: var(--bg-balance-light);
   color: var(--text-secondary);
   border-color: var(--border-input);
+}
+
+.category-name-edit {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(84px, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-name-edit input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 /* Forms layout */

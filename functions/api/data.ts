@@ -95,6 +95,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       budget: Number(settingsMap['budget']) || 1000000,
       theme: settingsMap['theme'] || 'light',
       categoryColors: settingsMap['categoryColors'] ? JSON.parse(settingsMap['categoryColors']) : {},
+      categoryLabels: settingsMap['categoryLabels'] ? JSON.parse(settingsMap['categoryLabels']) : {},
       categoryOrder: settingsMap['categoryOrder'] ? JSON.parse(settingsMap['categoryOrder']) : {},
       hiddenCategories: settingsMap['hiddenCategories'] ? JSON.parse(settingsMap['hiddenCategories']) : {},
       recurringRules: rcRules.results || [],
@@ -131,6 +132,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       customIncomeCategories, 
       customAssetCategories,
       categoryColors,
+      categoryLabels,
       categoryOrder,
       hiddenCategories,
       budget, 
@@ -214,6 +216,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(String(theme ?? 'light')));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryColors', ?)")
       .bind(JSON.stringify(categoryColors && typeof categoryColors === 'object' ? categoryColors : {})));
+    statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryLabels', ?)")
+      .bind(JSON.stringify(categoryLabels && typeof categoryLabels === 'object' ? categoryLabels : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryOrder', ?)")
       .bind(JSON.stringify(categoryOrder && typeof categoryOrder === 'object' ? categoryOrder : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('hiddenCategories', ?)")

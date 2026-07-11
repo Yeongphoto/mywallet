@@ -45,6 +45,7 @@ const categoryColorPresets = [
 type NoticeType = 'info' | 'success' | 'warning' | 'error';
 type CategoryScope = TransactionType | 'asset';
 type CategoryColorMap = Record<string, string>;
+type CategoryLabelMap = Record<string, string>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
@@ -211,12 +212,13 @@ function getTabFromHash(): AppTab {
   return tabs.includes(hash as AppTab) ? hash as AppTab : 'summary';
 }
 
-function applyCategorySettings(categories: CategoryOption[], type: CategoryScope, colors: CategoryColorMap, order: CategoryOrderMap) {
+function applyCategorySettings(categories: CategoryOption[], type: CategoryScope, colors: CategoryColorMap, labels: CategoryLabelMap, order: CategoryOrderMap) {
   const orderList = order[type] ?? [];
   const orderIndex = new Map(orderList.map((id, index) => [id, index]));
 
   return categories.map((category) => ({
     ...category,
+    label: labels[getCategoryColorKey(type, category.id)] ?? category.label,
     color: colors[getCategoryColorKey(type, category.id)] ?? category.color,
   })).sort((a, b) => {
     const aIndex = orderIndex.has(a.id) ? orderIndex.get(a.id)! : Number.MAX_SAFE_INTEGER;
@@ -315,6 +317,7 @@ function loadStoredData() {
       customIncomeCategories: [] as CategoryOption[],
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
+      categoryLabels: {} as CategoryLabelMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
@@ -339,6 +342,7 @@ function loadStoredData() {
           customIncomeCategories: [] as CategoryOption[],
           customAssetCategories: [] as CategoryOption[],
           categoryColors: {} as CategoryColorMap,
+          categoryLabels: {} as CategoryLabelMap,
           categoryOrder: {} as CategoryOrderMap,
           hiddenCategories: {} as HiddenCategoryMap,
           recurringRules: [] as RecurringRule[],
@@ -356,6 +360,7 @@ function loadStoredData() {
         customIncomeCategories: [] as CategoryOption[],
         customAssetCategories: [] as CategoryOption[],
         categoryColors: {} as CategoryColorMap,
+        categoryLabels: {} as CategoryLabelMap,
         categoryOrder: {} as CategoryOrderMap,
         hiddenCategories: {} as HiddenCategoryMap,
         recurringRules: [] as RecurringRule[],
@@ -375,6 +380,7 @@ function loadStoredData() {
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
       customAssetCategories: Array.isArray(parsed.customAssetCategories) ? parsed.customAssetCategories : [] as CategoryOption[],
       categoryColors: parsed.categoryColors && typeof parsed.categoryColors === 'object' ? parsed.categoryColors as CategoryColorMap : {} as CategoryColorMap,
+      categoryLabels: parsed.categoryLabels && typeof parsed.categoryLabels === 'object' ? parsed.categoryLabels as CategoryLabelMap : {} as CategoryLabelMap,
       categoryOrder: parsed.categoryOrder && typeof parsed.categoryOrder === 'object' ? parsed.categoryOrder as CategoryOrderMap : {} as CategoryOrderMap,
       hiddenCategories: parsed.hiddenCategories && typeof parsed.hiddenCategories === 'object' ? parsed.hiddenCategories as HiddenCategoryMap : {} as HiddenCategoryMap,
       recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[],
@@ -392,6 +398,7 @@ function loadStoredData() {
       customIncomeCategories: [] as CategoryOption[],
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
+      categoryLabels: {} as CategoryLabelMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
@@ -411,6 +418,7 @@ function saveLocalStorage(
   customIncomeCategories: CategoryOption[],
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
+  categoryLabels: CategoryLabelMap,
   categoryOrder: CategoryOrderMap,
   hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
@@ -430,6 +438,7 @@ function saveLocalStorage(
         customIncomeCategories, 
         customAssetCategories,
         categoryColors,
+        categoryLabels,
         categoryOrder,
         hiddenCategories,
         recurringRules, 
@@ -452,6 +461,7 @@ function saveRemoteD1(
   customIncomeCategories: CategoryOption[],
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
+  categoryLabels: CategoryLabelMap,
   categoryOrder: CategoryOrderMap,
   hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
@@ -473,6 +483,7 @@ function saveRemoteD1(
       customIncomeCategories,
       customAssetCategories,
       categoryColors,
+      categoryLabels,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -554,6 +565,7 @@ export default function App() {
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
   const [customAssetCategories, setCustomAssetCategories] = useState<CategoryOption[]>(storedData.customAssetCategories || []);
   const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(storedData.categoryColors || {});
+  const [categoryLabels, setCategoryLabels] = useState<CategoryLabelMap>(storedData.categoryLabels || {});
   const [categoryOrder, setCategoryOrder] = useState<CategoryOrderMap>(storedData.categoryOrder || {});
   const [hiddenCategories, setHiddenCategories] = useState<HiddenCategoryMap>(storedData.hiddenCategories || {});
    const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
@@ -562,16 +574,16 @@ export default function App() {
 
   
   const allExpenseCategories = useMemo(
-    () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryOrder),
-    [customExpenseCategories, categoryColors, categoryOrder]
+    () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryLabels, categoryOrder),
+    [customExpenseCategories, categoryColors, categoryLabels, categoryOrder]
   );
   const allIncomeCategories = useMemo(
-    () => applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryOrder),
-    [customIncomeCategories, categoryColors, categoryOrder]
+    () => applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryLabels, categoryOrder),
+    [customIncomeCategories, categoryColors, categoryLabels, categoryOrder]
   );
   const allAssetCategories = useMemo(
-    () => applyCategorySettings([...assetCategories, ...customAssetCategories], 'asset', categoryColors, categoryOrder),
-    [customAssetCategories, categoryColors, categoryOrder]
+    () => applyCategorySettings([...assetCategories, ...customAssetCategories], 'asset', categoryColors, categoryLabels, categoryOrder),
+    [customAssetCategories, categoryColors, categoryLabels, categoryOrder]
   );
   const activeExpenseCategories = useMemo(
     () => allExpenseCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'expense', category.id)),
@@ -586,6 +598,8 @@ export default function App() {
     [allAssetCategories, hiddenCategories]
   );
   const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
+  const [editingCategory, setEditingCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
+  const [categoryNameDraft, setCategoryNameDraft] = useState('');
 
   const [plans, setPlans] = useState<CategoryPlan[]>(() => {
     const initialPlans: CategoryPlan[] = storedData.plans || [];
@@ -731,6 +745,7 @@ export default function App() {
       customIncomeCategories, 
       customAssetCategories,
       categoryColors,
+      categoryLabels,
       categoryOrder,
       hiddenCategories,
       recurringRules, 
@@ -773,6 +788,7 @@ export default function App() {
         customIncomeCategories, 
         customAssetCategories,
         categoryColors,
+        categoryLabels,
         categoryOrder,
         hiddenCategories,
         recurringRules, 
@@ -819,6 +835,7 @@ export default function App() {
     customIncomeCategories, 
     customAssetCategories,
     categoryColors,
+    categoryLabels,
     categoryOrder,
     hiddenCategories,
     recurringRules, 
@@ -851,6 +868,7 @@ export default function App() {
             (Array.isArray(data.customIncomeCategories) && data.customIncomeCategories.length > 0) ||
             (Array.isArray(data.customAssetCategories) && data.customAssetCategories.length > 0) ||
             (data.categoryColors && typeof data.categoryColors === 'object' && Object.keys(data.categoryColors).length > 0) ||
+            (data.categoryLabels && typeof data.categoryLabels === 'object' && Object.keys(data.categoryLabels).length > 0) ||
             (data.categoryOrder && typeof data.categoryOrder === 'object' && Object.keys(data.categoryOrder).length > 0) ||
             (data.hiddenCategories && typeof data.hiddenCategories === 'object' && Object.keys(data.hiddenCategories).length > 0) ||
             (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||
@@ -863,6 +881,7 @@ export default function App() {
             storedData.customIncomeCategories.length > 0 ||
             storedData.customAssetCategories.length > 0 ||
             Object.keys(storedData.categoryColors || {}).length > 0 ||
+            Object.keys(storedData.categoryLabels || {}).length > 0 ||
             Object.keys(storedData.categoryOrder || {}).length > 0 ||
             Object.keys(storedData.hiddenCategories || {}).length > 0 ||
             storedData.recurringRules.length > 0 ||
@@ -882,6 +901,7 @@ export default function App() {
                 storedData.customIncomeCategories,
                 storedData.customAssetCategories,
                 storedData.categoryColors,
+                storedData.categoryLabels,
                 storedData.categoryOrder,
                 storedData.hiddenCategories,
                 storedData.recurringRules,
@@ -909,6 +929,7 @@ export default function App() {
             setCustomIncomeCategories(data.customIncomeCategories || []);
             setCustomAssetCategories(data.customAssetCategories || []);
             setCategoryColors(data.categoryColors || {});
+            setCategoryLabels(data.categoryLabels || {});
             setCategoryOrder(data.categoryOrder || {});
             setHiddenCategories(data.hiddenCategories || {});
             setRecurringRules(data.recurringRules || []);
@@ -933,6 +954,7 @@ export default function App() {
               customIncomeCategories.length > 0 ||
               customAssetCategories.length > 0 ||
               Object.keys(categoryColors).length > 0 ||
+              Object.keys(categoryLabels).length > 0 ||
               Object.keys(categoryOrder).length > 0 ||
               Object.keys(hiddenCategories).length > 0 ||
               recurringRules.length > 0 ||
@@ -950,6 +972,7 @@ export default function App() {
                 customIncomeCategories,
                 customAssetCategories,
                 categoryColors,
+                categoryLabels,
                 categoryOrder,
                 hiddenCategories,
                 recurringRules,
@@ -1324,6 +1347,7 @@ export default function App() {
       customIncomeCategories,
       customAssetCategories,
       categoryColors,
+      categoryLabels,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -1341,6 +1365,61 @@ export default function App() {
       ...prev,
       [getCategoryColorKey(type, id)]: color,
     }));
+  }
+
+  function getBaseCategoryLabel(type: CategoryScope, id: string) {
+    const baseList =
+      type === 'expense'
+        ? [...expenseCategories, ...customExpenseCategories]
+        : type === 'income'
+        ? [...incomeCategories, ...customIncomeCategories]
+        : [...assetCategories, ...customAssetCategories];
+    return baseList.find((category) => category.id === id)?.label ?? '';
+  }
+
+  function getCategoriesByType(type: CategoryScope) {
+    if (type === 'expense') return activeExpenseCategories;
+    if (type === 'income') return activeIncomeCategories;
+    return activeAssetCategories;
+  }
+
+  function handleStartCategoryRename(type: CategoryScope, category: CategoryOption) {
+    setEditingCategory({ type, id: category.id });
+    setCategoryNameDraft(category.label);
+  }
+
+  function handleCancelCategoryRename() {
+    setEditingCategory(null);
+    setCategoryNameDraft('');
+  }
+
+  function handleSaveCategoryRename(type: CategoryScope, id: string) {
+    const nextLabel = categoryNameDraft.trim();
+    if (!nextLabel) {
+      showNotice('카테고리 이름을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    const targetList = getCategoriesByType(type);
+    if (targetList.some((category) => category.id !== id && category.label === nextLabel)) {
+      showNotice('이미 등록된 카테고리 이름입니다.', '중복 카테고리', 'warning');
+      return;
+    }
+
+    const key = getCategoryColorKey(type, id);
+    const baseLabel = getBaseCategoryLabel(type, id);
+    setCategoryLabels((prev) => {
+      const next = { ...prev };
+      if (baseLabel === nextLabel) {
+        delete next[key];
+      } else {
+        next[key] = nextLabel;
+      }
+      return next;
+    });
+    setEditingCategory(null);
+    setCategoryNameDraft('');
+    showNotice(`카테고리 이름을 '${nextLabel}'로 변경했습니다.`, '카테고리 수정', 'success');
   }
 
   function handleAddManagedCategory(event: FormEvent<HTMLFormElement>) {
@@ -1501,6 +1580,7 @@ export default function App() {
       setCustomIncomeCategories([]);
       setCustomAssetCategories([]);
       setCategoryColors({});
+      setCategoryLabels({});
       setCategoryOrder({});
       setHiddenCategories({});
       setRecurringRules([]);
@@ -1519,6 +1599,7 @@ export default function App() {
         [],
         [],
         [],
+        {},
         {},
         {},
         {},
@@ -1759,6 +1840,7 @@ export default function App() {
       customIncomeCategories,
       customAssetCategories,
       categoryColors,
+      categoryLabels,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -1800,6 +1882,7 @@ export default function App() {
           customIncomeCategories: CategoryOption[];
           customAssetCategories: CategoryOption[];
           categoryColors: CategoryColorMap;
+          categoryLabels: CategoryLabelMap;
           categoryOrder: CategoryOrderMap;
           hiddenCategories: HiddenCategoryMap;
           recurringRules: RecurringRule[];
@@ -1859,6 +1942,7 @@ export default function App() {
               setCustomIncomeCategories(Array.isArray(importedSettings?.customIncomeCategories) ? importedSettings.customIncomeCategories : []);
               setCustomAssetCategories(Array.isArray(importedSettings?.customAssetCategories) ? importedSettings.customAssetCategories : []);
               setCategoryColors(importedSettings?.categoryColors && typeof importedSettings.categoryColors === 'object' ? importedSettings.categoryColors : {});
+              setCategoryLabels(importedSettings?.categoryLabels && typeof importedSettings.categoryLabels === 'object' ? importedSettings.categoryLabels : {});
               setCategoryOrder(importedSettings?.categoryOrder && typeof importedSettings.categoryOrder === 'object' ? importedSettings.categoryOrder : {});
               setHiddenCategories(importedSettings?.hiddenCategories && typeof importedSettings.hiddenCategories === 'object' ? importedSettings.hiddenCategories : {});
               setRecurringRules(Array.isArray(importedSettings?.recurringRules) ? importedSettings.recurringRules : []);
@@ -3042,6 +3126,7 @@ export default function App() {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('asset', category.id);
                         const isOpen = openPaletteKey === paletteKey;
+                        const isRenaming = editingCategory?.type === 'asset' && editingCategory.id === category.id;
 
                         return (
                           <div
@@ -3049,8 +3134,14 @@ export default function App() {
                             data-category-id={category.id}
                             data-category-scope="asset"
                             className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable
-                            onDragStart={() => setDragCategory({ type: 'asset', id: category.id })}
+                            draggable={!isRenaming}
+                            onDragStart={(event) => {
+                              if (isRenaming) {
+                                event.preventDefault();
+                                return;
+                              }
+                              setDragCategory({ type: 'asset', id: category.id });
+                            }}
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'asset', category.id, activeAssetCategories)}
                             onDragEnd={() => setDragCategory(null)}
@@ -3109,13 +3200,41 @@ export default function App() {
                               )}
                             </div>
                             <div className="category-row-main" style={{ flex: 1 }}>
-                              <CategoryBadge categories={activeAssetCategories} idOrLabel={category.id} />
+                              {isRenaming ? (
+                                <form
+                                  className="category-name-edit"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    handleSaveCategoryRename('asset', category.id);
+                                  }}
+                                >
+                                  <input
+                                    value={categoryNameDraft}
+                                    onChange={(event) => setCategoryNameDraft(event.target.value)}
+                                    autoFocus
+                                  />
+                                  <button type="submit" className="category-row-action category-row-action-save">저장</button>
+                                  <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
+                                </form>
+                              ) : (
+                                <CategoryBadge categories={activeAssetCategories} idOrLabel={category.id} />
+                              )}
                             </div>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action category-row-action-edit"
+                                onClick={() => handleStartCategoryRename('asset', category)}
+                              >
+                                수정
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="category-row-action"
                               style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
                               onClick={() => handleArchiveCategory('asset', category.id, category.label)}
+                              disabled={isRenaming}
                             >
                               삭제
                             </button>
@@ -3242,6 +3361,7 @@ export default function App() {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('expense', category.id);
                         const isOpen = openPaletteKey === paletteKey;
+                        const isRenaming = editingCategory?.type === 'expense' && editingCategory.id === category.id;
 
                         return (
                           <div
@@ -3249,8 +3369,14 @@ export default function App() {
                             data-category-id={category.id}
                             data-category-scope="expense"
                             className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable
-                            onDragStart={() => setDragCategory({ type: 'expense', id: category.id })}
+                            draggable={!isRenaming}
+                            onDragStart={(event) => {
+                              if (isRenaming) {
+                                event.preventDefault();
+                                return;
+                              }
+                              setDragCategory({ type: 'expense', id: category.id });
+                            }}
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'expense', category.id, activeExpenseCategories)}
                             onDragEnd={() => setDragCategory(null)}
@@ -3309,13 +3435,41 @@ export default function App() {
                               )}
                             </div>
                             <div className="category-row-main" style={{ flex: 1 }}>
-                              <CategoryBadge categories={activeExpenseCategories} idOrLabel={category.id} />
+                              {isRenaming ? (
+                                <form
+                                  className="category-name-edit"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    handleSaveCategoryRename('expense', category.id);
+                                  }}
+                                >
+                                  <input
+                                    value={categoryNameDraft}
+                                    onChange={(event) => setCategoryNameDraft(event.target.value)}
+                                    autoFocus
+                                  />
+                                  <button type="submit" className="category-row-action category-row-action-save">저장</button>
+                                  <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
+                                </form>
+                              ) : (
+                                <CategoryBadge categories={activeExpenseCategories} idOrLabel={category.id} />
+                              )}
                             </div>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action category-row-action-edit"
+                                onClick={() => handleStartCategoryRename('expense', category)}
+                              >
+                                수정
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="category-row-action"
                               style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
                               onClick={() => handleArchiveCategory('expense', category.id, category.label)}
+                              disabled={isRenaming}
                             >
                               삭제
                             </button>
@@ -3338,6 +3492,7 @@ export default function App() {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('income', category.id);
                         const isOpen = openPaletteKey === paletteKey;
+                        const isRenaming = editingCategory?.type === 'income' && editingCategory.id === category.id;
 
                         return (
                           <div
@@ -3345,8 +3500,14 @@ export default function App() {
                             data-category-id={category.id}
                             data-category-scope="income"
                             className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable
-                            onDragStart={() => setDragCategory({ type: 'income', id: category.id })}
+                            draggable={!isRenaming}
+                            onDragStart={(event) => {
+                              if (isRenaming) {
+                                event.preventDefault();
+                                return;
+                              }
+                              setDragCategory({ type: 'income', id: category.id });
+                            }}
                             onDragOver={(event) => event.preventDefault()}
                             onDrop={(event) => handleCategoryDrop(event, 'income', category.id, activeIncomeCategories)}
                             onDragEnd={() => setDragCategory(null)}
@@ -3405,13 +3566,41 @@ export default function App() {
                               )}
                             </div>
                             <div className="category-row-main" style={{ flex: 1 }}>
-                              <CategoryBadge categories={activeIncomeCategories} idOrLabel={category.id} />
+                              {isRenaming ? (
+                                <form
+                                  className="category-name-edit"
+                                  onSubmit={(event) => {
+                                    event.preventDefault();
+                                    handleSaveCategoryRename('income', category.id);
+                                  }}
+                                >
+                                  <input
+                                    value={categoryNameDraft}
+                                    onChange={(event) => setCategoryNameDraft(event.target.value)}
+                                    autoFocus
+                                  />
+                                  <button type="submit" className="category-row-action category-row-action-save">저장</button>
+                                  <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
+                                </form>
+                              ) : (
+                                <CategoryBadge categories={activeIncomeCategories} idOrLabel={category.id} />
+                              )}
                             </div>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action category-row-action-edit"
+                                onClick={() => handleStartCategoryRename('income', category)}
+                              >
+                                수정
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="category-row-action"
                               style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
                               onClick={() => handleArchiveCategory('income', category.id, category.label)}
+                              disabled={isRenaming}
                             >
                               삭제
                             </button>
