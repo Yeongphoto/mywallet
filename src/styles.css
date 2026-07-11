@@ -2325,6 +2325,49 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
   background: var(--bg-app);
 }
+
+.plan-total-bar {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-card);
+}
+
+.plan-total-item {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-input);
+}
+
+.plan-total-item span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.plan-total-item strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.plan-total-expense strong {
+  color: var(--color-expense);
+}
+
+.plan-total-income strong {
+  color: var(--color-income);
+}
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

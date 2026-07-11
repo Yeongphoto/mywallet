@@ -1171,10 +1171,12 @@ export default function App() {
     () => plans.filter(p => p.type === 'income').reduce((sum, p) => sum + p.plannedAmount, 0),
     [plans]
   );
+  const monthlyBudgetTotal = plannedExpenseTotal;
+  const plannedNetTotal = plannedIncomeTotal - plannedExpenseTotal;
 
   // Budget calculations
-  const budgetPercent = budget > 0 ? Math.min(Math.round((expenseTotal / budget) * 100), 200) : 0;
-  const budgetRemaining = budget - expenseTotal;
+  const budgetPercent = monthlyBudgetTotal > 0 ? Math.min(Math.round((expenseTotal / monthlyBudgetTotal) * 100), 200) : 0;
+  const budgetRemaining = monthlyBudgetTotal - expenseTotal;
   const budgetTone = budgetPercent >= 100 ? 'danger' : budgetPercent >= 80 ? 'warn' : 'safe';
 
   // Category summary calculations
@@ -2181,7 +2183,7 @@ export default function App() {
               </article>
               <article className="summary-card budget-status">
                 <span>설정된 한달 예산</span>
-                <strong>{displayCurrency(budget)}</strong>
+                <strong>{displayCurrency(monthlyBudgetTotal)}</strong>
                 <small>예산 대비 {budgetPercent}% 소진 중</small>
               </article>
               <article className="summary-card asset">
@@ -3340,6 +3342,20 @@ export default function App() {
                         })}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+                <div className="plan-total-bar">
+                  <div className="plan-total-item plan-total-expense">
+                    <span>지출 예산 합계</span>
+                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
+                  </div>
+                  <div className="plan-total-item plan-total-income">
+                    <span>수입 목표 합계</span>
+                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
+                  </div>
+                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
+                    <span>계획 차액</span>
+                    <strong>{displayCurrency(plannedNetTotal)}</strong>
                   </div>
                 </div>
               </div>

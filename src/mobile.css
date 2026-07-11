@@ -533,6 +533,16 @@
     font-size: 0.9rem !important;
     border-radius: 12px !important;
   }
+
+  .plan-total-bar {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .plan-total-item {
+    min-height: 42px !important;
+    padding: 0 12px !important;
+  }
   
   .add-category-bar {
     padding: 10px !important;
@@ -692,6 +702,10 @@
   .plan-amount-control input {
     width: 128px !important;
     min-width: 128px !important;
+  }
+
+  .plan-total-bar {
+    grid-template-columns: 1fr !important;
   }
 
   .floating-action {
