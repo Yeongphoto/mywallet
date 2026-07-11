@@ -12,9 +12,9 @@
   "lang": "ko-KR",
   "icons": [
     {
-      "src": "/logo-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/logo.png",
+      "sizes": "322x322",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]

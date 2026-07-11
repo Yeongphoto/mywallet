@@ -425,6 +425,31 @@ button:active {
   border-color: rgba(239, 68, 68, 0.24);
 }
 
+.privacy-toggle {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-input);
+  border-radius: 12px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.18s ease;
+}
+
+.privacy-toggle:hover,
+.privacy-toggle.active {
+  border-color: rgba(var(--primary-rgb), 0.42);
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+}
+
+.privacy-toggle .app-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .header-settings-btn {
   background: var(--bg-input);
   border: 1px solid var(--border-input);

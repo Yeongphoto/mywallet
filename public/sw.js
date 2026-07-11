@@ -1,7 +1,8 @@
-const CACHE_NAME = 'mywallet-shell-v2';
+const CACHE_NAME = 'mywallet-shell-v3';
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
+  '/logo.png',
   '/favicon.svg',
   '/logo.svg',
   '/logo-icon.svg',

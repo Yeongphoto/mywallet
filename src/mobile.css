@@ -87,7 +87,7 @@
   }
 
   :root {
-    --mobile-action-bar-lift: 20px;
+    --mobile-action-bar-lift: 10px;
     --fab-right: 50%;
     --fab-bottom: 86px;
     --fab-gap: 8px;
@@ -96,7 +96,7 @@
     --fab-bar-radius: 26px;
     --fab-bar-bg: rgba(15, 23, 42, 0.88);
     --fab-bar-border: rgba(255, 255, 255, 0.16);
-    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-top: max(calc(env(safe-area-inset-top, 0px) - 10px), 0px);
     --header-height: calc(54px + var(--safe-top));
     --footer-height: calc(92px + env(safe-area-inset-bottom, 0px));
   }
@@ -206,6 +206,15 @@
     height: 22px !important;
     min-height: 0 !important;
     padding: 0 !important;
+  }
+
+  .privacy-toggle {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
   }
   
   .app-header .header-brand {

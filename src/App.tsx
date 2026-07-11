@@ -48,7 +48,7 @@ type CategoryColorMap = Record<string, string>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
-type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight';
+type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
@@ -88,6 +88,8 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
     edit: ['M12 20h9', 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z'],
     chevronLeft: ['M15 18l-6-6 6-6'],
     chevronRight: ['M9 18l6-6-6-6'],
+    eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
+    eyeOff: ['M3 3l18 18', 'M10.6 10.6A3 3 0 0 0 13.4 13.4', 'M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a17.8 17.8 0 0 1-3.2 4.4', 'M6.6 6.6C3.6 8.4 2 12 2 12s3.5 8 10 8a10.7 10.7 0 0 0 4.1-.8'],
   };
 
   return (
@@ -600,6 +602,7 @@ export default function App() {
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
   const [settingsSection, setSettingsSection] = useState<'app' | 'data'>('app');
+  const [privacyMode, setPrivacyMode] = useState(false);
   
   // Dashboard Chart states
   const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense'>('both');
@@ -1905,6 +1908,8 @@ export default function App() {
   ];
 
   const topSyncStatus = !isOnline ? 'offline' : remoteSync.status;
+  const displayCurrency = (value: number) => (privacyMode ? '₩••••••' : formatCurrency(value));
+  const displayCalendarAmount = (value: number) => (privacyMode ? '•••' : formatMobileCalendarAmount(value));
 
   return (
     <main className="app-shell">
@@ -2025,6 +2030,15 @@ export default function App() {
           <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
             <span aria-hidden="true" />
           </div>
+          <button
+            type="button"
+            className={`privacy-toggle ${privacyMode ? 'active' : ''}`}
+            onClick={() => setPrivacyMode((prev) => !prev)}
+            title={privacyMode ? '금액 표시' : '금액 숨기기'}
+            aria-pressed={privacyMode}
+          >
+            <AppIcon name={privacyMode ? 'eyeOff' : 'eye'} size={18} />
+          </button>
           {/* 공통 월 선택 영역 */}
           <div className="month-picker-wrap">
             <div className="month-picker-display">
@@ -2073,22 +2087,22 @@ export default function App() {
             <section className="summary-grid" aria-label="월간 요약">
               <article className="summary-card expense">
                 <span>이번 달 총 지출</span>
-                <strong>{formatCurrency(expenseTotal)}</strong>
+                <strong>{displayCurrency(expenseTotal)}</strong>
                 <small>합리적인 소비를 위한 예산 대비 관리</small>
               </article>
               <article className="summary-card income">
                 <span>이번 달 총 수입</span>
-                <strong>{formatCurrency(incomeTotal)}</strong>
+                <strong>{displayCurrency(incomeTotal)}</strong>
                 <small>월별 부가 소득 및 급여 포함</small>
               </article>
               <article className="summary-card budget-status">
                 <span>설정된 한달 예산</span>
-                <strong>{formatCurrency(budget)}</strong>
+                <strong>{displayCurrency(budget)}</strong>
                 <small>예산 대비 {budgetPercent}% 소진 중</small>
               </article>
               <article className="summary-card asset">
                 <span>총 관리 자산</span>
-                <strong>{formatCurrency(assetTotal)}</strong>
+                <strong>{displayCurrency(assetTotal)}</strong>
                 <small>현금, 투자 자산 등 누적 금액</small>
               </article>
             </section>
@@ -2542,20 +2556,20 @@ export default function App() {
                     {(chartFilter === 'both' || chartFilter === 'income') && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                         <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 수입:</span>
-                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].income)}</span>
+                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].income)}</span>
                       </div>
                     )}
                     {(chartFilter === 'both' || chartFilter === 'expense') && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                         <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 지출:</span>
-                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(yearlyData[hoveredChartIndex].expense)}</span>
+                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].expense)}</span>
                       </div>
                     )}
                     {chartFilter === 'both' && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '2px', marginTop: '2px' }}>
                         <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
                         <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
-                          {formatCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
+                          {displayCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
                         </span>
                       </div>
                     )}
@@ -2600,13 +2614,13 @@ export default function App() {
               {/* 선택된 요약 테이블만 렌더링 */}
               <div style={{ width: '100%', gridColumn: '1 / -1' }}>
                 {summaryType === 'expense' && (
-                  <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} />
+                  <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} />
                 )}
                 {summaryType === 'income' && (
-                  <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} />
+                  <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} formatMoney={displayCurrency} />
                 )}
                 {summaryType === 'asset' && (
-                  <CategorySummaryColumn title="자산 분배 상태 요약" categories={activeAssetCategories} values={assetSummary} />
+                  <CategorySummaryColumn title="자산 분배 상태 요약" categories={activeAssetCategories} values={assetSummary} formatMoney={displayCurrency} />
                 )}
               </div>
             </section>
@@ -2677,10 +2691,10 @@ export default function App() {
                     <span className="date-number">{day.dayNum}</span>
                     <div className="day-values">
                       {daySums?.income > 0 && (
-                        <span className="calendar-value-badge income">+{formatMobileCalendarAmount(daySums.income)}</span>
+                        <span className="calendar-value-badge income">+{displayCalendarAmount(daySums.income)}</span>
                       )}
                       {daySums?.expense > 0 && (
-                        <span className="calendar-value-badge expense">-{formatMobileCalendarAmount(daySums.expense)}</span>
+                        <span className="calendar-value-badge expense">-{displayCalendarAmount(daySums.expense)}</span>
                       )}
                     </div>
                   </div>
@@ -2738,6 +2752,7 @@ export default function App() {
                 onEdit={setEditingTransaction}
                 categories={allExpenseCategories}
                 onStopRecurring={handleStopRecurringFromTx}
+                formatMoney={displayCurrency}
               />
               <TransactionListTable
                 title="수입 내역"
@@ -2747,6 +2762,7 @@ export default function App() {
                 onEdit={setEditingTransaction}
                 categories={allIncomeCategories}
                 onStopRecurring={handleStopRecurringFromTx}
+                formatMoney={displayCurrency}
               />
             </div>
           </section>
@@ -2798,7 +2814,7 @@ export default function App() {
                           <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
                           <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
                           <td style={{ padding: '12px 8px' }}>{rule.title}</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(rule.amount)}</td>
+                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
                           <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {rule.startMonth} ~ {rule.endMonth ? `🏁 ${rule.endMonth} 끊김` : '진행중'}
                           </td>
@@ -2890,7 +2906,7 @@ export default function App() {
               <div>
                 <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>자산 현황</h1>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  <strong className="section-title-icon" style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}><AppIcon name="asset" size={18} /> 자산 총액: {formatCurrency(assetTotal)}</strong>
+                  <strong className="section-title-icon" style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}><AppIcon name="asset" size={18} /> 자산 총액: {displayCurrency(assetTotal)}</strong>
                 </div>
               </div>
             </div>
@@ -2947,7 +2963,7 @@ export default function App() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', visibility: 'hidden' }}>
                               <span style={{ fontSize: '1.1rem' }}>⠿</span>
                               <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
+                              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{displayCurrency(asset.amount)}</span>
                               {asset.memo && (
                                 <span style={{ fontSize: '0.82rem' }}>({asset.memo})</span>
                               )}
@@ -2980,7 +2996,7 @@ export default function App() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                             <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
                             <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{formatCurrency(asset.amount)}</span>
+                            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(asset.amount)}</span>
                             {asset.memo && (
                               <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '8px' }}>({asset.memo})</span>
                             )}
@@ -3578,7 +3594,7 @@ export default function App() {
                             {/* 하단: 금액 표시 */}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-card)', paddingTop: '8px', marginTop: '2px' }}>
                               <span style={{ fontSize: '1.15rem', fontWeight: '800', color: isIncome ? 'var(--color-income)' : 'var(--color-expense)' }}>
-                                {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
+                                {isIncome ? '+' : '-'}{displayCurrency(t.amount)}
                               </span>
                             </div>
                           </div>
@@ -4141,19 +4157,21 @@ function FlowRowItem({
   max,
   tone,
   segments,
+  formatMoney = formatCurrency,
 }: {
   label: string;
   value: number;
   max: number;
   tone: 'expense' | 'income' | 'asset';
   segments: FlowSegment[];
+  formatMoney?: (value: number) => string;
 }) {
   const width = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="flow-row">
       <div>
         <strong>{label}</strong>
-        <span>{formatCurrency(value)}</span>
+        <span>{formatMoney(value)}</span>
       </div>
       <div className="flow-track">
         <div className={`flow-fill ${tone}`} style={{ width: `${width}%` }}>
@@ -4161,7 +4179,7 @@ function FlowRowItem({
             segments.map((segment) => (
               <i
                 key={segment.id}
-                title={`${segment.label} ${formatCurrency(segment.value)}`}
+                title={`${segment.label} ${formatMoney(segment.value)}`}
                 style={{ width: `${(segment.value / value) * 100}%`, background: segment.color }}
               />
             ))
@@ -4175,7 +4193,7 @@ function FlowRowItem({
 }
 
 // Category summary sub-column
-function CategorySummaryColumn({ title, categories, values }: { title: string; categories: CategoryOption[]; values: Record<string, number> }) {
+function CategorySummaryColumn({ title, categories, values, formatMoney = formatCurrency }: { title: string; categories: CategoryOption[]; values: Record<string, number>; formatMoney?: (value: number) => string }) {
   const validCategories = categories.filter(category => (values[category.id] ?? 0) !== 0);
   const total = validCategories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
 
@@ -4206,12 +4224,12 @@ function CategorySummaryColumn({ title, categories, values }: { title: string; c
           {validCategories.map((category) => (
             <tr key={category.id}>
               <td>{category.label}</td>
-              <td>{formatCurrency(values[category.id] ?? 0)}</td>
+              <td>{formatMoney(values[category.id] ?? 0)}</td>
             </tr>
           ))}
           <tr className="total-row">
             <td>합계</td>
-            <td>{formatCurrency(total)}</td>
+            <td>{formatMoney(total)}</td>
           </tr>
         </tbody>
       </table>
@@ -4228,6 +4246,7 @@ function TransactionListTable({
   onEdit,
   categories,
   onStopRecurring,
+  formatMoney = formatCurrency,
 }: {
   title: string;
   type: TransactionType;
@@ -4236,6 +4255,7 @@ function TransactionListTable({
   onEdit: (t: Transaction) => void;
   categories: CategoryOption[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
+  formatMoney?: (value: number) => string;
 }) {
 
   return (
@@ -4265,7 +4285,7 @@ function TransactionListTable({
                 return (
                   <tr key={transaction.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
                     <td>{transaction.date}</td>
-                    <td style={{ fontWeight: 600 }}>{formatCurrency(transaction.amount)}</td>
+                    <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount)}</td>
                   <td>
                     {transaction.title}
                     {transaction.recurringRuleId && (
