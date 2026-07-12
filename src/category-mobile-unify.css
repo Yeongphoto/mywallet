@@ -163,6 +163,10 @@
     left: -46px !important;
     z-index: 80 !important;
   }
+
+  .managed-category-card:not([data-category-scope="expense"]) .category-row {
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
+  }
 }
 
 @media (max-width: 992px) {
@@ -224,6 +228,10 @@
     padding: 0 3px !important;
     font-size: 0.72rem !important;
   }
+
+  .content .managed-category-card:not([data-category-scope="expense"]) .category-row {
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
+  }
 }
 
 @media (max-width: 420px) {
@@ -254,5 +262,9 @@
     width: 34px !important;
     padding: 0 5px !important;
     font-size: 0.68rem !important;
+  }
+
+  .managed-category-card:not([data-category-scope="expense"]) .category-row {
+    grid-template-columns: 22px 34px minmax(52px, 1fr) 36px 34px !important;
   }
 }

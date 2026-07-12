@@ -630,7 +630,7 @@ export default function App() {
   const [privacyMode, setPrivacyMode] = useState(false);
   
   // Dashboard Chart states
-  const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense'>('both');
+  const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense' | 'asset'>('both');
   const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
   const [hoveredChartPos, setHoveredChartPos] = useState<{ x: number; y: number } | null>(null);
   const [summaryType, setSummaryType] = useState<'expense' | 'income' | 'asset'>('expense');
@@ -643,6 +643,7 @@ export default function App() {
   const yearlyData = useMemo(() => {
     const year = selectedMonth.slice(0, 4);
     const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+    const currentAssetTotal = assets.reduce((sum, asset) => sum + asset.amount, 0);
     return months.map((mo) => {
       const monthStr = `${year}-${mo}`;
       const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr));
@@ -652,9 +653,10 @@ export default function App() {
         month: `${Number(mo)}월`,
         income,
         expense,
+        asset: currentAssetTotal,
       };
     });
-  }, [transactions, selectedMonth]);
+  }, [transactions, assets, selectedMonth]);
 
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
@@ -2233,8 +2235,7 @@ export default function App() {
             <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
               <div className="panel-header" style={{ marginBottom: '0px' }}>
                 <div>
-                  <p className="eyebrow">Asset Allocation</p>
-                  <h2 style={{ margin: 0 }}>자산 분배 현황</h2>
+                  <h2 className="panel-title-kor">자산 분배 현황</h2>
                 </div>
               </div>
 
@@ -2408,8 +2409,7 @@ export default function App() {
             <section className="glass-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px', overflow: 'visible', zIndex: 10 }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
-                  <p className="eyebrow">Annual Analytics</p>
-                  <h2 style={{ margin: 0 }}>{selectedMonth.slice(0, 4)}년 연간 수입 · 지출 추이</h2>
+                  <h2 className="panel-title-kor">연간 그래프</h2>
                 </div>
                 
                 {/* 필터 칩 선택기 */}
@@ -2430,7 +2430,7 @@ export default function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    전체 비교
+                    지출입
                   </button>
                   <button 
                     type="button" 
@@ -2448,7 +2448,7 @@ export default function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    수입만
+                    수입
                   </button>
                   <button 
                     type="button" 
@@ -2466,7 +2466,25 @@ export default function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    지출만
+                    지출
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setChartFilter('asset')}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: chartFilter === 'asset' ? 'var(--bg-app)' : 'transparent',
+                      color: chartFilter === 'asset' ? 'var(--color-asset)' : 'var(--text-secondary)',
+                      boxShadow: chartFilter === 'asset' ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    자산
                   </button>
                 </div>
               </div>
@@ -2485,6 +2503,10 @@ export default function App() {
                         <stop offset="0%" stopColor="#f87171" />
                         <stop offset="100%" stopColor="#ef4444" />
                       </linearGradient>
+                      <linearGradient id="chart-asset-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#34d399" />
+                        <stop offset="100%" stopColor="#10b981" />
+                      </linearGradient>
                     </defs>
 
                     {/* Y축 그리드 라인 & 라벨 */}
@@ -2493,6 +2515,7 @@ export default function App() {
                         ...yearlyData.map(d => {
                           if (chartFilter === 'income') return d.income;
                           if (chartFilter === 'expense') return d.expense;
+                          if (chartFilter === 'asset') return d.asset;
                           return Math.max(d.income, d.expense);
                         }),
                         100000
@@ -2562,9 +2585,11 @@ export default function App() {
                             
                             const incHeight = d.income * scale;
                             const expHeight = d.expense * scale;
+                            const assetHeight = d.asset * scale;
                             
                             const showIncome = chartFilter === 'both' || chartFilter === 'income';
                             const showExpense = chartFilter === 'both' || chartFilter === 'expense';
+                            const showAsset = chartFilter === 'asset';
 
                             return (
                               <g 
@@ -2617,6 +2642,20 @@ export default function App() {
                                     rx="3"
                                     ry="3"
                                     fill="url(#chart-expense-grad)"
+                                    opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
+                                    style={{ transition: 'all 0.2s ease-in-out' }}
+                                  />
+                                )}
+
+                                {showAsset && (
+                                  <rect
+                                    x={xCenter - 9}
+                                    y={190 - assetHeight}
+                                    width="18"
+                                    height={Math.max(assetHeight, 2)}
+                                    rx="3"
+                                    ry="3"
+                                    fill="url(#chart-asset-grad)"
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
@@ -2684,6 +2723,12 @@ export default function App() {
                         <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].expense)}</span>
                       </div>
                     )}
+                    {chartFilter === 'asset' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ color: '#34d399', fontWeight: 600 }}>자산:</span>
+                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
+                      </div>
+                    )}
                     {chartFilter === 'both' && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '2px', marginTop: '2px' }}>
                         <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
@@ -2701,8 +2746,7 @@ export default function App() {
             <section className="glass-panel summary-table-grid" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="panel-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
                 <div>
-                  <p className="eyebrow">Category Summary</p>
-                  <h2 style={{ margin: 0, fontSize: '0.94rem', whiteSpace: 'nowrap' }}>카테고리별 합계 요약</h2>
+                  <h2 className="panel-title-kor">카테고리별 요약</h2>
                 </div>
                 
                 {/* 드롭다운 셀렉트 박스 */}
@@ -2710,7 +2754,7 @@ export default function App() {
                   value={summaryType} 
                   onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
                   style={{
-                    padding: '4px 20px 4px 6px',
+                    padding: '5px 28px 5px 10px',
                     borderRadius: '6px',
                     border: '1px solid var(--border-input)',
                     background: 'var(--bg-input)',
@@ -2719,8 +2763,8 @@ export default function App() {
                     fontSize: '0.76rem',
                     cursor: 'pointer',
                     outline: 'none',
-                    minWidth: '78px',
-                    width: '78px',
+                    minWidth: '116px',
+                    width: '116px',
                     boxShadow: 'var(--shadow-sm)'
                   }}
                 >
@@ -2828,8 +2872,7 @@ export default function App() {
           <section className="glass-panel">
             <div className="ledger-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <p className="eyebrow">Ledger List</p>
-                <h2 style={{ margin: 0 }}>거래 장부 목록</h2>
+                <h2 className="page-title-kor">거래 장부 목록</h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span className="record-count" style={{ margin: 0 }}>{filteredLedgerTransactions.length}건 검색됨</span>
@@ -3023,7 +3066,7 @@ export default function App() {
             {/* 자산 탭 상단 헤더 및 등록 제어 단추 */}
             <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>자산 현황</h1>
+                <h1 className="page-title-kor" style={{ marginBottom: '4px' }}>자산 현황</h1>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   <strong className="section-title-icon" style={{ fontSize: '1.05rem', color: 'var(--color-asset)' }}><AppIcon name="asset" size={18} /> 자산 총액: {displayCurrency(assetTotal)}</strong>
                 </div>
@@ -3290,7 +3333,7 @@ export default function App() {
           <>
             <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>월간 계획 설정</h1>
+                <h1 className="page-title-kor">월간 계획 설정</h1>
               </div>
             </div>
 
@@ -4475,14 +4518,7 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
 
   return (
     <article className="summary-column">
-      <h3>{title}</h3>
       <table>
-        <thead>
-          <tr>
-            <th>카테고리</th>
-            <th>금액</th>
-          </tr>
-        </thead>
         <tbody>
           {validCategories.map((category) => (
             <tr key={category.id}>
