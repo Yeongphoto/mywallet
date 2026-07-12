@@ -504,6 +504,16 @@ button:active {
   font-size: 1.08rem;
 }
 
+.page-title-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.page-title-with-icon .app-icon {
+  color: currentColor;
+}
+
 /* Inputs & Labels */
 label {
   display: grid;
@@ -847,7 +857,7 @@ textarea:focus {
 }
 
 .calendar-control h2 {
-  font-size: 1.4rem;
+  font-size: 1.08rem;
   font-weight: 800;
   margin: 0;
 }

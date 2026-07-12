@@ -2807,7 +2807,8 @@ export default function App() {
             }}
           >
             <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2>
+              <h2 className="page-title-kor page-title-with-icon">
+                <AppIcon name="calendar" size={18} />
                 {calendarYear}년 {calendarMonth + 1}월
               </h2>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -2872,7 +2873,7 @@ export default function App() {
           <section className="glass-panel">
             <div className="ledger-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h2 className="page-title-kor">거래 장부 목록</h2>
+                <h2 className="page-title-kor page-title-with-icon"><AppIcon name="ledger" size={18} /> 거래 장부 목록</h2>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <span className="record-count" style={{ margin: 0 }}>{filteredLedgerTransactions.length}건 검색됨</span>
