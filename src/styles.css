@@ -507,7 +507,9 @@ button:active {
 .page-title-with-icon {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  font-size: 1.2rem;
+  font-weight: 850;
 }
 
 .page-title-with-icon .app-icon {
