@@ -3525,7 +3525,7 @@ export default function App() {
                                     }}
                                   />
                                   <span aria-hidden="true" />
-                                  <b>예산 제외</b>
+                                  <b>예산</b>
                                 </label>
                                 <button
                                   type="button"

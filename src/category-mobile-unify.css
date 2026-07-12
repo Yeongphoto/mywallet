@@ -5,13 +5,14 @@
     grid-template-columns: 1fr !important;
     gap: 14px !important;
     margin-top: 12px !important;
+    overflow: visible !important;
   }
 
   .managed-category-card {
     width: 100% !important;
     min-width: 0 !important;
     border-radius: 18px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     box-shadow: none !important;
   }
 
@@ -36,7 +37,7 @@
     border-radius: 0 !important;
     background: transparent !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   .managed-category-card .category-row.dragging {
@@ -160,6 +161,7 @@
 
   .managed-category-card .category-palette-popover {
     left: -46px !important;
+    z-index: 80 !important;
   }
 }
 
