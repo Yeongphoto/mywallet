@@ -46,6 +46,7 @@ type NoticeType = 'info' | 'success' | 'warning' | 'error';
 type CategoryScope = TransactionType | 'asset';
 type CategoryColorMap = Record<string, string>;
 type CategoryLabelMap = Record<string, string>;
+type CategoryBudgetExcludedMap = Record<string, boolean>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
@@ -318,6 +319,7 @@ function loadStoredData() {
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
       categoryLabels: {} as CategoryLabelMap,
+      categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
@@ -343,6 +345,7 @@ function loadStoredData() {
           customAssetCategories: [] as CategoryOption[],
           categoryColors: {} as CategoryColorMap,
           categoryLabels: {} as CategoryLabelMap,
+          categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
           categoryOrder: {} as CategoryOrderMap,
           hiddenCategories: {} as HiddenCategoryMap,
           recurringRules: [] as RecurringRule[],
@@ -361,6 +364,7 @@ function loadStoredData() {
         customAssetCategories: [] as CategoryOption[],
         categoryColors: {} as CategoryColorMap,
         categoryLabels: {} as CategoryLabelMap,
+        categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
         categoryOrder: {} as CategoryOrderMap,
         hiddenCategories: {} as HiddenCategoryMap,
         recurringRules: [] as RecurringRule[],
@@ -381,6 +385,7 @@ function loadStoredData() {
       customAssetCategories: Array.isArray(parsed.customAssetCategories) ? parsed.customAssetCategories : [] as CategoryOption[],
       categoryColors: parsed.categoryColors && typeof parsed.categoryColors === 'object' ? parsed.categoryColors as CategoryColorMap : {} as CategoryColorMap,
       categoryLabels: parsed.categoryLabels && typeof parsed.categoryLabels === 'object' ? parsed.categoryLabels as CategoryLabelMap : {} as CategoryLabelMap,
+      categoryBudgetExcluded: parsed.categoryBudgetExcluded && typeof parsed.categoryBudgetExcluded === 'object' ? parsed.categoryBudgetExcluded as CategoryBudgetExcludedMap : {} as CategoryBudgetExcludedMap,
       categoryOrder: parsed.categoryOrder && typeof parsed.categoryOrder === 'object' ? parsed.categoryOrder as CategoryOrderMap : {} as CategoryOrderMap,
       hiddenCategories: parsed.hiddenCategories && typeof parsed.hiddenCategories === 'object' ? parsed.hiddenCategories as HiddenCategoryMap : {} as HiddenCategoryMap,
       recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[],
@@ -399,6 +404,7 @@ function loadStoredData() {
       customAssetCategories: [] as CategoryOption[],
       categoryColors: {} as CategoryColorMap,
       categoryLabels: {} as CategoryLabelMap,
+      categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
       recurringRules: [] as RecurringRule[],
@@ -419,6 +425,7 @@ function saveLocalStorage(
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
   categoryLabels: CategoryLabelMap,
+  categoryBudgetExcluded: CategoryBudgetExcludedMap,
   categoryOrder: CategoryOrderMap,
   hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
@@ -439,6 +446,7 @@ function saveLocalStorage(
         customAssetCategories,
         categoryColors,
         categoryLabels,
+        categoryBudgetExcluded,
         categoryOrder,
         hiddenCategories,
         recurringRules, 
@@ -462,6 +470,7 @@ function saveRemoteD1(
   customAssetCategories: CategoryOption[],
   categoryColors: CategoryColorMap,
   categoryLabels: CategoryLabelMap,
+  categoryBudgetExcluded: CategoryBudgetExcludedMap,
   categoryOrder: CategoryOrderMap,
   hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
@@ -484,6 +493,7 @@ function saveRemoteD1(
       customAssetCategories,
       categoryColors,
       categoryLabels,
+      categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -566,6 +576,7 @@ export default function App() {
   const [customAssetCategories, setCustomAssetCategories] = useState<CategoryOption[]>(storedData.customAssetCategories || []);
   const [categoryColors, setCategoryColors] = useState<CategoryColorMap>(storedData.categoryColors || {});
   const [categoryLabels, setCategoryLabels] = useState<CategoryLabelMap>(storedData.categoryLabels || {});
+  const [categoryBudgetExcluded, setCategoryBudgetExcluded] = useState<CategoryBudgetExcludedMap>(storedData.categoryBudgetExcluded || {});
   const [categoryOrder, setCategoryOrder] = useState<CategoryOrderMap>(storedData.categoryOrder || {});
   const [hiddenCategories, setHiddenCategories] = useState<HiddenCategoryMap>(storedData.hiddenCategories || {});
    const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
@@ -746,6 +757,7 @@ export default function App() {
       customAssetCategories,
       categoryColors,
       categoryLabels,
+      categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
       recurringRules, 
@@ -789,6 +801,7 @@ export default function App() {
         customAssetCategories,
         categoryColors,
         categoryLabels,
+        categoryBudgetExcluded,
         categoryOrder,
         hiddenCategories,
         recurringRules, 
@@ -836,6 +849,7 @@ export default function App() {
     customAssetCategories,
     categoryColors,
     categoryLabels,
+    categoryBudgetExcluded,
     categoryOrder,
     hiddenCategories,
     recurringRules, 
@@ -869,6 +883,7 @@ export default function App() {
             (Array.isArray(data.customAssetCategories) && data.customAssetCategories.length > 0) ||
             (data.categoryColors && typeof data.categoryColors === 'object' && Object.keys(data.categoryColors).length > 0) ||
             (data.categoryLabels && typeof data.categoryLabels === 'object' && Object.keys(data.categoryLabels).length > 0) ||
+            (data.categoryBudgetExcluded && typeof data.categoryBudgetExcluded === 'object' && Object.keys(data.categoryBudgetExcluded).length > 0) ||
             (data.categoryOrder && typeof data.categoryOrder === 'object' && Object.keys(data.categoryOrder).length > 0) ||
             (data.hiddenCategories && typeof data.hiddenCategories === 'object' && Object.keys(data.hiddenCategories).length > 0) ||
             (Array.isArray(data.recurringRules) && data.recurringRules.length > 0) ||
@@ -882,6 +897,7 @@ export default function App() {
             storedData.customAssetCategories.length > 0 ||
             Object.keys(storedData.categoryColors || {}).length > 0 ||
             Object.keys(storedData.categoryLabels || {}).length > 0 ||
+            Object.keys(storedData.categoryBudgetExcluded || {}).length > 0 ||
             Object.keys(storedData.categoryOrder || {}).length > 0 ||
             Object.keys(storedData.hiddenCategories || {}).length > 0 ||
             storedData.recurringRules.length > 0 ||
@@ -902,6 +918,7 @@ export default function App() {
                 storedData.customAssetCategories,
                 storedData.categoryColors,
                 storedData.categoryLabels,
+                storedData.categoryBudgetExcluded,
                 storedData.categoryOrder,
                 storedData.hiddenCategories,
                 storedData.recurringRules,
@@ -930,6 +947,7 @@ export default function App() {
             setCustomAssetCategories(data.customAssetCategories || []);
             setCategoryColors(data.categoryColors || {});
             setCategoryLabels(data.categoryLabels || {});
+            setCategoryBudgetExcluded(data.categoryBudgetExcluded || {});
             setCategoryOrder(data.categoryOrder || {});
             setHiddenCategories(data.hiddenCategories || {});
             setRecurringRules(data.recurringRules || []);
@@ -955,6 +973,7 @@ export default function App() {
               customAssetCategories.length > 0 ||
               Object.keys(categoryColors).length > 0 ||
               Object.keys(categoryLabels).length > 0 ||
+              Object.keys(categoryBudgetExcluded).length > 0 ||
               Object.keys(categoryOrder).length > 0 ||
               Object.keys(hiddenCategories).length > 0 ||
               recurringRules.length > 0 ||
@@ -973,6 +992,7 @@ export default function App() {
                 customAssetCategories,
                 categoryColors,
                 categoryLabels,
+                categoryBudgetExcluded,
                 categoryOrder,
                 hiddenCategories,
                 recurringRules,
@@ -1161,11 +1181,18 @@ export default function App() {
 
   const balance = incomeTotal - expenseTotal;
   const maxFlow = Math.max(expenseTotal, incomeTotal, assetTotal, 1);
+  const budgetedMonthlyExpenses = useMemo(
+    () => monthlyExpenses.filter((transaction) => !categoryBudgetExcluded[getCategoryColorKey('expense', transaction.category)]),
+    [monthlyExpenses, categoryBudgetExcluded]
+  );
+  const budgetedExpenseTotal = sumAmount(budgetedMonthlyExpenses);
 
   // Plans derived values
   const plannedExpenseTotal = useMemo(
-    () => plans.filter(p => p.type === 'expense').reduce((sum, p) => sum + p.plannedAmount, 0),
-    [plans]
+    () => plans
+      .filter((p) => p.type === 'expense' && !categoryBudgetExcluded[getCategoryColorKey('expense', p.category)])
+      .reduce((sum, p) => sum + p.plannedAmount, 0),
+    [plans, categoryBudgetExcluded]
   );
   const plannedIncomeTotal = useMemo(
     () => plans.filter(p => p.type === 'income').reduce((sum, p) => sum + p.plannedAmount, 0),
@@ -1175,8 +1202,8 @@ export default function App() {
   const plannedNetTotal = plannedIncomeTotal - plannedExpenseTotal;
 
   // Budget calculations
-  const budgetPercent = monthlyBudgetTotal > 0 ? Math.min(Math.round((expenseTotal / monthlyBudgetTotal) * 100), 200) : 0;
-  const budgetRemaining = monthlyBudgetTotal - expenseTotal;
+  const budgetPercent = monthlyBudgetTotal > 0 ? Math.min(Math.round((budgetedExpenseTotal / monthlyBudgetTotal) * 100), 200) : 0;
+  const budgetRemaining = monthlyBudgetTotal - budgetedExpenseTotal;
   const budgetTone = budgetPercent >= 100 ? 'danger' : budgetPercent >= 80 ? 'warn' : 'safe';
 
   // Category summary calculations
@@ -1350,6 +1377,7 @@ export default function App() {
       customAssetCategories,
       categoryColors,
       categoryLabels,
+      categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -1583,6 +1611,7 @@ export default function App() {
       setCustomAssetCategories([]);
       setCategoryColors({});
       setCategoryLabels({});
+      setCategoryBudgetExcluded({});
       setCategoryOrder({});
       setHiddenCategories({});
       setRecurringRules([]);
@@ -1601,6 +1630,7 @@ export default function App() {
         [],
         [],
         [],
+        {},
         {},
         {},
         {},
@@ -1843,6 +1873,7 @@ export default function App() {
       customAssetCategories,
       categoryColors,
       categoryLabels,
+      categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
       recurringRules,
@@ -1885,6 +1916,7 @@ export default function App() {
           customAssetCategories: CategoryOption[];
           categoryColors: CategoryColorMap;
           categoryLabels: CategoryLabelMap;
+          categoryBudgetExcluded: CategoryBudgetExcludedMap;
           categoryOrder: CategoryOrderMap;
           hiddenCategories: HiddenCategoryMap;
           recurringRules: RecurringRule[];
@@ -1945,6 +1977,7 @@ export default function App() {
               setCustomAssetCategories(Array.isArray(importedSettings?.customAssetCategories) ? importedSettings.customAssetCategories : []);
               setCategoryColors(importedSettings?.categoryColors && typeof importedSettings.categoryColors === 'object' ? importedSettings.categoryColors : {});
               setCategoryLabels(importedSettings?.categoryLabels && typeof importedSettings.categoryLabels === 'object' ? importedSettings.categoryLabels : {});
+              setCategoryBudgetExcluded(importedSettings?.categoryBudgetExcluded && typeof importedSettings.categoryBudgetExcluded === 'object' ? importedSettings.categoryBudgetExcluded : {});
               setCategoryOrder(importedSettings?.categoryOrder && typeof importedSettings.categoryOrder === 'object' ? importedSettings.categoryOrder : {});
               setHiddenCategories(importedSettings?.hiddenCategories && typeof importedSettings.hiddenCategories === 'object' ? importedSettings.hiddenCategories : {});
               setRecurringRules(Array.isArray(importedSettings?.recurringRules) ? importedSettings.recurringRules : []);
@@ -3378,6 +3411,7 @@ export default function App() {
                         const paletteKey = getCategoryColorKey('expense', category.id);
                         const isOpen = openPaletteKey === paletteKey;
                         const isRenaming = editingCategory?.type === 'expense' && editingCategory.id === category.id;
+                        const isBudgetExcluded = Boolean(categoryBudgetExcluded[paletteKey]);
 
                         return (
                           <div
@@ -3472,13 +3506,35 @@ export default function App() {
                               )}
                             </div>
                             {!isRenaming && (
-                              <button
-                                type="button"
-                                className="category-row-action category-row-action-edit"
-                                onClick={() => handleStartCategoryRename('expense', category)}
-                              >
-                                수정
-                              </button>
+                              <>
+                                <label className="category-budget-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isBudgetExcluded}
+                                    onChange={(event) => {
+                                      const checked = event.target.checked;
+                                      setCategoryBudgetExcluded((prev) => {
+                                        const next = { ...prev };
+                                        if (checked) {
+                                          next[paletteKey] = true;
+                                        } else {
+                                          delete next[paletteKey];
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                  <span aria-hidden="true" />
+                                  <b>예산 제외</b>
+                                </label>
+                                <button
+                                  type="button"
+                                  className="category-row-action category-row-action-edit"
+                                  onClick={() => handleStartCategoryRename('expense', category)}
+                                >
+                                  수정
+                                </button>
+                              </>
                             )}
                             <button
                               type="button"

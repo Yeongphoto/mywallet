@@ -96,6 +96,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       theme: settingsMap['theme'] || 'light',
       categoryColors: settingsMap['categoryColors'] ? JSON.parse(settingsMap['categoryColors']) : {},
       categoryLabels: settingsMap['categoryLabels'] ? JSON.parse(settingsMap['categoryLabels']) : {},
+      categoryBudgetExcluded: settingsMap['categoryBudgetExcluded'] ? JSON.parse(settingsMap['categoryBudgetExcluded']) : {},
       categoryOrder: settingsMap['categoryOrder'] ? JSON.parse(settingsMap['categoryOrder']) : {},
       hiddenCategories: settingsMap['hiddenCategories'] ? JSON.parse(settingsMap['hiddenCategories']) : {},
       recurringRules: rcRules.results || [],
@@ -133,6 +134,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       customAssetCategories,
       categoryColors,
       categoryLabels,
+      categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
       budget, 
@@ -218,6 +220,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       .bind(JSON.stringify(categoryColors && typeof categoryColors === 'object' ? categoryColors : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryLabels', ?)")
       .bind(JSON.stringify(categoryLabels && typeof categoryLabels === 'object' ? categoryLabels : {})));
+    statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryBudgetExcluded', ?)")
+      .bind(JSON.stringify(categoryBudgetExcluded && typeof categoryBudgetExcluded === 'object' ? categoryBudgetExcluded : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('categoryOrder', ?)")
       .bind(JSON.stringify(categoryOrder && typeof categoryOrder === 'object' ? categoryOrder : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('hiddenCategories', ?)")

@@ -11,6 +11,7 @@ type RecoveryPayload = {
   customAssetCategories?: unknown[];
   categoryColors?: Record<string, unknown>;
   categoryLabels?: Record<string, unknown>;
+  categoryBudgetExcluded?: Record<string, unknown>;
   categoryOrder?: Record<string, unknown>;
   hiddenCategories?: Record<string, unknown>;
   recurringRules?: unknown[];
@@ -49,6 +50,7 @@ function scorePayload(data: RecoveryPayload | null) {
   ].reduce((total, item) => total + (Array.isArray(item) ? item.length : 0), 0)
     + (data.categoryColors && typeof data.categoryColors === 'object' ? Object.keys(data.categoryColors).length : 0)
     + (data.categoryLabels && typeof data.categoryLabels === 'object' ? Object.keys(data.categoryLabels).length : 0)
+    + (data.categoryBudgetExcluded && typeof data.categoryBudgetExcluded === 'object' ? Object.keys(data.categoryBudgetExcluded).length : 0)
     + (data.categoryOrder && typeof data.categoryOrder === 'object' ? Object.keys(data.categoryOrder).length : 0)
     + (data.hiddenCategories && typeof data.hiddenCategories === 'object' ? Object.keys(data.hiddenCategories).length : 0);
 }
@@ -68,6 +70,7 @@ function normalizeLegacyPayload(raw: string) {
       customAssetCategories: Array.isArray(parsed.customAssetCategories) ? parsed.customAssetCategories : [],
       categoryColors: parsed.categoryColors && typeof parsed.categoryColors === 'object' ? parsed.categoryColors : {},
       categoryLabels: parsed.categoryLabels && typeof parsed.categoryLabels === 'object' ? parsed.categoryLabels : {},
+      categoryBudgetExcluded: parsed.categoryBudgetExcluded && typeof parsed.categoryBudgetExcluded === 'object' ? parsed.categoryBudgetExcluded : {},
       categoryOrder: parsed.categoryOrder && typeof parsed.categoryOrder === 'object' ? parsed.categoryOrder : {},
       hiddenCategories: parsed.hiddenCategories && typeof parsed.hiddenCategories === 'object' ? parsed.hiddenCategories : {},
       recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [],

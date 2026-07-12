@@ -543,6 +543,15 @@
     min-height: 42px !important;
     padding: 0 12px !important;
   }
+
+  .category-budget-toggle {
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
+  .category-budget-toggle b {
+    font-size: 0.7rem;
+  }
   
   .add-category-bar {
     padding: 10px !important;

@@ -1658,6 +1658,62 @@ textarea:focus {
   border-color: var(--border-input);
 }
 
+.category-budget-toggle {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.category-budget-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.category-budget-toggle span {
+  width: 26px;
+  height: 16px;
+  position: relative;
+  border-radius: 999px;
+  background: var(--border-input);
+  transition: background 0.16s ease;
+}
+
+.category-budget-toggle span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.category-budget-toggle input:checked + span {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.category-budget-toggle input:checked + span::after {
+  transform: translateX(10px);
+  background: var(--color-expense);
+}
+
+.category-budget-toggle b {
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
 .category-row-action:disabled {
   cursor: default;
   background: var(--bg-balance-light);
