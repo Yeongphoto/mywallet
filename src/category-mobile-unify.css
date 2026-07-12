@@ -28,14 +28,15 @@
 
   .managed-category-card .category-row {
     display: grid !important;
-    grid-template-columns: 28px 42px minmax(0, 1fr) auto !important;
-    gap: 8px !important;
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
+    gap: 6px !important;
     align-items: center !important;
     min-height: 58px !important;
-    padding: 8px 14px !important;
+    padding: 8px 10px !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   .managed-category-card .category-row.dragging {
@@ -115,44 +116,46 @@
   .managed-category-card .category-budget-toggle {
     grid-column: 4 !important;
     justify-self: end !important;
-    min-width: 78px !important;
-    min-height: 34px !important;
-    padding: 0 8px !important;
-    gap: 5px !important;
-    border-radius: 10px !important;
+    width: 62px !important;
+    min-width: 62px !important;
+    min-height: 30px !important;
+    padding: 0 6px !important;
+    gap: 3px !important;
+    border-radius: 9px !important;
   }
 
   .managed-category-card .category-budget-toggle span {
-    width: 22px !important;
-    min-width: 22px !important;
-    height: 14px !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    height: 12px !important;
   }
 
   .managed-category-card .category-budget-toggle span::after {
     top: 2px !important;
     left: 2px !important;
-    width: 10px !important;
-    height: 10px !important;
+    width: 8px !important;
+    height: 8px !important;
   }
 
   .managed-category-card .category-budget-toggle input:checked + span::after {
-    transform: translateX(8px) !important;
+    transform: translateX(6px) !important;
   }
 
   .managed-category-card .category-budget-toggle b {
-    font-size: 0.68rem !important;
+    font-size: 0.62rem !important;
     line-height: 1 !important;
   }
 
   .managed-category-card .category-row-action {
     grid-column: auto !important;
     justify-self: end !important;
-    min-width: 46px !important;
-    min-height: 34px !important;
-    padding: 0 6px !important;
-    font-size: 0.78rem !important;
-    line-height: 1.1 !important;
-    border-radius: 10px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    min-height: 30px !important;
+    padding: 0 3px !important;
+    font-size: 0.72rem !important;
+    line-height: 1 !important;
+    border-radius: 9px !important;
   }
 
   .managed-category-card .category-palette-popover {
@@ -164,10 +167,10 @@
   .content:has(.plans-container) .managed-category-card .category-table .category-row,
   .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row,
   .content .managed-category-card .category-row {
-    grid-template-columns: 28px 42px minmax(0, 1fr) auto !important;
-    gap: 8px !important;
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
+    gap: 6px !important;
     min-height: 58px !important;
-    padding: 8px 14px !important;
+    padding: 8px 10px !important;
     border-radius: 0 !important;
   }
 
@@ -213,28 +216,29 @@
   .content:has(.plans-container) .managed-category-card .category-table .category-row-action,
   .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row-action,
   .content .managed-category-card .category-row-action {
-    min-width: 46px !important;
-    min-height: 34px !important;
-    padding: 0 6px !important;
-    font-size: 0.78rem !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    min-height: 30px !important;
+    padding: 0 3px !important;
+    font-size: 0.72rem !important;
   }
 }
 
 @media (max-width: 420px) {
   .managed-category-card .category-row {
-    grid-template-columns: 22px 38px minmax(58px, 1fr) auto !important;
-    gap: 6px !important;
-    padding: 8px 10px !important;
+    grid-template-columns: 22px 34px minmax(52px, 1fr) 30px 36px 34px !important;
+    gap: 5px !important;
+    padding: 8px 8px !important;
   }
 
   .managed-category-card .category-color-menu {
-    width: 38px !important;
-    min-width: 38px !important;
+    width: 34px !important;
+    min-width: 34px !important;
   }
 
   .managed-category-card .category-budget-toggle {
-    min-width: 34px !important;
-    width: 34px !important;
+    min-width: 30px !important;
+    width: 30px !important;
     padding: 0 !important;
     justify-content: center !important;
   }
@@ -244,8 +248,9 @@
   }
 
   .managed-category-card .category-row-action {
-    min-width: 42px !important;
+    min-width: 34px !important;
+    width: 34px !important;
     padding: 0 5px !important;
-    font-size: 0.74rem !important;
+    font-size: 0.68rem !important;
   }
 }
