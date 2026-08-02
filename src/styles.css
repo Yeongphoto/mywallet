@@ -1880,6 +1880,13 @@ textarea:focus {
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
+.type-toggle-btn.active.asset {
+  background: var(--color-asset);
+  color: #ffffff;
+  border-color: var(--color-asset);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
 /* Filter controls on Ledger */
 .ledger-header {
   display: flex;

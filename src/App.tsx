@@ -4800,14 +4800,17 @@ function UnifiedEntryForm({
   const activeCategories: CategoryOption[] = useMemo(() => {
     if (form.type === 'expense') return expenseCategories;
     if (form.type === 'income') return incomeCategories;
+    if (form.type === 'asset') return currentAssetCategories;
     return [{ id: 'transfer', label: '계좌 이체', color: '#8b5cf6' }];
-  }, [form.type, expenseCategories, incomeCategories]);
+  }, [form.type, expenseCategories, incomeCategories, currentAssetCategories]);
 
   function handleTypeChange(newType: EntryType) {
     const defaultCat = newType === 'expense'
       ? (expenseCategories[0]?.id ?? 'etc')
       : newType === 'income'
       ? (incomeCategories[0]?.id ?? 'etc')
+      : newType === 'asset'
+      ? (currentAssetCategories[0]?.id ?? 'cash')
       : 'transfer';
 
     setForm((prev) => ({
@@ -4815,6 +4818,9 @@ function UnifiedEntryForm({
       type: newType,
       category: defaultCat,
     }));
+    if (newType === 'asset') {
+      setIsRecurring(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -4823,6 +4829,22 @@ function UnifiedEntryForm({
 
     if (!Number.isFinite(amount) || amount <= 0) {
       onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    if (form.type === 'asset') {
+      if (onAddAsset) {
+        onAddAsset({
+          id: createId(),
+          category: form.category,
+          amount,
+          memo: form.title.trim(),
+        });
+      }
+      setForm((prev) => ({ ...prev, amount: '', title: '' }));
+      if (!isQuickAdd) {
+        onNotify?.('자산 항목이 새로 등록되었습니다.', '등록 완료', 'success');
+      }
       return;
     }
 
@@ -4900,20 +4922,20 @@ function UnifiedEntryForm({
     }
   }
 
-  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';
+  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : form.type === 'asset' ? 'asset' : 'transfer';
 
   return (
     <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
       {!isQuickAdd && (
         <div className={`entry-form-title ${formColorClass}`}>
           <strong>통합 거래 등록</strong>
-          <span>수입, 지출 및 계좌 간 이체 내역을 드롭다운 선택으로 등록합니다.</span>
+          <span>수입, 지출, 이체 및 자산 항목을 한 번에 등록합니다.</span>
         </div>
       )}
 
       <div className="form-grid" style={{ gridTemplateColumns: isQuickAdd ? '1fr' : '1fr 1fr' }}>
-        {/* 1. 구분: 3개 버튼 1행 나열 */}
-        <div className="type-toggle-group">
+        {/* 1. 구분: 4개 버튼 1행 나열 */}
+        <div className="type-toggle-group" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
           <span className="type-toggle-label">구분</span>
           <div className="type-toggle-row">
             <button
@@ -4937,18 +4959,27 @@ function UnifiedEntryForm({
             >
               이체 🟣
             </button>
+            <button
+              type="button"
+              className={`type-toggle-btn ${form.type === 'asset' ? 'active asset' : ''}`}
+              onClick={() => handleTypeChange('asset')}
+            >
+              자산 🟢
+            </button>
           </div>
         </div>
 
         {/* 2. 날짜 */}
-        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          날짜
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-          />
-        </label>
+        {form.type !== 'asset' && (
+          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+            날짜
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            />
+          </label>
+        )}
 
         {/* 3. 금액 */}
         <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
@@ -4965,7 +4996,7 @@ function UnifiedEntryForm({
         {/* 4. 카테고리 (이체 선택 시 비표시) */}
         {form.type !== 'transfer' && (
           <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-            카테고리
+            {form.type === 'asset' ? '자산 구분' : '카테고리'}
             <select
               value={form.category}
               onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
@@ -5011,7 +5042,7 @@ function UnifiedEntryForm({
               </select>
             </label>
           </>
-        ) : (
+        ) : form.type !== 'asset' ? (
           <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
             결제/입금 계좌 (선택)
             <select
@@ -5026,33 +5057,35 @@ function UnifiedEntryForm({
               ))}
             </select>
           </label>
-        )}
+        ) : null}
 
         {/* 6. 내용 */}
         <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          내용 (적요)
+          {form.type === 'asset' ? '자산 메모' : '내용 (적요)'}
           <input
             type="text"
-            placeholder={form.type === 'transfer' ? '예: 청약 적금 이체, 카카오뱅크로 이동' : '예: 식비, 교통비, 급여'}
+            placeholder={form.type === 'asset' ? '예: 카카오뱅크 통장, 주식 계좌' : form.type === 'transfer' ? '예: 청약 적금 이체, 카카오뱅크로 이동' : '예: 식비, 교통비, 급여'}
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
           />
         </label>
 
         {/* 7. 매달 정기 기록 체크박스 */}
-        <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          <input
-            type="checkbox"
-            checked={isRecurring}
-            onChange={(e) => setIsRecurring(e.target.checked)}
-          />
-          <span className="recurring-toggle-mark" aria-hidden="true" />
-          <span className="recurring-toggle-text">매달 정기 기록으로 등록</span>
-        </label>
+        {form.type !== 'asset' && (
+          <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+            <input
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+            />
+            <span className="recurring-toggle-mark" aria-hidden="true" />
+            <span className="recurring-toggle-text">매달 정기 기록으로 등록</span>
+          </label>
+        )}
       </div>
 
-      <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
-        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
+      <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : form.type === 'asset' ? 'var(--color-asset)' : 'var(--color-transfer)' }}>
+        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : form.type === 'asset' ? '자산 등록' : '이체 등록'}
       </button>
     </form>
   );
