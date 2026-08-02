@@ -8,9 +8,11 @@ async function ensureSchema(db: D1Database) {
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
       date TEXT NOT NULL,
+      transaction_time TEXT,
       amount INTEGER NOT NULL,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
+      created_at INTEGER,
       asset_id TEXT,
       to_asset_id TEXT,
       recurring_rule_id TEXT
@@ -42,6 +44,7 @@ async function ensureSchema(db: D1Database) {
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
       day INTEGER NOT NULL,
+      transaction_time TEXT,
       amount INTEGER NOT NULL,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
@@ -57,8 +60,11 @@ async function ensureSchema(db: D1Database) {
 
   try { await db.prepare("ALTER TABLE transactions ADD COLUMN asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE transactions ADD COLUMN to_asset_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN created_at INTEGER").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN transaction_time TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN to_asset_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN transaction_time TEXT").run(); } catch {}
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -91,9 +97,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         id: t.id,
         type: t.type,
         date: t.date,
+        time: t.transaction_time || null,
         amount: Number(t.amount),
         title: t.title,
         category: t.category,
+        createdAt: t.created_at == null ? null : Number(t.created_at),
         assetId: t.asset_id || null,
         toAssetId: t.to_asset_id || null,
         recurringRuleId: t.recurring_rule_id || null
@@ -114,6 +122,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         id: r.id,
         type: r.type,
         day: Number(r.day),
+        time: r.transaction_time || null,
         amount: Number(r.amount),
         title: r.title,
         category: r.category,
@@ -181,8 +190,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(transactions)) {
       transactions.forEach((t: any) => {
         statements.push(
-          db.prepare("INSERT INTO transactions (id, type, date, amount, title, category, asset_id, to_asset_id, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(t.id, t.type, t.date, t.amount, t.title, t.category, t.assetId || null, t.toAssetId || null, t.recurringRuleId || null)
+          db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, created_at, asset_id, to_asset_id, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(t.id, t.type, t.date, t.time || null, t.amount, t.title, t.category, t.createdAt ?? null, t.assetId || null, t.toAssetId || null, t.recurringRuleId || null)
         );
       });
     }
@@ -255,8 +264,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(recurringRules)) {
       recurringRules.forEach((r: any) => {
         statements.push(
-          db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(r.id, r.type, r.day, r.amount, r.title, r.category, r.assetId || null, r.toAssetId || null, r.startMonth, r.endMonth || null)
+          db.prepare("INSERT INTO recurring_rules (id, type, day, transaction_time, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(r.id, r.type, r.day, r.time || null, r.amount, r.title, r.category, r.assetId || null, r.toAssetId || null, r.startMonth, r.endMonth || null)
         );
       });
     }

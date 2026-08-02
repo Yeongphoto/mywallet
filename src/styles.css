@@ -2000,9 +2000,21 @@ textarea:focus {
   border-collapse: collapse;
 }
 
+.ledger-table-fixed {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.ledger-col-date { width: 126px; }
+.ledger-col-amount { width: 118px; }
+.ledger-col-category { width: 132px; }
+.ledger-col-account { width: 132px; }
+.ledger-col-title { width: auto; }
+.ledger-col-actions { width: 92px; }
+
 .ledger-table th {
   background: var(--bg-balance-light);
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-secondary);
@@ -2011,10 +2023,76 @@ textarea:focus {
 }
 
 .ledger-table td {
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-size: 0.85rem;
   border-bottom: 1px solid var(--border-card);
   color: var(--text-primary);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.ledger-date-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.ledger-date-cell strong {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ledger-date-cell span {
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.ledger-recurring-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.09);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.ledger-amount-cell {
+  white-space: nowrap;
+}
+
+.ledger-title-cell {
+  min-width: 0;
+}
+
+.ledger-account-badge {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ledger-account-badge-linked {
+  background: rgba(2, 132, 199, 0.08);
+  color: var(--primary);
+}
+
+.ledger-account-badge-out {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-expense);
+}
+
+.ledger-account-badge-in {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-income);
 }
 
 .ledger-table tr:last-child td {

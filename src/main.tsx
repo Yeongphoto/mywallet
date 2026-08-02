@@ -14,7 +14,6 @@ import './mobile.css';
 import './calendar.css';
 import './app-behavior.css';
 import './ledger-mobile.css';
-import './recurring-ledger-cleanup.css';
 import './category-mobile-unify.css';
 import './bottom-bars-sync.css';
 

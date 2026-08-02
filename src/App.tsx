@@ -316,6 +316,7 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
   return {
     type: defaultType,
     date: defaultDate,
+    time: '',
     amount: '',
     title: '',
     category: defaultCategory,
@@ -579,6 +580,20 @@ function formatSyncTime(value?: number) {
     minute: '2-digit',
     second: '2-digit',
   }).format(new Date(value));
+}
+
+function isValidTransactionTime(value?: string | null) {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function normalizeTransactionTime(value?: string | null) {
+  return isValidTransactionTime(value) ? value : null;
+}
+
+function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
+  const dateCompare = a.date.localeCompare(b.date);
+  if (dateCompare !== 0) return dateCompare;
+  return (a.time || '').localeCompare(b.time || '');
 }
 
 export default function App() {
@@ -1235,6 +1250,8 @@ export default function App() {
               id: txId,
               type: rule.type,
               date: ruleDateStr,
+              time: normalizeTransactionTime(rule.time),
+              createdAt: Date.now(),
               amount: rule.amount,
               title: rule.title,
               category: rule.category,
@@ -1267,7 +1284,7 @@ export default function App() {
     () =>
       transactions
         .filter((transaction) => transaction.date.startsWith(selectedMonth))
-        .sort((a, b) => a.date.localeCompare(b.date)),
+        .sort(compareTransactionsByDateTime),
     [transactions, selectedMonth],
   );
 
@@ -1859,9 +1876,9 @@ export default function App() {
 
   // Backup CSV Export
   function exportCSV() {
-    let csv = 'SECTION,TYPE/CATEGORY,DATE/MEMO,AMOUNT,TITLE,EXTRA\n';
+    let csv = 'SECTION,TYPE/CATEGORY,DATE/MEMO,AMOUNT,TITLE,EXTRA,TIME,CREATED_AT\n';
     transactions.forEach((t) => {
-      csv += `T,${t.id},${t.type},${t.date},${t.amount},"${t.title.replace(/"/g, '""')}",${t.category}\n`;
+      csv += `T,${t.id},${t.type},${t.date},${t.amount},"${t.title.replace(/"/g, '""')}",${t.category},${t.time ?? ''},${t.createdAt ?? ''}\n`;
     });
     assets.forEach((a) => {
       csv += `A,${a.id},${a.category},${a.amount},"${a.memo.replace(/"/g, '""')}",,\n`;
@@ -1901,6 +1918,8 @@ export default function App() {
               amount: Number(cells[4]),
               title: cells[5],
               category: cells[6],
+              time: normalizeTransactionTime(cells[7]),
+              createdAt: cells[8] ? Number(cells[8]) : cells[7] && !isValidTransactionTime(cells[7]) ? Number(cells[7]) : null,
             });
           } else if (cells[0] === 'A') {
             newAssets.push({
@@ -2010,7 +2029,7 @@ export default function App() {
     const rows = [
       createCSVRow(['SECTION', 'ID', 'TYPE_OR_CATEGORY', 'DATE_OR_MEMO', 'AMOUNT', 'TITLE', 'EXTRA', 'JSON']),
       createCSVRow(['SETTINGS', 'mywallet-v2', '', '', '', '', '', JSON.stringify(backupSettings)]),
-      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? '', t.assetId ?? '', t.toAssetId ?? ''])),
+      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? '', t.assetId ?? '', t.toAssetId ?? '', t.time ?? '', t.createdAt ?? ''])),
       ...assets.map((a) => createCSVRow(['A', a.id, a.category, a.amount, a.memo, '', '', ''])),
       ...plans.map((p) => createCSVRow(['P', p.category, p.type, p.plannedAmount, '', '', '', ''])),
       createCSVRow(['BUDGET', budget, '', '', '', '', '', '']),
@@ -2064,6 +2083,8 @@ export default function App() {
               recurringRuleId: cells[7] || null,
               assetId: cells[8] || null,
               toAssetId: cells[9] || null,
+              time: normalizeTransactionTime(cells[10]),
+              createdAt: cells[11] ? Number(cells[11]) : cells[10] && !isValidTransactionTime(cells[10]) ? Number(cells[10]) : null,
             });
           } else if (cells[0] === 'A') {
             newAssets.push({
@@ -3876,7 +3897,7 @@ export default function App() {
                       return (
                         <tr key={rule.id} className={isStopped ? 'recurring-rule-row-ended' : undefined} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.72 : 1 }}>
                           <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
-                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
+                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일{rule.time ? ` ${rule.time}` : ''}</td>
                           <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
                           <td style={{ padding: '12px 8px' }}>{rule.title}</td>
                           <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
@@ -4705,27 +4726,24 @@ function TransactionListTable({
     <section className="ledger-table-wrap">
       <h3 className={type}>{title}</h3>
       <div className="ledger-table-scroll">
-        <table className="ledger-table">
+        <table className="ledger-table ledger-table-fixed">
+          <colgroup>
+            <col className="ledger-col-date" />
+            <col className="ledger-col-amount" />
+            <col className="ledger-col-category" />
+            <col className="ledger-col-account" />
+            <col className="ledger-col-title" />
+            <col className="ledger-col-actions" />
+          </colgroup>
           <thead>
-            {type === 'transfer' ? (
-              <tr>
-                <th>날짜</th>
-                <th>금액</th>
-                <th>내용</th>
-                <th>보낸 계좌 (출금)</th>
-                <th>받은 계좌 (입금)</th>
-                <th />
-              </tr>
-            ) : (
-              <tr>
-                <th>날짜</th>
-                <th>금액</th>
-                <th>내용</th>
-                <th>카테고리</th>
-                <th>연동 계좌</th>
-                <th />
-              </tr>
-            )}
+            <tr>
+              <th>날짜</th>
+              <th>금액</th>
+              <th>{type === 'transfer' ? '출금 계좌' : '카테고리'}</th>
+              <th>{type === 'transfer' ? '입금 계좌' : '계좌'}</th>
+              <th>내용</th>
+              <th />
+            </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
@@ -4737,81 +4755,39 @@ function TransactionListTable({
             ) : (
               items.map((transaction) => {
                 const isFuture = transaction.date > getToday();
+                const recurringMark = transaction.recurringRuleId && (
+                  <span className="ledger-recurring-badge" title="정기 기록">
+                    정기
+                  </span>
+                );
+                const dateCell = (
+                  <div className="ledger-date-cell">
+                    <strong>{transaction.date}</strong>
+                    {transaction.time && <span>{transaction.time}</span>}
+                  </div>
+                );
+
                 if (type === 'transfer') {
                   return (
                     <tr key={transaction.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
-                      <td>{transaction.date}</td>
-                      <td style={{ fontWeight: 600, color: '#8b5cf6' }}>{formatMoney(transaction.amount)}</td>
-                      <td>
-                        {transaction.title}
-                        {transaction.recurringRuleId && (
-                          <span
-                            title="정기 이체"
-                            style={{ marginLeft: '6px', color: '#8b5cf6', fontSize: '0.9rem', cursor: 'help' }}
-                          >
-                            🔄
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.82rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-expense)', fontWeight: 600 }}>
-                          {getAssetName(transaction.assetId) || '출금 계좌 미지정'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.82rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-income)', fontWeight: 600 }}>
-                          {getAssetName(transaction.toAssetId) || '입금 계좌 미지정'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="actions-cell">
-                          <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
-                            수정
-                          </button>
-                          <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
-                            삭제
-                          </button>
-                        </div>
-                      </td>
+                      <td>{dateCell}</td>
+                      <td className="ledger-amount-cell" style={{ fontWeight: 600, color: '#8b5cf6' }}>{formatMoney(transaction.amount)}</td>
+                      <td><span className="ledger-account-badge ledger-account-badge-out">{getAssetName(transaction.assetId) || '출금 계좌 미지정'}</span></td>
+                      <td><span className="ledger-account-badge ledger-account-badge-in">{getAssetName(transaction.toAssetId) || '입금 계좌 미지정'}</span></td>
+                      <td className="ledger-title-cell">{transaction.title}{recurringMark}</td>
+                      <td><div className="actions-cell"><button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>수정</button><button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>삭제</button></div></td>
                     </tr>
                   );
                 }
 
                 return (
                   <tr key={transaction.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
-                    <td>{transaction.date}</td>
-                    <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount)}</td>
-                    <td>
-                      {transaction.title}
-                      {transaction.recurringRuleId && (
-                        <span
-                          title="정기 반복 결제"
-                          style={{ marginLeft: '6px', color: 'var(--primary)', fontSize: '0.9rem', cursor: 'help' }}
-                        >
-                          🔄
-                        </span>
-                      )}
-                    </td>
+                    <td>{dateCell}</td>
+                    <td className="ledger-amount-cell" style={{ fontWeight: 600 }}>{formatMoney(transaction.amount)}</td>
                     <td><CategoryBadge categories={categories} idOrLabel={transaction.category} /></td>
-                    <td>
-                      {getAssetName(transaction.assetId) ? (
-                        <span style={{ fontSize: '0.8rem', padding: '2px 7px', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.08)', color: 'var(--primary)', fontWeight: 600 }}>
-                          {getAssetName(transaction.assetId)}
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>-</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="actions-cell">
-                        <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
-                          수정
-                        </button>
-                        <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
-                          삭제
-                        </button>
-                      </div>
-                    </td>
+                    <td>{getAssetName(transaction.assetId) ? <span className="ledger-account-badge ledger-account-badge-linked">{getAssetName(transaction.assetId)}</span> : <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>-</span>}</td>
+                    <td className="ledger-title-cell">{transaction.title}{recurringMark}</td>
+                    <td><div className="actions-cell"><button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>수정</button><button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>삭제</button></div></td>
                   </tr>
                 );
               })
@@ -4823,7 +4799,6 @@ function TransactionListTable({
   );
 }
 
-// Unified Entry Form (Income / Expense / Transfer)
 function UnifiedEntryForm({
   defaultDate = getToday(),
   onAddTransaction,
@@ -4905,11 +4880,14 @@ function UnifiedEntryForm({
       const day = Number(form.date.slice(8, 10)) || 1;
       const transactionMonth = form.date.slice(0, 7);
       const startMonth = getNextMonth(transactionMonth);
-      const ruleId = `rule_${Date.now()}`;
+      const now = Date.now();
+      const transactionTime = normalizeTransactionTime(form.time);
+      const ruleId = `rule_${now}`;
       onAddRecurringRule({
         id: ruleId,
         type: form.type as TransactionType,
         day,
+        time: transactionTime,
         amount,
         title: form.title.trim(),
         category: form.type === 'transfer' ? 'transfer' : form.category,
@@ -4923,6 +4901,8 @@ function UnifiedEntryForm({
         id: `rec_${ruleId}_${transactionMonth}`,
         type: form.type as TransactionType,
         date: form.date,
+        time: transactionTime,
+        createdAt: now,
         amount,
         title: form.title.trim(),
         category: form.type === 'transfer' ? 'transfer' : form.category,
@@ -4931,10 +4911,13 @@ function UnifiedEntryForm({
         recurringRuleId: ruleId,
       });
     } else {
+      const transactionTime = normalizeTransactionTime(form.time);
       onAddTransaction({
         id: createId(),
         type: form.type as TransactionType,
         date: form.date,
+        time: transactionTime,
+        createdAt: Date.now(),
         amount,
         title: form.title.trim(),
         category: form.type === 'transfer' ? 'transfer' : form.category,
@@ -5002,6 +4985,15 @@ function UnifiedEntryForm({
             type="date"
             value={form.date}
             onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+          />
+        </label>
+
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+          시간 (선택)
+          <input
+            type="time"
+            value={form.time}
+            onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
           />
         </label>
 
@@ -5143,6 +5135,7 @@ function TransactionEditForm({
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [date, setDate] = useState(transaction.date);
+  const [time, setTime] = useState(transaction.time || '');
   const [amount, setAmount] = useState(String(transaction.amount));
   const [title, setTitle] = useState(transaction.title);
   const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
@@ -5191,6 +5184,7 @@ function TransactionEditForm({
       : undefined;
     const wasRecurring = !!activeRecurringRule;
     let nextRuleId = transaction.recurringRuleId || null;
+    const transactionTime = normalizeTransactionTime(time);
 
     // Handle transitions
     if (isRecurring && !wasRecurring && onAddRecurringRule) {
@@ -5203,6 +5197,7 @@ function TransactionEditForm({
         id: ruleId,
         type: transaction.type,
         day: dy,
+        time: transactionTime,
         amount: numericAmount,
         title: title.trim(),
         category: transaction.type === 'transfer' ? 'transfer' : category,
@@ -5224,6 +5219,7 @@ function TransactionEditForm({
       onUpdateRecurringRule({
         ...activeRecurringRule,
         day: dy,
+        time: transactionTime,
         amount: numericAmount,
         title: title.trim(),
         category: transaction.type === 'transfer' ? 'transfer' : category,
@@ -5236,6 +5232,7 @@ function TransactionEditForm({
     onSave({
       ...transaction,
       date,
+      time: transactionTime,
       amount: numericAmount,
       title: title.trim(),
       category: transaction.type === 'transfer' ? 'transfer' : category,
@@ -5250,6 +5247,10 @@ function TransactionEditForm({
       <label>
         날짜
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </label>
+      <label>
+        시간 (선택)
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
       <label>
         금액 (원)
