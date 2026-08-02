@@ -86,3 +86,4 @@
 ## 정기기록 상세 규칙 문서
 
 - 정기기록 기능을 수정하기 전에는 `Docs/recurring-record-rules.md`를 먼저 확인한다.
+- 데이터 동기화 로직을 수정하기 전에는 `Docs/sync-rules.md`를 먼저 확인한다.

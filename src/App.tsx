@@ -35,6 +35,7 @@ const assetCategories: CategoryOption[] = [
 ];
 
 const STORAGE_KEY = 'mywallet:v2';
+const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
 const categoryColorPresets = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
   '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
@@ -643,7 +644,7 @@ export default function App() {
     });
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
-  const [settingsSection, setSettingsSection] = useState<'app' | 'data'>('app');
+  const [settingsSection, setSettingsSection] = useState<'app' | 'category' | 'recurring' | 'data'>('app');
   const [privacyMode, setPrivacyMode] = useState(false);
   
   // Dashboard Chart states
@@ -654,6 +655,7 @@ export default function App() {
 
   // Filter & DB Loaded states
   const isDbLoadedRef = useRef(false);
+  const skipNextPersistenceRef = useRef(true);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -762,8 +764,36 @@ export default function App() {
 
   // Sync state to LocalStorage and D1 (Debounced with Timestamp updates)
   useEffect(() => {
+    if (isLoading || !isDbLoadedRef.current) {
+      return;
+    }
+
+    if (skipNextPersistenceRef.current) {
+      skipNextPersistenceRef.current = false;
+      saveLocalStorage(
+        transactions,
+        assets,
+        budget,
+        theme,
+        plans,
+        customExpenseCategories,
+        customIncomeCategories,
+        customAssetCategories,
+        categoryColors,
+        categoryLabels,
+        categoryBudgetExcluded,
+        categoryOrder,
+        hiddenCategories,
+        recurringRules,
+        deletedRecurringTxs,
+        updatedAt
+      );
+      return;
+    }
+
     const newUpdatedAt = Date.now();
     setUpdatedAt(newUpdatedAt);
+    window.localStorage.setItem(PENDING_SYNC_KEY, String(newUpdatedAt));
 
     // 1. LocalStorage is synced instantly for quick local cache recovery
     saveLocalStorage(
@@ -784,17 +814,6 @@ export default function App() {
       deletedRecurringTxs,
       newUpdatedAt
     );
-
-    // If still fetching initial DB data, do NOT upload/overwrite database
-    if (isLoading || !isDbLoadedRef.current) {
-      setRemoteSync((prev) => ({
-        ...prev,
-        status: 'checking',
-        localUpdatedAt: newUpdatedAt,
-        message: '서버 데이터 확인 중',
-      }));
-      return;
-    }
 
     setRemoteSync({
       status: 'pending',
@@ -830,6 +849,7 @@ export default function App() {
       )
         .then((res) => {
           if (!res.ok) throw new Error('remote save failed');
+          window.localStorage.removeItem(PENDING_SYNC_KEY);
           setRemoteSync((prev) => {
             if (prev.localUpdatedAt && prev.localUpdatedAt > newUpdatedAt) return prev;
             return {
@@ -894,6 +914,7 @@ export default function App() {
         if (data && !data.error) {
           const serverUpdatedAt = Number(data.updatedAt) || 0;
           const localUpdatedAt = storedData.updatedAt || 0;
+          const pendingSyncAt = Number(window.localStorage.getItem(PENDING_SYNC_KEY)) || 0;
 
           const hasDbData = 
             (Array.isArray(data.transactions) && data.transactions.length > 0) ||
@@ -924,8 +945,8 @@ export default function App() {
             storedData.deletedRecurringTxs.length > 0;
 
           if (!hasDbData && serverUpdatedAt === 0) {
-            if (hasLocalData) {
-              const newTime = Date.now();
+            if (hasLocalData && pendingSyncAt > 0) {
+              const newTime = localUpdatedAt || pendingSyncAt;
               setUpdatedAt(newTime);
               void saveRemoteD1(
                 storedData.transactions,
@@ -944,7 +965,12 @@ export default function App() {
                 storedData.recurringRules,
                 storedData.deletedRecurringTxs,
                 newTime
-              ).catch(() => undefined);
+              )
+                .then((res) => {
+                  if (!res.ok) throw new Error('remote save failed');
+                  window.localStorage.removeItem(PENDING_SYNC_KEY);
+                })
+                .catch(() => undefined);
             } else {
               setTransactions([]);
               setAssets([]);
@@ -956,7 +982,60 @@ export default function App() {
             return;
           }
 
-          if (hasDbData) {
+          if (hasDbData && pendingSyncAt > serverUpdatedAt && hasLocalData) {
+            setTransactions(storedData.transactions);
+            setAssets(storedData.assets);
+            setBudget(storedData.budget);
+            setTheme(storedData.theme);
+            setCustomExpenseCategories(storedData.customExpenseCategories);
+            setCustomIncomeCategories(storedData.customIncomeCategories);
+            setCustomAssetCategories(storedData.customAssetCategories);
+            setCategoryColors(storedData.categoryColors);
+            setCategoryLabels(storedData.categoryLabels);
+            setCategoryBudgetExcluded(storedData.categoryBudgetExcluded);
+            setCategoryOrder(storedData.categoryOrder);
+            setHiddenCategories(storedData.hiddenCategories);
+            setRecurringRules(storedData.recurringRules);
+            setDeletedRecurringTxs(storedData.deletedRecurringTxs);
+            setPlans(storedData.plans);
+            setUpdatedAt(localUpdatedAt);
+            void saveRemoteD1(
+              storedData.transactions,
+              storedData.assets,
+              storedData.budget,
+              storedData.theme,
+              storedData.plans,
+              storedData.customExpenseCategories,
+              storedData.customIncomeCategories,
+              storedData.customAssetCategories,
+              storedData.categoryColors,
+              storedData.categoryLabels,
+              storedData.categoryBudgetExcluded,
+              storedData.categoryOrder,
+              storedData.hiddenCategories,
+              storedData.recurringRules,
+              storedData.deletedRecurringTxs,
+              localUpdatedAt
+            )
+              .then((res) => {
+                if (!res.ok) throw new Error('remote save failed');
+                window.localStorage.removeItem(PENDING_SYNC_KEY);
+                setRemoteSync({
+                  status: 'synced',
+                  localUpdatedAt,
+                  remoteUpdatedAt: localUpdatedAt,
+                  message: '로컬 대기 변경사항 서버 반영 완료',
+                });
+              })
+              .catch(() => {
+                setRemoteSync({
+                  status: 'error',
+                  localUpdatedAt,
+                  remoteUpdatedAt: serverUpdatedAt,
+                  message: '로컬 대기 변경사항 서버 저장 실패',
+                });
+              });
+          } else if (hasDbData) {
             // 원격 DB 데이터 최우선(DB-First) -> DB 데이터 적용
             const fetchedTxs: Transaction[] = data.transactions || [];
             setTransactions(fetchedTxs);
@@ -974,6 +1053,7 @@ export default function App() {
             setRecurringRules(data.recurringRules || []);
             setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             setUpdatedAt(serverUpdatedAt);
+            window.localStorage.removeItem(PENDING_SYNC_KEY);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
@@ -987,7 +1067,6 @@ export default function App() {
               status: 'synced',
               localUpdatedAt: serverUpdatedAt,
               remoteUpdatedAt: serverUpdatedAt,
-              checkedAt: Date.now(),
               message: '서버 데이터 적용됨',
             });
           } else {
@@ -1028,12 +1107,13 @@ export default function App() {
               )
                 .then((res) => {
                   if (!res.ok) throw new Error('remote save failed');
+                  window.localStorage.removeItem(PENDING_SYNC_KEY);
                   setRemoteSync({
                     status: 'synced',
                     localUpdatedAt: newTime,
                     remoteUpdatedAt: newTime,
                     checkedAt: Date.now(),
-                    message: '로컬 최신 데이터 서버 반영됨',
+                    message: '로컬 데이터 서버 반영 완료',
                   });
                 })
                 .catch(() => {
@@ -1052,7 +1132,6 @@ export default function App() {
         setRemoteSync({
           status: 'error',
           localUpdatedAt: storedData.updatedAt || 0,
-          checkedAt: Date.now(),
           message: '서버 확인 실패 - 로컬 데이터 사용 중',
         });
       })
@@ -1428,27 +1507,6 @@ export default function App() {
   function handleAssetDragEnd() {
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
-
-    const newTime = Date.now();
-    setUpdatedAt(newTime);
-    void saveRemoteD1(
-      transactions,
-      assets,
-      budget,
-      theme,
-      plans,
-      customExpenseCategories,
-      customIncomeCategories,
-      customAssetCategories,
-      categoryColors,
-      categoryLabels,
-      categoryBudgetExcluded,
-      categoryOrder,
-      hiddenCategories,
-      recurringRules,
-      deletedRecurringTxs,
-      newTime
-    ).catch(() => undefined);
   }
 
   function handleAssetDrop(e: React.DragEvent) {
@@ -1900,6 +1958,9 @@ export default function App() {
       const data = await response.json();
       const remoteUpdatedAt = Number(data.updatedAt) || 0;
       const isSynced = remoteUpdatedAt >= (updatedAt || 0);
+      if (isSynced) {
+        window.localStorage.removeItem(PENDING_SYNC_KEY);
+      }
       setRemoteSync({
         status: isSynced ? 'synced' : 'stale',
         localUpdatedAt: updatedAt || 0,
@@ -2972,7 +3033,7 @@ export default function App() {
                 </select>
               </div>
 
-            <div className="split-ledger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            <div className="split-ledger" style={{ display: 'grid', gap: '20px' }}>
               <TransactionListTable
                 title="지출 내역"
                 type="expense"
@@ -3014,89 +3075,7 @@ export default function App() {
         )}
 
         {/* 정기 지출 규칙 관리 영역 외부 분리 */}
-        {activeTab === 'ledger' && (
-          <section className="glass-panel" style={{ marginTop: '24px' }}>
-            <div className="panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🔄</span> 정기 지출
-                </h3>
-              </div>
-              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                등록된 규칙: {recurringRules.length}개
-              </strong>
-            </div>
-
-            <div className="ledger-table-scroll">
-              <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recurringRules.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
-                        등록된 정기 반복 규칙이 없습니다. 장부 탭이나 달력 모달의 거래 등록 양식에서 [매달 정기 기록으로 등록]을 체크하고 추가해보세요.
-                      </td>
-                    </tr>
-                  ) : (
-                    recurringRules.map((rule) => {
-                      const isStopped = !!rule.endMonth;
-                      const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
-                      const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
-                      
-                      return (
-                        <tr key={rule.id} className={isStopped ? 'recurring-rule-row-ended' : undefined} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.72 : 1 }}>
-                          <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
-                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
-                          <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
-                          <td style={{ padding: '12px 8px' }}>{rule.title}</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
-                          <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {rule.startMonth} ~ {rule.endMonth || '진행중'}
-                          </td>
-                          <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                            <div className="recurring-rule-actions">
-                              {!isStopped ? (
-                                <button
-                                  type="button"
-                                  className="recurring-rule-action recurring-rule-action-stop"
-                                  onClick={() => handleStopRecurringRule(rule.id)}
-                                >
-                                  끊기
-                                </button>
-                              ) : (
-                                <div className="recurring-rule-ended-actions">
-                                  <button
-                                    type="button"
-                                    className="recurring-rule-action recurring-rule-action-delete"
-                                    onClick={() => handleDeleteRecurringRule(rule.id)}
-                                    title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
-                                  >
-                                    삭제
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-                                              {/* Assets Portfolio Tab */}
+{/* Assets Portfolio Tab */}
         {activeTab === 'asset' && (
           <>
             {/* 자산 탭 상단 헤더 및 등록 제어 단추 */}
@@ -3236,12 +3215,177 @@ export default function App() {
               </div>
 
               {/* 자산 카테고리 설정 카드 (이식 완료) */}
+              <div style={{ height: '80px' }} />
+            </div>
+          </>
+        )}
+
+        {/* Plans Tab */}
+        {activeTab === 'plan' && (
+          <>
+            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <h1 className="page-title-kor">월간 계획 설정</h1>
+              </div>
+            </div>
+
+            <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
+              <div className="glass-panel" style={{ padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                  <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
+                </h3>
+
+                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  {/* 지출 계획 */}
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🔴</span> 지출 예산 계획
+                    </h3>
+                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeExpenseCategories.map((c: CategoryOption) => {
+                          const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
+                          const value = plan ? plan.plannedAmount : 0;
+                          return (
+                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
+                              </td>
+                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
+                                    setPlans((prev) =>
+                                      prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
+                                    );
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 수입 계획 */}
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🔵</span> 수입 목표 계획
+                    </h3>
+                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeIncomeCategories.map((c: CategoryOption) => {
+                          const plan = plans.find((p) => p.category === c.id && p.type === 'income');
+                          const value = plan ? plan.plannedAmount : 0;
+                          return (
+                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
+                              </td>
+                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
+                                    setPlans((prev) =>
+                                      prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
+                                    );
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="plan-total-bar">
+                  <div className="plan-total-item plan-total-expense">
+                    <span>지출 예산 합계</span>
+                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
+                  </div>
+                  <div className="plan-total-item plan-total-income">
+                    <span>수입 목표 합계</span>
+                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
+                  </div>
+                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
+                    <span>계획 차액</span>
+                    <strong>{displayCurrency(plannedNetTotal)}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 계획 카테고리 설정 카드 (이식 완료) */}
+              <div style={{ height: '80px' }} />
+            </>
+          )}
+
+        {activeTab === 'settings' && (
+          <section className="glass-panel settings-hub">
+            <div className="settings-head">
+              <h2>설정</h2>
+              <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
+                <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
+                <button type="button" className={settingsSection === 'category' ? 'active' : ''} onClick={() => setSettingsSection('category')}>카테고리</button>
+                <button type="button" className={settingsSection === 'recurring' ? 'active' : ''} onClick={() => setSettingsSection('recurring')}>정기기록</button>
+                <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
+              </div>
+            </div>
+
+            {settingsSection === 'app' && (
+              <div className="settings-stack">
+                <div className="settings-row theme-settings-row">
+                  <strong>화면 테마</strong>
+                  <div className="theme-toggle" role="group" aria-label="화면 테마">
+                    <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
+                      라이트 모드
+                    </button>
+                    <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
+                      다크 모드
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+            {settingsSection === 'category' && (
+              <div className="settings-stack settings-category-stack">
+                <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
               <article className="glass-panel managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', padding: '16px' }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <AppIcon name="settings" size={19} /> 등록된 자산 카테고리
                   </span>
-                  <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeAssetCategories.length}개</b>
+                  
+                        <span className="category-header-actions">
+                          <b>{activeAssetCategories.length}개</b>
+                          <button
+                            type="button"
+                            className="category-header-add-button"
+                            onClick={() => {
+                              setCategoryModalType('asset');
+                              setSelectedCategoryColor('#0284c7');
+                              setIsCategoryModalOpen(true);
+                            }}
+                          >
+                            <AppIcon name="plus" size={15} /> 등록
+                          </button>
+                        </span>
                 </h3>
                 <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeAssetCategories.map((category) => {
@@ -3367,121 +3511,8 @@ export default function App() {
                   </article>
 
               {/* 하단바 가림 방지 공백 */}
-              <div style={{ height: '80px' }} />
-            </div>
-          </>
-        )}
-
-        {/* Plans Tab */}
-        {activeTab === 'plan' && (
-          <>
-            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <div>
-                <h1 className="page-title-kor">월간 계획 설정</h1>
-              </div>
-            </div>
-
-            <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
-              <div className="glass-panel" style={{ padding: '16px' }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                  <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
-                </h3>
-
-                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  {/* 지출 계획 */}
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🔴</span> 지출 예산 계획
-                    </h3>
-                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeExpenseCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
-                          const value = plan ? plan.plannedAmount : 0;
-                          return (
-                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
-                              </td>
-                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <PlanAmountInput
-                                  value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* 수입 계획 */}
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🔵</span> 수입 목표 계획
-                    </h3>
-                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeIncomeCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'income');
-                          const value = plan ? plan.plannedAmount : 0;
-                          return (
-                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
-                              </td>
-                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <PlanAmountInput
-                                  value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
-                <div className="plan-total-bar">
-                  <div className="plan-total-item plan-total-expense">
-                    <span>지출 예산 합계</span>
-                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
-                  </div>
-                  <div className="plan-total-item plan-total-income">
-                    <span>수입 목표 합계</span>
-                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
-                  </div>
-                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
-                    <span>계획 차액</span>
-                    <strong>{displayCurrency(plannedNetTotal)}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* 계획 카테고리 설정 카드 (이식 완료) */}
             <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '0px' }}>
                   
                   {/* 지출 카테고리 목록 */}
@@ -3490,7 +3521,21 @@ export default function App() {
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <AppIcon name="settings" size={19} /> 지출 카테고리 목록
                       </span>
-                      <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeExpenseCategories.length}개</b>
+                      
+                        <span className="category-header-actions">
+                          <b>{activeExpenseCategories.length}개</b>
+                          <button
+                            type="button"
+                            className="category-header-add-button"
+                            onClick={() => {
+                              setCategoryModalType('expense');
+                              setSelectedCategoryColor('#ef4444');
+                              setIsCategoryModalOpen(true);
+                            }}
+                          >
+                            <AppIcon name="plus" size={15} /> 등록
+                          </button>
+                        </span>
                     </h3>
                     <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeExpenseCategories.map((category) => {
@@ -3644,7 +3689,21 @@ export default function App() {
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <AppIcon name="settings" size={19} /> 수입 카테고리 목록
                       </span>
-                      <b style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{activeIncomeCategories.length}개</b>
+                      
+                        <span className="category-header-actions">
+                          <b>{activeIncomeCategories.length}개</b>
+                          <button
+                            type="button"
+                            className="category-header-add-button"
+                            onClick={() => {
+                              setCategoryModalType('income');
+                              setSelectedCategoryColor('#059669');
+                              setIsCategoryModalOpen(true);
+                            }}
+                          >
+                            <AppIcon name="plus" size={15} /> 등록
+                          </button>
+                        </span>
                     </h3>
                     <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
                       {activeIncomeCategories.map((category) => {
@@ -3771,33 +3830,91 @@ export default function App() {
               </div>
 
               {/* 하단바 가림 방지 공백 */}
-              <div style={{ height: '80px' }} />
-            </>
-          )}
-
-        {activeTab === 'settings' && (
-          <section className="glass-panel settings-hub">
-            <div className="settings-head">
-              <h2>설정</h2>
-              <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
-                <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
-                <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
               </div>
+            )}
+
+            {settingsSection === 'recurring' && (
+              <div className="settings-stack settings-recurring-stack">
+          <section className="glass-panel" style={{ marginTop: '24px' }}>
+            <div className="panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔄</span> 정기 지출
+                </h3>
+              </div>
+              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                등록된 규칙: {recurringRules.length}개
+              </strong>
             </div>
 
-            {settingsSection === 'app' && (
-              <div className="settings-stack">
-                <div className="settings-row theme-settings-row">
-                  <strong>화면 테마</strong>
-                  <div className="theme-toggle" role="group" aria-label="화면 테마">
-                    <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
-                      라이트 모드
-                    </button>
-                    <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
-                      다크 모드
-                    </button>
-                  </div>
-                </div>
+            <div className="ledger-table-scroll">
+              <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
+                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recurringRules.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
+                        등록된 정기 반복 규칙이 없습니다. 장부 탭이나 달력 모달의 거래 등록 양식에서 [매달 정기 기록으로 등록]을 체크하고 추가해보세요.
+                      </td>
+                    </tr>
+                  ) : (
+                    recurringRules.map((rule) => {
+                      const isStopped = !!rule.endMonth;
+                      const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
+                      const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
+                      
+                      return (
+                        <tr key={rule.id} className={isStopped ? 'recurring-rule-row-ended' : undefined} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.72 : 1 }}>
+                          <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
+                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
+                          <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
+                          <td style={{ padding: '12px 8px' }}>{rule.title}</td>
+                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
+                          <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {rule.startMonth} ~ {rule.endMonth || '진행중'}
+                          </td>
+                          <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                            <div className="recurring-rule-actions">
+                              {!isStopped ? (
+                                <button
+                                  type="button"
+                                  className="recurring-rule-action recurring-rule-action-stop"
+                                  onClick={() => handleStopRecurringRule(rule.id)}
+                                >
+                                  끊기
+                                </button>
+                              ) : (
+                                <div className="recurring-rule-ended-actions">
+                                  <button
+                                    type="button"
+                                    className="recurring-rule-action recurring-rule-action-delete"
+                                    onClick={() => handleDeleteRecurringRule(rule.id)}
+                                    title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
               </div>
             )}
 
@@ -4424,51 +4541,25 @@ export default function App() {
       {(activeTab === 'asset' || activeTab === 'plan' || activeTab === 'calendar' || activeTab === 'ledger') && (
         <div className="fixed-bottom-bar" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
           {activeTab === 'asset' && (
-            <>
-              <button
-                type="button"
-                className="secondary-button fixed-bottom-bar-btn"
-                style={{ background: 'var(--bg-balance-light)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
-                onClick={() => {
-                  setCategoryModalType('asset');
-                  setIsCategoryModalOpen(true);
-                }}
-              >
-                <AppIcon name="plus" size={17} /> 카테고리 등록
-              </button>
-              <button
-                type="button"
-                className="primary-button fixed-bottom-bar-btn"
-                onClick={() => setIsAssetModalOpen(true)}
-              >
-                <AppIcon name="plus" size={17} /> 자산 등록
-              </button>
-            </>
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => setIsAssetModalOpen(true)}
+            >
+              <AppIcon name="plus" size={17} /> 자산 등록
+            </button>
           )}
           {activeTab === 'plan' && (
-            <>
-              <button
-                type="button"
-                className="secondary-button fixed-bottom-bar-btn"
-                style={{ background: 'var(--bg-balance-light)', border: '1px solid var(--border-card)', color: 'var(--text-primary)' }}
-                onClick={() => {
-                  setCategoryModalType('expense');
-                  setIsCategoryModalOpen(true);
-                }}
-              >
-                <AppIcon name="plus" size={17} /> 카테고리 등록
-              </button>
-              <button
-                type="button"
-                className="primary-button fixed-bottom-bar-btn"
-                onClick={() => {
-                  setIsEntryModalOpen(true);
-                  setModalTab('add');
-                }}
-              >
-                <AppIcon name="plus" size={17} /> 거래 등록
-              </button>
-            </>
+            <button
+              type="button"
+              className="primary-button fixed-bottom-bar-btn"
+              onClick={() => {
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              }}
+            >
+              <AppIcon name="plus" size={17} /> 거래 등록
+            </button>
           )}
           {activeTab === 'calendar' && (
             <button

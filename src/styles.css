@@ -1920,8 +1920,61 @@ textarea:focus {
 /* Split Ledger */
 .split-ledger {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
+}
+
+.settings-category-stack,
+.settings-recurring-stack {
+  gap: 16px;
+}
+
+.settings-category-stack .glass-panel,
+.settings-recurring-stack .glass-panel {
+  margin-bottom: 0;
+}
+
+.settings-managed-category-grid {
+  width: 100%;
+}
+
+.category-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.category-header-actions b {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.category-header-add-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--primary-rgb), 0.18);
+  background: rgba(var(--primary-rgb), 0.07);
+  color: var(--primary-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.category-header-add-button:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.category-header-add-button:active {
+  transform: translateY(0);
 }
 
 .ledger-table-wrap h3 {
