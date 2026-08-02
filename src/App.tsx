@@ -4931,8 +4931,8 @@ function UnifiedEntryForm({
           />
         </label>
 
-        {/* 4. 카테고리 */}
-        {form.type !== 'transfer' ? (
+        {/* 4. 카테고리 (이체 선택 시 비표시) */}
+        {form.type !== 'transfer' && (
           <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
             카테고리
             <select
@@ -4945,11 +4945,6 @@ function UnifiedEntryForm({
                 </option>
               ))}
             </select>
-          </label>
-        ) : (
-          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-            카테고리
-            <input type="text" value="계좌 이체 🟣" disabled style={{ opacity: 0.8 }} />
           </label>
         )}
 
