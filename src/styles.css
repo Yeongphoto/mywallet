@@ -2005,6 +2005,69 @@ textarea:focus {
   color: #fff;
 }
 
+.recurring-rule-actions,
+.recurring-rule-ended-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.recurring-rule-action {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.recurring-rule-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+.recurring-rule-action-stop {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.22);
+  background: rgba(254, 228, 226, 0.55);
+}
+
+.recurring-rule-action-stop:hover {
+  color: #fff;
+  border-color: var(--color-expense);
+  background: var(--color-expense);
+}
+
+.recurring-rule-action-delete {
+  color: var(--color-expense);
+  border-color: rgba(239, 68, 68, 0.24);
+  background: transparent;
+}
+
+.recurring-rule-action-delete:hover {
+  color: #fff;
+  border-color: var(--color-expense);
+  background: var(--color-expense);
+}
+
+.recurring-rule-status {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--bg-balance-light);
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 /* Asset Section */
 .asset-form {
   display: grid;

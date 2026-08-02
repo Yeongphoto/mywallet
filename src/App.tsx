@@ -1372,6 +1372,12 @@ export default function App() {
   }
 
   function handleDeleteRecurringRule(id: string) {
+    const targetRule = recurringRules.find((r) => r.id === id);
+    if (targetRule && !targetRule.endMonth) {
+      showNotice('먼저 이달부터 끊기를 눌러 정기 기록을 중단한 뒤 삭제할 수 있습니다.', '삭제 전 중단 필요', 'warning');
+      return;
+    }
+
     requestConfirm({
       title: '정기 기록 목록에서 삭제',
       message: '이 정기 기록 규칙을 목록에서 완전히 삭제할까요?\n\n※ 이미 장부 및 달력에 기록된 지난 거래 내역은 삭제되지 않고 안전하게 유지됩니다.',
@@ -3058,74 +3064,25 @@ export default function App() {
                             {rule.startMonth} ~ {rule.endMonth || '진행중'}
                           </td>
                           <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                              {!isStopped && (
-                                <button
-                                  type="button"
-                                  className="primary-button"
-                                  style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', marginTop: 0, width: 'auto' }}
-                                  onClick={() => {
-                                    const year = Number(selectedMonth.slice(0, 4));
-                                    const month = Number(selectedMonth.slice(5, 7));
-                                    const lastDay = new Date(year, month, 0).getDate();
-                                    const targetDay = Math.min(rule.day, lastDay);
-                                    const dateStr = `${selectedMonth}-${String(targetDay).padStart(2, '0')}`;
-
-                                    const recurringTxId = `rec_${rule.id}_${selectedMonth}`;
-                                    const isDuplicate = transactions.some(
-                                      (t) => t.id === recurringTxId || (
-                                        t.date === dateStr && t.recurringRuleId === rule.id
-                                      )
-                                    );
-                                      const addRecurringTransaction = () => {
-                                        handleAddTransaction({
-                                          id: recurringTxId,
-                                          type: rule.type,
-                                          date: dateStr,
-                                          amount: rule.amount,
-                                          title: rule.title,
-                                          category: rule.category,
-                                          recurringRuleId: rule.id,
-                                        });
-                                      showNotice(`${dateStr} 자로 '${rule.title}' 거래가 등록되었습니다.`, '거래 등록 완료', 'success');
-                                    };
-
-                                    if (isDuplicate) {
-                                      requestConfirm({
-                                        title: '중복 거래 확인',
-                                        message: '동일한 예정일에 유사한 정기 거래가 이미 있습니다. 추가로 등록할까요?',
-                                        confirmLabel: '추가 등록',
-                                        onConfirm: addRecurringTransaction,
-                                      });
-                                      return;
-                                    }
-
-                                    addRecurringTransaction();
-                                  }}
-                                >
-                                  ⚡ 거래 등록
-                                </button>
-                              )}
+                            <div className="recurring-rule-actions">
                               {!isStopped ? (
                                 <button
                                   type="button"
-                                  className="delete-btn-sm"
-                                  style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold' }}
+                                  className="recurring-rule-action recurring-rule-action-stop"
                                   onClick={() => handleStopRecurringRule(rule.id)}
                                 >
-                                  🛑 이달부터 끊기
+                                  이달부터 끊기
                                 </button>
                               ) : (
-                                <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
-                                  <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 'bold', background: 'var(--bg-balance-light)', padding: '4px 8px', borderRadius: '6px' }}>🏁 중단됨</span>
+                                <div className="recurring-rule-ended-actions">
+                                  <span className="recurring-rule-status">중단됨</span>
                                   <button
                                     type="button"
-                                    className="delete-btn-sm"
-                                    style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-expense)', border: '1px solid rgba(239,68,68,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold' }}
+                                    className="recurring-rule-action recurring-rule-action-delete"
                                     onClick={() => handleDeleteRecurringRule(rule.id)}
                                     title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
                                   >
-                                    🗑️ 목록 삭제
+                                    목록 삭제
                                   </button>
                                 </div>
                               )}
