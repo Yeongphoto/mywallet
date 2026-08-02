@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 
@@ -637,7 +637,8 @@ export default function App() {
   const [hoveredChartPos, setHoveredChartPos] = useState<{ x: number; y: number } | null>(null);
   const [summaryType, setSummaryType] = useState<'expense' | 'income' | 'asset'>('expense');
 
-  // Filtering & Search states
+  // Filter & DB Loaded states
+  const isDbLoadedRef = useRef(false);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -770,7 +771,7 @@ export default function App() {
     );
 
     // If still fetching initial DB data, do NOT upload/overwrite database
-    if (isLoading) {
+    if (isLoading || !isDbLoadedRef.current) {
       setRemoteSync((prev) => ({
         ...prev,
         status: 'checking',
@@ -940,9 +941,10 @@ export default function App() {
             return;
           }
 
-          if (hasDbData && serverUpdatedAt >= localUpdatedAt) {
-            // 원격 DB 데이터가 로컬보다 더 최신이거나 같음 -> DB 데이터 적용
-            setTransactions(data.transactions || []);
+          if (hasDbData) {
+            // 원격 DB 데이터 최우선(DB-First) -> DB 데이터 적용
+            const fetchedTxs: Transaction[] = data.transactions || [];
+            setTransactions(fetchedTxs);
             setAssets(data.assets || []);
             setBudget(data.budget ?? 1000000);
             setTheme(data.theme === 'dark' ? 'dark' : 'light');
@@ -959,6 +961,12 @@ export default function App() {
             setUpdatedAt(serverUpdatedAt);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
+            }
+            if (fetchedTxs.length > 0) {
+              const latestDate = fetchedTxs.reduce((latest: string, t: Transaction) => (t.date > latest ? t.date : latest), fetchedTxs[0].date);
+              if (latestDate && latestDate.length >= 7) {
+                setSelectedMonth(latestDate.slice(0, 7));
+              }
             }
             setRemoteSync({
               status: 'synced',
@@ -1037,6 +1045,7 @@ export default function App() {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, 2000 - elapsed);
         setTimeout(() => {
+          isDbLoadedRef.current = true;
           setIsLoading(false);
         }, remaining);
       });

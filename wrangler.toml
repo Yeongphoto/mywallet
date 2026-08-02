@@ -6,3 +6,4 @@ pages_build_output_dir = "dist"
 binding = "DB"
 database_name = "mywallet-d1"
 database_id = "8dfd0da4-d04e-4f57-bc74-4cc567d2de0e"
+remote = true
