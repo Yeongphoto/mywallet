@@ -4881,17 +4881,59 @@ function UnifiedEntryForm({
       )}
 
       <div className="form-grid" style={{ gridTemplateColumns: isQuickAdd ? '1fr' : '1fr 1fr' }}>
-        <label>
-          구분 (유형)
-          <select value={form.type} onChange={(e) => handleTypeChange(e.target.value as EntryType)}>
-            <option value="expense">지출 🔴</option>
-            <option value="income">수입 🔵</option>
-            <option value="transfer">이체 🟣</option>
-          </select>
+        {/* 1. 구분 (유형): 3개 버튼 1행 나열 */}
+        <div className="type-toggle-group">
+          <span className="type-toggle-label">구분 (유형)</span>
+          <div className="type-toggle-row">
+            <button
+              type="button"
+              className={`type-toggle-btn ${form.type === 'expense' ? 'active expense' : ''}`}
+              onClick={() => handleTypeChange('expense')}
+            >
+              지출 🔴
+            </button>
+            <button
+              type="button"
+              className={`type-toggle-btn ${form.type === 'income' ? 'active income' : ''}`}
+              onClick={() => handleTypeChange('income')}
+            >
+              수입 🔵
+            </button>
+            <button
+              type="button"
+              className={`type-toggle-btn ${form.type === 'transfer' ? 'active transfer' : ''}`}
+              onClick={() => handleTypeChange('transfer')}
+            >
+              이체 🟣
+            </button>
+          </div>
+        </div>
+
+        {/* 2. 날짜 */}
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+          날짜
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+          />
         </label>
 
+        {/* 3. 금액 */}
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+          금액 (원)
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="0"
+            value={form.amount}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+          />
+        </label>
+
+        {/* 4. 카테고리 */}
         {form.type !== 'transfer' ? (
-          <label>
+          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
             카테고리
             <select
               value={form.category}
@@ -4905,21 +4947,13 @@ function UnifiedEntryForm({
             </select>
           </label>
         ) : (
-          <label>
-            구분
-            <input type="text" value="계좌 이체" disabled style={{ opacity: 0.8 }} />
+          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+            카테고리
+            <input type="text" value="계좌 이체 🟣" disabled style={{ opacity: 0.8 }} />
           </label>
         )}
 
-        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          날짜
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-          />
-        </label>
-
+        {/* 5. 자산 */}
         {form.type === 'transfer' ? (
           <>
             <label>
@@ -4968,6 +5002,7 @@ function UnifiedEntryForm({
           </label>
         )}
 
+        {/* 6. 내용 */}
         <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
           내용 (적요)
           <input
@@ -4978,17 +5013,7 @@ function UnifiedEntryForm({
           />
         </label>
 
-        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          금액 (원)
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="0"
-            value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
-          />
-        </label>
-
+        {/* 7. 매달 정기 기록 체크박스 */}
         <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
           <input
             type="checkbox"

@@ -1818,6 +1818,68 @@ textarea:focus {
   gap: 14px;
 }
 
+.type-toggle-group {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.type-toggle-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.type-toggle-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.type-toggle-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.type-toggle-btn:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.type-toggle-btn.active.expense {
+  background: var(--color-expense);
+  color: #ffffff;
+  border-color: var(--color-expense);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.type-toggle-btn.active.income {
+  background: var(--color-income);
+  color: #ffffff;
+  border-color: var(--color-income);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.type-toggle-btn.active.transfer {
+  background: var(--color-transfer);
+  color: #ffffff;
+  border-color: var(--color-transfer);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
 /* Filter controls on Ledger */
 .ledger-header {
   display: flex;
