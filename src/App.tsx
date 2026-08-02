@@ -192,6 +192,16 @@ function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
   return categories.find((category) => category.id === idOrLabel || category.label === idOrLabel)?.label ?? idOrLabel;
 }
 
+function formatAssetLabel(asset: AssetItem, customAssetCategories: CategoryOption[] = []): string {
+  const allAssetCats = [...assetCategories, ...customAssetCategories];
+  const catLabel = getCategoryLabel(allAssetCats, asset.category);
+  if (asset.memo && asset.memo.trim()) {
+    if (asset.memo.trim() === catLabel) return catLabel;
+    return `${asset.memo.trim()} (${catLabel})`;
+  }
+  return catLabel;
+}
+
 function buildCategorySegments(categories: CategoryOption[], values: Record<string, number>): FlowSegment[] {
   return categories
     .map((category) => ({
@@ -4618,7 +4628,7 @@ function TransactionListTable({
   const getAssetName = (id?: string | null) => {
     if (!id || !assets) return null;
     const ast = assets.find((a) => a.id === id);
-    return ast ? ast.category : null;
+    return ast ? formatAssetLabel(ast) : null;
   };
 
   return (
@@ -4960,7 +4970,7 @@ function UnifiedEntryForm({
                 <option value="">-- 출금 계좌 선택 --</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.category} {a.memo ? `(${a.memo})` : ''}
+                    {formatAssetLabel(a)}
                   </option>
                 ))}
               </select>
@@ -4974,7 +4984,7 @@ function UnifiedEntryForm({
                 <option value="">-- 입금 계좌 선택 --</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.category} {a.memo ? `(${a.memo})` : ''}
+                    {formatAssetLabel(a)}
                   </option>
                 ))}
               </select>
@@ -4990,7 +5000,7 @@ function UnifiedEntryForm({
               <option value="">-- 계좌 미지정 --</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                  {formatAssetLabel(a)}
                 </option>
               ))}
             </select>
@@ -5184,7 +5194,7 @@ function TransactionEditForm({
               <option value="">-- 출금 계좌 선택 --</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                  {formatAssetLabel(a)}
                 </option>
               ))}
             </select>
@@ -5195,7 +5205,7 @@ function TransactionEditForm({
               <option value="">-- 입금 계좌 선택 --</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                  {formatAssetLabel(a)}
                 </option>
               ))}
             </select>
@@ -5219,7 +5229,7 @@ function TransactionEditForm({
               <option value="">-- 계좌 미지정 --</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                  {formatAssetLabel(a)}
                 </option>
               ))}
             </select>
