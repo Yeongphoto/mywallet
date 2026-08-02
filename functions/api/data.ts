@@ -11,6 +11,8 @@ async function ensureSchema(db: D1Database) {
       amount INTEGER NOT NULL,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
+      asset_id TEXT,
+      to_asset_id TEXT,
       recurring_rule_id TEXT
     )`),
     db.prepare(`CREATE TABLE IF NOT EXISTS assets (
@@ -43,6 +45,8 @@ async function ensureSchema(db: D1Database) {
       amount INTEGER NOT NULL,
       title TEXT NOT NULL,
       category TEXT NOT NULL,
+      asset_id TEXT,
+      to_asset_id TEXT,
       startMonth TEXT NOT NULL,
       endMonth TEXT
     )`),
@@ -50,6 +54,11 @@ async function ensureSchema(db: D1Database) {
       id TEXT PRIMARY KEY
     )`)
   ]);
+
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN asset_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN to_asset_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN asset_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN to_asset_id TEXT").run(); } catch {}
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -85,6 +94,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         amount: Number(t.amount),
         title: t.title,
         category: t.category,
+        assetId: t.asset_id || null,
+        toAssetId: t.to_asset_id || null,
         recurringRuleId: t.recurring_rule_id || null
       })),
       assets: asts.results || [],
@@ -99,7 +110,18 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       categoryBudgetExcluded: settingsMap['categoryBudgetExcluded'] ? JSON.parse(settingsMap['categoryBudgetExcluded']) : {},
       categoryOrder: settingsMap['categoryOrder'] ? JSON.parse(settingsMap['categoryOrder']) : {},
       hiddenCategories: settingsMap['hiddenCategories'] ? JSON.parse(settingsMap['hiddenCategories']) : {},
-      recurringRules: rcRules.results || [],
+      recurringRules: (rcRules.results || []).map((r: any) => ({
+        id: r.id,
+        type: r.type,
+        day: Number(r.day),
+        amount: Number(r.amount),
+        title: r.title,
+        category: r.category,
+        assetId: r.asset_id || null,
+        toAssetId: r.to_asset_id || null,
+        startMonth: r.startMonth,
+        endMonth: r.endMonth || null
+      })),
       deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id),
       updatedAt: Number(settingsMap['updatedAt']) || 0
     };
@@ -159,8 +181,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(transactions)) {
       transactions.forEach((t: any) => {
         statements.push(
-          db.prepare("INSERT INTO transactions (id, type, date, amount, title, category, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind(t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId || null)
+          db.prepare("INSERT INTO transactions (id, type, date, amount, title, category, asset_id, to_asset_id, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(t.id, t.type, t.date, t.amount, t.title, t.category, t.assetId || null, t.toAssetId || null, t.recurringRuleId || null)
         );
       });
     }
@@ -233,8 +255,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(recurringRules)) {
       recurringRules.forEach((r: any) => {
         statements.push(
-          db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(r.id, r.type, r.day, r.amount, r.title, r.category, r.startMonth, r.endMonth || null)
+          db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(r.id, r.type, r.day, r.amount, r.title, r.category, r.assetId || null, r.toAssetId || null, r.startMonth, r.endMonth || null)
         );
       });
     }

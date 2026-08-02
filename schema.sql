@@ -6,6 +6,8 @@ CREATE TABLE transactions (
   amount INTEGER NOT NULL,
   title TEXT NOT NULL,
   category TEXT NOT NULL,
+  asset_id TEXT,
+  to_asset_id TEXT,
   recurring_rule_id TEXT
 );
 
@@ -48,6 +50,8 @@ CREATE TABLE recurring_rules (
   amount INTEGER NOT NULL,
   title TEXT NOT NULL,
   category TEXT NOT NULL,
+  asset_id TEXT,
+  to_asset_id TEXT,
   startMonth TEXT NOT NULL,
   endMonth TEXT
 );

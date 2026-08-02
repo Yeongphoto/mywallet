@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export interface CategoryOption {
   id: string;
@@ -13,6 +13,8 @@ export interface Transaction {
   amount: number;
   title: string;
   category: string;
+  assetId?: string | null;
+  toAssetId?: string | null;
   recurringRuleId?: string | null;
 }
 
@@ -28,6 +30,8 @@ export interface TransactionFormState {
   amount: string;
   title: string;
   category: string;
+  assetId?: string;
+  toAssetId?: string;
 }
 
 export interface AssetFormState {
@@ -42,7 +46,7 @@ export interface Budget {
 
 export type Theme = 'light' | 'dark';
 
-export type EntryType = 'expense' | 'income' | 'asset';
+export type EntryType = 'expense' | 'income' | 'transfer';
 
 export interface UnifiedFormState {
   type: EntryType;
@@ -50,6 +54,8 @@ export interface UnifiedFormState {
   amount: string;
   title: string;
   category: string;
+  assetId: string;
+  toAssetId: string;
 }
 
 export interface CategoryPlan {
@@ -65,6 +71,8 @@ export interface RecurringRule {
   amount: number;
   title: string;
   category: string;
+  assetId?: string | null;
+  toAssetId?: string | null;
   startMonth: string; // YYYY-MM
   endMonth: string | null; // YYYY-MM
 }

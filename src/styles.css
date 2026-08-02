@@ -15,12 +15,14 @@
   
   --color-expense: #ef4444;
   --color-income: #3b82f6;
+  --color-transfer: #8b5cf6;
   --color-asset: #10b981;
   --color-balance: #0f172a;
   --color-budget: #f59e0b;
   
   --bg-expense-light: #fef2f2;
   --bg-income-light: #eff6ff;
+  --bg-transfer-light: #f5f3ff;
   --bg-asset-light: #ecfdf5;
   --bg-balance-light: #f8fafc;
   --bg-budget-light: #fffbeb;
@@ -1798,6 +1800,7 @@ textarea:focus {
 
 .entry-form-title.expense::before { background: var(--color-expense); }
 .entry-form-title.income::before { background: var(--color-income); }
+.entry-form-title.transfer::before { background: var(--color-transfer); }
 
 .entry-form-title strong {
   font-size: 1.2rem;

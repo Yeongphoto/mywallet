@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 
@@ -295,7 +295,7 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
     ? (expenseCategories[0]?.id ?? 'etc')
     : defaultType === 'income'
     ? (incomeCategories[0]?.id ?? 'etc')
-    : (assetCategories[0]?.id ?? 'cash');
+    : 'transfer';
 
   return {
     type: defaultType,
@@ -303,6 +303,8 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
     amount: '',
     title: '',
     category: defaultCategory,
+    assetId: '',
+    toAssetId: '',
   };
 }
 
@@ -1133,6 +1135,8 @@ export default function App() {
               amount: rule.amount,
               title: rule.title,
               category: rule.category,
+              assetId: rule.assetId || null,
+              toAssetId: rule.toAssetId || null,
               recurringRuleId: rule.id
             });
           }
@@ -1169,7 +1173,28 @@ export default function App() {
   const monthlyIncomes = monthlyTransactions.filter((transaction) => transaction.type === 'income' && transaction.date <= todayStr);
   const expenseTotal = sumAmount(monthlyExpenses);
   const incomeTotal = sumAmount(monthlyIncomes);
-  const assetTotal = sumAmount(assets);
+  
+  const getAssetBalance = useCallback(
+    (assetId: string, baseAmount: number) => {
+      let current = baseAmount;
+      for (const t of transactions) {
+        if (t.type === 'income' && t.assetId === assetId) {
+          current += t.amount;
+        } else if (t.type === 'expense' && t.assetId === assetId) {
+          current -= t.amount;
+        } else if (t.type === 'transfer') {
+          if (t.assetId === assetId) current -= t.amount;
+          if (t.toAssetId === assetId) current += t.amount;
+        }
+      }
+      return current;
+    },
+    [transactions],
+  );
+
+  const assetTotal = useMemo(() => {
+    return assets.reduce((sum, ast) => sum + getAssetBalance(ast.id, ast.amount), 0);
+  }, [assets, getAssetBalance]);
   
   const recurringExpenseTotal = useMemo(() => {
     return recurringRules
@@ -1886,7 +1911,7 @@ export default function App() {
     const rows = [
       createCSVRow(['SECTION', 'ID', 'TYPE_OR_CATEGORY', 'DATE_OR_MEMO', 'AMOUNT', 'TITLE', 'EXTRA', 'JSON']),
       createCSVRow(['SETTINGS', 'mywallet-v2', '', '', '', '', '', JSON.stringify(backupSettings)]),
-      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? ''])),
+      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? '', t.assetId ?? '', t.toAssetId ?? ''])),
       ...assets.map((a) => createCSVRow(['A', a.id, a.category, a.amount, a.memo, '', '', ''])),
       ...plans.map((p) => createCSVRow(['P', p.category, p.type, p.plannedAmount, '', '', '', ''])),
       createCSVRow(['BUDGET', budget, '', '', '', '', '', '']),
@@ -1938,6 +1963,8 @@ export default function App() {
               title: cells[5],
               category: cells[6],
               recurringRuleId: cells[7] || null,
+              assetId: cells[8] || null,
+              toAssetId: cells[9] || null,
             });
           } else if (cells[0] === 'A') {
             newAssets.push({
@@ -2888,7 +2915,8 @@ export default function App() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                  <option value="all">모든 카테고리</option>
+                  <option value="all">모든 내역</option>
+                  <option value="transfer">이체 내역 🟣</option>
                   <optgroup label="지출 카테고리">
                     {activeExpenseCategories.map((c: CategoryOption) => (
                       <option key={c.id} value={c.id}>
@@ -2906,7 +2934,7 @@ export default function App() {
                 </select>
               </div>
 
-            <div className="split-ledger">
+            <div className="split-ledger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
               <TransactionListTable
                 title="지출 내역"
                 type="expense"
@@ -2914,6 +2942,7 @@ export default function App() {
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
                 categories={allExpenseCategories}
+                assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 formatMoney={displayCurrency}
               />
@@ -2924,6 +2953,18 @@ export default function App() {
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
                 categories={allIncomeCategories}
+                assets={assets}
+                onStopRecurring={handleStopRecurringFromTx}
+                formatMoney={displayCurrency}
+              />
+              <TransactionListTable
+                title="이체 내역"
+                type="transfer"
+                items={filteredLedgerTransactions.filter((t) => t.type === 'transfer')}
+                onDelete={handleDeleteTransaction}
+                onEdit={setEditingTransaction}
+                categories={[]}
+                assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 formatMoney={displayCurrency}
               />
@@ -3156,14 +3197,22 @@ export default function App() {
                             cursor: 'grab',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
-                            <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(asset.amount)}</span>
-                            {asset.memo && (
-                              <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '8px' }}>({asset.memo})</span>
-                            )}
-                          </div>
+                          {(() => {
+                            const currentBalance = getAssetBalance(asset.id, asset.amount);
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
+                                <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(currentBalance)}</span>
+                                {currentBalance !== asset.amount && (
+                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>(기초: {displayCurrency(asset.amount)})</span>
+                                )}
+                                {asset.memo && (
+                                  <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '4px' }}>({asset.memo})</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button
                               type="button"
@@ -3934,6 +3983,7 @@ export default function App() {
                 recurringRules={recurringRules}
                 expenseCategories={allExpenseCategories}
                 incomeCategories={allIncomeCategories}
+                assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 onNotify={showNotice}
               />
@@ -4318,12 +4368,9 @@ export default function App() {
                   handleAddTransaction(t);
                   setIsEntryModalOpen(false);
                 }}
-                onAddAsset={(a) => {
-                  handleAddAsset(a);
-                  setIsEntryModalOpen(false);
-                }}
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
+                assets={assets}
                 onAddRecurringRule={(r) => {
                   handleAddRecurringRule(r);
                   setIsEntryModalOpen(false);
@@ -4545,6 +4592,7 @@ function TransactionListTable({
   onDelete,
   onEdit,
   categories,
+  assets = [],
   onStopRecurring,
   formatMoney = formatCurrency,
 }: {
@@ -4554,9 +4602,15 @@ function TransactionListTable({
   onDelete: (id: string) => void;
   onEdit: (t: Transaction) => void;
   categories: CategoryOption[];
+  assets?: AssetItem[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   formatMoney?: (value: number) => string;
 }) {
+  const getAssetName = (id?: string | null) => {
+    if (!id || !assets) return null;
+    const ast = assets.find((a) => a.id === id);
+    return ast ? ast.category : null;
+  };
 
   return (
     <section className="ledger-table-wrap">
@@ -4564,53 +4618,114 @@ function TransactionListTable({
       <div className="ledger-table-scroll">
         <table className="ledger-table">
           <thead>
-            <tr>
-              <th>날짜</th>
-              <th>금액</th>
-              <th>내용</th>
-              <th>카테고리</th>
-              <th />
-            </tr>
+            {type === 'transfer' ? (
+              <tr>
+                <th>날짜</th>
+                <th>금액</th>
+                <th>내용</th>
+                <th>보낸 계좌 (출금)</th>
+                <th>받은 계좌 (입금)</th>
+                <th />
+              </tr>
+            ) : (
+              <tr>
+                <th>날짜</th>
+                <th>금액</th>
+                <th>내용</th>
+                <th>카테고리</th>
+                <th>연동 계좌</th>
+                <th />
+              </tr>
+            )}
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="empty-cell">
+                <td colSpan={6} className="empty-cell">
                   등록된 내역이 없습니다.
                 </td>
               </tr>
             ) : (
               items.map((transaction) => {
                 const isFuture = transaction.date > getToday();
+                if (type === 'transfer') {
+                  return (
+                    <tr key={transaction.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
+                      <td>{transaction.date}</td>
+                      <td style={{ fontWeight: 600, color: '#8b5cf6' }}>{formatMoney(transaction.amount)}</td>
+                      <td>
+                        {transaction.title}
+                        {transaction.recurringRuleId && (
+                          <span
+                            title="정기 이체"
+                            style={{ marginLeft: '6px', color: '#8b5cf6', fontSize: '0.9rem', cursor: 'help' }}
+                          >
+                            🔄
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.82rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-expense)', fontWeight: 600 }}>
+                          {getAssetName(transaction.assetId) || '출금 계좌 미지정'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.82rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-income)', fontWeight: 600 }}>
+                          {getAssetName(transaction.toAssetId) || '입금 계좌 미지정'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="actions-cell">
+                          <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
+                            수정
+                          </button>
+                          <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
+                            삭제
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
                   <tr key={transaction.id} style={{ opacity: isFuture ? 0.55 : 1, transition: 'opacity 0.2s' }}>
                     <td>{transaction.date}</td>
                     <td style={{ fontWeight: 600 }}>{formatMoney(transaction.amount)}</td>
-                  <td>
-                    {transaction.title}
-                    {transaction.recurringRuleId && (
-                      <span
-                        title="정기 반복 결제"
-                        style={{ marginLeft: '6px', color: 'var(--primary)', fontSize: '0.9rem', cursor: 'help' }}
-                      >
-                        🔄
-                      </span>
-                    )}
-                  </td>
-                  <td><CategoryBadge categories={categories} idOrLabel={transaction.category} /></td>
-                  <td>
-                    <div className="actions-cell">
-                      <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
-                        수정
-                      </button>
-                      <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
-                        삭제
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
+                    <td>
+                      {transaction.title}
+                      {transaction.recurringRuleId && (
+                        <span
+                          title="정기 반복 결제"
+                          style={{ marginLeft: '6px', color: 'var(--primary)', fontSize: '0.9rem', cursor: 'help' }}
+                        >
+                          🔄
+                        </span>
+                      )}
+                    </td>
+                    <td><CategoryBadge categories={categories} idOrLabel={transaction.category} /></td>
+                    <td>
+                      {getAssetName(transaction.assetId) ? (
+                        <span style={{ fontSize: '0.8rem', padding: '2px 7px', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.08)', color: 'var(--primary)', fontWeight: 600 }}>
+                          {getAssetName(transaction.assetId)}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>-</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="actions-cell">
+                        <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>
+                          수정
+                        </button>
+                        <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>
+                          삭제
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -4619,52 +4734,48 @@ function TransactionListTable({
   );
 }
 
-// Unified Entry Form (Income / Expense / Asset)
+// Unified Entry Form (Income / Expense / Transfer)
 function UnifiedEntryForm({
   defaultDate = getToday(),
   onAddTransaction,
-  onAddAsset,
   isQuickAdd = false,
   expenseCategories,
   incomeCategories,
+  assets = [],
   onAddRecurringRule,
   onNotify,
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
-  onAddAsset: (a: AssetItem) => void;
+  onAddAsset?: (a: AssetItem) => void;
   isQuickAdd?: boolean;
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
+  assets?: AssetItem[];
   onAddRecurringRule?: (r: RecurringRule) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
   const [isRecurring, setIsRecurring] = useState(false);
 
-  // Update categories dynamically depending on selection
   const activeCategories: CategoryOption[] = useMemo(() => {
     if (form.type === 'expense') return expenseCategories;
     if (form.type === 'income') return incomeCategories;
-    return assetCategories;
+    return [{ id: 'transfer', label: '계좌 이체', color: '#8b5cf6' }];
   }, [form.type, expenseCategories, incomeCategories]);
 
-  // Adjust default category when type changes
   function handleTypeChange(newType: EntryType) {
     const defaultCat = newType === 'expense'
       ? (expenseCategories[0]?.id ?? 'etc')
       : newType === 'income'
       ? (incomeCategories[0]?.id ?? 'etc')
-      : (assetCategories[0]?.id ?? 'cash');
+      : 'transfer';
 
     setForm((prev) => ({
       ...prev,
       type: newType,
       category: defaultCat,
     }));
-    if (newType === 'asset') {
-      setIsRecurring(false);
-    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -4675,65 +4786,68 @@ function UnifiedEntryForm({
       onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
+    if (!form.date) {
+      onNotify?.('날짜를 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+    if (!form.title.trim()) {
+      onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
 
-    if (form.type === 'asset') {
-      // Asset Registration
-      onAddAsset({
-        id: createId(),
-        category: form.category,
-        amount,
-        memo: form.title.trim() || '자산 등록',
-      });
-    } else {
-      // Income or Expense Registration
-      if (!form.date) {
-        onNotify?.('날짜를 입력해 주세요.', '입력 확인', 'warning');
+    if (form.type === 'transfer') {
+      if (!form.assetId || !form.toAssetId) {
+        onNotify?.('보내는 계좌와 받는 계좌를 모두 선택해 주세요.', '입력 확인', 'warning');
         return;
       }
-      if (!form.title.trim()) {
-        onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
+      if (form.assetId === form.toAssetId) {
+        onNotify?.('보내는 계좌와 받는 계좌가 동일합니다. 서로 다른 계좌를 선택해 주세요.', '입력 확인', 'warning');
         return;
-      }
-
-      if (isRecurring && onAddRecurringRule) {
-        const day = Number(form.date.slice(8, 10)) || 1;
-        const transactionMonth = form.date.slice(0, 7); // "YYYY-MM"
-        const startMonth = getNextMonth(transactionMonth);
-        const ruleId = `rule_${Date.now()}`;
-        onAddRecurringRule({
-          id: ruleId,
-          type: form.type as TransactionType,
-          day,
-          amount,
-          title: form.title.trim(),
-          category: form.category,
-          startMonth,
-          endMonth: null
-        });
-
-        // Write the current day transaction immediately using matching rec_ ID
-        onAddTransaction({
-          id: `rec_${ruleId}_${transactionMonth}`,
-          type: form.type as TransactionType,
-          date: form.date,
-          amount,
-          title: form.title.trim(),
-          category: form.category,
-          recurringRuleId: ruleId,
-        });
-      } else {
-        onAddTransaction({
-          id: createId(),
-          type: form.type as TransactionType,
-          date: form.date,
-          amount,
-          title: form.title.trim(),
-          category: form.category,
-        });
       }
     }
 
-    // Reset Form (keep date & type)
+    if (isRecurring && onAddRecurringRule) {
+      const day = Number(form.date.slice(8, 10)) || 1;
+      const transactionMonth = form.date.slice(0, 7);
+      const startMonth = getNextMonth(transactionMonth);
+      const ruleId = `rule_${Date.now()}`;
+      onAddRecurringRule({
+        id: ruleId,
+        type: form.type as TransactionType,
+        day,
+        amount,
+        title: form.title.trim(),
+        category: form.type === 'transfer' ? 'transfer' : form.category,
+        assetId: form.assetId || null,
+        toAssetId: form.type === 'transfer' ? form.toAssetId : null,
+        startMonth,
+        endMonth: null,
+      });
+
+      onAddTransaction({
+        id: `rec_${ruleId}_${transactionMonth}`,
+        type: form.type as TransactionType,
+        date: form.date,
+        amount,
+        title: form.title.trim(),
+        category: form.type === 'transfer' ? 'transfer' : form.category,
+        assetId: form.assetId || null,
+        toAssetId: form.type === 'transfer' ? form.toAssetId : null,
+        recurringRuleId: ruleId,
+      });
+    } else {
+      onAddTransaction({
+        id: createId(),
+        type: form.type as TransactionType,
+        date: form.date,
+        amount,
+        title: form.title.trim(),
+        category: form.type === 'transfer' ? 'transfer' : form.category,
+        assetId: form.assetId || null,
+        toAssetId: form.type === 'transfer' ? form.toAssetId : null,
+      });
+    }
+
     setForm((prev) => ({
       ...prev,
       amount: '',
@@ -4746,14 +4860,14 @@ function UnifiedEntryForm({
     }
   }
 
-  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'asset';
+  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';
 
   return (
     <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
       {!isQuickAdd && (
         <div className={`entry-form-title ${formColorClass}`}>
           <strong>통합 거래 등록</strong>
-          <span>수입, 지출, 자산 내역을 드롭다운 선택으로 한 번에 관리합니다.</span>
+          <span>수입, 지출 및 계좌 간 이체 내역을 드롭다운 선택으로 등록합니다.</span>
         </div>
       )}
 
@@ -4763,40 +4877,93 @@ function UnifiedEntryForm({
           <select value={form.type} onChange={(e) => handleTypeChange(e.target.value as EntryType)}>
             <option value="expense">지출 🔴</option>
             <option value="income">수입 🔵</option>
-            <option value="asset">자산 🟢</option>
+            <option value="transfer">이체 🟣</option>
           </select>
         </label>
 
-        <label>
-          {form.type === 'asset' ? '자산 구분' : '카테고리'}
-          <select
-            value={form.category}
-            onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-          >
-            {activeCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {form.type !== 'asset' && (
-          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-            날짜
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-            />
+        {form.type !== 'transfer' ? (
+          <label>
+            카테고리
+            <select
+              value={form.category}
+              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+            >
+              {activeCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <label>
+            구분
+            <input type="text" value="계좌 이체" disabled style={{ opacity: 0.8 }} />
           </label>
         )}
 
         <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-          {form.type === 'asset' ? '자산 메모' : '내용'}
+          날짜
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+          />
+        </label>
+
+        {form.type === 'transfer' ? (
+          <>
+            <label>
+              보내는 계좌 (출금)
+              <select
+                value={form.assetId}
+                onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
+              >
+                <option value="">-- 출금 계좌 선택 --</option>
+                {assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.category} {a.memo ? `(${a.memo})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              받는 계좌 (입금)
+              <select
+                value={form.toAssetId}
+                onChange={(e) => setForm((prev) => ({ ...prev, toAssetId: e.target.value }))}
+              >
+                <option value="">-- 입금 계좌 선택 --</option>
+                {assets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.category} {a.memo ? `(${a.memo})` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        ) : (
+          <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+            결제/입금 계좌 (선택)
+            <select
+              value={form.assetId}
+              onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
+            >
+              <option value="">-- 계좌 미지정 --</option>
+              {assets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+          내용 (적요)
           <input
             type="text"
-            placeholder={form.type === 'asset' ? '예: 카카오뱅크 통장, 주식 계좌' : '예: 식비, 교통비, 보너스'}
+            placeholder={form.type === 'transfer' ? '예: 청약 적금 이체, 카카오뱅크로 이동' : '예: 식비, 교통비, 급여'}
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
           />
@@ -4813,21 +4980,19 @@ function UnifiedEntryForm({
           />
         </label>
 
-        {form.type !== 'asset' && (
-          <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
-            <input
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-            />
-            <span className="recurring-toggle-mark" aria-hidden="true" />
-            <span className="recurring-toggle-text">정기 기록</span>
-          </label>
-        )}
+        <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+          <input
+            type="checkbox"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+          />
+          <span className="recurring-toggle-mark" aria-hidden="true" />
+          <span className="recurring-toggle-text">매달 정기 기록으로 등록</span>
+        </label>
       </div>
 
-      <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-asset)' }}>
-        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '자산 등록'}
+      <button type="submit" className="primary-button" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
+        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
       </button>
     </form>
   );
@@ -4843,6 +5008,7 @@ function TransactionEditForm({
   recurringRules,
   expenseCategories,
   incomeCategories,
+  assets = [],
   onStopRecurring,
   onNotify,
 }: {
@@ -4854,6 +5020,7 @@ function TransactionEditForm({
   recurringRules: RecurringRule[];
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
+  assets?: AssetItem[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
@@ -4862,6 +5029,8 @@ function TransactionEditForm({
   const [title, setTitle] = useState(transaction.title);
   const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
   const [category, setCategory] = useState(transaction.category);
+  const [assetId, setAssetId] = useState(transaction.assetId || '');
+  const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
   
   // Load initial checkbox state based on transaction recurringRuleId
   const [isRecurring, setIsRecurring] = useState(() => {
@@ -4888,6 +5057,17 @@ function TransactionEditForm({
       return;
     }
 
+    if (transaction.type === 'transfer') {
+      if (!assetId || !toAssetId) {
+        onNotify?.('보내는 계좌와 받는 계좌를 모두 선택해 주세요.', '입력 확인', 'warning');
+        return;
+      }
+      if (assetId === toAssetId) {
+        onNotify?.('보내는 계좌와 받는 계좌가 동일합니다.', '입력 확인', 'warning');
+        return;
+      }
+    }
+
     const activeRecurringRule = transaction.recurringRuleId
       ? recurringRules.find((rule) => rule.id === transaction.recurringRuleId && !rule.endMonth)
       : undefined;
@@ -4907,7 +5087,9 @@ function TransactionEditForm({
         day: dy,
         amount: numericAmount,
         title: title.trim(),
-        category,
+        category: transaction.type === 'transfer' ? 'transfer' : category,
+        assetId: assetId || null,
+        toAssetId: transaction.type === 'transfer' ? toAssetId : null,
         startMonth: nextMonthStr,
         endMonth: null
       });
@@ -4926,7 +5108,9 @@ function TransactionEditForm({
         day: dy,
         amount: numericAmount,
         title: title.trim(),
-        category,
+        category: transaction.type === 'transfer' ? 'transfer' : category,
+        assetId: assetId || null,
+        toAssetId: transaction.type === 'transfer' ? toAssetId : null,
       });
       onNotify?.('정기 반복 결제 정보가 변경되었습니다.', '정기 기록 수정', 'success');
     }
@@ -4936,7 +5120,9 @@ function TransactionEditForm({
       date,
       amount: numericAmount,
       title: title.trim(),
-      category,
+      category: transaction.type === 'transfer' ? 'transfer' : category,
+      assetId: assetId || null,
+      toAssetId: transaction.type === 'transfer' ? toAssetId : null,
       recurringRuleId: nextRuleId,
     });
   }
@@ -4960,16 +5146,57 @@ function TransactionEditForm({
         내용
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      <label>
-        카테고리
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </label>
+
+      {transaction.type === 'transfer' ? (
+        <>
+          <label>
+            보내는 계좌 (출금)
+            <select value={assetId} onChange={(e) => setAssetId(e.target.value)}>
+              <option value="">-- 출금 계좌 선택 --</option>
+              {assets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            받는 계좌 (입금)
+            <select value={toAssetId} onChange={(e) => setToAssetId(e.target.value)}>
+              <option value="">-- 입금 계좌 선택 --</option>
+              {assets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      ) : (
+        <>
+          <label>
+            카테고리
+            <select value={category} onChange={(e) => setCategory(e.target.value)}>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            결제/입금 계좌 (선택)
+            <select value={assetId} onChange={(e) => setAssetId(e.target.value)}>
+              <option value="">-- 계좌 미지정 --</option>
+              {assets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.category} {a.memo ? `(${a.memo})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
 
       <label className="recurring-toggle">
         <input
