@@ -4389,6 +4389,7 @@ export default function App() {
                 }}
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
+                assetCategories={activeAssetCategories}
                 assets={assets}
                 onAddRecurringRule={(r) => {
                   handleAddRecurringRule(r);
@@ -4760,7 +4761,9 @@ function UnifiedEntryForm({
   isQuickAdd = false,
   expenseCategories,
   incomeCategories,
+  assetCategories: propAssetCategories,
   assets = [],
+  onAddAsset,
   onAddRecurringRule,
   onNotify,
 }: {
@@ -4770,12 +4773,15 @@ function UnifiedEntryForm({
   isQuickAdd?: boolean;
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
+  assetCategories?: CategoryOption[];
   assets?: AssetItem[];
   onAddRecurringRule?: (r: RecurringRule) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
   const [isRecurring, setIsRecurring] = useState(false);
+
+  const currentAssetCategories = propAssetCategories || assetCategories;
 
   const activeCategories: CategoryOption[] = useMemo(() => {
     if (form.type === 'expense') return expenseCategories;
@@ -4805,6 +4811,7 @@ function UnifiedEntryForm({
       onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
+
     if (!form.date) {
       onNotify?.('날짜를 입력해 주세요.', '입력 확인', 'warning');
       return;
@@ -4891,9 +4898,9 @@ function UnifiedEntryForm({
       )}
 
       <div className="form-grid" style={{ gridTemplateColumns: isQuickAdd ? '1fr' : '1fr 1fr' }}>
-        {/* 1. 구분 (유형): 3개 버튼 1행 나열 */}
+        {/* 1. 구분: 3개 버튼 1행 나열 */}
         <div className="type-toggle-group">
-          <span className="type-toggle-label">구분 (유형)</span>
+          <span className="type-toggle-label">구분</span>
           <div className="type-toggle-row">
             <button
               type="button"
