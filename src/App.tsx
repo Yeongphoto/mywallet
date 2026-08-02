@@ -1365,13 +1365,13 @@ export default function App() {
 
   function handleDeleteRecurringRule(id: string) {
     requestConfirm({
-      title: '정기 기록 삭제',
-      message: '이 정기 기록 규칙을 삭제할까요? 이미 기록된 거래 내역은 삭제되지 않습니다.',
-      confirmLabel: '삭제',
+      title: '정기 기록 목록에서 삭제',
+      message: '이 정기 기록 규칙을 목록에서 완전히 삭제할까요?\n\n※ 이미 장부 및 달력에 기록된 지난 거래 내역은 삭제되지 않고 안전하게 유지됩니다.',
+      confirmLabel: '목록에서 삭제',
       tone: 'danger',
       onConfirm: () => {
         setRecurringRules((prev) => prev.filter((r) => r.id !== id));
-        showNotice('정기 기록 규칙을 삭제했습니다.', '삭제 완료', 'success');
+        showNotice('정기 기록 규칙이 관리 목록에서 삭제되었습니다.', '삭제 완료', 'success');
       },
     });
   }
