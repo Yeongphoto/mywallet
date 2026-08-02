@@ -3102,22 +3102,25 @@ export default function App() {
                                 <button
                                   type="button"
                                   className="delete-btn-sm"
-                                  style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
+                                  style={{ background: 'var(--color-expense)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold' }}
                                   onClick={() => handleStopRecurringRule(rule.id)}
                                 >
-                                  🛑 끊기
+                                  🛑 이달부터 끊기
                                 </button>
                               ) : (
-                                <span style={{ fontSize: '0.78rem', color: 'var(--color-expense)', fontWeight: 'bold' }}>끊김</span>
+                                <>
+                                  <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontWeight: 'bold', background: 'var(--bg-balance-light)', padding: '4px 8px', borderRadius: '6px' }}>🏁 중단됨</span>
+                                  <button
+                                    type="button"
+                                    className="delete-btn-sm"
+                                    style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-expense)', border: '1px solid rgba(239,68,68,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 'bold' }}
+                                    onClick={() => handleDeleteRecurringRule(rule.id)}
+                                    title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
+                                  >
+                                    🗑️ 목록 삭제
+                                  </button>
+                                </>
                               )}
-                              <button
-                                type="button"
-                                className="delete-btn-sm"
-                                style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.78rem' }}
-                                onClick={() => handleDeleteRecurringRule(rule.id)}
-                              >
-                                삭제
-                              </button>
                             </div>
                           </td>
                         </tr>
