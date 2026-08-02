@@ -46,7 +46,7 @@ export interface Budget {
 
 export type Theme = 'light' | 'dark';
 
-export type EntryType = 'expense' | 'income' | 'transfer' | 'asset';
+export type EntryType = 'expense' | 'income' | 'transfer';
 
 export interface UnifiedFormState {
   type: EntryType;
