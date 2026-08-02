@@ -1341,7 +1341,11 @@ export default function App() {
 
   function handleStopRecurringRule(id: string) {
     setRecurringRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, endMonth: selectedMonth } : r))
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const targetEndMonth = selectedMonth < r.startMonth ? r.startMonth : selectedMonth;
+        return { ...r, endMonth: targetEndMonth };
+      })
     );
     showNotice('다음 달부터 반복 기록이 중단됩니다.', '정기 기록 중지', 'success');
   }
@@ -1358,7 +1362,11 @@ export default function App() {
     }
     
     setRecurringRules((prev) =>
-      prev.map((r) => (r.id === ruleId ? { ...r, endMonth: txMonth } : r))
+      prev.map((r) => {
+        if (r.id !== ruleId) return r;
+        const targetEndMonth = txMonth < r.startMonth ? r.startMonth : txMonth;
+        return { ...r, endMonth: targetEndMonth };
+      })
     );
     showNotice(`${txMonth}월까지 유지되고 다음 달부터 중단됩니다.`, '정기 기록 중지', 'success');
   }
@@ -3047,7 +3055,7 @@ export default function App() {
                           <td style={{ padding: '12px 8px' }}>{rule.title}</td>
                           <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
                           <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {rule.startMonth} ~ {rule.endMonth ? `🏁 ${rule.endMonth} 끊김` : '진행중'}
+                            {rule.startMonth} ~ {rule.endMonth || '진행중'}
                           </td>
                           <td style={{ padding: '12px 8px', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
