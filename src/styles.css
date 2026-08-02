@@ -2055,17 +2055,11 @@ textarea:focus {
   background: var(--color-expense);
 }
 
-.recurring-rule-status {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: var(--bg-balance-light);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 800;
-  white-space: nowrap;
+.recurring-rule-row-ended td:not(:last-child) {
+  color: var(--text-secondary) !important;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(100, 116, 139, 0.72);
 }
 
 /* Asset Section */

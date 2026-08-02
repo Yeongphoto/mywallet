@@ -3054,7 +3054,7 @@ export default function App() {
                       const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
                       
                       return (
-                        <tr key={rule.id} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.6 : 1 }}>
+                        <tr key={rule.id} className={isStopped ? 'recurring-rule-row-ended' : undefined} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.72 : 1 }}>
                           <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
                           <td style={{ padding: '12px 8px' }}>매월 {rule.day}일</td>
                           <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
@@ -3071,18 +3071,17 @@ export default function App() {
                                   className="recurring-rule-action recurring-rule-action-stop"
                                   onClick={() => handleStopRecurringRule(rule.id)}
                                 >
-                                  이달부터 끊기
+                                  끊기
                                 </button>
                               ) : (
                                 <div className="recurring-rule-ended-actions">
-                                  <span className="recurring-rule-status">중단됨</span>
                                   <button
                                     type="button"
                                     className="recurring-rule-action recurring-rule-action-delete"
                                     onClick={() => handleDeleteRecurringRule(rule.id)}
                                     title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
                                   >
-                                    목록 삭제
+                                    삭제
                                   </button>
                                 </div>
                               )}
