@@ -192,14 +192,19 @@ function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
   return categories.find((category) => category.id === idOrLabel || category.label === idOrLabel)?.label ?? idOrLabel;
 }
 
-function formatAssetLabel(asset: AssetItem, customAssetCategories: CategoryOption[] = []): string {
-  const allAssetCats = [...assetCategories, ...customAssetCategories];
-  const catLabel = getCategoryLabel(allAssetCats, asset.category);
+function formatAssetLabel(asset: AssetItem, categories: CategoryOption[] = []): string {
+  const catLabel = getCategoryLabel(categories, asset.category);
+  const isRawId = !catLabel || catLabel.startsWith('cat_') || catLabel === asset.category;
+  
   if (asset.memo && asset.memo.trim()) {
-    if (asset.memo.trim() === catLabel) return catLabel;
-    return `${asset.memo.trim()} (${catLabel})`;
+    const memoTrimmed = asset.memo.trim();
+    if (isRawId || memoTrimmed === catLabel) {
+      return memoTrimmed;
+    }
+    return `${memoTrimmed} (${catLabel})`;
   }
-  return catLabel;
+  
+  return isRawId ? (asset.category && !asset.category.startsWith('cat_') ? asset.category : '자산') : catLabel;
 }
 
 function buildCategorySegments(categories: CategoryOption[], values: Record<string, number>): FlowSegment[] {
@@ -2961,6 +2966,7 @@ export default function App() {
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
                 categories={allExpenseCategories}
+                assetCategories={allAssetCategories}
                 assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 formatMoney={displayCurrency}
@@ -2972,6 +2978,7 @@ export default function App() {
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
                 categories={allIncomeCategories}
+                assetCategories={allAssetCategories}
                 assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 formatMoney={displayCurrency}
@@ -2983,6 +2990,7 @@ export default function App() {
                 onDelete={handleDeleteTransaction}
                 onEdit={setEditingTransaction}
                 categories={[]}
+                assetCategories={allAssetCategories}
                 assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 formatMoney={displayCurrency}
@@ -4002,6 +4010,7 @@ export default function App() {
                 recurringRules={recurringRules}
                 expenseCategories={allExpenseCategories}
                 incomeCategories={allIncomeCategories}
+                assetCategories={allAssetCategories}
                 assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
                 onNotify={showNotice}
@@ -4612,6 +4621,7 @@ function TransactionListTable({
   onDelete,
   onEdit,
   categories,
+  assetCategories = [],
   assets = [],
   onStopRecurring,
   formatMoney = formatCurrency,
@@ -4622,6 +4632,7 @@ function TransactionListTable({
   onDelete: (id: string) => void;
   onEdit: (t: Transaction) => void;
   categories: CategoryOption[];
+  assetCategories?: CategoryOption[];
   assets?: AssetItem[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   formatMoney?: (value: number) => string;
@@ -4629,7 +4640,7 @@ function TransactionListTable({
   const getAssetName = (id?: string | null) => {
     if (!id || !assets) return null;
     const ast = assets.find((a) => a.id === id);
-    return ast ? formatAssetLabel(ast) : null;
+    return ast ? formatAssetLabel(ast, assetCategories) : null;
   };
 
   return (
@@ -4977,7 +4988,7 @@ function UnifiedEntryForm({
                 <option value="">-- 출금 계좌 선택 --</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {formatAssetLabel(a)}
+                    {formatAssetLabel(a, currentAssetCategories)}
                   </option>
                 ))}
               </select>
@@ -4991,7 +5002,7 @@ function UnifiedEntryForm({
                 <option value="">-- 입금 계좌 선택 --</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {formatAssetLabel(a)}
+                    {formatAssetLabel(a, currentAssetCategories)}
                   </option>
                 ))}
               </select>
@@ -5007,7 +5018,7 @@ function UnifiedEntryForm({
               <option value="">-- 계좌 미지정 --</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {formatAssetLabel(a)}
+                  {formatAssetLabel(a, currentAssetCategories)}
                 </option>
               ))}
             </select>
@@ -5054,6 +5065,7 @@ function TransactionEditForm({
   recurringRules,
   expenseCategories,
   incomeCategories,
+  assetCategories = [],
   assets = [],
   onStopRecurring,
   onNotify,
@@ -5066,6 +5078,7 @@ function TransactionEditForm({
   recurringRules: RecurringRule[];
   expenseCategories: CategoryOption[];
   incomeCategories: CategoryOption[];
+  assetCategories?: CategoryOption[];
   assets?: AssetItem[];
   onStopRecurring?: (id: string, stopMonth?: string) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
