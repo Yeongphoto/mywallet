@@ -155,27 +155,7 @@ function formatCurrency(value: number) {
 }
 
 function formatMobileCalendarAmount(amount: number) {
-  // 1. 창 너비가 768px 이상(PC/태블릿)이면 100% 원래 숫자로 포맷 표기
-  if (window.innerWidth >= 768) {
-    return formatCurrency(amount);
-  }
-  
-  // 2. 모바일 뷰포트(768px 미만)일 때의 콤팩트 축약 규칙:
-  if (amount < 10000) {
-    // 1만원 미만은 K 축약하지 않고 원화 기호/콤마만 제거한 순수 원본 숫자로 표기하여 최대 보존 (예: 7890, 850)
-    return amount.toString();
-  }
-  
-  // 3. 1만원 이상일 때만 K 축약 적용
-  const k = amount / 1000;
-  if (k % 1 === 0) {
-    return `${k}k`;
-  }
-  const formatted = k.toFixed(1);
-  if (formatted.endsWith('.0')) {
-    return `${formatted.slice(0, -2)}k`;
-  }
-  return `${formatted}k`;
+  return numberFormatter.format(amount).replace(/,(?=\d{3}$)/, ',\u200b');
 }
 
 function formatNumberInput(value: number) {
@@ -679,6 +659,8 @@ export default function App() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [ledgerView, setLedgerView] = useState<'daily' | 'calendar' | 'monthly'>('daily');
+  const [expandedLedgerMonth, setExpandedLedgerMonth] = useState<string | null>(selectedMonth);
 
   const yearlyData = useMemo(() => {
     const year = selectedMonth.slice(0, 4);
@@ -1321,6 +1303,48 @@ export default function App() {
   );
   const expenseTotal = sumAmount(monthlyExpenses);
   const incomeTotal = sumAmount(monthlyIncomes);
+
+  const ledgerMonthlySummaries = useMemo(() => {
+    const year = selectedMonth.slice(0, 4);
+    return Array.from({ length: 12 }, (_, index) => {
+      const monthNumber = 12 - index;
+      const month = `${year}-${String(monthNumber).padStart(2, '0')}`;
+      const items = transactions.filter((transaction) => transaction.date.startsWith(month));
+      return {
+        month,
+        label: `${monthNumber}월`,
+        income: items.filter((transaction) => transaction.type === 'income' && transaction.category !== '기초잔액').reduce((sum, transaction) => sum + transaction.amount, 0),
+        expense: items.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
+      };
+    }).filter((summary) => summary.income > 0 || summary.expense > 0);
+  }, [transactions, selectedMonth]);
+
+  const ledgerWeeklySummaries = useMemo(() => {
+    const [year, month] = (expandedLedgerMonth ?? selectedMonth).split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const start = new Date(year, month - 1, 1 - firstDay.getDay());
+    const end = new Date(year, month - 1, lastDay.getDate() + (6 - lastDay.getDay()));
+    const formatDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const weeks: Array<{ start: string; end: string; label: string; income: number; expense: number }> = [];
+
+    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 7)) {
+      const weekStart = formatDate(cursor);
+      const weekEndDate = new Date(cursor);
+      weekEndDate.setDate(weekEndDate.getDate() + 6);
+      const weekEnd = formatDate(weekEndDate);
+      const items = transactions.filter((transaction) => transaction.date >= weekStart && transaction.date <= weekEnd);
+      weeks.push({
+        start: weekStart,
+        end: weekEnd,
+        label: `${cursor.getMonth() + 1}. ${cursor.getDate()}. ~ ${weekEndDate.getMonth() + 1}. ${weekEndDate.getDate()}.`,
+        income: items.filter((transaction) => transaction.type === 'income' && transaction.category !== '기초잔액').reduce((sum, transaction) => sum + transaction.amount, 0),
+        expense: items.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
+      });
+    }
+
+    return weeks.reverse();
+  }, [transactions, expandedLedgerMonth, selectedMonth]);
   
   const getAssetBalance = useCallback(
     (assetId: string, baseAmount: number) => {
@@ -1929,19 +1953,27 @@ export default function App() {
 
   function handleCalendarPrev() {
     if (calendarMonth === 0) {
-      setCalendarYear((prev) => prev - 1);
+      const year = calendarYear - 1;
+      setCalendarYear(year);
       setCalendarMonth(11);
+      setSelectedMonth(`${year}-12`);
     } else {
-      setCalendarMonth((prev) => prev - 1);
+      const month = calendarMonth - 1;
+      setCalendarMonth(month);
+      setSelectedMonth(`${calendarYear}-${String(month + 1).padStart(2, '0')}`);
     }
   }
 
   function handleCalendarNext() {
     if (calendarMonth === 11) {
-      setCalendarYear((prev) => prev + 1);
+      const year = calendarYear + 1;
+      setCalendarYear(year);
       setCalendarMonth(0);
+      setSelectedMonth(`${year}-01`);
     } else {
-      setCalendarMonth((prev) => prev + 1);
+      const month = calendarMonth + 1;
+      setCalendarMonth(month);
+      setSelectedMonth(`${calendarYear}-${String(month + 1).padStart(2, '0')}`);
     }
   }
 
@@ -2285,6 +2317,42 @@ export default function App() {
   const topSyncStatus = !isOnline ? 'offline' : remoteSync.status;
   const displayCurrency = (value: number) => (privacyMode ? '₩••••••' : formatCurrency(value));
   const displayCalendarAmount = (value: number) => (privacyMode ? '•••' : formatMobileCalendarAmount(value));
+  const renderLedgerCalendar = () => (
+    <section className="calendar-view-container ledger-calendar-view">
+      <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="page-title-kor page-title-with-icon"><AppIcon name="calendar" size={18} /> {calendarYear}년 {calendarMonth + 1}월</h2>
+        <div className="calendar-nav-buttons">
+          <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev}><AppIcon name="chevronLeft" size={20} /></button>
+          <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext}><AppIcon name="chevronRight" size={20} /></button>
+        </div>
+      </div>
+      <div className="calendar-day-names-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '4px' }}>
+        {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+          <div key={day} className={`calendar-day-name ${index === 0 ? 'sunday' : index === 6 ? 'saturday' : ''}`} style={{ textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, padding: '6px 0' }}>{day}</div>
+        ))}
+      </div>
+      <div className="calendar-grid">
+        {calendarDays.map((day) => {
+          const daySums = dateWiseSums[day.dateStr];
+          const isSelected = selectedDayData === day.dateStr;
+          const isToday = day.dateStr === getToday();
+          return (
+            <div
+              key={day.dateStr}
+              className={`calendar-cell ${day.isCurrentMonth ? '' : 'prev-month'} ${day.dayOfWeek === 0 ? 'sunday' : day.dayOfWeek === 6 ? 'saturday' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+              onClick={() => { setSelectedDayData(day.dateStr); setModalTab('view'); }}
+            >
+              <span className="date-number">{day.dayNum}</span>
+              <div className="day-values">
+                {daySums?.income > 0 && <span className="calendar-value-badge income">+{displayCalendarAmount(daySums.income)}</span>}
+                {daySums?.expense > 0 && <span className="calendar-value-badge expense">-{displayCalendarAmount(daySums.expense)}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 
   return (
     <main className="app-shell">
@@ -2373,11 +2441,7 @@ export default function App() {
               <span><AppIcon name="plan" /></span>
               <strong>계획</strong>
             </a>
-            <a href="#calendar" className={activeTab === 'calendar' ? 'active' : ''} onClick={() => setActiveTab('calendar')}>
-              <span><AppIcon name="calendar" /></span>
-              <strong>달력</strong>
-            </a>
-            <a href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => setActiveTab('ledger')}>
+            <a href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => { setLedgerView('daily'); setActiveTab('ledger'); }}>
               <span><AppIcon name="ledger" /></span>
               <strong>장부</strong>
             </a>
@@ -3123,16 +3187,19 @@ export default function App() {
 
         {/* Ledger List Tab */}
         {activeTab === 'ledger' && (
-          <section className="glass-panel">
-            <div className="ledger-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h2 className="page-title-kor page-title-with-icon"><AppIcon name="ledger" size={18} /> 거래 장부 목록</h2>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span className="record-count" style={{ margin: 0 }}>{filteredLedgerTransactions.length}건 검색됨</span>
-              </div>
+          <section className="glass-panel ledger-workspace">
+            <div className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
+              <button type="button" className={ledgerView === 'daily' ? 'active' : ''} onClick={() => setLedgerView('daily')}>일일</button>
+              <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
+              <button type="button" className={ledgerView === 'monthly' ? 'active' : ''} onClick={() => setLedgerView('monthly')}>월별</button>
             </div>
-              
+            <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
+              <div><span>수입</span><strong className="income">{displayCurrency(incomeTotal)}</strong></div>
+              <div><span>지출</span><strong className="expense">{displayCurrency(expenseTotal)}</strong></div>
+              <div><span>합계</span><strong>{displayCurrency(balance)}</strong></div>
+            </div>
+            {ledgerView === 'daily' && (
+              <>
               <div className="ledger-filters">
                 <input
                   type="text"
@@ -3158,6 +3225,11 @@ export default function App() {
                     ))}
                   </optgroup>
                 </select>
+              </div>
+
+              <div className="ledger-header">
+                <h2 className="page-title-kor page-title-with-icon"><AppIcon name="ledger" size={18} /> 거래 장부 목록</h2>
+                <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>
               </div>
 
             <div className="split-ledger">
@@ -3208,6 +3280,42 @@ export default function App() {
               onEdit={setEditingTransaction}
               onDelete={handleDeleteTransaction}
             />
+              </>
+            )}
+            {ledgerView === 'calendar' && renderLedgerCalendar()}
+            {ledgerView === 'monthly' && (
+              <div className="ledger-monthly-view">
+                {ledgerMonthlySummaries.length === 0 ? (
+                  <p className="empty-note">표시할 월별 거래가 없습니다.</p>
+                ) : ledgerMonthlySummaries.map((summary) => (
+                  <div className="ledger-month-group" key={summary.month}>
+                    <button
+                      type="button"
+                      className={`ledger-period-row ledger-month-toggle ${expandedLedgerMonth === summary.month ? 'expanded' : ''}`}
+                      aria-expanded={expandedLedgerMonth === summary.month}
+                      onClick={() => setExpandedLedgerMonth((current) => current === summary.month ? null : summary.month)}
+                    >
+                      <span className="ledger-period-label"><strong>{summary.label}</strong><small>{summary.month.slice(5)}. 1. ~ {summary.month.slice(5)}. {new Date(Number(summary.month.slice(0, 4)), Number(summary.month.slice(5)), 0).getDate()}.</small></span>
+                      <strong className="income">{displayCurrency(summary.income)}</strong>
+                      <strong className="expense">{displayCurrency(summary.expense)}</strong>
+                      <span className="ledger-month-disclosure" aria-hidden="true"><AppIcon name="chevronRight" size={17} /></span>
+                    </button>
+                    {expandedLedgerMonth === summary.month && (
+                      <div className="ledger-weekly-list">
+                        <div className="ledger-weekly-heading">{summary.label} 주간 내역</div>
+                        {ledgerWeeklySummaries.map((week) => (
+                          <div className="ledger-period-row weekly" key={week.start}>
+                            <div className="ledger-period-label"><strong>{week.label}</strong></div>
+                            <strong className="income">{displayCurrency(week.income)}</strong>
+                            <strong className="expense">{displayCurrency(week.expense)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 

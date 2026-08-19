@@ -1892,29 +1892,30 @@ textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .ledger-filters {
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 0.45fr);
+  gap: 8px;
   align-items: center;
 }
 
 .ledger-filters input {
-  min-height: 38px;
-  padding: 0 12px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 10px;
   font-size: 0.85rem;
-  width: 200px;
+  width: 100%;
 }
 
 .ledger-filters select {
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 8px;
   font-size: 0.85rem;
-  width: 140px;
+  width: 100%;
 }
 
 /* Split Ledger */
@@ -2901,5 +2902,238 @@ textarea:focus {
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* Ledger workspace */
+.ledger-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.ledger-view-toggle {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  background: var(--bg-input);
+}
+
+.ledger-view-toggle button {
+  min-width: 64px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.ledger-view-toggle button.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.ledger-month-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border-card);
+  border-bottom: 1px solid var(--border-card);
+}
+
+.ledger-month-summary > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.ledger-month-summary > div + div {
+  border-left: 1px solid var(--border-card);
+}
+
+.ledger-month-summary span,
+.ledger-period-label small {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ledger-month-summary strong {
+  color: var(--text-primary);
+  font-size: 1.08rem;
+}
+
+.ledger-month-summary .income,
+.ledger-period-row .income { color: var(--color-income); }
+
+.ledger-month-summary .expense,
+.ledger-period-row .expense { color: var(--color-expense); }
+
+.ledger-calendar-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 480px;
+}
+
+.ledger-monthly-view {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ledger-period-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(96px, auto);
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-card);
+}
+
+.ledger-period-row:last-child {
+  border-bottom: 0;
+}
+
+.ledger-month-group + .ledger-month-group {
+  border-top: 1px solid var(--border-card);
+}
+
+.ledger-month-toggle {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: inherit;
+}
+
+.ledger-month-toggle:hover,
+.ledger-month-toggle.expanded {
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--primary));
+}
+
+.ledger-month-disclosure {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  transition: transform 160ms ease;
+}
+
+.ledger-month-toggle.expanded .ledger-month-disclosure {
+  transform: rotate(90deg);
+}
+
+.ledger-weekly-list {
+  border-top: 1px solid var(--border-card);
+}
+
+.ledger-period-row > strong {
+  text-align: right;
+  font-size: 0.92rem;
+}
+
+.ledger-period-label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ledger-weekly-heading {
+  padding: 10px 16px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.ledger-period-row.weekly {
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-input));
+}
+
+@media (max-width: 768px) {
+  .ledger-workspace {
+    gap: 14px;
+  }
+
+  .ledger-view-toggle {
+    width: 100%;
+  }
+
+  .ledger-view-toggle button {
+    flex: 1;
+  }
+
+  .ledger-month-summary > div {
+    padding: 9px 6px;
+  }
+
+  .ledger-month-summary strong {
+    font-size: clamp(0.86rem, 3.8vw, 1.02rem);
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+  }
+
+  .ledger-calendar-view {
+    min-height: 0;
+  }
+
+  .ledger-calendar-view .calendar-value-badge {
+    padding: 0;
+    background: transparent;
+    font-size: clamp(0.5rem, 1.7vw, 0.66rem);
+    line-height: 1.18;
+    letter-spacing: -0.06em;
+    white-space: normal;
+    text-overflow: clip;
+    word-break: keep-all;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-calendar-view .calendar-cell {
+    padding: 5px 3px;
+  }
+
+  .ledger-calendar-view .calendar-cell .date-number {
+    font-size: 0.8rem;
+  }
+
+  .ledger-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(104px, 0.44fr);
+  }
+
+  .ledger-header .page-title-kor {
+    font-size: 1rem;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .ledger-header .record-count {
+    margin-left: auto;
+    white-space: nowrap;
+    font-size: 0.78rem;
+  }
+
+  .ledger-period-row {
+    grid-template-columns: minmax(0, 1fr) minmax(72px, auto) minmax(72px, auto);
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .ledger-period-row > strong {
+    font-size: 0.8rem;
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+  }
+
+  .ledger-month-toggle {
+    grid-template-columns: minmax(0, 1fr) minmax(65px, auto) minmax(65px, auto) 18px;
   }
 }

@@ -24,13 +24,13 @@
   --calendar-muted-cell-bg: rgba(15, 23, 42, 0.72);
 }
 
-@supports selector(.content:has(.calendar-view-container)) {
-  html:has(.calendar-view-container),
-  body:has(.calendar-view-container) {
+@supports selector(.content:has(.calendar-view-container:not(.ledger-calendar-view))) {
+  html:has(.calendar-view-container:not(.ledger-calendar-view)),
+  body:has(.calendar-view-container:not(.ledger-calendar-view)) {
     overflow: hidden;
   }
 
-  .content:has(.calendar-view-container) {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) {
     height: 100dvh !important;
     min-height: 100dvh !important;
     padding-top: calc(var(--calendar-header-height) + 18px) !important;
@@ -44,7 +44,7 @@
     touch-action: manipulation;
   }
 
-  .content:has(.calendar-view-container) .calendar-view-container {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-view-container {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     height: auto !important;
@@ -58,17 +58,17 @@
     touch-action: manipulation;
   }
 
-  .content:has(.calendar-view-container) .calendar-control,
-  .content:has(.calendar-view-container) .calendar-day-names-row {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-control,
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-day-names-row {
     flex: 0 0 auto;
   }
 
-  .content:has(.calendar-view-container) .calendar-day-names-row {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-day-names-row {
     margin-bottom: 0 !important;
     gap: 4px !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-grid {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-grid {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     height: auto !important;
@@ -81,7 +81,7 @@
     touch-action: manipulation;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell {
     min-height: 0;
     overflow: hidden;
     padding: 4px 4px !important;
@@ -91,33 +91,33 @@
     box-shadow: var(--calendar-cell-shadow) !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell:hover {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell:hover {
     transform: none !important;
     border-color: var(--calendar-cell-hover-border) !important;
     box-shadow: var(--calendar-cell-hover-shadow) !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell.prev-month,
-  .content:has(.calendar-view-container) .calendar-cell.next-month {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell.prev-month,
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell.next-month {
     background: var(--calendar-muted-cell-bg) !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell.today,
-  .content:has(.calendar-view-container) .calendar-cell.selected {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell.today,
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell.selected {
     border-width: 2px !important;
     border-color: var(--primary) !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell .date-number {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell .date-number {
     font-size: 0.82rem !important;
     line-height: 1 !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-cell .day-values {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell .day-values {
     gap: 1px !important;
   }
 
-  .content:has(.calendar-view-container) .calendar-value-badge {
+  .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-value-badge {
     padding: 1px 3px !important;
     border-radius: 3px !important;
     font-size: 0.62rem !important;
@@ -133,8 +133,8 @@
     --calendar-view-gap: 6px;
   }
 
-  @supports selector(.content:has(.calendar-view-container)) {
-    .content:has(.calendar-view-container) {
+  @supports selector(.content:has(.calendar-view-container:not(.ledger-calendar-view))) {
+    .content:has(.calendar-view-container:not(.ledger-calendar-view)) {
       height: auto !important;
       min-height: 0 !important;
       padding-top: var(--calendar-mobile-x-padding) !important;
@@ -143,11 +143,11 @@
       padding-left: var(--calendar-mobile-x-padding) !important;
     }
 
-    .content:has(.calendar-view-container) .calendar-control {
+    .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-control {
       margin-bottom: 0 !important;
     }
 
-    .content:has(.calendar-view-container) .calendar-grid {
+    .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-grid {
       min-height: 0 !important;
       gap: 4px !important;
     }
@@ -155,13 +155,13 @@
 }
 
 @media (max-width: 480px) {
-  @supports selector(.content:has(.calendar-view-container)) {
-    .content:has(.calendar-view-container) .calendar-cell {
+  @supports selector(.content:has(.calendar-view-container:not(.ledger-calendar-view))) {
+    .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-cell {
       padding: 3px 4px !important;
       border-radius: 5px !important;
     }
 
-    .content:has(.calendar-view-container) .calendar-value-badge {
+    .content:has(.calendar-view-container:not(.ledger-calendar-view)) .calendar-value-badge {
       font-size: 0.5rem !important;
       line-height: 1.15;
     }
