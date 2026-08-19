@@ -209,6 +209,10 @@ function formatAssetLabel(asset: AssetItem, categories: CategoryOption[] = []): 
   return isRawId ? (asset.category && !asset.category.startsWith('cat_') ? asset.category : '자산') : catLabel;
 }
 
+function isLiabilityAsset(asset: AssetItem) {
+  return asset.kind === 'liability' || /대출|loan/i.test(`${asset.category} ${asset.memo}`);
+}
+
 function buildCategorySegments(categories: CategoryOption[], values: Record<string, number>): FlowSegment[] {
   return categories
     .map((category) => ({
@@ -679,17 +683,36 @@ export default function App() {
   const yearlyData = useMemo(() => {
     const year = selectedMonth.slice(0, 4);
     const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-    const currentAssetTotal = assets.reduce((sum, asset) => sum + asset.amount, 0);
+    const today = getToday();
     return months.map((mo) => {
       const monthStr = `${year}-${mo}`;
-      const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr));
-      const income = monthlyTxs.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr) && t.date <= today);
+      const income = monthlyTxs
+        .filter((t) => t.type === 'income' && t.category !== '기초잔액')
+        .reduce((sum, t) => sum + t.amount, 0);
       const expense = monthlyTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const monthEnd = `${monthStr}-${String(new Date(Number(year), Number(mo), 0).getDate()).padStart(2, '0')}`;
+      const balanceDate = monthEnd < today ? monthEnd : today;
+      const balances = new Map(assets.map((asset) => [asset.id, asset.amount]));
+      transactions.filter((t) => t.date <= balanceDate).forEach((transaction) => {
+        if (transaction.type === 'income' && transaction.assetId) {
+          balances.set(transaction.assetId, (balances.get(transaction.assetId) ?? 0) + transaction.amount);
+        } else if (transaction.type === 'expense' && transaction.assetId) {
+          balances.set(transaction.assetId, (balances.get(transaction.assetId) ?? 0) - transaction.amount);
+        } else if (transaction.type === 'transfer') {
+          if (transaction.assetId) balances.set(transaction.assetId, (balances.get(transaction.assetId) ?? 0) - transaction.amount);
+          if (transaction.toAssetId) balances.set(transaction.toAssetId, (balances.get(transaction.toAssetId) ?? 0) + transaction.amount);
+        }
+      });
+      const asset = assets.reduce((sum, item) => {
+        const balance = balances.get(item.id) ?? item.amount;
+        return sum + (isLiabilityAsset(item) ? -Math.abs(balance) : balance);
+      }, 0);
       return {
         month: `${Number(mo)}월`,
         income,
         expense,
-        asset: currentAssetTotal,
+        asset,
       };
     });
   }, [transactions, assets, selectedMonth]);
@@ -1074,7 +1097,9 @@ export default function App() {
               setPlans(data.plans);
             }
             if (fetchedTxs.length > 0) {
-              const latestDate = fetchedTxs.reduce((latest: string, t: Transaction) => (t.date > latest ? t.date : latest), fetchedTxs[0].date);
+              const completedTransactions = fetchedTxs.filter((transaction: Transaction) => transaction.date <= getToday());
+              const referenceTransactions = completedTransactions.length > 0 ? completedTransactions : fetchedTxs;
+              const latestDate = referenceTransactions.reduce((latest: string, t: Transaction) => (t.date > latest ? t.date : latest), referenceTransactions[0].date);
               if (latestDate && latestDate.length >= 7) {
                 setSelectedMonth(latestDate.slice(0, 7));
               }
@@ -1316,9 +1341,17 @@ export default function App() {
     [transactions, todayStr],
   );
 
+  const getNetAssetBalance = useCallback(
+    (asset: AssetItem) => {
+      const balance = getAssetBalance(asset.id, asset.amount);
+      return isLiabilityAsset(asset) ? -Math.abs(balance) : balance;
+    },
+    [getAssetBalance],
+  );
+
   const assetTotal = useMemo(() => {
-    return assets.reduce((sum, ast) => sum + getAssetBalance(ast.id, ast.amount), 0);
-  }, [assets, getAssetBalance]);
+    return assets.reduce((sum, asset) => sum + getNetAssetBalance(asset), 0);
+  }, [assets, getNetAssetBalance]);
   
   const recurringExpenseTotal = useMemo(() => {
     return recurringRules
@@ -1374,10 +1407,39 @@ export default function App() {
 
   const assetSummary = useMemo(() => {
     return assets.reduce<Record<string, number>>((acc, item) => {
-      acc[item.category] = (acc[item.category] ?? 0) + getAssetBalance(item.id, item.amount);
+      acc[item.category] = (acc[item.category] ?? 0) + getNetAssetBalance(item);
       return acc;
     }, {});
-  }, [assets, getAssetBalance]);
+  }, [assets, getNetAssetBalance]);
+
+  const assetAllocation = useMemo(() => {
+    return assets
+      .map((asset) => {
+        const category = allAssetCategories.find((item) => item.id === asset.category || item.label === asset.category);
+        const value = getNetAssetBalance(asset);
+        const liability = isLiabilityAsset(asset) || value < 0;
+        return {
+          id: asset.id,
+          label: formatAssetLabel(asset, allAssetCategories),
+          value,
+          liability,
+          color: liability ? '#ef4444' : category?.color || '#64748b',
+        };
+      })
+      .filter((item) => item.value !== 0);
+  }, [assets, allAssetCategories, getNetAssetBalance]);
+
+  const grossAssetTotal = useMemo(
+    () => assetAllocation.filter((item) => item.value > 0).reduce((sum, item) => sum + item.value, 0),
+    [assetAllocation],
+  );
+
+  const liabilityTotal = useMemo(
+    () => assetAllocation.filter((item) => item.value < 0).reduce((sum, item) => sum + Math.abs(item.value), 0),
+    [assetAllocation],
+  );
+
+  const assetDistributionTotal = grossAssetTotal;
 
   const expenseFlowSegments = useMemo(
     () => buildCategorySegments(activeExpenseCategories, expenseSummary),
@@ -1390,8 +1452,13 @@ export default function App() {
   );
 
   const assetFlowSegments = useMemo(
-    () => buildCategorySegments(activeAssetCategories, assetSummary),
-    [activeAssetCategories, assetSummary]
+    () => assetAllocation.filter((item) => !item.liability).map((item) => ({
+      id: item.id,
+      label: item.label,
+      value: Math.abs(item.value),
+      color: item.color,
+    })),
+    [assetAllocation],
   );
 
   // Filtered Transactions for Ledger view
@@ -2403,15 +2470,15 @@ export default function App() {
                 <strong>{displayCurrency(incomeTotal)}</strong>
                 <small>월별 부가 소득 및 급여 포함</small>
               </article>
-              <article className="summary-card budget-status">
-                <span>설정된 한달 예산</span>
-                <strong>{displayCurrency(monthlyBudgetTotal)}</strong>
-                <small>예산 대비 {budgetPercent}% 소진 중</small>
+              <article className="summary-card asset">
+                <span>자산</span>
+                <strong>{displayCurrency(grossAssetTotal)}</strong>
+                <small>부채를 제외한 자산 잔액</small>
               </article>
               <article className="summary-card asset">
-                <span>총 관리 자산</span>
+                <span>자산(부채포함)</span>
                 <strong>{displayCurrency(assetTotal)}</strong>
-                <small>현금, 투자 자산 등 누적 금액</small>
+                <small>부채를 차감한 순자산</small>
               </article>
             </section>
 
@@ -2423,10 +2490,14 @@ export default function App() {
               <div className="panel-header" style={{ marginBottom: '0px' }}>
                 <div>
                   <h2 className="panel-title-kor">자산 분배 현황</h2>
+                  <dl style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', gap: '20px', margin: '8px 0 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', whiteSpace: 'nowrap' }}><dt>자산</dt><dd style={{ margin: 0 }}>{displayCurrency(grossAssetTotal)}</dd></div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', whiteSpace: 'nowrap' }}><dt>부채</dt><dd style={{ margin: 0 }}>{displayCurrency(liabilityTotal)}</dd></div>
+                  </dl>
                 </div>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '0' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '36px 0 0' }}>
                 {/* 파이 원형 그래프 (2배 이상 확대 & 여백 완전 밀착) */}
                 <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg 
@@ -2457,7 +2528,7 @@ export default function App() {
                         // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(4.2%) 적용
                         const minPercent = 4.2;
                         let tempSegments = assetFlowSegments.map(s => {
-                          const actualPercent = assetTotal > 0 ? (s.value / assetTotal) * 100 : 0;
+                          const actualPercent = assetDistributionTotal > 0 ? (s.value / assetDistributionTotal) * 100 : 0;
                           return {
                             ...s,
                             actualPercent,
@@ -2708,15 +2779,10 @@ export default function App() {
                         100000
                       );
 
-                      // 100만 원 이상일 때는 100만 단위 배수, 미만일 때는 10만 단위 배수로 스텝 사이즈 결정
-                      let stepSize = 1000000;
-                      if (maxVal < 1000000) {
-                        stepSize = 100000; // 10만 원 단위
-                      } else if (maxVal > 10000000) {
-                        stepSize = 5000000; // 1000만 원 초과 시 500만 원 단위
-                      } else if (maxVal > 5000000) {
-                        stepSize = 2000000; // 500만 원 초과 시 200만 원 단위
-                      }
+                      const roughStep = maxVal / 5;
+                      const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+                      const normalizedStep = roughStep / magnitude;
+                      const stepSize = (normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10) * magnitude;
                       
                       const chartMaxY = Math.ceil(maxVal / stepSize) * stepSize;
                       const scale = 150 / chartMaxY;
@@ -3161,7 +3227,6 @@ export default function App() {
 
             {/* 고정 카드 그리드 영역 */}
             <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
-              
               {/* 1. [ 자산 현황 ] 고정 카드 */}
               <div className="glass-panel" style={{ padding: '16px' }}>
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
@@ -3242,13 +3307,14 @@ export default function App() {
                           }}
                         >
                           {(() => {
-                            const currentBalance = getAssetBalance(asset.id, asset.amount);
+                            const currentBalance = getNetAssetBalance(asset);
+                            const isLiability = isLiabilityAsset(asset) || currentBalance < 0;
                             return (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                 <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(currentBalance)}</span>
-                                {currentBalance !== asset.amount && (
+                                <span style={{ fontWeight: 800, color: isLiability ? 'var(--danger)' : 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(currentBalance)}</span>
+                                {Math.abs(currentBalance) !== asset.amount && (
                                   <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>(기초: {displayCurrency(asset.amount)})</span>
                                 )}
                                 {asset.memo && (
@@ -4194,6 +4260,7 @@ export default function App() {
                 const category = (e.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
                 const amountRaw = (e.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value;
                 const memo = (e.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
+                const kind = (e.currentTarget.elements.namedItem('asset-kind') as HTMLSelectElement).value as AssetItem['kind'];
                 
                 const amount = Number(amountRaw) || 0;
                 if (!category) {
@@ -4206,9 +4273,9 @@ export default function App() {
                 }
 
                 if (editingAsset) {
-                  handleUpdateAsset({ id: editingAsset.id, category, amount, memo });
+                  handleUpdateAsset({ id: editingAsset.id, category, amount, memo, kind });
                 } else {
-                  handleAddAsset({ id: createId(), category, amount, memo });
+                  handleAddAsset({ id: createId(), category, amount, memo, kind });
                 }
                 setIsAssetModalOpen(false);
               }} 
@@ -4226,6 +4293,18 @@ export default function App() {
                   {activeAssetCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>항목 유형</label>
+                <select
+                  name="asset-kind"
+                  defaultValue={editingAsset && isLiabilityAsset(editingAsset) ? 'liability' : 'asset'}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                >
+                  <option value="asset">자산</option>
+                  <option value="liability">대출 (부채로 차감)</option>
                 </select>
               </div>
 

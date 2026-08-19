@@ -25,6 +25,7 @@ export interface AssetItem {
   category: string;
   amount: number;
   memo: string;
+  kind?: 'asset' | 'liability';
 }
 
 export interface TransactionFormState {
@@ -41,6 +42,7 @@ export interface AssetFormState {
   category: string;
   amount: string;
   memo: string;
+  kind?: 'asset' | 'liability';
 }
 
 export interface Budget {
