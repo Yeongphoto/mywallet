@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
+import { importEasyMoneyCsv } from './easyMoneyImporter';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식', color: '#ef4444' },
@@ -1290,7 +1291,9 @@ export default function App() {
 
   const todayStr = getToday();
   const monthlyExpenses = monthlyTransactions.filter((transaction) => transaction.type === 'expense' && transaction.date <= todayStr);
-  const monthlyIncomes = monthlyTransactions.filter((transaction) => transaction.type === 'income' && transaction.date <= todayStr);
+  const monthlyIncomes = monthlyTransactions.filter(
+    (transaction) => transaction.type === 'income' && transaction.date <= todayStr && transaction.category !== '기초잔액',
+  );
   const expenseTotal = sumAmount(monthlyExpenses);
   const incomeTotal = sumAmount(monthlyIncomes);
   
@@ -1298,6 +1301,7 @@ export default function App() {
     (assetId: string, baseAmount: number) => {
       let current = baseAmount;
       for (const t of transactions) {
+        if (t.date > todayStr) continue;
         if (t.type === 'income' && t.assetId === assetId) {
           current += t.amount;
         } else if (t.type === 'expense' && t.assetId === assetId) {
@@ -1309,7 +1313,7 @@ export default function App() {
       }
       return current;
     },
-    [transactions],
+    [transactions, todayStr],
   );
 
   const assetTotal = useMemo(() => {
@@ -1370,10 +1374,10 @@ export default function App() {
 
   const assetSummary = useMemo(() => {
     return assets.reduce<Record<string, number>>((acc, item) => {
-      acc[item.category] = (acc[item.category] ?? 0) + item.amount;
+      acc[item.category] = (acc[item.category] ?? 0) + getAssetBalance(item.id, item.amount);
       return acc;
     }, {});
-  }, [assets]);
+  }, [assets, getAssetBalance]);
 
   const expenseFlowSegments = useMemo(
     () => buildCategorySegments(activeExpenseCategories, expenseSummary),
@@ -1849,7 +1853,7 @@ export default function App() {
       }
       if (t.type === 'income') {
         acc[t.date].income += t.amount;
-      } else {
+      } else if (t.type === 'expense') {
         acc[t.date].expense += t.amount;
       }
       return acc;
@@ -1964,6 +1968,42 @@ export default function App() {
     reader.readAsText(file, 'utf-8');
   }
 
+  function handleImportEasyMoneyCSV(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (!text) return;
+      try {
+        const imported = importEasyMoneyCsv(text);
+        const warningText = imported.summary.warnings.length ? `\n\n확인 필요: ${imported.summary.warnings.slice(0, 2).join(' / ')}` : '';
+        requestConfirm({
+          title: '편한가계부 CSV 이관',
+          message: `현재 원장 데이터를 편한가계부 데이터로 교체합니다.\n거래 ${imported.transactions.length}건, 자산 ${imported.assets.length}개, 이체 ${imported.summary.transferPairs}건, 미래 예정 거래 ${imported.summary.scheduledTransactions}건을 가져옵니다.${warningText}`,
+          confirmLabel: '이관 시작', tone: 'danger',
+          onConfirm: () => {
+            const nextUpdatedAt = Date.now();
+            setTransactions(imported.transactions); setAssets(imported.assets); setBudget(0); setPlans([]);
+            setRecurringRules([]); setDeletedRecurringTxs([]);
+            setCustomExpenseCategories(imported.expenseCategories); setCustomIncomeCategories(imported.incomeCategories); setCustomAssetCategories(imported.assetCategories);
+            setCategoryColors({}); setCategoryLabels({}); setCategoryBudgetExcluded({}); setCategoryOrder({}); setHiddenCategories(Object.fromEntries([
+              ...expenseCategories.map((item) => [getCategoryColorKey('expense', item.id), true]),
+              ...incomeCategories.map((item) => [getCategoryColorKey('income', item.id), true]),
+              ...assetCategories.map((item) => [getCategoryColorKey('asset', item.id), true]),
+            ]));
+            setUpdatedAt(nextUpdatedAt);
+            setRemoteSync({ status: 'pending', localUpdatedAt: nextUpdatedAt, message: '편한가계부 이관 데이터를 서버에 저장하는 중' });
+            showNotice(`거래 ${imported.transactions.length}건과 자산 ${imported.assets.length}개를 이관했습니다.`, '이관 완료', 'success');
+          },
+        });
+      } catch (error) {
+        showNotice(error instanceof Error ? error.message : 'CSV 파일을 읽지 못했습니다.', '이관 실패', 'error');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
   async function verifyRemoteSync(showToast = true) {
     setRemoteSync((prev) => ({
       ...prev,
@@ -3054,7 +3094,7 @@ export default function App() {
                 </select>
               </div>
 
-            <div className="split-ledger" style={{ display: 'grid', gap: '20px' }}>
+            <div className="split-ledger">
               <TransactionListTable
                 title="지출 내역"
                 type="expense"
@@ -3092,6 +3132,16 @@ export default function App() {
                 formatMoney={displayCurrency}
               />
             </div>
+            <MobileLedgerTimeline
+              items={filteredLedgerTransactions}
+              expenseCategories={allExpenseCategories}
+              incomeCategories={allIncomeCategories}
+              assetCategories={allAssetCategories}
+              assets={assets}
+              formatMoney={displayCurrency}
+              onEdit={setEditingTransaction}
+              onDelete={handleDeleteTransaction}
+            />
           </section>
         )}
 
@@ -3963,6 +4013,10 @@ export default function App() {
                       </label>
                     </div>
                   </article>
+                  <article className="settings-data-card settings-csv-card">
+                    <div><span>EASY MONEY</span><strong>편한가계부 CSV 이관</strong></div>
+                    <div className="settings-card-actions"><label className="primary-button">CSV 이관<input type="file" accept=".csv" onChange={handleImportEasyMoneyCSV} style={{ display: 'none' }} /></label></div>
+                  </article>
                 </div>
                 <div className="settings-row">
                   <strong>백업 및 복원</strong>
@@ -4693,6 +4747,105 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
 }
 
 // Transaction List Table sub-component
+function MobileLedgerTimeline({
+  items,
+  expenseCategories,
+  incomeCategories,
+  assetCategories,
+  assets,
+  formatMoney,
+  onEdit,
+  onDelete,
+}: {
+  items: Transaction[];
+  expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
+  assetCategories: CategoryOption[];
+  assets: AssetItem[];
+  formatMoney: (amount: number) => string;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (id: string) => void;
+}) {
+  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
+  const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
+  const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
+    const currentGroup = result[result.length - 1];
+    if (!currentGroup || currentGroup.date !== transaction.date) {
+      result.push({ date: transaction.date, items: [transaction] });
+    } else {
+      currentGroup.items.push(transaction);
+    }
+    return result;
+  }, []);
+
+  const getAssetName = (id: string | null | undefined) => {
+    const asset = assets.find((item) => item.id === id);
+    return asset ? formatAssetLabel(asset, assetCategories) : '';
+  };
+  const getCategoryName = (transaction: Transaction) => {
+    if (transaction.type === 'transfer') return '이체';
+    const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
+    return categories.find((category) => category.id === transaction.category)?.label || transaction.category || '기타';
+  };
+  const getDetail = (transaction: Transaction) => {
+    if (transaction.type === 'transfer') {
+      const from = getAssetName(transaction.assetId) || '출금 계좌';
+      const to = getAssetName(transaction.toAssetId) || '입금 계좌';
+      return `${transaction.time || ''} ${from} → ${to}`.trim();
+    }
+    return [transaction.time, getAssetName(transaction.assetId)].filter(Boolean).join(' · ');
+  };
+
+  return (
+    <div className="mobile-ledger-timeline" aria-label="모바일 거래 장부">
+      {groups.length === 0 ? (
+        <p className="mobile-ledger-empty">등록된 내역이 없습니다.</p>
+      ) : groups.map((group) => {
+        const date = new Date(`${group.date}T00:00:00`);
+        const income = group.items.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+        const expense = group.items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+        return (
+          <section className="mobile-ledger-day" key={group.date}>
+            <header className="mobile-ledger-day-header">
+              <div className="mobile-ledger-date-card">
+                <strong>{Number(date.getMonth() + 1)}월 {Number(group.date.slice(8, 10))}일</strong>
+                <span>{weekdayLabels[date.getDay()]}요일</span>
+              </div>
+              <div className="mobile-ledger-day-totals">
+                {income > 0 && <span className="income">+{formatMoney(income)}</span>}
+                {expense > 0 && <span className="expense">-{formatMoney(expense)}</span>}
+              </div>
+            </header>
+            <div className="mobile-ledger-day-list">
+              {group.items.map((transaction) => {
+                const typeClass = transaction.type === 'transfer' ? 'transfer' : transaction.type;
+                const title = transaction.title || getCategoryName(transaction);
+                const detail = getDetail(transaction);
+                return (
+                  <article className={`mobile-ledger-item ${typeClass}`} key={transaction.id}>
+                    <span className="mobile-ledger-category">{getCategoryName(transaction)}</span>
+                    <div className="mobile-ledger-copy">
+                      <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
+                    </div>
+                    <strong className="mobile-ledger-amount">
+                      {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
+                    </strong>
+                    <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
+                    <div className="mobile-ledger-actions">
+                      <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>수정</button>
+                      <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>삭제</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function TransactionListTable({
   title,
   type,

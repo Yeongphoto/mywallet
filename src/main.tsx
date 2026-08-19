@@ -13,7 +13,6 @@ import './styles.css';
 import './mobile.css';
 import './calendar.css';
 import './app-behavior.css';
-import './ledger-mobile.css';
 import './category-mobile-unify.css';
 import './bottom-bars-sync.css';
 
