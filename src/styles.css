@@ -48,7 +48,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scrollbar-gutter: stable;
 }
 
 [data-theme='dark'] {
@@ -95,6 +94,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* Do not reserve layout width for the page scrollbar. */
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 body {
@@ -270,9 +276,17 @@ button:active {
 }
 
 /* Main Content */
+
+
 .content {
-  padding: 88px 20px 40px 20px;
+  padding: 88px 20px 40px;
   overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* App Header (Top bar) */
@@ -974,6 +988,12 @@ textarea:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.calendar-value-sign {
+  display: inline-block;
+  width: 0.72em;
+  text-align: center;
 }
 
 .calendar-value-badge.income {
@@ -2932,9 +2952,9 @@ textarea:focus {
 }
 
 .ledger-view-toggle button.active {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(var(--primary-rgb), 0.28);
 }
 
 .ledger-month-summary {
@@ -3059,6 +3079,28 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
+  html {
+    font-size: 80%;
+  }
+
+  /* Preserve the app scale: vertical scrolling remains available. */
+  html,
+  body,
+  #root,
+  .app-shell {
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* iOS enlarges focused controls whose text is smaller than 16px. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
   .ledger-workspace {
     gap: 14px;
   }
@@ -3081,20 +3123,32 @@ textarea:focus {
     white-space: nowrap;
   }
 
+.ledger-workspace:has(.ledger-calendar-view) {
+    height: calc(100dvh - 140px);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
   .ledger-calendar-view {
+    height: 100%;
     min-height: 0;
   }
 
   .ledger-calendar-view .calendar-value-badge {
-    padding: 0;
+    align-self: flex-end;
+    padding: 1px 0;
     background: transparent;
-    font-size: clamp(0.5rem, 1.7vw, 0.66rem);
-    line-height: 1.18;
-    letter-spacing: -0.06em;
-    white-space: normal;
+    font-size: clamp(0.58rem, 2vw, 0.74rem);
+    line-height: 1.2;
+    letter-spacing: -0.075em;
+    text-align: right;
+    white-space: nowrap;
     text-overflow: clip;
-    word-break: keep-all;
+    word-break: normal;
     font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-calendar-view .day-values {
+    align-items: flex-end;
   }
 
   .ledger-calendar-view .calendar-cell {

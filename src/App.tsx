@@ -155,7 +155,7 @@ function formatCurrency(value: number) {
 }
 
 function formatMobileCalendarAmount(amount: number) {
-  return numberFormatter.format(amount).replace(/,(?=\d{3}$)/, ',\u200b');
+  return numberFormatter.format(amount).replace(/,(?=\d{3}$)/, ' ,​'.trimStart());
 }
 
 function formatNumberInput(value: number) {
@@ -2344,8 +2344,8 @@ export default function App() {
             >
               <span className="date-number">{day.dayNum}</span>
               <div className="day-values">
-                {daySums?.income > 0 && <span className="calendar-value-badge income">+{displayCalendarAmount(daySums.income)}</span>}
-                {daySums?.expense > 0 && <span className="calendar-value-badge expense">-{displayCalendarAmount(daySums.expense)}</span>}
+                {daySums?.income > 0 && <span className="calendar-value-badge income"><span className="calendar-value-sign">+</span>{displayCalendarAmount(daySums.income)}</span>}
+                {daySums?.expense > 0 && <span className="calendar-value-badge expense"><span className="calendar-value-sign">−</span>{displayCalendarAmount(daySums.expense)}</span>}
               </div>
             </div>
           );
@@ -3172,10 +3172,10 @@ export default function App() {
                     <span className="date-number">{day.dayNum}</span>
                     <div className="day-values">
                       {daySums?.income > 0 && (
-                        <span className="calendar-value-badge income">+{displayCalendarAmount(daySums.income)}</span>
+                        <span className="calendar-value-badge income"><span className="calendar-value-sign">+</span>{displayCalendarAmount(daySums.income)}</span>
                       )}
                       {daySums?.expense > 0 && (
-                        <span className="calendar-value-badge expense">-{displayCalendarAmount(daySums.expense)}</span>
+                        <span className="calendar-value-badge expense"><span className="calendar-value-sign">−</span>{displayCalendarAmount(daySums.expense)}</span>
                       )}
                     </div>
                   </div>
@@ -3187,7 +3187,7 @@ export default function App() {
 
         {/* Ledger List Tab */}
         {activeTab === 'ledger' && (
-          <section className="glass-panel ledger-workspace">
+          <section className="ledger-workspace">
             <div className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
               <button type="button" className={ledgerView === 'daily' ? 'active' : ''} onClick={() => setLedgerView('daily')}>일일</button>
               <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
