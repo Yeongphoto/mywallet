@@ -37,6 +37,7 @@ const assetCategories: CategoryOption[] = [
 
 const STORAGE_KEY = 'mywallet:v2';
 const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
+const OPENING_BALANCE_CATEGORY = '\uAE30\uCD08\uC794\uC561';
 const categoryColorPresets = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
   '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
@@ -708,6 +709,8 @@ export default function App() {
   // Edit states
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
+  const [assetBalanceDraft, setAssetBalanceDraft] = useState('');
   const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
@@ -1346,31 +1349,45 @@ export default function App() {
     return weeks.reverse();
   }, [transactions, expandedLedgerMonth, selectedMonth]);
   
-  const getAssetBalance = useCallback(
-    (assetId: string, baseAmount: number) => {
-      let current = baseAmount;
-      for (const t of transactions) {
-        if (t.date > todayStr) continue;
-        if (t.type === 'income' && t.assetId === assetId) {
-          current += t.amount;
-        } else if (t.type === 'expense' && t.assetId === assetId) {
-          current -= t.amount;
-        } else if (t.type === 'transfer') {
-          if (t.assetId === assetId) current -= t.amount;
-          if (t.toAssetId === assetId) current += t.amount;
-        }
+  const getAssetOpeningBalance = useCallback((asset: AssetItem) => {
+    let openingBalance = 0;
+    for (const transaction of transactions) {
+      if (transaction.category !== OPENING_BALANCE_CATEGORY) continue;
+      if (transaction.type === 'income' && transaction.assetId === asset.id) openingBalance += transaction.amount;
+      else if (transaction.type === 'expense' && transaction.assetId === asset.id) openingBalance -= transaction.amount;
+      else if (transaction.type === 'transfer') {
+        if (transaction.assetId === asset.id) openingBalance -= transaction.amount;
+        if (transaction.toAssetId === asset.id) openingBalance += transaction.amount;
       }
-      return current;
-    },
-    [transactions, todayStr],
+    }
+    return openingBalance || asset.amount;
+  }, [transactions]);
+
+  const getAssetFlow = useCallback((assetId: string) => {
+    let flow = 0;
+    for (const transaction of transactions) {
+      if (transaction.date > todayStr || transaction.category === OPENING_BALANCE_CATEGORY) continue;
+      if (transaction.type === 'income' && transaction.assetId === assetId) flow += transaction.amount;
+      else if (transaction.type === 'expense' && transaction.assetId === assetId) flow -= transaction.amount;
+      else if (transaction.type === 'transfer') {
+        if (transaction.assetId === assetId) flow -= transaction.amount;
+        if (transaction.toAssetId === assetId) flow += transaction.amount;
+      }
+    }
+    return flow;
+  }, [transactions, todayStr]);
+
+  const getAssetBalance = useCallback(
+    (assetId: string, openingBalance: number) => openingBalance + getAssetFlow(assetId),
+    [getAssetFlow],
   );
 
   const getNetAssetBalance = useCallback(
     (asset: AssetItem) => {
-      const balance = getAssetBalance(asset.id, asset.amount);
+      const balance = getAssetBalance(asset.id, getAssetOpeningBalance(asset));
       return isLiabilityAsset(asset) ? -Math.abs(balance) : balance;
     },
-    [getAssetBalance],
+    [getAssetBalance, getAssetOpeningBalance],
   );
 
   const assetTotal = useMemo(() => {
@@ -1582,12 +1599,41 @@ export default function App() {
   }
 
   function handleAddAsset(asset: AssetItem) {
-    setAssets((prev) => [asset, ...prev]);
+    // Opening money is recorded as a ledger transaction, not duplicated in the asset record.
+    setAssets((prev) => [{ ...asset, amount: 0 }, ...prev]);
+    if (asset.amount > 0) {
+      handleAddTransaction({
+        id: createId(),
+        type: 'income',
+        date: todayStr,
+        time: new Date().toTimeString().slice(0, 5),
+        amount: asset.amount,
+        title: '기초 잔액',
+        category: OPENING_BALANCE_CATEGORY,
+        assetId: asset.id,
+      });
+    }
   }
 
   function handleUpdateAsset(updated: AssetItem) {
     setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
     setEditingAsset(null);
+  }
+
+  function handleAssetBalanceAdjustment(asset: AssetItem, nextBalance: number) {
+    const currentBalance = getAssetBalance(asset.id, getAssetOpeningBalance(asset));
+    const difference = nextBalance - currentBalance;
+    if (!difference) return;
+    handleAddTransaction({
+      id: createId(),
+      type: difference > 0 ? 'income' : 'expense',
+      date: todayStr,
+      time: new Date().toTimeString().slice(0, 5),
+      amount: Math.abs(difference),
+      title: '자산 잔액 조정',
+      category: 'etc',
+      assetId: asset.id,
+    });
   }
 
   function handleDeleteAsset(id: string) {
@@ -3336,7 +3382,7 @@ export default function App() {
             {/* 고정 카드 그리드 영역 */}
             <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
               {/* 1. [ 자산 현황 ] 고정 카드 */}
-              <div className="glass-panel" style={{ padding: '16px' }}>
+              <div className="asset-workspace">
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <AppIcon name="asset" size={19} /> 자산 목록
                 </h3>
@@ -3409,6 +3455,7 @@ export default function App() {
                           onDrop={handleAssetDrop}
                           onMouseEnter={() => setHoveredRowIndex(index)}
                           onMouseLeave={() => setHoveredRowIndex(null)}
+                          onClick={() => { setSelectedAsset(asset); setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset)))); }}
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
@@ -3416,22 +3463,21 @@ export default function App() {
                         >
                           {(() => {
                             const currentBalance = getNetAssetBalance(asset);
+                            const openingBalance = getAssetOpeningBalance(asset);
                             const isLiability = isLiabilityAsset(asset) || currentBalance < 0;
                             return (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                 <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
                                 <span style={{ fontWeight: 800, color: isLiability ? 'var(--danger)' : 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(currentBalance)}</span>
-                                {Math.abs(currentBalance) !== asset.amount && (
-                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>(기초: {displayCurrency(asset.amount)})</span>
-                                )}
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>(기초: {displayCurrency(openingBalance)})</span>
                                 {asset.memo && (
                                   <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '4px' }}>({asset.memo})</span>
                                 )}
                               </div>
                             );
                           })()}
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
                               className="edit-btn"
@@ -4354,6 +4400,52 @@ export default function App() {
       )}
 
       {/* 자산 개별 항목 등록/수정 모달 */}
+      {selectedAsset && (
+        <div className="modal-backdrop" onClick={() => setSelectedAsset(null)}>
+          <div className="modal-content asset-history-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> 자산 변동 내역</h3>
+              <button type="button" className="close-btn" onClick={() => setSelectedAsset(null)}>×</button>
+            </div>
+            {(() => {
+              const currentBalance = getAssetBalance(selectedAsset.id, getAssetOpeningBalance(selectedAsset));
+              const history = transactions
+                .filter((transaction) => transaction.date <= todayStr && (transaction.assetId === selectedAsset.id || transaction.toAssetId === selectedAsset.id))
+                .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')));
+              return <div className="asset-history-body">
+                <div className="asset-history-current">
+                  <div><span>현재 자산</span><strong>{displayCurrency(currentBalance)}</strong></div>
+                  <CategoryBadge categories={allAssetCategories} idOrLabel={selectedAsset.category} />
+                </div>
+                <form className="asset-balance-adjust-form" onSubmit={(e) => {
+                  e.preventDefault();
+                  const nextBalance = Number(assetBalanceDraft);
+                  const difference = nextBalance - currentBalance;
+                  if (!Number.isFinite(nextBalance) || nextBalance < 0) { showNotice('0원 이상의 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
+                  if (!difference) { setSelectedAsset(null); return; }
+                  const direction = difference > 0 ? '수입(+)' : '지출(-)';
+                  if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
+                    handleAssetBalanceAdjustment(selectedAsset, nextBalance);
+                    setSelectedAsset(null);
+                  }
+                }}>
+                  <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
+                  <div><input id="asset-balance-draft" type="number" min="0" value={assetBalanceDraft} onChange={(e) => setAssetBalanceDraft(e.target.value)} /><button type="submit" className="primary-button">차액 기록</button></div>
+                  <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
+                </form>
+                <div className="asset-history-list">
+                  <h4>변동 내역</h4>
+                  {history.length === 0 ? <p className="empty-note">변동 내역이 없습니다.</p> : history.map((transaction) => {
+                    const isIncoming = (transaction.type === 'income' && transaction.assetId === selectedAsset.id) || transaction.toAssetId === selectedAsset.id;
+                    return <div className="asset-history-item" key={transaction.id}><div><strong>{transaction.category === OPENING_BALANCE_CATEGORY ? '기초 잔액' : (transaction.title || '거래')}</strong><span>{transaction.date}{transaction.time ? ' ' + transaction.time : ''}</span></div><b className={isIncoming ? 'income' : 'expense'}>{isIncoming ? '+' : '−'}{displayCurrency(transaction.amount)}</b></div>;
+                  })}
+                </div>
+              </div>;
+            })()}
+          </div>
+        </div>
+      )}
+
       {isAssetModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsAssetModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
@@ -4375,13 +4467,13 @@ export default function App() {
                   showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning');
                   return;
                 }
-                if (amount <= 0) {
+                if (!editingAsset && amount <= 0) {
                   showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
                   return;
                 }
 
                 if (editingAsset) {
-                  handleUpdateAsset({ id: editingAsset.id, category, amount, memo, kind });
+                  handleUpdateAsset({ id: editingAsset.id, category, amount: editingAsset.amount, memo, kind });
                 } else {
                   handleAddAsset({ id: createId(), category, amount, memo, kind });
                 }
@@ -4423,8 +4515,9 @@ export default function App() {
                   name="asset-amount" 
                   placeholder="예: 500000"
                   required
-                  defaultValue={editingAsset ? String(editingAsset.amount) : ''}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                  defaultValue={editingAsset ? String(getAssetOpeningBalance(editingAsset)) : ''}
+                  readOnly={Boolean(editingAsset)}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: editingAsset ? 'var(--bg-muted)' : 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 />
               </div>
 
