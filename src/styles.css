@@ -3198,7 +3198,9 @@ textarea:focus {
 .asset-history-body { display: grid; gap: 16px; padding: 4px 24px 24px; }
 .asset-history-current { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card)); }
 .asset-history-current > div, .asset-history-item > div { display: grid; gap: 4px; min-width: 0; }
-.asset-history-current span, .asset-balance-adjust-form > p, .asset-history-item span { color: var(--text-secondary); font-size: .82rem; }
+.asset-history-current span, .asset-history-current small, .asset-balance-adjust-form > p, .asset-history-item span { color: var(--text-secondary); font-size: .82rem; }
+.asset-history-current small { display: block; margin-top: 5px; }
+.asset-balance-values { justify-self: end; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 1rem; line-height: 1.15; }
 .asset-history-current strong { display: block; font-size: clamp(1.35rem, 5vw, 1.8rem); }
 .asset-balance-adjust-form { display: grid; gap: 8px; }
 .asset-balance-adjust-form > label, .asset-history-list h4 { font-weight: 800; }
@@ -3213,3 +3215,176 @@ textarea:focus {
 .asset-history-item b.expense { color: var(--expense); }
 .asset-history-initial { border-top: 1px solid var(--border-card); }
 @media (max-width: 768px) { .asset-history-body { padding: 2px 16px 18px; } }
+
+
+.asset-table-list [data-asset-id] {
+  gap: 8px;
+}
+
+.asset-row-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.asset-row-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.asset-balance-values {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-balance-values small {
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.asset-balance-values strong {
+  font-size: 0.94rem;
+  line-height: 1.1;
+}
+
+.asset-row-memo {
+  color: #52525b;
+  font-size: 0.78rem;
+  grid-column: 3 / -1;
+}
+
+@media (max-width: 768px) {
+  .asset-table-list [data-asset-id] {
+    padding: 7px 8px !important;
+    gap: 5px;
+  }
+
+  .asset-row-summary {
+    grid-template-columns: 15px auto minmax(0, 1fr) auto;
+    gap: 5px;
+  }
+
+  .asset-row-summary .asset-drag-handle {
+    margin-right: 0 !important;
+    font-size: 0.95rem !important;
+  }
+
+  .asset-row-summary .category-badge {
+    padding: 2px 5px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .asset-row-name { font-size: 0.78rem; }
+  .asset-balance-values small { font-size: 0.59rem; }
+  .asset-balance-values strong { font-size: 0.78rem; }
+  .asset-row-memo { display: none; }
+
+  .asset-table-list .edit-btn,
+  .asset-table-list .delete-btn-sm {
+    padding: 4px 6px !important;
+    font-size: 0.67rem !important;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .asset-row-summary {
+    align-items: center;
+  }
+
+  .asset-row-name {
+    align-self: center;
+    font-size: 0.98rem;
+    line-height: 1.2;
+  }
+
+  .asset-balance-values {
+    align-self: center;
+  }
+
+  .asset-balance-values small {
+    font-size: 0.7rem;
+    line-height: 1.1;
+  }
+
+  .asset-balance-values strong {
+    font-size: 0.96rem;
+    line-height: 1.15;
+  }
+}
+
+
+.asset-row-summary {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.asset-row-summary .asset-row-name {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.asset-row-summary .asset-balance-values {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+@media (max-width: 768px) {
+  .asset-balance-values { font-size: 1.02rem; }
+}
+
+@media (max-width: 768px) {
+  .asset-row-summary .asset-row-name,
+  .asset-row-summary .asset-balance-values {
+    align-self: center;
+  }
+}
+
+/* Asset list: one visual line; opening balance belongs in the history header. */
+.asset-row-summary .asset-balance-values {
+  grid-column: 4;
+  grid-row: 1;
+  display: block;
+  align-self: center;
+  justify-self: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+.asset-history-current small {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: .82rem;
+}
+@media (max-width: 768px) {
+  .asset-row-name { font-size: 1.06rem; }
+  .asset-row-summary .asset-balance-values { font-size: 1.02rem; }
+}
+
+
+/* The drag handle has a 44px touch target: use flex so visible row content shares its vertical centre. */
+.asset-row-summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.asset-row-summary .asset-drag-handle { flex: 0 0 15px; }
+.asset-row-summary .asset-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.asset-row-summary .asset-balance-values {
+  flex: 0 0 auto;
+}

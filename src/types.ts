@@ -22,7 +22,10 @@ export interface Transaction {
 
 export interface AssetItem {
   id: string;
+  // category is the parent asset group id (kept for backward compatibility).
   category: string;
+  // name is the individual asset title shown in the ledger and asset list.
+  name?: string;
   amount: number;
   memo: string;
   kind?: 'asset' | 'liability';

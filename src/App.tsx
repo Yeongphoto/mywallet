@@ -25,14 +25,10 @@ const incomeCategories: CategoryOption[] = [
 ];
 
 const assetCategories: CategoryOption[] = [
-  { id: 'cash', label: '현금', color: '#10b981' },
-  { id: 'stock', label: '주식', color: '#3b82f6' },
-  { id: 'installment', label: '적금', color: '#14b8a6' },
-  { id: 'deposit', label: '예금', color: '#06b6d4' },
-  { id: 'subscription-saving', label: '청약', color: '#8b5cf6' },
-  { id: 'emergency', label: '비상금', color: '#f59e0b' },
-  { id: 'travel', label: '여행', color: '#0284c7' },
-  { id: 'etc', label: '기타', color: '#64748b' },
+  { id: 'card', label: '\uCE74\uB4DC', color: '#f97316' },
+  { id: 'bank', label: '\uC740\uD589', color: '#10b981' },
+  { id: 'saving', label: '\uC801\uAE08', color: '#14b8a6' },
+  { id: 'etc', label: '\uAE30\uD0C0', color: '#64748b' },
 ];
 
 const STORAGE_KEY = 'mywallet:v2';
@@ -176,6 +172,7 @@ function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
 }
 
 function formatAssetLabel(asset: AssetItem, categories: CategoryOption[] = []): string {
+  if (asset.name?.trim()) return asset.name.trim();
   const catLabel = getCategoryLabel(categories, asset.category);
   const isRawId = !catLabel || catLabel.startsWith('cat_') || catLabel === asset.category;
   
@@ -3466,14 +3463,11 @@ export default function App() {
                             const openingBalance = getAssetOpeningBalance(asset);
                             const isLiability = isLiabilityAsset(asset) || currentBalance < 0;
                             return (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                <span style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>⠿</span>
+                              <div className="asset-row-summary" style={{ display: 'flex', alignItems: 'center', minHeight: '44px' }}>
+                                <span className="asset-drag-handle" style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>{'\u283F'}</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                                <span style={{ fontWeight: 800, color: isLiability ? 'var(--danger)' : 'var(--text-primary)', fontSize: '1.05rem' }}>{displayCurrency(currentBalance)}</span>
-                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>(기초: {displayCurrency(openingBalance)})</span>
-                                {asset.memo && (
-                                  <span style={{ color: '#52525b', fontSize: '0.82rem', marginLeft: '4px' }}>({asset.memo})</span>
-                                )}
+                                <strong className="asset-row-name">{formatAssetLabel(asset, allAssetCategories)}</strong>
+                                <strong className="asset-balance-values" style={{ color: isLiability ? 'var(--danger)' : 'var(--text-primary)' }}>{displayCurrency(currentBalance)}</strong>
                               </div>
                             );
                           })()}
@@ -4408,13 +4402,14 @@ export default function App() {
               <button type="button" className="close-btn" onClick={() => setSelectedAsset(null)}>×</button>
             </div>
             {(() => {
-              const currentBalance = getAssetBalance(selectedAsset.id, getAssetOpeningBalance(selectedAsset));
+              const openingBalance = getAssetOpeningBalance(selectedAsset);
+              const currentBalance = getAssetBalance(selectedAsset.id, openingBalance);
               const history = transactions
                 .filter((transaction) => transaction.date <= todayStr && (transaction.assetId === selectedAsset.id || transaction.toAssetId === selectedAsset.id))
                 .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')));
               return <div className="asset-history-body">
                 <div className="asset-history-current">
-                  <div><span>현재 자산</span><strong>{displayCurrency(currentBalance)}</strong></div>
+                  <div><span>{'\uD604\uC7AC \uC790\uC0B0'}</span><strong>{displayCurrency(currentBalance)}</strong><small>{'\uAE30\uCD08\uAE08\uC561'} {displayCurrency(openingBalance)}</small></div>
                   <CategoryBadge categories={allAssetCategories} idOrLabel={selectedAsset.category} />
                 </div>
                 <form className="asset-balance-adjust-form" onSubmit={(e) => {
@@ -4458,6 +4453,7 @@ export default function App() {
               onSubmit={(e) => {
                 e.preventDefault();
                 const category = (e.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
+                const name = (e.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
                 const amountRaw = (e.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value;
                 const memo = (e.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
                 const kind = (e.currentTarget.elements.namedItem('asset-kind') as HTMLSelectElement).value as AssetItem['kind'];
@@ -4467,15 +4463,19 @@ export default function App() {
                   showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning');
                   return;
                 }
+                if (!name) {
+                  showNotice('자산 이름을 입력해 주세요.', '입력 확인', 'warning');
+                  return;
+                }
                 if (!editingAsset && amount <= 0) {
                   showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
                   return;
                 }
 
                 if (editingAsset) {
-                  handleUpdateAsset({ id: editingAsset.id, category, amount: editingAsset.amount, memo, kind });
+                  handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo, kind });
                 } else {
-                  handleAddAsset({ id: createId(), category, amount, memo, kind });
+                  handleAddAsset({ id: createId(), category, name, amount, memo, kind });
                 }
                 setIsAssetModalOpen(false);
               }} 
@@ -4494,6 +4494,18 @@ export default function App() {
                     <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>자산 이름</label>
+                <input
+                  type="text"
+                  name="asset-name"
+                  placeholder="예: 신한 주거래 통장"
+                  required
+                  defaultValue={editingAsset?.name || ''}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                />
               </div>
 
               <div className="form-group">

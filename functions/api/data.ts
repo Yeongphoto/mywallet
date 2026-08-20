@@ -20,6 +20,8 @@ async function ensureSchema(db: D1Database) {
     db.prepare(`CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
       category TEXT NOT NULL,
+      name TEXT,
+      kind TEXT,
       amount INTEGER NOT NULL,
       memo TEXT NOT NULL
     )`),
@@ -65,6 +67,8 @@ async function ensureSchema(db: D1Database) {
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN to_asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN transaction_time TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE assets ADD COLUMN name TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE assets ADD COLUMN kind TEXT").run(); } catch {}
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -200,8 +204,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(assets)) {
       assets.forEach((a: any) => {
         statements.push(
-          db.prepare("INSERT INTO assets (id, category, amount, memo) VALUES (?, ?, ?, ?)")
-            .bind(a.id, a.category, a.amount, a.memo)
+          db.prepare("INSERT INTO assets (id, category, name, kind, amount, memo) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(a.id, a.category, a.name || null, a.kind || null, a.amount, a.memo)
         );
       });
     }
