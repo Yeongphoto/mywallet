@@ -4503,7 +4503,7 @@ export default function App() {
                   name="asset-name"
                   placeholder="예: 신한 주거래 통장"
                   required
-                  defaultValue={editingAsset?.name || ''}
+                  defaultValue={editingAsset ? formatAssetLabel(editingAsset, allAssetCategories) : ''}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 />
               </div>
