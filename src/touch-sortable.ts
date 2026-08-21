@@ -113,6 +113,22 @@ function getCategoryListAtPoint(clientX: number, clientY: number, fallback: HTML
   return group?.querySelector<HTMLElement>('.category-table') ?? fallback;
 }
 
+function updateTouchSortPreview(target: HTMLElement | null, list: HTMLElement) {
+  document.querySelectorAll<HTMLElement>('.touch-sort-target').forEach((row) => row.classList.remove('touch-sort-target'));
+  document.querySelectorAll<HTMLElement>('.touch-sort-end').forEach((container) => container.classList.remove('touch-sort-end'));
+
+  if (target) {
+    target.classList.add('touch-sort-target');
+  } else {
+    list.classList.add('touch-sort-end');
+  }
+}
+
+function clearTouchSortPreview() {
+  document.querySelectorAll<HTMLElement>('.touch-sort-target').forEach((row) => row.classList.remove('touch-sort-target'));
+  document.querySelectorAll<HTMLElement>('.touch-sort-end').forEach((container) => container.classList.remove('touch-sort-end'));
+}
+
 function autoScrollNearEdges(clientY: number) {
   const margin = 58;
   const speed = 7;
@@ -268,6 +284,7 @@ function moveTouchSort(event: PointerEvent) {
   touchSortState.targetList = source.closest('.asset-category-group')
     ? getCategoryListAtPoint(event.clientX, event.clientY, list)
     : list;
+  updateTouchSortPreview(touchSortState.target, touchSortState.targetList);
 }
 
 function finishTouchSort(event?: PointerEvent) {
@@ -279,6 +296,7 @@ function finishTouchSort(event?: PointerEvent) {
   source.classList.remove('touch-sort-source');
   ghost.remove();
   document.body.classList.remove('touch-sort-active');
+  clearTouchSortPreview();
 
   const destinationList = targetList ?? list;
   if (target && target.closest('.category-table') === destinationList) {

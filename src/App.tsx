@@ -4053,15 +4053,16 @@ export default function App() {
                                 </button>
                               </>
                             )}
-                            <button
-                              type="button"
-                              className="category-row-action"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
-                              onClick={() => handleArchiveCategory('expense', category.id, category.label)}
-                              disabled={isRenaming}
-                            >
-                              삭제
-                            </button>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action"
+                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => handleArchiveCategory('expense', category.id, category.label)}
+                              >
+                                삭제
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -4198,15 +4199,16 @@ export default function App() {
                                 수정
                               </button>
                             )}
-                            <button
-                              type="button"
-                              className="category-row-action"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
-                              onClick={() => handleArchiveCategory('income', category.id, category.label)}
-                              disabled={isRenaming}
-                            >
-                              삭제
-                            </button>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action"
+                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => handleArchiveCategory('income', category.id, category.label)}
+                              >
+                                삭제
+                              </button>
+                            )}
                           </div>
                         );
                       })}

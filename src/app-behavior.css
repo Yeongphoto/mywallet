@@ -110,6 +110,16 @@ textarea,
   visibility: hidden !important;
 }
 
+.touch-sort-target {
+  box-shadow: 0 -8px 0 -4px rgba(2, 132, 199, 0.78), 0 8px 20px rgba(15, 23, 42, 0.09) !important;
+  transform: translateY(5px) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease !important;
+}
+
+.touch-sort-end {
+  box-shadow: inset 0 -4px 0 rgba(2, 132, 199, 0.78) !important;
+}
+
 button,
 a,
 input,

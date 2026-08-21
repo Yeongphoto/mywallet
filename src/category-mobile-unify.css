@@ -236,6 +236,10 @@
   .content .managed-category-card[data-category-scope="asset"] .category-row:has(.category-name-edit) {
     grid-template-columns: 28px 42px minmax(0, 1fr) !important;
   }
+
+  .content .managed-category-card:not([data-category-scope="asset"]) .category-row:has(.category-name-edit) {
+    grid-template-columns: 28px 42px minmax(0, 1fr) !important;
+  }
 }
 
 @media (max-width: 420px) {
