@@ -1913,7 +1913,7 @@ textarea:focus {
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
 }
 
 .type-toggle-label {
@@ -2469,6 +2469,11 @@ textarea:focus {
 .modal-content form {
   overflow-y: auto;
 }
+
+.modal-body:has(.entry-form) { display: flex; min-height: 0; overflow: hidden; }
+.modal-body:has(.entry-form) .entry-form { flex: 1; min-height: 0; overflow: hidden; }
+.modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.modal-body:has(.entry-form) .entry-submit { flex: 0 0 auto; }
 
 .modal-content .form-grid label:not(.recurring-toggle),
 .modal-content .form-group {
