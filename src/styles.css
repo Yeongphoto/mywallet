@@ -3278,7 +3278,7 @@ textarea:focus {
 .asset-history-current small { display: block; margin-top: 5px; }
 .asset-balance-values { justify-self: end; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 1rem; line-height: 1.15; }
 .asset-history-current strong { display: block; font-size: clamp(1.35rem, 5vw, 1.8rem); }
-.asset-balance-adjust-form { display: grid; gap: 8px; }
+.asset-balance-adjust-form { display: grid; gap: 8px; overflow: visible !important; }
 .asset-balance-adjust-form > label, .asset-history-list h4 { font-weight: 800; }
 .asset-balance-adjust-form > div { display: flex; gap: 8px; }
 .asset-balance-adjust-form input { min-width: 0; flex: 1; padding: 10px 12px; border: 1px solid var(--border-input); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); }
