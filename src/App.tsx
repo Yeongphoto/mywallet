@@ -1390,7 +1390,7 @@ export default function App() {
         if (transaction.toAssetId === asset.id) openingBalance += transaction.amount;
       }
     }
-    return openingBalance || asset.amount;
+    return openingBalance || Number(asset.amount) || 0;
   }, [transactions]);
 
   const getAssetFlow = useCallback((assetId: string) => {
@@ -1408,7 +1408,7 @@ export default function App() {
   }, [transactions, todayStr]);
 
   const getAssetBalance = useCallback(
-    (assetId: string, openingBalance: number) => openingBalance + getAssetFlow(assetId),
+    (assetId: string, openingBalance: number) => (Number(openingBalance) || 0) + getAssetFlow(assetId),
     [getAssetFlow],
   );
 
