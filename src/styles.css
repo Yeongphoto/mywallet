@@ -2470,10 +2470,12 @@ textarea:focus {
   overflow-y: auto;
 }
 
-.modal-body:has(.entry-form) { display: flex; min-height: 0; overflow: hidden; }
-.modal-body:has(.entry-form) .entry-form { flex: 1; min-height: 0; overflow: hidden; }
-.modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
-.modal-body:has(.entry-form) .entry-submit { flex: 0 0 auto; }
+.modal-body:has(.entry-form) { display: flex; min-height: 0; max-height: calc(100vh - 124px); padding: 12px 20px !important; overflow: hidden; }
+.modal-body:has(.entry-form) .entry-form { flex: 1; min-height: 0; gap: 6px; overflow: hidden; }
+.modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; gap: 6px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.modal-body:has(.entry-form) .entry-form .form-grid > label:not(.recurring-toggle) { min-height: 46px; padding: 5px 12px 6px !important; }
+.modal-body:has(.entry-form) .entry-form .recurring-toggle { min-height: 36px; }
+.modal-body:has(.entry-form) .entry-submit { flex: 0 0 auto; margin-top: 0 !important; }
 
 .modal-content .form-grid label:not(.recurring-toggle),
 .modal-content .form-group {
@@ -2498,6 +2500,31 @@ textarea:focus {
   border-color: rgba(var(--primary-rgb), 0.6);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12), 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.modal-content .form-grid .compact-entry-field {
+  min-height: 40px !important;
+  padding-block: 4px !important;
+}
+
+.modal-content .form-grid .compact-entry-field > input,
+.modal-content .form-grid .compact-entry-field > select {
+  align-self: center;
+}
+
+.modal-content .form-grid .amount-entry-field > input {
+  padding-right: 1.7em !important;
+}
+
+.modal-content .form-grid .amount-entry-field .currency-suffix {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  font-weight: 800;
+  pointer-events: none;
 }
 
 .modal-content .form-group > label {

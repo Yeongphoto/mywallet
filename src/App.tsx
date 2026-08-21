@@ -329,11 +329,7 @@ function PlanAmountInput({ value, onChange }: { value: number; onChange: (value:
 }
 
 function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'expense'): UnifiedFormState {
-  const defaultCategory = defaultType === 'expense' 
-    ? (expenseCategories[0]?.id ?? 'etc')
-    : defaultType === 'income'
-    ? (incomeCategories[0]?.id ?? 'etc')
-    : 'transfer';
+  const defaultCategory = defaultType === 'transfer' ? 'transfer' : '';
 
   return {
     type: defaultType,
@@ -5531,11 +5527,7 @@ function UnifiedEntryForm({
   }, [form.type, expenseCategories, incomeCategories]);
 
   function handleTypeChange(newType: EntryType) {
-    const defaultCat = newType === 'expense'
-      ? (expenseCategories[0]?.id ?? 'etc')
-      : newType === 'income'
-      ? (incomeCategories[0]?.id ?? 'etc')
-      : 'transfer';
+    const defaultCat = newType === 'transfer' ? 'transfer' : '';
 
     setForm((prev) => ({
       ...prev,
@@ -5560,6 +5552,11 @@ function UnifiedEntryForm({
     }
     if (!form.title.trim()) {
       onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    if (form.type !== 'transfer' && !form.category) {
+      onNotify?.('카테고리를 선택해 주세요.', '입력 확인', 'warning');
       return;
     }
 
@@ -5700,41 +5697,46 @@ function UnifiedEntryForm({
         </div>
 
         {/* 2. 날짜 */}
-        <label>
-          날짜
+        <label className="compact-entry-field" aria-label="날짜">
           <input
             type="date"
+            aria-label="날짜"
             value={form.date}
             onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
           />
         </label>
 
-        <label>
-          시간
+        <label className="compact-entry-field" aria-label="시간">
           <input
             type="time"
+            aria-label="시간"
             value={form.time}
             onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
           />
         </label>
 
         {/* 3. 금액 */}
-        <label>
-          금액 (원)
+        <label
+          className="compact-entry-field amount-entry-field"
+          aria-label="금액"
+          style={form.type !== 'expense' ? { gridColumn: 'span 2' } : undefined}
+        >
           <input
             type="text"
             inputMode="numeric"
-            placeholder="0"
-            value={form.amount}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+            aria-label="금액"
+            placeholder="금액"
+            value={form.amount ? formatNumberInput(parseNumberInput(form.amount)) : ''}
+            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value.replace(/[^\d]/g, '') }))}
             autoFocus
           />
+          <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
 
         {form.type === 'expense' && (
-          <label className="installment-select">
-            할부 (무이자)
+          <label className="installment-select compact-entry-field" aria-label="할부">
             <select
+              aria-label="할부"
               value={installmentMonths}
               onChange={(event) => {
                 const months = Number(event.target.value);
@@ -5752,12 +5754,13 @@ function UnifiedEntryForm({
 
         {/* 4. 카테고리 (이체 선택 시 비표시) */}
         {form.type !== 'transfer' && (
-          <label style={{ gridColumn: 'span 2' }}>
-            카테고리
+          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="카테고리">
             <select
+              aria-label="카테고리"
               value={form.category}
               onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
             >
+              <option value="" disabled>카테고리</option>
               {activeCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
@@ -5770,13 +5773,13 @@ function UnifiedEntryForm({
         {/* 5. 자산 */}
         {form.type === 'transfer' ? (
           <>
-            <label>
-              보내는 계좌 (출금)
+            <label className="compact-entry-field" aria-label="보내는 계좌">
               <select
+                aria-label="보내는 계좌"
                 value={form.assetId}
                 onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
               >
-                <option value="">-- 출금 계좌 선택 --</option>
+                <option value="">보내는 계좌</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
                     {formatAssetLabel(a, currentAssetCategories)}
@@ -5784,13 +5787,13 @@ function UnifiedEntryForm({
                 ))}
               </select>
             </label>
-            <label>
-              받는 계좌 (입금)
+            <label className="compact-entry-field" aria-label="받는 계좌">
               <select
+                aria-label="받는 계좌"
                 value={form.toAssetId}
                 onChange={(e) => setForm((prev) => ({ ...prev, toAssetId: e.target.value }))}
               >
-                <option value="">-- 입금 계좌 선택 --</option>
+                <option value="">받는 계좌</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
                     {formatAssetLabel(a, currentAssetCategories)}
@@ -5800,13 +5803,13 @@ function UnifiedEntryForm({
             </label>
           </>
         ) : (
-          <label style={{ gridColumn: 'span 2' }}>
-            결제/입금 계좌 (선택)
+          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="계좌">
             <select
+              aria-label="계좌"
               value={form.assetId}
               onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
             >
-              <option value="">-- 계좌 미지정 --</option>
+              <option value="">계좌</option>
               {assets.map((a) => (
                 <option key={a.id} value={a.id}>
                   {formatAssetLabel(a, currentAssetCategories)}
@@ -5817,12 +5820,10 @@ function UnifiedEntryForm({
         )}
 
         {/* 6. 내용 */}
-        {/* 6. 내용 */}
-        <label style={{ gridColumn: 'span 2' }}>
-          내용
+        <label className="content-entry-field compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
           <input
             type="text"
-            placeholder={form.type === 'transfer' ? '예: 청약 적금 이체, 카카오뱅크로 이동' : '예: 식비, 교통비, 급여'}
+            placeholder="내용"
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
           />
