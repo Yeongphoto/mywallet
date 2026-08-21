@@ -3266,7 +3266,7 @@ textarea:focus {
 
 .asset-workspace { display: grid; gap: 12px; }
 .asset-history-modal { width: min(100% - 28px, 560px); }
-.asset-history-body { display: grid; gap: 16px; padding: 4px 24px 24px; }
+.asset-history-body { display: grid; flex: 1; min-height: 0; gap: 16px; padding: 4px 24px 24px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .asset-history-current { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card)); }
 .asset-history-current > div, .asset-history-item > div { display: grid; gap: 4px; min-width: 0; }
 .asset-history-current span, .asset-history-current small, .asset-balance-adjust-form > p, .asset-history-item span { color: var(--text-secondary); font-size: .82rem; }

@@ -4557,7 +4557,7 @@ export default function App() {
                   }
                 }}>
                   <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
-                  <div><input id="asset-balance-draft" type="number" min="0" value={assetBalanceDraft} onChange={(e) => setAssetBalanceDraft(e.target.value)} /><button type="submit" className="primary-button">차액 기록</button></div>
+                  <div><input id="asset-balance-draft" type="text" inputMode="numeric" value={assetBalanceDraft ? formatNumberInput(parseNumberInput(assetBalanceDraft)) : ''} onChange={(e) => setAssetBalanceDraft(e.target.value.replace(/[^\d]/g, ''))} /><button type="submit" className="primary-button">차액 기록</button></div>
                   <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
                 </form>
                 <div className="asset-history-list">
