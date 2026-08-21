@@ -22,6 +22,7 @@ type TouchSortState = {
   offsetX: number;
   offsetY: number;
   target: HTMLElement | null;
+  targetList: HTMLElement | null;
 };
 
 type PendingTouchSort = {
@@ -82,7 +83,15 @@ function makeGhost(source: HTMLElement, rect: DOMRect) {
   return ghost;
 }
 
-function getSortTarget(clientY: number, list: HTMLElement, source: HTMLElement) {
+function getSortTarget(clientX: number, clientY: number, list: HTMLElement, source: HTMLElement) {
+  const sourceAssetGroup = source.closest<HTMLElement>('.asset-category-group');
+  if (sourceAssetGroup) {
+    const hoveredRow = (document.elementFromPoint(clientX, clientY) as HTMLElement | null)?.closest<HTMLElement>('.category-row');
+    if (hoveredRow && hoveredRow !== source && hoveredRow.closest('.managed-category-card') === source.closest('.managed-category-card')) {
+      return hoveredRow;
+    }
+  }
+
   const rows = Array.from(list.children).filter((child): child is HTMLElement => {
     if (!(child instanceof HTMLElement)) return false;
     if (child === source) return false;
@@ -97,6 +106,11 @@ function getSortTarget(clientY: number, list: HTMLElement, source: HTMLElement) 
   }
 
   return null;
+}
+
+function getCategoryListAtPoint(clientX: number, clientY: number, fallback: HTMLElement) {
+  const group = (document.elementFromPoint(clientX, clientY) as HTMLElement | null)?.closest<HTMLElement>('.asset-category-group');
+  return group?.querySelector<HTMLElement>('.category-table') ?? fallback;
 }
 
 function autoScrollNearEdges(clientY: number) {
@@ -192,6 +206,7 @@ function activateTouchSort(pending: PendingTouchSort) {
     offsetX: pending.startX - rect.left,
     offsetY: pending.startY - rect.top,
     target: null,
+    targetList: pending.list,
   };
 
   pendingTouchSort = null;
@@ -245,7 +260,10 @@ function moveTouchSort(event: PointerEvent) {
   ghost.style.top = `${event.clientY - offsetY}px`;
   autoScrollNearEdges(event.clientY);
 
-  touchSortState.target = getSortTarget(event.clientY, list, source);
+  touchSortState.target = getSortTarget(event.clientX, event.clientY, list, source);
+  touchSortState.targetList = source.closest('.asset-category-group')
+    ? getCategoryListAtPoint(event.clientX, event.clientY, list)
+    : list;
 }
 
 function finishTouchSort(event?: PointerEvent) {
@@ -253,21 +271,29 @@ function finishTouchSort(event?: PointerEvent) {
   if (!touchSortState) return;
   if (event && touchSortState.pointerId !== event.pointerId) return;
 
-  const { kind, source, list, ghost, target } = touchSortState;
+  const { kind, source, list, ghost, target, targetList } = touchSortState;
   source.classList.remove('touch-sort-source');
   ghost.remove();
   document.body.classList.remove('touch-sort-active');
 
-  if (target) {
-    list.insertBefore(source, target);
+  const destinationList = targetList ?? list;
+  if (target && target.closest('.category-table') === destinationList) {
+    destinationList.insertBefore(source, target);
   } else {
-    list.appendChild(source);
+    destinationList.appendChild(source);
   }
 
   if (kind === 'asset') {
     persistAssetOrder(list);
+  } else if (source.dataset.categoryScope === 'asset') {
+    const group = destinationList.closest<HTMLElement>('.asset-category-group')?.dataset.assetCategoryKind;
+    if (group === 'asset' || group === 'liability') {
+      window.dispatchEvent(new CustomEvent('mywallet:asset-category-group-drop', {
+        detail: { id: source.dataset.categoryId, group, targetId: target?.dataset.categoryId },
+      }));
+    }
   } else {
-    persistCategoryOrder(list);
+    persistCategoryOrder(destinationList);
   }
 
   touchSortState = null;

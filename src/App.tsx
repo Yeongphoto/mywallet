@@ -187,8 +187,14 @@ function formatAssetLabel(asset: AssetItem, categories: CategoryOption[] = []): 
   return isRawId ? (asset.category && !asset.category.startsWith('cat_') ? asset.category : '자산') : catLabel;
 }
 
-function isLiabilityAsset(asset: AssetItem) {
-  return asset.kind === 'liability' || /대출|loan/i.test(`${asset.category} ${asset.memo}`);
+function getAssetCategoryKindKey(id: string) {
+  return `asset-kind:${id}`;
+}
+
+function isLiabilityAsset(asset: AssetItem, categories: CategoryOption[] = [], categoryLabels: CategoryLabelMap = {}) {
+  const category = categories.find((item) => item.id === asset.category || item.label === asset.category);
+  const categoryKind = categoryLabels[getAssetCategoryKindKey(asset.category)] || category?.kind;
+  return categoryKind === 'liability';
 }
 
 function buildCategorySegments(categories: CategoryOption[], values: Record<string, number>): FlowSegment[] {
@@ -624,9 +630,21 @@ export default function App() {
     () => allAssetCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'asset', category.id)),
     [allAssetCategories, hiddenCategories]
   );
+  const assetCategoryGroups = useMemo(() => (
+    ([
+      { kind: 'asset' as const, label: '자산' },
+      { kind: 'liability' as const, label: '대출' },
+    ]).map((group) => ({
+      ...group,
+      categories: activeAssetCategories.filter((category) => (
+        (categoryLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') === group.kind
+      )),
+    }))
+  ), [activeAssetCategories, categoryLabels]);
   const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
   const [editingCategory, setEditingCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
   const [categoryNameDraft, setCategoryNameDraft] = useState('');
+  const [categoryAssetKindDraft, setCategoryAssetKindDraft] = useState<'asset' | 'liability'>('asset');
 
   const [plans, setPlans] = useState<CategoryPlan[]>(() => {
     const initialPlans: CategoryPlan[] = storedData.plans || [];
@@ -686,7 +704,7 @@ export default function App() {
       });
       const asset = assets.reduce((sum, item) => {
         const balance = balances.get(item.id) ?? item.amount;
-        return sum + (isLiabilityAsset(item) ? -Math.abs(balance) : balance);
+        return sum + (isLiabilityAsset(item, allAssetCategories, categoryLabels) ? -Math.abs(balance) : balance);
       }, 0);
       return {
         month: `${Number(mo)}월`,
@@ -695,7 +713,7 @@ export default function App() {
         asset,
       };
     });
-  }, [transactions, assets, selectedMonth]);
+  }, [transactions, assets, selectedMonth, allAssetCategories, categoryLabels]);
 
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
@@ -727,6 +745,7 @@ export default function App() {
   const [planCatColor, setPlanCatColor] = useState('#ef4444');
   const [planCatType, setPlanCatType] = useState<CategoryScope>('expense');
   const [categoryModalType, setCategoryModalType] = useState<CategoryScope>('expense');
+  const [categoryModalAssetKind, setCategoryModalAssetKind] = useState<'asset' | 'liability'>('asset');
   const [customPaletteOpen, setCustomPaletteOpen] = useState(false);
   const [pickerHue, setPickerHue] = useState(200);
   const [pickerSat, setPickerSat] = useState(80);
@@ -1382,9 +1401,9 @@ export default function App() {
   const getNetAssetBalance = useCallback(
     (asset: AssetItem) => {
       const balance = getAssetBalance(asset.id, getAssetOpeningBalance(asset));
-      return isLiabilityAsset(asset) ? -Math.abs(balance) : balance;
+      return isLiabilityAsset(asset, allAssetCategories, categoryLabels) ? -Math.abs(balance) : balance;
     },
-    [getAssetBalance, getAssetOpeningBalance],
+    [getAssetBalance, getAssetOpeningBalance, allAssetCategories, categoryLabels],
   );
 
   const assetTotal = useMemo(() => {
@@ -1455,7 +1474,7 @@ export default function App() {
       .map((asset) => {
         const category = allAssetCategories.find((item) => item.id === asset.category || item.label === asset.category);
         const value = getNetAssetBalance(asset);
-        const liability = isLiabilityAsset(asset) || value < 0;
+        const liability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || value < 0;
         return {
           id: asset.id,
           label: formatAssetLabel(asset, allAssetCategories),
@@ -1694,11 +1713,17 @@ export default function App() {
   function handleStartCategoryRename(type: CategoryScope, category: CategoryOption) {
     setEditingCategory({ type, id: category.id });
     setCategoryNameDraft(category.label);
+    setCategoryAssetKindDraft(
+      categoryLabels[getAssetCategoryKindKey(category.id)] === 'liability' || category.kind === 'liability'
+        ? 'liability'
+        : 'asset',
+    );
   }
 
   function handleCancelCategoryRename() {
     setEditingCategory(null);
     setCategoryNameDraft('');
+    setCategoryAssetKindDraft('asset');
   }
 
   function handleSaveCategoryRename(type: CategoryScope, id: string) {
@@ -1723,10 +1748,14 @@ export default function App() {
       } else {
         next[key] = nextLabel;
       }
+      if (type === 'asset') {
+        next[getAssetCategoryKindKey(id)] = categoryAssetKindDraft;
+      }
       return next;
     });
     setEditingCategory(null);
     setCategoryNameDraft('');
+    setCategoryAssetKindDraft('asset');
     showNotice(`카테고리 이름을 '${nextLabel}'로 변경했습니다.`, '카테고리 수정', 'success');
   }
 
@@ -1857,6 +1886,51 @@ export default function App() {
     setCategoryOrder((prev) => ({ ...prev, [type]: nextIds }));
     setDragCategory(null);
   }
+
+  function moveAssetCategoryToGroup(id: string, group: 'asset' | 'liability', targetId?: string) {
+    setCategoryLabels((prev) => ({
+      ...prev,
+      [getAssetCategoryKindKey(id)]: group,
+    }));
+    setCategoryOrder((prev) => {
+      const knownIds = activeAssetCategories.map((category) => category.id);
+      const currentIds = (prev.asset ?? knownIds).filter((categoryId) => knownIds.includes(categoryId));
+      const orderedIds = [...currentIds, ...knownIds.filter((categoryId) => !currentIds.includes(categoryId))];
+      const nextIds = orderedIds.filter((categoryId) => categoryId !== id);
+      const targetIndex = targetId ? nextIds.indexOf(targetId) : -1;
+
+      if (targetIndex >= 0) {
+        nextIds.splice(targetIndex, 0, id);
+      } else {
+        const groupIds = activeAssetCategories
+          .filter((category) => category.id !== id && (categoryLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') === group)
+          .map((category) => category.id);
+        const lastGroupIndex = Math.max(...groupIds.map((categoryId) => nextIds.indexOf(categoryId)), -1);
+        nextIds.splice(lastGroupIndex + 1, 0, id);
+      }
+
+      return { ...prev, asset: nextIds };
+    });
+    setDragCategory(null);
+  }
+
+  function handleAssetCategoryDrop(event: DragEvent<HTMLElement>, targetGroup: 'asset' | 'liability', targetId?: string) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!dragCategory || dragCategory.type !== 'asset') return;
+    moveAssetCategoryToGroup(dragCategory.id, targetGroup, targetId);
+  }
+
+  useEffect(() => {
+    const handleTouchAssetCategoryDrop = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: string; group?: 'asset' | 'liability'; targetId?: string }>).detail;
+      if (!detail?.id || (detail.group !== 'asset' && detail.group !== 'liability')) return;
+      moveAssetCategoryToGroup(detail.id, detail.group, detail.targetId);
+    };
+
+    window.addEventListener('mywallet:asset-category-group-drop', handleTouchAssetCategoryDrop);
+    return () => window.removeEventListener('mywallet:asset-category-group-drop', handleTouchAssetCategoryDrop);
+  }, [activeAssetCategories, categoryLabels]);
 
   function handleReset() {
     requestConfirm({
@@ -3461,7 +3535,7 @@ export default function App() {
                           {(() => {
                             const currentBalance = getNetAssetBalance(asset);
                             const openingBalance = getAssetOpeningBalance(asset);
-                            const isLiability = isLiabilityAsset(asset) || currentBalance < 0;
+                            const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
                             return (
                               <div className="asset-row-summary" style={{ display: 'flex', alignItems: 'center', minHeight: '44px' }}>
                                 <span className="asset-drag-handle" style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>{'\u283F'}</span>
@@ -3620,7 +3694,7 @@ export default function App() {
           )}
 
         {activeTab === 'settings' && (
-          <section className="glass-panel settings-hub">
+          <section className="settings-hub settings-hub-category">
             <div className="settings-head">
               <h2>설정</h2>
               <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
@@ -3664,6 +3738,7 @@ export default function App() {
                             className="category-header-add-button"
                             onClick={() => {
                               setCategoryModalType('asset');
+                              setCategoryModalAssetKind('asset');
                               setSelectedCategoryColor('#0284c7');
                               setIsCategoryModalOpen(true);
                             }}
@@ -3672,8 +3747,21 @@ export default function App() {
                           </button>
                         </span>
                 </h3>
-                <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
-                      {activeAssetCategories.map((category) => {
+                <div className="asset-category-groups">
+                  {assetCategoryGroups.map((group) => (
+                    <section
+                      key={group.kind}
+                      className="asset-category-group"
+                      data-asset-category-kind={group.kind}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => handleAssetCategoryDrop(event, group.kind)}
+                    >
+                      <div className="asset-category-group-head">
+                        <strong>{group.label}</strong>
+                        <span>{group.categories.length}개</span>
+                      </div>
+                      <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
+                      {group.categories.map((category) => {
                         const color = category.color || '#64748b';
                         const paletteKey = getCategoryColorKey('asset', category.id);
                         const isOpen = openPaletteKey === paletteKey;
@@ -3684,17 +3772,18 @@ export default function App() {
                             key={`asset-${category.id}`}
                             data-category-id={category.id}
                             data-category-scope="asset"
+                            data-asset-category-kind={group.kind}
                             className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable={!isRenaming}
                             onDragStart={(event) => {
-                              if (isRenaming) {
+                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
                                 event.preventDefault();
                                 return;
                               }
                               setDragCategory({ type: 'asset', id: category.id });
                             }}
                             onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => handleCategoryDrop(event, 'asset', category.id, activeAssetCategories)}
+                            onDrop={(event) => handleAssetCategoryDrop(event, group.kind, category.id)}
                             onDragEnd={() => setDragCategory(null)}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
@@ -3764,6 +3853,13 @@ export default function App() {
                                     onChange={(event) => setCategoryNameDraft(event.target.value)}
                                     autoFocus
                                   />
+                                  <select
+                                    value={categoryAssetKindDraft}
+                                    onChange={(event) => setCategoryAssetKindDraft(event.target.value as 'asset' | 'liability')}
+                                  >
+                                    <option value="asset">자산 그룹</option>
+                                    <option value="liability">대출 그룹</option>
+                                  </select>
                                   <button type="submit" className="category-row-action category-row-action-save">저장</button>
                                   <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
                                 </form>
@@ -3780,19 +3876,23 @@ export default function App() {
                                 수정
                               </button>
                             )}
-                            <button
-                              type="button"
-                              className="category-row-action"
-                              style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
-                              onClick={() => handleArchiveCategory('asset', category.id, category.label)}
-                              disabled={isRenaming}
-                            >
-                              삭제
-                            </button>
+                            {!isRenaming && (
+                              <button
+                                type="button"
+                                className="category-row-action"
+                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                onClick={() => handleArchiveCategory('asset', category.id, category.label)}
+                              >
+                                삭제
+                              </button>
+                            )}
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                    </section>
+                  ))}
+                </div>
                   </article>
 
               {/* 하단바 가림 방지 공백 */}
@@ -4456,7 +4556,6 @@ export default function App() {
                 const name = (e.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
                 const amountRaw = (e.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value;
                 const memo = (e.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
-                const kind = (e.currentTarget.elements.namedItem('asset-kind') as HTMLSelectElement).value as AssetItem['kind'];
                 
                 const amount = Number(amountRaw) || 0;
                 if (!category) {
@@ -4473,9 +4572,9 @@ export default function App() {
                 }
 
                 if (editingAsset) {
-                  handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo, kind });
+                  handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo });
                 } else {
-                  handleAddAsset({ id: createId(), category, name, amount, memo, kind });
+                  handleAddAsset({ id: createId(), category, name, amount, memo });
                 }
                 setIsAssetModalOpen(false);
               }} 
@@ -4506,18 +4605,6 @@ export default function App() {
                   defaultValue={editingAsset ? formatAssetLabel(editingAsset, allAssetCategories) : ''}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 />
-              </div>
-
-              <div className="form-group">
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>항목 유형</label>
-                <select
-                  name="asset-kind"
-                  defaultValue={editingAsset && isLiabilityAsset(editingAsset) ? 'liability' : 'asset'}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
-                >
-                  <option value="asset">자산</option>
-                  <option value="liability">대출 (부채로 차감)</option>
-                </select>
               </div>
 
               <div className="form-group">
@@ -4571,7 +4658,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsCategoryModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px', overflow: 'visible', position: 'relative' }}>
             <div className="modal-header">
-              <h3>🏷️ 카테고리 추가 등록</h3>
+              <h3>{categoryModalType === 'asset' ? '자산 카테고리 추가' : categoryModalType === 'expense' ? '지출 카테고리 추가' : '수입 카테고리 추가'}</h3>
               <button type="button" className="close-btn" onClick={() => setIsCategoryModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={(e) => {
@@ -4596,7 +4683,12 @@ export default function App() {
               }
 
               const generatedId = `cat_${Date.now()}`;
-              const newCategory = { id: generatedId, label: catName, color: selectedCategoryColor };
+              const newCategory = {
+                id: generatedId,
+                label: catName,
+                color: selectedCategoryColor,
+                kind: catType === 'asset' ? categoryModalAssetKind : undefined,
+              };
 
               if (catType === 'expense') {
                 setCustomExpenseCategories(prev => [...prev, newCategory]);
@@ -4613,19 +4705,19 @@ export default function App() {
               showNotice(`'${catName}' 카테고리가 추가되었습니다.`, '카테고리 추가', 'success');
             }} style={{ display: 'grid', gap: '20px', padding: '24px 28px' }}>
               
-              <div className="form-group">
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>카테고리 유형</label>
-                <select 
-                  name="cat-type"
-                  value={categoryModalType}
-                  onChange={(e) => setCategoryModalType(e.target.value as CategoryScope)}
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
-                >
-                  <option value="expense">지출 🔴</option>
-                  <option value="income">수입 🔵</option>
-                  <option value="asset">자산 🟢</option>
-                </select>
-              </div>
+              {categoryModalType === 'asset' && (
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>자산 카테고리 그룹</label>
+                  <select
+                    value={categoryModalAssetKind}
+                    onChange={(e) => setCategoryModalAssetKind(e.target.value as 'asset' | 'liability')}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
+                  >
+                    <option value="asset">자산 그룹</option>
+                    <option value="liability">대출 그룹</option>
+                  </select>
+                </div>
+              )}
 
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>카테고리 이름</label>

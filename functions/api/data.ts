@@ -114,7 +114,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       plans: plns.results || [],
       customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
       customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
-      customAssetCategories: (cats.results || []).filter((c: any) => c.type === 'asset').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
+      customAssetCategories: (cats.results || [])
+        .filter((c: any) => c.type === 'asset' || c.type === 'liability')
+        .map((c: any) => ({ id: c.id, label: c.label, color: c.color || null, kind: c.type === 'liability' ? 'liability' : 'asset' })),
       budget: Number(settingsMap['budget']) || 1000000,
       theme: settingsMap['theme'] || 'light',
       categoryColors: settingsMap['categoryColors'] ? JSON.parse(settingsMap['categoryColors']) : {},
@@ -240,8 +242,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(customAssetCategories)) {
       customAssetCategories.forEach((c: any) => {
         statements.push(
-          db.prepare("INSERT INTO custom_categories (id, type, label, color) VALUES (?, 'asset', ?, ?)")
-            .bind(c.id, c.label, c.color || null)
+          db.prepare("INSERT INTO custom_categories (id, type, label, color) VALUES (?, ?, ?, ?)")
+            .bind(c.id, c.kind === 'liability' ? 'liability' : 'asset', c.label, c.color || null)
         );
       });
     }

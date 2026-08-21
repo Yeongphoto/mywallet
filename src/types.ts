@@ -4,6 +4,7 @@ export interface CategoryOption {
   id: string;
   label: string;
   color?: string;
+  kind?: 'asset' | 'liability';
 }
 
 export interface Transaction {
@@ -28,7 +29,6 @@ export interface AssetItem {
   name?: string;
   amount: number;
   memo: string;
-  kind?: 'asset' | 'liability';
 }
 
 export interface TransactionFormState {
@@ -45,7 +45,6 @@ export interface AssetFormState {
   category: string;
   amount: string;
   memo: string;
-  kind?: 'asset' | 'liability';
 }
 
 export interface Budget {
