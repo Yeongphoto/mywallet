@@ -130,6 +130,20 @@ function getToday() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getCurrentTransactionDate() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function getCurrentTransactionTime() {
+  const now = new Date();
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  return `${hour}:${minute}`;
+}
+
 function getCurrentMonth() {
   return getToday().slice(0, 7);
 }
@@ -305,7 +319,7 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
   return {
     type: defaultType,
     date: defaultDate,
-    time: '',
+    time: getCurrentTransactionTime(),
     amount: '',
     title: '',
     category: defaultCategory,
@@ -5305,7 +5319,7 @@ function TransactionListTable({
 }
 
 function UnifiedEntryForm({
-  defaultDate = getToday(),
+  defaultDate = getCurrentTransactionDate(),
   onAddTransaction,
   isQuickAdd = false,
   expenseCategories,
@@ -5511,6 +5525,7 @@ function UnifiedEntryForm({
             placeholder="0"
             value={form.amount}
             onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+            autoFocus
           />
         </label>
 
