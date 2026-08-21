@@ -230,6 +230,10 @@ function queueTouchSort(event: PointerEvent) {
   const sortable = getSortableFromHandle(handle);
   if (!sortable) return;
 
+  if (event.pointerType === 'touch') {
+    event.preventDefault();
+  }
+
   cancelPendingTouchSort();
   const pending: PendingTouchSort = {
     ...sortable,
