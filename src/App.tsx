@@ -676,6 +676,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
   const [settingsSection, setSettingsSection] = useState<'app' | 'category' | 'recurring' | 'data'>('app');
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [showAssetDetails, setShowAssetDetails] = useState(false);
   
   // Dashboard Chart states
   const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense' | 'asset'>('both');
@@ -1491,6 +1492,7 @@ export default function App() {
         const liability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || value < 0;
         return {
           id: asset.id,
+          categoryId: category?.id ?? asset.category,
           label: formatAssetLabel(asset, allAssetCategories),
           value,
           liability,
@@ -1498,7 +1500,27 @@ export default function App() {
         };
       })
       .filter((item) => item.value !== 0);
-  }, [assets, allAssetCategories, getNetAssetBalance]);
+  }, [assets, allAssetCategories, categoryLabels, getNetAssetBalance]);
+
+  const assetCategoryAllocation = useMemo(() => {
+    const grouped = new Map<string, { id: string; label: string; value: number; liability: boolean; color: string }>();
+    assetAllocation.forEach((asset) => {
+      const existing = grouped.get(asset.categoryId);
+      if (existing) {
+        existing.value += asset.value;
+        return;
+      }
+      const category = allAssetCategories.find((item) => item.id === asset.categoryId);
+      grouped.set(asset.categoryId, {
+        id: asset.categoryId,
+        label: category?.label ?? asset.categoryId,
+        value: asset.value,
+        liability: asset.liability,
+        color: asset.liability ? '#ef4444' : category?.color || asset.color,
+      });
+    });
+    return Array.from(grouped.values()).filter((item) => item.value !== 0);
+  }, [assetAllocation, allAssetCategories]);
 
   const grossAssetTotal = useMemo(
     () => assetAllocation.filter((item) => item.value > 0).reduce((sum, item) => sum + item.value, 0),
@@ -1523,13 +1545,13 @@ export default function App() {
   );
 
   const assetFlowSegments = useMemo(
-    () => assetAllocation.filter((item) => !item.liability).map((item) => ({
+    () => (showAssetDetails ? assetAllocation : assetCategoryAllocation).filter((item) => !item.liability).map((item) => ({
       id: item.id,
       label: item.label,
       value: Math.abs(item.value),
       color: item.color,
     })),
-    [assetAllocation],
+    [assetAllocation, assetCategoryAllocation, showAssetDetails],
   );
 
   // Filtered Transactions for Ledger view
@@ -2872,6 +2894,10 @@ export default function App() {
                   </svg>
                 </div>
               </div>
+              <label className="asset-detail-toggle">
+                <input type="checkbox" checked={showAssetDetails} onChange={(event) => setShowAssetDetails(event.target.checked)} />
+                <span>세부 자산 보기</span>
+              </label>
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
