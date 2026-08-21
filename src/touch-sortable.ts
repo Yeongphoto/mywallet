@@ -306,7 +306,12 @@ function finishTouchSort(event?: PointerEvent) {
   }
 
   if (kind === 'asset') {
-    persistAssetOrder(list);
+    const categoryId = source.dataset.assetCategoryId;
+    if (categoryId) {
+      window.dispatchEvent(new CustomEvent('mywallet:asset-group-drop', {
+        detail: { id: source.dataset.assetId, categoryId, targetId: target?.dataset.assetId },
+      }));
+    }
   } else if (source.dataset.categoryScope === 'asset') {
     const group = destinationList.closest<HTMLElement>('.asset-category-group')?.dataset.assetCategoryKind;
     if (group === 'asset' || group === 'liability') {

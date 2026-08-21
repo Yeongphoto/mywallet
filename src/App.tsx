@@ -165,6 +165,16 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function getPrivacyDisplayAmount(value: number) {
+  const absoluteValue = Math.abs(Math.trunc(value));
+  if (absoluteValue === 0) return 0;
+
+  const magnitude = 10 ** Math.floor(Math.log10(absoluteValue));
+  const seed = String(absoluteValue).split('').reduce((hash, digit) => ((hash * 31) + digit.charCodeAt(0)) >>> 0, 2166136261);
+  const alternate = magnitude + (seed % (9 * magnitude));
+  return value < 0 ? -alternate : alternate;
+}
+
 function formatMobileCalendarAmount(amount: number) {
   return numberFormatter.format(amount).replace(/,(?=\d{3}$)/, ' ,​'.trimStart());
 }
@@ -644,6 +654,24 @@ export default function App() {
     () => allAssetCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'asset', category.id)),
     [allAssetCategories, hiddenCategories]
   );
+  function getAssetCategoryGroupId(asset: AssetItem) {
+    return allAssetCategories.find((category) => category.id === asset.category || category.label === asset.category)?.id ?? asset.category;
+  }
+  const assetGroups = useMemo(() => {
+    const knownGroups = allAssetCategories.map((category) => ({
+      id: category.id,
+      label: category.label,
+      assets: assets.filter((asset) => getAssetCategoryGroupId(asset) === category.id),
+    })).filter((group) => group.assets.length > 0);
+    const knownIds = new Set(knownGroups.map((group) => group.id));
+    const unknownGroups = new Map<string, AssetItem[]>();
+    assets.forEach((asset) => {
+      const groupId = getAssetCategoryGroupId(asset);
+      if (knownIds.has(groupId)) return;
+      unknownGroups.set(groupId, [...(unknownGroups.get(groupId) ?? []), asset]);
+    });
+    return [...knownGroups, ...Array.from(unknownGroups, ([id, groupedAssets]) => ({ id, label: id, assets: groupedAssets }))];
+  }, [assets, allAssetCategories]);
   const assetCategoryGroups = useMemo(() => (
     ([
       { kind: 'asset' as const, label: '자산' },
@@ -1499,7 +1527,12 @@ export default function App() {
           color: liability ? '#ef4444' : category?.color || '#64748b',
         };
       })
-      .filter((item) => item.value !== 0);
+      .filter((item) => item.value !== 0)
+      .sort((a, b) => {
+        const categoryOrder = allAssetCategories.findIndex((category) => category.id === a.categoryId)
+          - allAssetCategories.findIndex((category) => category.id === b.categoryId);
+        return categoryOrder || a.label.localeCompare(b.label, 'ko');
+      });
   }, [assets, allAssetCategories, categoryLabels, getNetAssetBalance]);
 
   const assetCategoryAllocation = useMemo(() => {
@@ -1702,11 +1735,12 @@ export default function App() {
     e.preventDefault();
   }
 
-  function handleAssetDragEnter(targetIndex: number) {
+  function handleAssetDragEnter(targetIndex: number, targetCategoryId: string) {
     if (draggedAssetIndex === null || draggedAssetIndex === targetIndex) return;
 
     const newAssets = [...assets];
     const draggedItem = newAssets[draggedAssetIndex];
+    if (!draggedItem || getAssetCategoryGroupId(draggedItem) !== targetCategoryId) return;
     newAssets.splice(draggedAssetIndex, 1);
     newAssets.splice(targetIndex, 0, draggedItem);
 
@@ -1722,6 +1756,42 @@ export default function App() {
   function handleAssetDrop(e: React.DragEvent) {
     e.preventDefault();
   }
+
+  function openAmountEntry(action: () => void) {
+    if (privacyMode) {
+      showNotice('금액을 확인하려면 상단 눈 아이콘을 켜 주세요.', '금액 가림 중', 'warning');
+      return;
+    }
+    action();
+  }
+
+  function moveAssetWithinCategory(id: string, categoryId: string, targetId?: string) {
+    setAssets((prev) => {
+      const source = prev.find((asset) => asset.id === id);
+      if (!source || getAssetCategoryGroupId(source) !== categoryId) return prev;
+
+      const groupAssets = prev.filter((asset) => getAssetCategoryGroupId(asset) === categoryId);
+      const reordered = groupAssets.filter((asset) => asset.id !== id);
+      const targetIndex = targetId ? reordered.findIndex((asset) => asset.id === targetId) : -1;
+      if (targetIndex >= 0) reordered.splice(targetIndex, 0, source);
+      else reordered.push(source);
+
+      let groupIndex = 0;
+      return prev.map((asset) => (
+        getAssetCategoryGroupId(asset) === categoryId ? reordered[groupIndex++] : asset
+      ));
+    });
+  }
+
+  useEffect(() => {
+    const handleTouchAssetGroupDrop = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: string; categoryId?: string; targetId?: string }>).detail;
+      if (!detail?.id || !detail.categoryId) return;
+      moveAssetWithinCategory(detail.id, detail.categoryId, detail.targetId);
+    };
+    window.addEventListener('mywallet:asset-group-drop', handleTouchAssetGroupDrop);
+    return () => window.removeEventListener('mywallet:asset-group-drop', handleTouchAssetGroupDrop);
+  }, [assets, allAssetCategories]);
 
   function handleCategoryColorChange(type: CategoryScope, id: string, color: string) {
     setCategoryColors((prev) => ({
@@ -2468,8 +2538,8 @@ export default function App() {
   ];
 
   const topSyncStatus = !isOnline ? 'offline' : remoteSync.status;
-  const displayCurrency = (value: number) => (privacyMode ? '₩••••••' : formatCurrency(value));
-  const displayCalendarAmount = (value: number) => (privacyMode ? '•••' : formatMobileCalendarAmount(value));
+  const displayCurrency = (value: number) => (privacyMode ? formatCurrency(getPrivacyDisplayAmount(value)) : formatCurrency(value));
+  const displayCalendarAmount = (value: number) => (privacyMode ? formatMobileCalendarAmount(getPrivacyDisplayAmount(value)) : formatMobileCalendarAmount(value));
   const renderLedgerCalendar = () => (
     <section className="calendar-view-container ledger-calendar-view">
       <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2595,13 +2665,15 @@ export default function App() {
               className="mobile-primary-action"
               aria-label={activeTab === 'asset' ? '자산 등록' : '거래 등록'}
               onClick={() => {
-                if (activeTab === 'asset') {
-                  setEditingAsset(null);
-                  setIsAssetModalOpen(true);
-                  return;
-                }
-                setIsEntryModalOpen(true);
-                setModalTab('add');
+                openAmountEntry(() => {
+                  if (activeTab === 'asset') {
+                    setEditingAsset(null);
+                    setIsAssetModalOpen(true);
+                    return;
+                  }
+                  setIsEntryModalOpen(true);
+                  setModalTab('add');
+                });
               }}
             >
               <AppIcon name="plus" size={25} />
@@ -3411,7 +3483,7 @@ export default function App() {
                 type="expense"
                 items={filteredLedgerTransactions.filter((t) => t.type === 'expense')}
                 onDelete={handleDeleteTransaction}
-                onEdit={setEditingTransaction}
+                onEdit={(transaction) => openAmountEntry(() => setEditingTransaction(transaction))}
                 categories={allExpenseCategories}
                 assetCategories={allAssetCategories}
                 assets={assets}
@@ -3423,7 +3495,7 @@ export default function App() {
                 type="income"
                 items={filteredLedgerTransactions.filter((t) => t.type === 'income')}
                 onDelete={handleDeleteTransaction}
-                onEdit={setEditingTransaction}
+                onEdit={(transaction) => openAmountEntry(() => setEditingTransaction(transaction))}
                 categories={allIncomeCategories}
                 assetCategories={allAssetCategories}
                 assets={assets}
@@ -3435,7 +3507,7 @@ export default function App() {
                 type="transfer"
                 items={filteredLedgerTransactions.filter((t) => t.type === 'transfer')}
                 onDelete={handleDeleteTransaction}
-                onEdit={setEditingTransaction}
+                onEdit={(transaction) => openAmountEntry(() => setEditingTransaction(transaction))}
                 categories={[]}
                 assetCategories={allAssetCategories}
                 assets={assets}
@@ -3450,7 +3522,7 @@ export default function App() {
               assetCategories={allAssetCategories}
               assets={assets}
               formatMoney={displayCurrency}
-              onEdit={setEditingTransaction}
+              onEdit={(transaction) => openAmountEntry(() => setEditingTransaction(transaction))}
               onDelete={handleDeleteTransaction}
             />
               </>
@@ -3513,13 +3585,21 @@ export default function App() {
                 <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                   <AppIcon name="asset" size={19} /> 자산 목록
                 </h3>
-                <div className="asset-table-list" style={{ display: 'grid', gap: '3px' }}>
+                <div className="asset-category-list">
                   {assets.length === 0 ? (
                     <p className="empty-note" style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-secondary)' }}>
                       등록된 자산 항목이 없습니다. 하단 중앙의 + 버튼으로 자산을 추가해보세요.
                     </p>
                   ) : (
-                    assets.map((asset, index) => {
+                    assetGroups.map((group) => (
+                      <section key={group.id} className="asset-list-category-group" data-asset-category-id={group.id}>
+                        <div className="asset-list-category-head">
+                          <strong>{group.label}</strong>
+                          <span>{group.assets.length}개</span>
+                        </div>
+                        <div className="asset-table-list" data-asset-category-id={group.id} style={{ display: 'grid', gap: '3px' }}>
+                    {group.assets.map((asset) => {
+                      const index = assets.findIndex((item) => item.id === asset.id);
                       const isDragging = draggedAssetIndex === index;
                       const isHovered = hoveredRowIndex === index;
 
@@ -3542,8 +3622,9 @@ export default function App() {
                           <div
                             key={asset.id}
                             data-asset-id={asset.id}
+                            data-asset-category-id={group.id}
                             onDragOver={(e) => handleAssetDragOver(e, index)}
-                            onDragEnter={() => handleAssetDragEnter(index)}
+                            onDragEnter={() => handleAssetDragEnter(index, group.id)}
                             onDragEnd={handleAssetDragEnd}
                             onDrop={handleAssetDrop}
                             style={{
@@ -3574,15 +3655,26 @@ export default function App() {
                         <div
                           key={asset.id}
                           data-asset-id={asset.id}
+                          data-asset-category-id={group.id}
+                          className="asset-row"
                           draggable
-                          onDragStart={(e) => handleAssetDragStart(e, index)}
+                          onDragStart={(e) => {
+                            if (!(e.target as HTMLElement).closest('.asset-drag-handle')) {
+                              e.preventDefault();
+                              return;
+                            }
+                            handleAssetDragStart(e, index);
+                          }}
                           onDragOver={(e) => handleAssetDragOver(e, index)}
-                          onDragEnter={() => handleAssetDragEnter(index)}
+                          onDragEnter={() => handleAssetDragEnter(index, group.id)}
                           onDragEnd={handleAssetDragEnd}
                           onDrop={handleAssetDrop}
                           onMouseEnter={() => setHoveredRowIndex(index)}
                           onMouseLeave={() => setHoveredRowIndex(null)}
-                          onClick={() => { setSelectedAsset(asset); setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset)))); }}
+                          onClick={() => openAmountEntry(() => {
+                            setSelectedAsset(asset);
+                            setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
+                          })}
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
@@ -3606,10 +3698,10 @@ export default function App() {
                               type="button"
                               className="edit-btn"
                               style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}
-                              onClick={() => {
+                              onClick={() => openAmountEntry(() => {
                                 setEditingAsset(asset); // 수정 모드 전환
                                 setIsAssetModalOpen(true);
-                              }}
+                              })}
                             >
                               수정
                             </button>
@@ -3624,7 +3716,10 @@ export default function App() {
                           </div>
                         </div>
                       );
-                    })
+                    })}
+                        </div>
+                      </section>
+                    ))
                 )}
                 </div>
               </div>
@@ -4469,10 +4564,10 @@ export default function App() {
                                   type="button"
                                   className="edit-btn"
                                   style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
-                                  onClick={() => {
+                                  onClick={() => openAmountEntry(() => {
                                     setEditingTransaction(t);
                                     setSelectedDayData(null);
-                                  }}
+                                  })}
                                 >
                                   수정
                                 </button>
