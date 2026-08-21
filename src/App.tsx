@@ -1749,6 +1749,7 @@ export default function App() {
     newAssets.splice(draggedAssetIndex, 1);
     newAssets.splice(targetIndex, 0, draggedItem);
 
+    skipNextPersistenceRef.current = false;
     setAssets(newAssets);
     setDraggedAssetIndex(targetIndex);
   }
@@ -1808,6 +1809,7 @@ export default function App() {
   }
 
   function moveAssetWithinCategory(id: string, categoryId: string, targetId?: string) {
+    skipNextPersistenceRef.current = false;
     setAssets((prev) => {
       const source = prev.find((asset) => asset.id === id);
       if (!source || getAssetCategoryGroupId(source) !== categoryId) return prev;
@@ -2031,11 +2033,13 @@ export default function App() {
     const targetIndex = nextIds.indexOf(targetId);
     nextIds.splice(targetIndex, 0, dragCategory.id);
 
+    skipNextPersistenceRef.current = false;
     setCategoryOrder((prev) => ({ ...prev, [type]: nextIds }));
     setDragCategory(null);
   }
 
   function moveAssetCategoryToGroup(id: string, group: 'asset' | 'liability', targetId?: string) {
+    skipNextPersistenceRef.current = false;
     setCategoryLabels((prev) => ({
       ...prev,
       [getAssetCategoryKindKey(id)]: group,
