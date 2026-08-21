@@ -3292,6 +3292,11 @@ textarea:focus {
 .asset-history-initial { border-top: 1px solid var(--border-card); }
 @media (max-width: 768px) { .asset-history-body { padding: 2px 16px 18px; } }
 
+.installment-select { display: grid; gap: 6px; }
+.installment-select small { color: var(--text-secondary); font-size: 0.78rem; line-height: 1.35; }
+.installment-edit-summary { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--border-card); border-radius: 10px; background: var(--bg-muted); color: var(--text-secondary); font-size: 0.8rem; }
+.installment-edit-summary span:first-child { color: var(--text-primary); font-weight: 750; }
+
 .asset-detail-toggle {
   display: inline-flex;
   align-items: center;

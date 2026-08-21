@@ -165,6 +165,15 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function addMonthsToTransactionDate(date: string, monthsToAdd: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  const targetMonthIndex = month - 1 + monthsToAdd;
+  const targetYear = year + Math.floor(targetMonthIndex / 12);
+  const targetMonth = (targetMonthIndex % 12) + 1;
+  const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+}
+
 function getPrivacyDisplayAmount(value: number) {
   const absoluteValue = Math.abs(Math.trunc(value));
   if (absoluteValue === 0) return 0;
@@ -1755,6 +1764,43 @@ export default function App() {
 
   function handleAssetDrop(e: React.DragEvent) {
     e.preventDefault();
+  }
+
+  function handleUpdateInstallment(updated: Transaction) {
+    const groupId = updated.installmentGroupId;
+    if (!groupId || !updated.installmentIndex || !updated.installmentMonths) {
+      handleUpdateTransaction(updated.id, updated);
+      return;
+    }
+
+    setTransactions((prev) => {
+      const group = prev
+        .filter((transaction) => transaction.installmentGroupId === groupId)
+        .sort((a, b) => (a.installmentIndex || 0) - (b.installmentIndex || 0));
+      const paidBefore = group
+        .filter((transaction) => (transaction.installmentIndex || 0) < updated.installmentIndex!)
+        .reduce((sum, transaction) => sum + transaction.amount, 0);
+      const totalAmount = group.reduce((sum, transaction) => sum + transaction.amount, 0);
+      const future = group.filter((transaction) => (transaction.installmentIndex || 0) > updated.installmentIndex!);
+      const futureBalance = totalAmount - paidBefore - updated.amount;
+      if (futureBalance < 0) return prev;
+
+      const baseAmount = future.length ? Math.floor(futureBalance / future.length) : 0;
+      const remainder = future.length ? futureBalance % future.length : 0;
+      return prev.map((transaction) => {
+        if (transaction.id === updated.id) return updated;
+        const futureIndex = future.findIndex((item) => item.id === transaction.id);
+        if (futureIndex < 0) return transaction;
+        return { ...transaction, amount: baseAmount + (futureIndex < remainder ? 1 : 0) };
+      });
+    });
+    setEditingTransaction(null);
+  }
+
+  function handleAddTransactions(newTransactions: Transaction[]) {
+    if (newTransactions.length === 0) return;
+    setTransactions((prev) => [...newTransactions, ...prev]);
+    setSelectedMonth(newTransactions[0].date.slice(0, 7));
   }
 
   function openAmountEntry(action: () => void) {
@@ -4630,6 +4676,10 @@ export default function App() {
                 key={editingTransaction.id}
                 transaction={editingTransaction}
                 onSave={(updated) => handleUpdateTransaction(editingTransaction.id, updated)}
+                onSaveInstallment={handleUpdateInstallment}
+                installmentTransactions={editingTransaction.installmentGroupId
+                  ? transactions.filter((transaction) => transaction.installmentGroupId === editingTransaction.installmentGroupId)
+                  : []}
                 onCancel={() => setEditingTransaction(null)}
                 onAddRecurringRule={handleAddRecurringRule}
                 onUpdateRecurringRule={handleUpdateRecurringRule}
@@ -5092,6 +5142,10 @@ export default function App() {
                   handleAddTransaction(t);
                   setIsEntryModalOpen(false);
                 }}
+                onAddTransactions={(transactions) => {
+                  handleAddTransactions(transactions);
+                  setIsEntryModalOpen(false);
+                }}
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
                 assetCategories={activeAssetCategories}
@@ -5442,6 +5496,7 @@ function TransactionListTable({
 function UnifiedEntryForm({
   defaultDate = getCurrentTransactionDate(),
   onAddTransaction,
+  onAddTransactions,
   isQuickAdd = false,
   expenseCategories,
   incomeCategories,
@@ -5453,6 +5508,7 @@ function UnifiedEntryForm({
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
+  onAddTransactions?: (transactions: Transaction[]) => void;
   onAddAsset?: (a: AssetItem) => void;
   isQuickAdd?: boolean;
   expenseCategories: CategoryOption[];
@@ -5464,6 +5520,7 @@ function UnifiedEntryForm({
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
   const [isRecurring, setIsRecurring] = useState(false);
+  const [installmentMonths, setInstallmentMonths] = useState(1);
 
   const currentAssetCategories = propAssetCategories || assetCategories;
 
@@ -5485,6 +5542,7 @@ function UnifiedEntryForm({
       type: newType,
       category: defaultCat,
     }));
+    if (newType !== 'expense') setInstallmentMonths(1);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -5516,12 +5574,36 @@ function UnifiedEntryForm({
       }
     }
 
-    if (isRecurring && onAddRecurringRule) {
+    const transactionTime = normalizeTransactionTime(form.time);
+    const installmentCount = form.type === 'expense' ? installmentMonths : 1;
+
+    if (installmentCount > 1) {
+      const now = Date.now();
+      const installmentGroupId = `installment_${now}`;
+      const baseAmount = Math.floor(amount / installmentCount);
+      const remainder = amount % installmentCount;
+      const installmentTransactions = Array.from({ length: installmentCount }, (_, index) => ({
+        id: `${installmentGroupId}_${index + 1}`,
+        type: form.type as TransactionType,
+        date: addMonthsToTransactionDate(form.date, index),
+        time: transactionTime,
+        createdAt: now + index,
+        amount: baseAmount + (index < remainder ? 1 : 0),
+        title: `${form.title.trim()} (${index + 1}/${installmentCount})`,
+        category: form.category,
+        assetId: form.assetId || null,
+        toAssetId: null,
+        installmentGroupId,
+        installmentIndex: index + 1,
+        installmentMonths: installmentCount,
+      }));
+      if (onAddTransactions) onAddTransactions(installmentTransactions);
+      else installmentTransactions.forEach(onAddTransaction);
+    } else if (isRecurring && onAddRecurringRule) {
       const day = Number(form.date.slice(8, 10)) || 1;
       const transactionMonth = form.date.slice(0, 7);
       const startMonth = getNextMonth(transactionMonth);
       const now = Date.now();
-      const transactionTime = normalizeTransactionTime(form.time);
       const ruleId = `rule_${now}`;
       onAddRecurringRule({
         id: ruleId,
@@ -5551,7 +5633,6 @@ function UnifiedEntryForm({
         recurringRuleId: ruleId,
       });
     } else {
-      const transactionTime = normalizeTransactionTime(form.time);
       onAddTransaction({
         id: createId(),
         type: form.type as TransactionType,
@@ -5572,6 +5653,7 @@ function UnifiedEntryForm({
       title: '',
     }));
     setIsRecurring(false);
+    setInstallmentMonths(1);
 
     if (!isQuickAdd) {
       onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
@@ -5649,6 +5731,25 @@ function UnifiedEntryForm({
             autoFocus
           />
         </label>
+
+        {form.type === 'expense' && (
+          <label className="installment-select" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+            할부 기간 (무이자)
+            <select
+              value={installmentMonths}
+              onChange={(event) => {
+                const months = Number(event.target.value);
+                setInstallmentMonths(months);
+                if (months > 1) setIsRecurring(false);
+              }}
+            >
+              {Array.from({ length: 24 }, (_, index) => index + 1).map((months) => (
+                <option key={months} value={months}>{months === 1 ? '일시불' : `${months}개월`}</option>
+              ))}
+            </select>
+            {installmentMonths > 1 && <small>총액을 {installmentMonths}개월로 나누어 매월 무이자로 등록합니다.</small>}
+          </label>
+        )}
 
         {/* 4. 카테고리 (이체 선택 시 비표시) */}
         {form.type !== 'transfer' && (
@@ -5729,10 +5830,11 @@ function UnifiedEntryForm({
         </label>
 
         {/* 7. 매달 정기 기록 체크박스 */}
-        <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2' }}>
+        <label className="recurring-toggle" style={{ gridColumn: isQuickAdd ? 'span 1' : 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
           <input
             type="checkbox"
             checked={isRecurring}
+            disabled={installmentMonths > 1}
             onChange={(e) => setIsRecurring(e.target.checked)}
           />
           <span className="recurring-toggle-mark" aria-hidden="true" />
@@ -5751,6 +5853,8 @@ function UnifiedEntryForm({
 function TransactionEditForm({
   transaction,
   onSave,
+  onSaveInstallment,
+  installmentTransactions = [],
   onCancel,
   onAddRecurringRule,
   onUpdateRecurringRule,
@@ -5764,6 +5868,8 @@ function TransactionEditForm({
 }: {
   transaction: Transaction;
   onSave: (t: Transaction) => void;
+  onSaveInstallment?: (t: Transaction) => void;
+  installmentTransactions?: Transaction[];
   onCancel: () => void;
   onAddRecurringRule?: (r: RecurringRule) => void;
   onUpdateRecurringRule?: (r: RecurringRule) => void;
@@ -5783,6 +5889,13 @@ function TransactionEditForm({
   const [category, setCategory] = useState(transaction.category);
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
+  const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
+  const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);
+  const paidInstallmentAmount = installmentTransactions
+    .filter((item) => (item.installmentIndex || 0) < (transaction.installmentIndex || 0))
+    .reduce((sum, item) => sum + item.amount, 0);
+  const remainingInstallments = installmentTransactions.filter((item) => (item.installmentIndex || 0) > (transaction.installmentIndex || 0)).length;
+  const previewRemainingBalance = installmentTotal - paidInstallmentAmount - parseAmount(amount);
   
   // Load initial checkbox state based on transaction recurringRuleId
   const [isRecurring, setIsRecurring] = useState(() => {
@@ -5826,6 +5939,24 @@ function TransactionEditForm({
     const wasRecurring = !!activeRecurringRule;
     let nextRuleId = transaction.recurringRuleId || null;
     const transactionTime = normalizeTransactionTime(time);
+
+    if (isInstallment) {
+      if (previewRemainingBalance < 0) {
+        onNotify?.('이번 회차 금액은 남은 할부 총액을 넘을 수 없습니다.', '입력 확인', 'warning');
+        return;
+      }
+      onSaveInstallment?.({
+        ...transaction,
+        date,
+        time: transactionTime,
+        amount: numericAmount,
+        title: title.trim(),
+        category: transaction.type === 'transfer' ? 'transfer' : category,
+        assetId: assetId || null,
+        toAssetId: transaction.type === 'transfer' ? toAssetId : null,
+      });
+      return;
+    }
 
     // Handle transitions
     if (isRecurring && !wasRecurring && onAddRecurringRule) {
@@ -5907,6 +6038,13 @@ function TransactionEditForm({
         <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
 
+      {isInstallment && (
+        <div className="installment-edit-summary">
+          <span>총 할부금액 {formatCurrency(installmentTotal)}</span>
+          <span>남은 잔액 {formatCurrency(Math.max(0, previewRemainingBalance))} · 남은 {remainingInstallments}개월</span>
+        </div>
+      )}
+
       {transaction.type === 'transfer' ? (
         <>
           <label>
@@ -5958,7 +6096,7 @@ function TransactionEditForm({
         </>
       )}
 
-      <label className="recurring-toggle">
+      {!isInstallment && <label className="recurring-toggle">
         <input
           type="checkbox"
           checked={isRecurring}
@@ -5966,7 +6104,7 @@ function TransactionEditForm({
         />
         <span className="recurring-toggle-mark" aria-hidden="true" />
         <span className="recurring-toggle-text">정기 기록</span>
-      </label>
+      </label>}
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
         <button type="button" className="danger-button" onClick={onCancel}>

@@ -19,6 +19,9 @@ export interface Transaction {
   assetId?: string | null;
   toAssetId?: string | null;
   recurringRuleId?: string | null;
+  installmentGroupId?: string | null;
+  installmentIndex?: number | null;
+  installmentMonths?: number | null;
 }
 
 export interface AssetItem {

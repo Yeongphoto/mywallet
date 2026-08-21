@@ -15,7 +15,10 @@ async function ensureSchema(db: D1Database) {
       created_at INTEGER,
       asset_id TEXT,
       to_asset_id TEXT,
-      recurring_rule_id TEXT
+      recurring_rule_id TEXT,
+      installment_group_id TEXT,
+      installment_index INTEGER,
+      installment_months INTEGER
     )`),
     db.prepare(`CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
@@ -64,6 +67,9 @@ async function ensureSchema(db: D1Database) {
   try { await db.prepare("ALTER TABLE transactions ADD COLUMN to_asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE transactions ADD COLUMN created_at INTEGER").run(); } catch {}
   try { await db.prepare("ALTER TABLE transactions ADD COLUMN transaction_time TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_group_id TEXT").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_index INTEGER").run(); } catch {}
+  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_months INTEGER").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN to_asset_id TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN transaction_time TEXT").run(); } catch {}
@@ -108,7 +114,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         createdAt: t.created_at == null ? null : Number(t.created_at),
         assetId: t.asset_id || null,
         toAssetId: t.to_asset_id || null,
-        recurringRuleId: t.recurring_rule_id || null
+        recurringRuleId: t.recurring_rule_id || null,
+        installmentGroupId: t.installment_group_id || null,
+        installmentIndex: t.installment_index == null ? null : Number(t.installment_index),
+        installmentMonths: t.installment_months == null ? null : Number(t.installment_months)
       })),
       assets: asts.results || [],
       plans: plns.results || [],
@@ -196,8 +205,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (Array.isArray(transactions)) {
       transactions.forEach((t: any) => {
         statements.push(
-          db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, created_at, asset_id, to_asset_id, recurring_rule_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            .bind(t.id, t.type, t.date, t.time || null, t.amount, t.title, t.category, t.createdAt ?? null, t.assetId || null, t.toAssetId || null, t.recurringRuleId || null)
+          db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, created_at, asset_id, to_asset_id, recurring_rule_id, installment_group_id, installment_index, installment_months) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(t.id, t.type, t.date, t.time || null, t.amount, t.title, t.category, t.createdAt ?? null, t.assetId || null, t.toAssetId || null, t.recurringRuleId || null, t.installmentGroupId || null, t.installmentIndex ?? null, t.installmentMonths ?? null)
         );
       });
     }
