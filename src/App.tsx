@@ -4684,8 +4684,8 @@ export default function App() {
                 onAddRecurringRule={handleAddRecurringRule}
                 onUpdateRecurringRule={handleUpdateRecurringRule}
                 recurringRules={recurringRules}
-                expenseCategories={allExpenseCategories}
-                incomeCategories={allIncomeCategories}
+                expenseCategories={activeExpenseCategories}
+                incomeCategories={activeIncomeCategories}
                 assetCategories={allAssetCategories}
                 assets={assets}
                 onStopRecurring={handleStopRecurringFromTx}
@@ -4748,11 +4748,12 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsAssetModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> {editingAsset ? '개별 자산 항목 수정' : '개별 자산 항목 추가'}</h3>
+              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> {editingAsset ? '자산 수정' : '자산 추가'}</h3>
               <button type="button" className="close-btn" onClick={() => setIsAssetModalOpen(false)}>✕</button>
             </div>
             <form 
-              key={editingAsset ? editingAsset.id : 'new'} 
+              key={editingAsset ? editingAsset.id : 'new'}
+              className="asset-entry-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 const category = (e.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
@@ -4760,7 +4761,7 @@ export default function App() {
                 const amountRaw = (e.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value;
                 const memo = (e.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
                 
-                const amount = Number(amountRaw) || 0;
+                const amount = parseAmount(amountRaw) || 0;
                 if (!category) {
                   showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning');
                   return;
@@ -4781,7 +4782,6 @@ export default function App() {
                 }
                 setIsAssetModalOpen(false);
               }} 
-              style={{ display: 'grid', gap: '20px', padding: '24px 28px' }}
             >
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>자산 분류</label>
@@ -4791,7 +4791,7 @@ export default function App() {
                   defaultValue={editingAsset ? editingAsset.category : ''}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 >
-                  <option value="">-- 분류 선택 --</option>
+                  <option value="">자산 카테고리</option>
                   {activeAssetCategories.map((c) => (
                     <option key={c.id} value={c.id}>{c.label}</option>
                   ))}
@@ -4803,7 +4803,7 @@ export default function App() {
                 <input
                   type="text"
                   name="asset-name"
-                  placeholder="예: 신한 주거래 통장"
+                  placeholder="자산 이름"
                   required
                   defaultValue={editingAsset ? formatAssetLabel(editingAsset, allAssetCategories) : ''}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
@@ -4813,12 +4813,17 @@ export default function App() {
               <div className="form-group">
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>금액 (원)</label>
                 <input 
-                  type="number" 
+                  type="text"
                   name="asset-amount" 
-                  placeholder="예: 500000"
+                  inputMode="numeric"
+                  placeholder="기초 금액"
                   required
-                  defaultValue={editingAsset ? String(getAssetOpeningBalance(editingAsset)) : ''}
+                  defaultValue={editingAsset ? formatNumberInput(getAssetOpeningBalance(editingAsset)) : ''}
                   readOnly={Boolean(editingAsset)}
+                  onChange={(event) => {
+                    const digits = event.currentTarget.value.replace(/[^\d]/g, '');
+                    event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : '';
+                  }}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: editingAsset ? 'var(--bg-muted)' : 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 />
               </div>
@@ -4828,7 +4833,7 @@ export default function App() {
                 <input 
                   type="text" 
                   name="asset-memo" 
-                  placeholder="예: 카카오뱅크 자유적금"
+                  placeholder="메모 (선택)"
                   defaultValue={editingAsset ? editingAsset.memo : ''}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontWeight: 'bold' }}
                 />
@@ -5890,7 +5895,9 @@ function TransactionEditForm({
   const [amount, setAmount] = useState(String(transaction.amount));
   const [title, setTitle] = useState(transaction.title);
   const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
-  const [category, setCategory] = useState(transaction.category);
+  const [category, setCategory] = useState(() => (
+    categories.some((item) => item.id === transaction.category) ? transaction.category : ''
+  ));
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
@@ -5923,6 +5930,11 @@ function TransactionEditForm({
     const numericAmount = parseAmount(amount);
     if (!date || !title.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
       onNotify?.('금액과 내용을 올바르게 입력해 주세요.', '입력 확인', 'warning');
+      return;
+    }
+
+    if (transaction.type !== 'transfer' && !category) {
+      onNotify?.('카테고리를 선택해 주세요.', '입력 확인', 'warning');
       return;
     }
 
@@ -6076,10 +6088,11 @@ function TransactionEditForm({
         </>
       ) : (
         <>
-          <label>
-            카테고리
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              {categories.map((c) => (
+      <label>
+        카테고리
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="" disabled>카테고리 선택</option>
+          {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
                 </option>
