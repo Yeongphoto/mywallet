@@ -2554,6 +2554,22 @@ export default function App() {
               <span><AppIcon name="asset" /></span>
               <strong>자산</strong>
             </a>
+            <button
+              type="button"
+              className="mobile-primary-action"
+              aria-label={activeTab === 'asset' ? '자산 등록' : '거래 등록'}
+              onClick={() => {
+                if (activeTab === 'asset') {
+                  setEditingAsset(null);
+                  setIsAssetModalOpen(true);
+                  return;
+                }
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              }}
+            >
+              <AppIcon name="plus" size={25} />
+            </button>
             <a href="#plan" className={activeTab === 'plan' ? 'active' : ''} onClick={() => setActiveTab('plan')}>
               <span><AppIcon name="plan" /></span>
               <strong>계획</strong>
@@ -3460,7 +3476,7 @@ export default function App() {
                 <div className="asset-table-list" style={{ display: 'grid', gap: '3px' }}>
                   {assets.length === 0 ? (
                     <p className="empty-note" style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-secondary)' }}>
-                      등록된 자산 항목이 없습니다. 우측 상단의 [자산 등록] 단추를 통해 자산을 추가해보세요.
+                      등록된 자산 항목이 없습니다. 하단 중앙의 + 버튼으로 자산을 추가해보세요.
                     </p>
                   ) : (
                     assets.map((asset, index) => {
@@ -4998,56 +5014,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 4대 코어 탭 하단 고정 등록바 */}
-      {(activeTab === 'asset' || activeTab === 'plan' || activeTab === 'calendar' || activeTab === 'ledger') && (
-        <div className="fixed-bottom-bar" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
-          {activeTab === 'asset' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => setIsAssetModalOpen(true)}
-            >
-              <AppIcon name="plus" size={17} /> 자산 등록
-            </button>
-          )}
-          {activeTab === 'plan' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => {
-                setIsEntryModalOpen(true);
-                setModalTab('add');
-              }}
-            >
-              <AppIcon name="plus" size={17} /> 거래 등록
-            </button>
-          )}
-          {activeTab === 'calendar' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => {
-                setIsEntryModalOpen(true);
-                setModalTab('add');
-              }}
-            >
-              <AppIcon name="plus" size={17} /> 거래 등록
-            </button>
-          )}
-          {activeTab === 'ledger' && (
-            <button
-              type="button"
-              className="primary-button fixed-bottom-bar-btn"
-              onClick={() => {
-                setIsEntryModalOpen(true);
-                setModalTab('add');
-              }}
-            >
-              <AppIcon name="plus" size={17} /> 거래 등록
-            </button>
-          )}
-        </div>
-      )}
     </main>
   );
 }

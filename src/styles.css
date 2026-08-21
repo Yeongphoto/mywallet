@@ -254,6 +254,10 @@ button:active {
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
 }
 
+.mobile-primary-action {
+  display: none;
+}
+
 /* Theme Toggle Button in Sidebar */
 .theme-toggle-area {
   padding-top: 20px;

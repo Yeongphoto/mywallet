@@ -141,6 +141,31 @@
     color: #fff;
     background: var(--primary);
   }
+
+  .mobile-primary-action {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 54px;
+    width: 54px;
+    height: 54px;
+    margin: -20px 0 0;
+    padding: 0;
+    border: 3px solid rgba(15, 23, 42, 0.95);
+    border-radius: 19px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(var(--primary-rgb), 0.42);
+    z-index: 1;
+  }
+
+  .mobile-primary-action:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+  }
+
+  .mobile-primary-action .app-icon {
+    stroke-width: 2.8;
+  }
   
   /* Compact Theme Toggle Area in Bottom Nav */
   .theme-toggle-area {
