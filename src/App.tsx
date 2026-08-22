@@ -290,7 +290,8 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
 
   if (customColor) {
     return (
-      <span 
+      <span
+        className="category-badge"
         style={{ 
           display: 'inline-block',
           padding: '3px 8px', 
@@ -308,7 +309,8 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
   }
 
   return (
-    <span 
+    <span
+      className="category-badge"
       style={{ 
         display: 'inline-block',
         padding: '3px 8px', 
@@ -875,6 +877,8 @@ export default function App() {
   const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
+  const [assetSwipe, setAssetSwipe] = useState<{ id: string | null; offset: number; dragging: boolean }>({ id: null, offset: 0, dragging: false });
+  const assetSwipeGestureRef = useRef({ id: '', startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -3905,6 +3909,37 @@ export default function App() {
                       return (
                         <div
                           key={asset.id}
+                          className={`asset-row-swipe ${assetSwipe.id === asset.id && assetSwipe.offset < 0 ? 'is-open' : ''} ${assetSwipe.id === asset.id && assetSwipe.dragging ? 'is-dragging' : ''}`}
+                        >
+                          <div className="asset-row-swipe-actions" aria-hidden={assetSwipe.id !== asset.id || assetSwipe.offset >= 0}>
+                            <button
+                              type="button"
+                              className="asset-row-swipe-edit row-action-button row-action-edit"
+                              aria-label="수정"
+                              tabIndex={assetSwipe.id === asset.id && assetSwipe.offset < 0 ? 0 : -1}
+                              onClick={() => openAmountEntry(() => {
+                                setAssetSwipe({ id: null, offset: 0, dragging: false });
+                                setEditingAsset(asset);
+                                setRegistrationMode('asset');
+                                setIsEntryModalOpen(true);
+                              })}
+                            >
+                              <AppIcon name="edit" size={18} />
+                            </button>
+                            <button
+                              type="button"
+                              className="asset-row-swipe-delete row-action-button row-action-delete"
+                              aria-label="삭제"
+                              tabIndex={assetSwipe.id === asset.id && assetSwipe.offset < 0 ? 0 : -1}
+                              onClick={() => {
+                                setAssetSwipe({ id: null, offset: 0, dragging: false });
+                                handleDeleteAsset(asset.id);
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                          <div
                           data-asset-id={asset.id}
                           data-asset-category-id={group.id}
                           className="asset-row"
@@ -3929,6 +3964,7 @@ export default function App() {
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
+                            transform: `translateX(${assetSwipe.id === asset.id ? assetSwipe.offset : 0}px)`,
                           }}
                         >
                           {(() => {
@@ -3937,35 +3973,72 @@ export default function App() {
                             const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
                             return (
                               <div className="asset-row-summary" style={{ display: 'flex', alignItems: 'center', minHeight: '44px' }}>
-                                <span className="asset-drag-handle" style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>{'\u283F'}</span>
+                                <span className="asset-drag-handle" onClick={(event) => event.stopPropagation()} style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>{'\u283F'}</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
                                 <strong className="asset-row-name">{formatAssetLabel(asset, allAssetCategories)}</strong>
-                                <strong className="asset-balance-values" style={{ color: isLiability ? 'var(--danger)' : 'var(--text-primary)' }}>{displayCurrency(currentBalance)}</strong>
+                                <strong
+                                  className="asset-balance-values asset-swipe-region"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onPointerDown={(event) => {
+                                    if (!window.matchMedia('(max-width: 768px)').matches) return;
+                                    event.stopPropagation();
+                                    assetSwipeGestureRef.current = { id: asset.id, startX: event.clientX, startY: event.clientY, baseOffset: assetSwipe.id === asset.id ? assetSwipe.offset : 0, isHorizontal: false };
+                                  }}
+                                  onPointerMove={(event) => {
+                                    if (!window.matchMedia('(max-width: 768px)').matches) return;
+                                    const gesture = assetSwipeGestureRef.current;
+                                    if (gesture.id !== asset.id) return;
+                                    const deltaX = event.clientX - gesture.startX;
+                                    const deltaY = event.clientY - gesture.startY;
+                                    if (!gesture.isHorizontal) {
+                                      if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+                                      gesture.isHorizontal = true;
+                                      event.currentTarget.setPointerCapture(event.pointerId);
+                                    }
+                                    setAssetSwipe({ id: asset.id, offset: Math.max(-104, Math.min(0, gesture.baseOffset + deltaX)), dragging: true });
+                                  }}
+                                  onPointerUp={(event) => {
+                                    if (!window.matchMedia('(max-width: 768px)').matches) return;
+                                    const gesture = assetSwipeGestureRef.current;
+                                    if (gesture.id !== asset.id || !gesture.isHorizontal) return;
+                                    const offset = Math.max(-104, Math.min(0, gesture.baseOffset + event.clientX - gesture.startX));
+                                    setAssetSwipe(offset <= -52 ? { id: asset.id, offset: -104, dragging: false } : { id: null, offset: 0, dragging: false });
+                                    gesture.isHorizontal = false;
+                                  }}
+                                  onPointerCancel={() => {
+                                    if (!window.matchMedia('(max-width: 768px)').matches) return;
+                                    const open = assetSwipe.id === asset.id && assetSwipe.offset <= -52;
+                                    setAssetSwipe(open ? { id: asset.id, offset: -104, dragging: false } : { id: null, offset: 0, dragging: false });
+                                    assetSwipeGestureRef.current.isHorizontal = false;
+                                  }}
+                                  style={{ color: isLiability ? 'var(--danger)' : 'var(--text-primary)' }}
+                                >{displayCurrency(currentBalance)}</strong>
                               </div>
                             );
                           })()}
-                          <div style={{ display: 'flex', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+                          <div className="asset-row-desktop-actions" onClick={(event) => event.stopPropagation()}>
                             <button
                               type="button"
-                              className="edit-btn"
-                              style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}
+                              className="asset-row-swipe-edit row-action-button row-action-edit"
+                              aria-label="수정"
                               onClick={() => openAmountEntry(() => {
-                                setEditingAsset(asset); // 수정 모드 전환
+                                setEditingAsset(asset);
                                 setRegistrationMode('asset');
                                 setIsEntryModalOpen(true);
                               })}
                             >
-                              수정
+                              <AppIcon name="edit" size={18} />
                             </button>
                             <button
                               type="button"
-                              className="delete-btn-sm"
-                              style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
+                              className="asset-row-swipe-delete row-action-button row-action-delete"
+                              aria-label="삭제"
                               onClick={() => handleDeleteAsset(asset.id)}
                             >
-                              삭제
+                              ×
                             </button>
                           </div>
+                        </div>
                         </div>
                       );
                     })}
@@ -5547,10 +5620,10 @@ function MobileLedgerSwipeItem({
   return (
     <div className={`mobile-ledger-swipe ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''}`}>
       <div className="mobile-ledger-swipe-actions" aria-hidden={!isOpen}>
-        <button type="button" className="mobile-ledger-swipe-edit" aria-label="수정" tabIndex={isOpen ? 0 : -1} onClick={onEdit}>
+        <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" tabIndex={isOpen ? 0 : -1} onClick={onEdit}>
           <AppIcon name="edit" size={18} />
         </button>
-        <button type="button" className="mobile-ledger-swipe-delete" aria-label="삭제" tabIndex={isOpen ? 0 : -1} onClick={onDelete}>×</button>
+        <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" tabIndex={isOpen ? 0 : -1} onClick={onDelete}>×</button>
       </div>
       <article
         className={`mobile-ledger-item ${typeClass}`}
@@ -5590,6 +5663,12 @@ function MobileLedgerSwipeItem({
           {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
         </strong>
         <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
+        <div className="mobile-ledger-desktop-actions">
+          <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" onClick={onEdit}>
+            <AppIcon name="edit" size={18} />
+          </button>
+          <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" onClick={onDelete}>×</button>
+        </div>
       </article>
     </div>
   );

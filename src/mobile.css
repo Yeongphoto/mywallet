@@ -4,6 +4,153 @@
   display: none;
 }
 
+.mobile-ledger-desktop-actions {
+  display: none;
+}
+
+/* Shared row actions: assets and ledger use the exact same geometry. */
+.row-action-button {
+  display: grid !important;
+  place-items: center;
+  width: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14) !important;
+}
+
+.row-action-edit { background: var(--primary) !important; }
+
+.row-action-delete {
+  position: relative;
+  background: var(--color-expense) !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+.row-action-delete::before,
+.row-action-delete::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 15px;
+  height: 2px;
+  border-radius: 999px;
+  background: #fff;
+  transform-origin: center;
+}
+
+.row-action-delete::before { transform: translate(-50%, -50%) rotate(45deg); }
+.row-action-delete::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* Wide screens use the same card-based ledger language as mobile and assets.
+   Actions are persistent here, so horizontal swipe remains touch-only. */
+@media (min-width: 769px) {
+  .row-action-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+
+  .split-ledger { display: none; }
+
+  .mobile-ledger-timeline {
+    display: grid;
+    gap: 18px;
+    width: min(100%, 1240px);
+    margin: 18px auto 0;
+  }
+
+  .mobile-ledger-day {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    background: var(--bg-card);
+  }
+
+  .mobile-ledger-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-card);
+    background: var(--bg-balance-light);
+  }
+
+  .mobile-ledger-date-card,
+  .mobile-ledger-day-totals,
+  .mobile-ledger-desktop-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-ledger-date-card { gap: 8px; }
+  .mobile-ledger-date-card strong { font-size: 1rem; }
+  .mobile-ledger-date-card span { color: var(--text-secondary); font-size: 0.84rem; font-weight: 800; }
+  .mobile-ledger-day-totals { gap: 14px; font-size: 0.88rem; font-weight: 900; }
+  .mobile-ledger-day-totals .income,
+  .mobile-ledger-item.income .mobile-ledger-amount { color: var(--color-income); }
+  .mobile-ledger-day-totals .expense,
+  .mobile-ledger-item.expense .mobile-ledger-amount { color: var(--color-expense); }
+
+  .mobile-ledger-day-list { display: grid; }
+  .mobile-ledger-swipe { position: relative; }
+  .mobile-ledger-swipe-actions { display: none; }
+
+  .mobile-ledger-item {
+    display: grid;
+    grid-template-columns: minmax(112px, 0.8fr) minmax(0, 2fr) minmax(150px, auto) 104px;
+    grid-template-areas:
+      'category copy amount actions'
+      'category meta amount actions';
+    column-gap: 14px;
+    row-gap: 5px;
+    align-items: center;
+    min-height: 74px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-card);
+    background: var(--bg-input);
+    transform: none !important;
+  }
+
+  .mobile-ledger-swipe:last-child .mobile-ledger-item { border-bottom: 0; }
+  .mobile-ledger-category { grid-area: category; color: var(--text-secondary); font-size: 0.86rem; font-weight: 800; }
+  .mobile-ledger-copy { grid-area: copy; min-width: 0; }
+  .mobile-ledger-copy strong { display: block; color: var(--text-primary); font-size: 1rem; line-height: 1.3; overflow-wrap: anywhere; }
+  .mobile-ledger-meta { grid-area: meta; min-width: 0; }
+  .mobile-ledger-meta small { color: var(--text-secondary); font-size: 0.8rem; }
+  .mobile-ledger-amount { grid-area: amount; justify-self: end; font-size: 1.12rem; font-weight: 850; white-space: nowrap; }
+
+  .mobile-ledger-desktop-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .mobile-ledger-desktop-actions button {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.14);
+  }
+
+  .mobile-ledger-swipe-edit { background: var(--primary); }
+  .mobile-ledger-swipe-delete { background: var(--color-expense); font-size: 1.45rem; line-height: 1; }
+  .mobile-ledger-empty { margin: 0; padding: 32px; color: var(--text-secondary); text-align: center; }
+}
+
 @media (max-width: 768px) {
   .summary-visual-grid {
     grid-template-columns: 1fr;
@@ -1082,7 +1229,7 @@
     grid-area: amount;
     align-self: center;
     color: var(--text-secondary);
-    font-size: 1.08rem;
+    font-size: 1.24rem;
     font-weight: 850;
     white-space: nowrap;
   }
