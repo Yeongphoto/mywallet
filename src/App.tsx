@@ -2809,7 +2809,7 @@ export default function App() {
           <nav>
             <a href="#summary" className={activeTab === 'summary' ? 'active' : ''} onClick={() => setActiveTab('summary')}>
               <span><AppIcon name="dashboard" /></span>
-              <strong>메인</strong>
+              <strong>차트</strong>
             </a>
             <a href="#asset" className={activeTab === 'asset' ? 'active' : ''} onClick={() => setActiveTab('asset')}>
               <span><AppIcon name="asset" /></span>

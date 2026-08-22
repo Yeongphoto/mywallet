@@ -302,10 +302,10 @@
   
   /* Mobile month picker adapt */
   .app-header .month-picker-wrap {
-    width: 144px;
+    width: 115px;
     min-height: 42px;
-    padding: 0 14px;
-    font-size: 1.06rem;
+    padding: 0 6px;
+    font-size: 0.94rem;
     background: rgba(14, 165, 233, 0.16);
     border-color: rgba(125, 211, 252, 0.72);
     box-shadow: 0 4px 14px rgba(14, 165, 233, 0.16);
@@ -331,6 +331,18 @@
 
   .app-header .month-picker-display .app-icon {
     color: #7dd3fc;
+  }
+
+  html[data-theme='dark'] .app-header .month-navigation {
+    background: color-mix(in srgb, var(--primary) 8%, var(--bg-input));
+    border-color: color-mix(in srgb, var(--primary) 34%, var(--border-input));
+  }
+
+  html[data-theme='dark'] .app-header .month-picker-wrap,
+  html[data-theme='dark'] .app-header .month-nav-button {
+    background: transparent;
+    border-inline: 0;
+    box-shadow: none;
   }
 
   html[data-theme='light'] .app-header .month-navigation {
@@ -1138,9 +1150,9 @@
   }
 
   .app-header .month-picker-wrap {
-    width: 128px;
-    padding-inline: 11px;
-    font-size: 1rem;
+    width: 102px;
+    padding-inline: 4px;
+    font-size: 0.86rem;
   }
 
   .app-header .month-navigation {
