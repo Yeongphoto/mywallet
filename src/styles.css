@@ -2951,8 +2951,9 @@ textarea:focus {
 
 .app-toast {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  left: 50%;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
   z-index: 220;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -2966,7 +2967,7 @@ textarea:focus {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--shadow-xl);
-  animation: slideUp 0.22s ease-out;
+  animation: toastSlideUp 0.22s ease-out;
 }
 
 .app-toast-icon {
@@ -3081,6 +3082,11 @@ textarea:focus {
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toastSlideUp {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
 }
 
 /* Category Plans Table Styling */

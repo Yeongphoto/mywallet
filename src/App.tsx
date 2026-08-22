@@ -965,9 +965,9 @@ export default function App() {
               localUpdatedAt: newUpdatedAt,
               remoteUpdatedAt,
               checkedAt: Date.now(),
-              message: '다른 기기 변경 감지 - 최신 데이터 확인 필요',
+              message: '다른 기기 변경 감지 - 잠시 후 다시 확인',
             });
-            showNotice('다른 기기에서 먼저 저장된 변경사항이 있습니다. 상단 상태 표시를 눌러 최신 데이터를 확인해 주세요.', '저장 충돌 방지', 'warning');
+            showNotice('다른 기기에서 먼저 저장했어요. 잠시 뒤 상단 초록 원을 눌러 최신 데이터를 확인한 후 다시 시도해 주세요.', '저장은 잠깐 양보', 'warning');
             return;
           }
           if (!res.ok) throw new Error('remote save failed');
