@@ -351,10 +351,6 @@
     color: var(--primary);
   }
 
-  html[data-theme='light'] .app-header .month-nav-button {
-    background: var(--primary-soft);
-  }
-  
   .app-header .header-settings-btn {
     width: 42px;
     padding: 0;
