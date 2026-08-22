@@ -4621,17 +4621,27 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
+  .asset-row-swipe .asset-row {
+    background: var(--bg-input) !important;
+    border-color: var(--border-card) !important;
+  }
+
   .asset-table-list [data-asset-id] {
     padding: 7px 8px !important;
     gap: 5px;
   }
 
   .asset-row-summary {
-    grid-template-columns: 15px auto minmax(0, 1fr) auto;
+    grid-template-columns: 32px auto minmax(0, 1fr) auto;
     gap: 5px;
   }
 
   .asset-row-summary .asset-drag-handle {
+    display: grid;
+    flex: 0 0 32px !important;
+    place-items: center;
+    width: 32px;
+    min-height: 44px;
     margin-right: 0 !important;
     font-size: 0.95rem !important;
   }

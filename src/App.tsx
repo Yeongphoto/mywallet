@@ -879,6 +879,7 @@ export default function App() {
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
   const [assetSwipe, setAssetSwipe] = useState<{ id: string | null; offset: number; dragging: boolean }>({ id: null, offset: 0, dragging: false });
   const assetSwipeGestureRef = useRef({ id: '', startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
+  const assetHandleDragRef = useRef({ id: '', startX: 0, startY: 0, active: false, moved: false, justDragged: false });
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -1850,6 +1851,52 @@ export default function App() {
   function handleAssetDragEnd() {
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
+  }
+
+  function startAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>, assetId: string) {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    assetHandleDragRef.current = { id: assetId, startX: event.clientX, startY: event.clientY, active: true, moved: false, justDragged: false };
+  }
+
+  function moveAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>) {
+    const gesture = assetHandleDragRef.current;
+    if (!gesture.active || !window.matchMedia('(max-width: 768px)').matches) return;
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    if (!gesture.moved && (Math.abs(deltaY) < 8 || Math.abs(deltaY) <= Math.abs(deltaX))) return;
+    event.preventDefault();
+    gesture.moved = true;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-asset-id]');
+    const targetId = target?.dataset.assetId;
+    const targetCategoryId = target?.dataset.assetCategoryId;
+    if (!targetId || !targetCategoryId || targetId === gesture.id) return;
+    setAssets((currentAssets) => {
+      const sourceIndex = currentAssets.findIndex((item) => item.id === gesture.id);
+      const targetIndex = currentAssets.findIndex((item) => item.id === targetId);
+      const source = currentAssets[sourceIndex];
+      if (!source || sourceIndex < 0 || targetIndex < 0 || getAssetCategoryGroupId(source) !== targetCategoryId) return currentAssets;
+      const nextAssets = [...currentAssets];
+      nextAssets.splice(sourceIndex, 1);
+      nextAssets.splice(targetIndex, 0, source);
+      skipNextPersistenceRef.current = false;
+      setDraggedAssetIndex(targetIndex);
+      return nextAssets;
+    });
+  }
+
+  function finishAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>) {
+    const gesture = assetHandleDragRef.current;
+    if (!gesture.active) return;
+    event.preventDefault();
+    event.stopPropagation();
+    gesture.active = false;
+    gesture.justDragged = gesture.moved;
+    setDraggedAssetIndex(null);
+    setDragOverIndex(null);
+    window.setTimeout(() => { assetHandleDragRef.current.justDragged = false; }, 0);
   }
 
   function handleAssetDrop(e: React.DragEvent) {
@@ -3955,12 +4002,22 @@ export default function App() {
                           onDragEnter={() => handleAssetDragEnter(index, group.id)}
                           onDragEnd={handleAssetDragEnd}
                           onDrop={handleAssetDrop}
-                          onMouseEnter={() => setHoveredRowIndex(index)}
-                          onMouseLeave={() => setHoveredRowIndex(null)}
-                          onClick={() => openAmountEntry(() => {
-                            setSelectedAsset(asset);
-                            setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
-                          })}
+                          onMouseEnter={() => {
+                            if (window.matchMedia('(hover: hover)').matches) setHoveredRowIndex(index);
+                          }}
+                          onMouseLeave={() => {
+                            if (window.matchMedia('(hover: hover)').matches) setHoveredRowIndex(null);
+                          }}
+                          onClick={() => {
+                            if (assetHandleDragRef.current.justDragged) {
+                              assetHandleDragRef.current.justDragged = false;
+                              return;
+                            }
+                            openAmountEntry(() => {
+                              setSelectedAsset(asset);
+                              setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
+                            });
+                          }}
                           style={{
                             ...baseRowStyle,
                             cursor: 'grab',
@@ -3973,7 +4030,15 @@ export default function App() {
                             const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
                             return (
                               <div className="asset-row-summary" style={{ display: 'flex', alignItems: 'center', minHeight: '44px' }}>
-                                <span className="asset-drag-handle" onClick={(event) => event.stopPropagation()} style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px' }}>{'\u283F'}</span>
+                                <span
+                                  className="asset-drag-handle"
+                                  onClick={(event) => event.stopPropagation()}
+                                  onPointerDown={(event) => startAssetHandleTouchDrag(event, asset.id)}
+                                  onPointerMove={moveAssetHandleTouchDrag}
+                                  onPointerUp={finishAssetHandleTouchDrag}
+                                  onPointerCancel={finishAssetHandleTouchDrag}
+                                  style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px', touchAction: 'none' }}
+                                >{'\u283F'}</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
                                 <strong className="asset-row-name">{formatAssetLabel(asset, allAssetCategories)}</strong>
                                 <strong
