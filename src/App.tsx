@@ -1041,8 +1041,9 @@ export default function App() {
   useEffect(() => {
     const resolvedTheme = theme === 'system' ? systemTheme : theme;
     document.documentElement.setAttribute('data-theme', resolvedTheme);
-    document.documentElement.style.colorScheme = resolvedTheme;
+    document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
+    document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
   }, [theme, systemTheme]);
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
