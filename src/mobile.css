@@ -973,19 +973,70 @@
     display: grid;
   }
 
+  .mobile-ledger-swipe {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-input);
+    isolation: isolate;
+  }
+
+  .mobile-ledger-swipe-actions {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 0;
+    display: flex;
+    width: 104px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mobile-ledger-swipe:not(.is-open):not(.is-dragging) .mobile-ledger-swipe-actions {
+    visibility: hidden;
+  }
+
+  .mobile-ledger-swipe-actions button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+  }
+
+  .mobile-ledger-swipe-edit {
+    background: var(--primary);
+  }
+
+  .mobile-ledger-swipe-delete {
+    background: var(--color-expense);
+    font-size: 1.6rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+
   .mobile-ledger-item {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr) auto;
     grid-template-areas:
       'category copy amount'
-      'category meta actions';
+      'category meta amount';
     column-gap: 10px;
     row-gap: 5px;
     padding: 13px 12px;
     border-bottom: 1px solid var(--border-card);
+    background: var(--bg-input);
+    touch-action: pan-y;
+    will-change: transform;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
   }
 
-  .mobile-ledger-item:last-child {
+  .mobile-ledger-swipe:last-child .mobile-ledger-item {
     border-bottom: 0;
   }
 
@@ -1029,22 +1080,11 @@
 
   .mobile-ledger-amount {
     grid-area: amount;
-    align-self: start;
+    align-self: center;
     color: var(--text-secondary);
-    font-size: 0.98rem;
+    font-size: 1.08rem;
+    font-weight: 850;
     white-space: nowrap;
-  }
-
-  .mobile-ledger-actions {
-    grid-area: actions;
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-
-  .mobile-ledger-actions .edit-btn,
-  .mobile-ledger-actions .delete-btn-sm {
-    padding: 4px 8px;
   }
 
   .mobile-ledger-empty {

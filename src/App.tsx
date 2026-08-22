@@ -5513,6 +5513,91 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
   );
 }
 
+function MobileLedgerSwipeItem({
+  transaction,
+  typeClass,
+  category,
+  title,
+  detail,
+  formatMoney,
+  isOpen,
+  onOpenChange,
+  onEdit,
+  onDelete,
+}: {
+  transaction: Transaction;
+  typeClass: string;
+  category: string;
+  title: string;
+  detail: string;
+  formatMoney: (amount: number) => string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const actionWidth = 104;
+  const gestureRef = useRef({ startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
+  const [offset, setOffset] = useState(isOpen ? -actionWidth : 0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    setOffset(isOpen ? -actionWidth : 0);
+  }, [isOpen]);
+
+  const clampOffset = (value: number) => Math.max(-actionWidth, Math.min(0, value));
+
+  return (
+    <div className={`mobile-ledger-swipe ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''}`}>
+      <div className="mobile-ledger-swipe-actions" aria-hidden={!isOpen}>
+        <button type="button" className="mobile-ledger-swipe-edit" aria-label="수정" tabIndex={isOpen ? 0 : -1} onClick={onEdit}>
+          <AppIcon name="edit" size={18} />
+        </button>
+        <button type="button" className="mobile-ledger-swipe-delete" aria-label="삭제" tabIndex={isOpen ? 0 : -1} onClick={onDelete}>×</button>
+      </div>
+      <article
+        className={`mobile-ledger-item ${typeClass}`}
+        style={{ transform: `translateX(${offset}px)` }}
+        onPointerDown={(event) => {
+          gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
+        }}
+        onPointerMove={(event) => {
+          const deltaX = event.clientX - gestureRef.current.startX;
+          const deltaY = event.clientY - gestureRef.current.startY;
+          if (!gestureRef.current.isHorizontal) {
+            if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+            gestureRef.current.isHorizontal = true;
+            setIsDragging(true);
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+          setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
+        }}
+        onPointerUp={(event) => {
+          if (!gestureRef.current.isHorizontal) return;
+          const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
+          onOpenChange(nextOffset <= -(actionWidth / 2));
+          gestureRef.current.isHorizontal = false;
+          setIsDragging(false);
+        }}
+        onPointerCancel={() => {
+          onOpenChange(offset <= -(actionWidth / 2));
+          gestureRef.current.isHorizontal = false;
+          setIsDragging(false);
+        }}
+      >
+        <span className="mobile-ledger-category">{category}</span>
+        <div className="mobile-ledger-copy">
+          <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
+        </div>
+        <strong className="mobile-ledger-amount">
+          {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
+        </strong>
+        <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
+      </article>
+    </div>
+  );
+}
+
 // Transaction List Table sub-component
 function MobileLedgerTimeline({
   items,
@@ -5533,6 +5618,7 @@ function MobileLedgerTimeline({
   onEdit: (transaction: Transaction) => void;
   onDelete: (id: string) => void;
 }) {
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
   const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
   const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
   const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
@@ -5589,20 +5675,25 @@ function MobileLedgerTimeline({
                 const title = transaction.title || getCategoryName(transaction);
                 const detail = getDetail(transaction);
                 return (
-                  <article className={`mobile-ledger-item ${typeClass}`} key={transaction.id}>
-                    <span className="mobile-ledger-category">{getCategoryName(transaction)}</span>
-                    <div className="mobile-ledger-copy">
-                      <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
-                    </div>
-                    <strong className="mobile-ledger-amount">
-                      {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
-                    </strong>
-                    <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
-                    <div className="mobile-ledger-actions">
-                      <button type="button" className="edit-btn" onClick={() => onEdit(transaction)}>수정</button>
-                      <button type="button" className="delete-btn-sm" onClick={() => onDelete(transaction.id)}>삭제</button>
-                    </div>
-                  </article>
+                  <MobileLedgerSwipeItem
+                    key={transaction.id}
+                    transaction={transaction}
+                    typeClass={typeClass}
+                    category={getCategoryName(transaction)}
+                    title={title}
+                    detail={detail}
+                    formatMoney={formatMoney}
+                    isOpen={openSwipeId === transaction.id}
+                    onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)}
+                    onEdit={() => {
+                      setOpenSwipeId(null);
+                      onEdit(transaction);
+                    }}
+                    onDelete={() => {
+                      setOpenSwipeId(null);
+                      onDelete(transaction.id);
+                    }}
+                  />
                 );
               })}
             </div>
