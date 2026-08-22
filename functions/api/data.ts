@@ -199,8 +199,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       theme, 
       recurringRules, 
       deletedRecurringTxs,
-      updatedAt
+      updatedAt,
+      baseUpdatedAt
     } = body;
+
+    const nextUpdatedAt = Number(updatedAt) || Date.now();
+    const expectedUpdatedAt = Number(baseUpdatedAt);
+    if (Number.isFinite(expectedUpdatedAt)) {
+      const versionResult = expectedUpdatedAt === 0
+        ? await db.prepare("INSERT INTO settings (key, value) VALUES ('updatedAt', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value WHERE settings.value = '0'")
+          .bind(String(nextUpdatedAt)).run()
+        : await db.prepare("UPDATE settings SET value = ? WHERE key = 'updatedAt' AND value = ?")
+          .bind(String(nextUpdatedAt), String(expectedUpdatedAt)).run();
+
+      if (!versionResult.meta.changes) {
+        const currentVersion = await db.prepare("SELECT value FROM settings WHERE key = 'updatedAt'").first<{ value: string }>();
+        return new Response(JSON.stringify({
+          error: 'SYNC_CONFLICT',
+          updatedAt: Number(currentVersion?.value) || 0,
+        }), {
+          status: 409,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
 
     const statements: D1PreparedStatement[] = [];
 
@@ -285,7 +307,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('hiddenCategories', ?)")
       .bind(JSON.stringify(hiddenCategories && typeof hiddenCategories === 'object' ? hiddenCategories : {})));
     statements.push(db.prepare("INSERT INTO settings (key, value) VALUES ('updatedAt', ?)")
-      .bind(String(updatedAt ?? 0)));
+      .bind(String(nextUpdatedAt)));
 
     // Insert recurring rules
     if (Array.isArray(recurringRules)) {
@@ -310,7 +332,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // Batch execute
     await db.batch(statements);
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, updatedAt: nextUpdatedAt }), {
       headers: { "Content-Type": "application/json" }
     });
   } catch (err: any) {

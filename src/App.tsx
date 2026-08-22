@@ -512,7 +512,8 @@ function saveRemoteD1(
   hiddenCategories: HiddenCategoryMap,
   recurringRules: RecurringRule[],
   deletedRecurringTxs: string[],
-  updatedAt: number
+  updatedAt: number,
+  baseUpdatedAt?: number
 ) {
   return fetch("/api/data", {
     method: "POST",
@@ -535,7 +536,8 @@ function saveRemoteD1(
       hiddenCategories,
       recurringRules,
       deletedRecurringTxs,
-      updatedAt
+      updatedAt,
+      baseUpdatedAt
     })
   });
 }
@@ -728,6 +730,7 @@ export default function App() {
   // Filter & DB Loaded states
   const isDbLoadedRef = useRef(false);
   const skipNextPersistenceRef = useRef(true);
+  const serverUpdatedAtRef = useRef(storedData.updatedAt || 0);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -948,10 +951,27 @@ export default function App() {
         hiddenCategories,
         recurringRules, 
         deletedRecurringTxs,
-        newUpdatedAt
+        newUpdatedAt,
+        serverUpdatedAtRef.current
       )
-        .then((res) => {
+        .then(async (res) => {
+          if (res.status === 409) {
+            const conflict = await res.json();
+            const remoteUpdatedAt = Number(conflict.updatedAt) || 0;
+            serverUpdatedAtRef.current = remoteUpdatedAt;
+            window.localStorage.removeItem(PENDING_SYNC_KEY);
+            setRemoteSync({
+              status: 'stale',
+              localUpdatedAt: newUpdatedAt,
+              remoteUpdatedAt,
+              checkedAt: Date.now(),
+              message: '다른 기기 변경 감지 - 최신 데이터 확인 필요',
+            });
+            showNotice('다른 기기에서 먼저 저장된 변경사항이 있습니다. 상단 상태 표시를 눌러 최신 데이터를 확인해 주세요.', '저장 충돌 방지', 'warning');
+            return;
+          }
           if (!res.ok) throw new Error('remote save failed');
+          serverUpdatedAtRef.current = newUpdatedAt;
           window.localStorage.removeItem(PENDING_SYNC_KEY);
           setRemoteSync((prev) => {
             if (prev.localUpdatedAt && prev.localUpdatedAt > newUpdatedAt) return prev;
@@ -1067,7 +1087,8 @@ export default function App() {
                 storedData.hiddenCategories,
                 storedData.recurringRules,
                 storedData.deletedRecurringTxs,
-                newTime
+                newTime,
+                serverUpdatedAtRef.current
               )
                 .then((res) => {
                   if (!res.ok) throw new Error('remote save failed');
@@ -1085,60 +1106,7 @@ export default function App() {
             return;
           }
 
-          if (hasDbData && pendingSyncAt > serverUpdatedAt && hasLocalData) {
-            setTransactions(storedData.transactions);
-            setAssets(storedData.assets);
-            setBudget(storedData.budget);
-            setTheme(storedData.theme);
-            setCustomExpenseCategories(storedData.customExpenseCategories);
-            setCustomIncomeCategories(storedData.customIncomeCategories);
-            setCustomAssetCategories(storedData.customAssetCategories);
-            setCategoryColors(storedData.categoryColors);
-            setCategoryLabels(storedData.categoryLabels);
-            setCategoryBudgetExcluded(storedData.categoryBudgetExcluded);
-            setCategoryOrder(storedData.categoryOrder);
-            setHiddenCategories(storedData.hiddenCategories);
-            setRecurringRules(storedData.recurringRules);
-            setDeletedRecurringTxs(storedData.deletedRecurringTxs);
-            setPlans(storedData.plans);
-            setUpdatedAt(localUpdatedAt);
-            void saveRemoteD1(
-              storedData.transactions,
-              storedData.assets,
-              storedData.budget,
-              storedData.theme,
-              storedData.plans,
-              storedData.customExpenseCategories,
-              storedData.customIncomeCategories,
-              storedData.customAssetCategories,
-              storedData.categoryColors,
-              storedData.categoryLabels,
-              storedData.categoryBudgetExcluded,
-              storedData.categoryOrder,
-              storedData.hiddenCategories,
-              storedData.recurringRules,
-              storedData.deletedRecurringTxs,
-              localUpdatedAt
-            )
-              .then((res) => {
-                if (!res.ok) throw new Error('remote save failed');
-                window.localStorage.removeItem(PENDING_SYNC_KEY);
-                setRemoteSync({
-                  status: 'synced',
-                  localUpdatedAt,
-                  remoteUpdatedAt: localUpdatedAt,
-                  message: '로컬 대기 변경사항 서버 반영 완료',
-                });
-              })
-              .catch(() => {
-                setRemoteSync({
-                  status: 'error',
-                  localUpdatedAt,
-                  remoteUpdatedAt: serverUpdatedAt,
-                  message: '로컬 대기 변경사항 서버 저장 실패',
-                });
-              });
-          } else if (hasDbData) {
+          if (hasDbData) {
             // 원격 DB 데이터 최우선(DB-First) -> DB 데이터 적용
             const fetchedTxs: Transaction[] = data.transactions || [];
             setTransactions(fetchedTxs);
@@ -1156,6 +1124,7 @@ export default function App() {
             setRecurringRules(data.recurringRules || []);
             setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             setUpdatedAt(serverUpdatedAt);
+            serverUpdatedAtRef.current = serverUpdatedAt;
             window.localStorage.removeItem(PENDING_SYNC_KEY);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
@@ -1174,6 +1143,7 @@ export default function App() {
               remoteUpdatedAt: serverUpdatedAt,
               message: '서버 데이터 적용됨',
             });
+            showNotice('최신 서버 데이터를 불러왔습니다.', '동기화 완료', 'success');
           } else {
             // 로컬 데이터가 더 최신이거나 DB가 완전히 비어있음
             if (
@@ -1208,7 +1178,8 @@ export default function App() {
                 hiddenCategories,
                 recurringRules,
                 deletedRecurringTxs,
-                newTime
+                newTime,
+                serverUpdatedAtRef.current
               )
                 .then((res) => {
                   if (!res.ok) throw new Error('remote save failed');
@@ -2156,7 +2127,8 @@ export default function App() {
         {},
         [],
         [],
-        newTime
+        newTime,
+        serverUpdatedAtRef.current
       ).catch(() => undefined);
       showNotice('가계부 데이터가 초기화되었습니다.', '초기화 완료', 'success');
       },
@@ -2770,9 +2742,15 @@ export default function App() {
 
         {/* 헤더 우측 액션 그룹 */}
         <div className="header-actions">
-          <div className={`sync-mini-indicator ${topSyncStatus}`} title={!isOnline ? '인터넷 연결 없음' : remoteSync.message}>
+          <button
+            type="button"
+            className={`sync-mini-indicator ${topSyncStatus}`}
+            onClick={() => void verifyRemoteSync(true)}
+            title={!isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
+            aria-label="서버 동기화 상태 확인"
+          >
             <span aria-hidden="true" />
-          </div>
+          </button>
           <button
             type="button"
             className={`privacy-toggle ${privacyMode ? 'active' : ''}`}
@@ -5181,6 +5159,7 @@ export default function App() {
                   if (editingAsset) handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo });
                   else handleAddAsset({ id: createId(), category, name, amount, memo });
                   setIsEntryModalOpen(false);
+                  showNotice(editingAsset ? '자산 정보를 수정했습니다.' : '자산을 등록했습니다.', editingAsset ? '자산 수정' : '자산 등록', 'success');
                 }}
               />
             ) : (
@@ -5811,9 +5790,7 @@ function UnifiedEntryForm({
     setIsRecurring(false);
     setInstallmentMonths(1);
 
-    if (!isQuickAdd) {
-      onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
-    }
+    onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
   }
 
   const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';

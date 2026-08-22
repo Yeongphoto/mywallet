@@ -122,7 +122,7 @@ export function importEasyMoneyCsv(text: string, today = new Date()) : EasyMoney
       asset: cells[assetIndex],
       category: cells[categoryIndex] || '기타',
       title: cells[titleIndex] || '',
-      amount: Math.abs(amount),
+      amount,
       flow: cells[flowIndex],
     });
   });
@@ -159,7 +159,7 @@ export function importEasyMoneyCsv(text: string, today = new Date()) : EasyMoney
         && isTransferIn(candidate.flow)
         && candidate.date === row.date
         && candidate.time === row.time
-        && candidate.amount === row.amount
+        && Math.abs(candidate.amount) === Math.abs(row.amount)
         && candidate.asset === row.category
         && candidate.category === row.asset);
       if (!match) {
@@ -170,7 +170,7 @@ export function importEasyMoneyCsv(text: string, today = new Date()) : EasyMoney
       usedTransferRows.add(match.sourceIndex);
       transactions.push({
         id: `easy-transfer-${row.sourceIndex + 1}`,
-        type: 'transfer', date: row.date, time: row.time, amount: row.amount,
+        type: 'transfer', date: row.date, time: row.time, amount: Math.abs(row.amount),
         title: row.title || match.title || '자산 이체', category: '자산 이체',
         assetId: assetIds.get(row.asset)!, toAssetId: assetIds.get(row.category)!,
         createdAt: Date.parse(`${row.date}T${row.time}:00`),
