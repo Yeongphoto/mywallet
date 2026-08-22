@@ -54,6 +54,8 @@ type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' |
 type ThemePreference = 'system' | 'light' | 'dark';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
+const SYNC_OVERLAY_MIN_DURATION = 2000;
+
 interface NoticeState {
   id: number;
   type: NoticeType;
@@ -831,6 +833,7 @@ export default function App() {
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncOverlayVisible, setIsSyncOverlayVisible] = useState(false);
   const [remoteSync, setRemoteSync] = useState<RemoteSyncState>({
     status: 'checking',
     message: '서버 저장 상태 확인 중',
@@ -2381,6 +2384,9 @@ export default function App() {
     reader.readAsText(file, 'utf-8');
   }
   async function verifyRemoteSync(showToast = true) {
+    const syncStartedAt = Date.now();
+    let noticeAfterSync: { message: string; title: string; type: NoticeType } | null = null;
+    setIsSyncOverlayVisible(true);
     setRemoteSync((prev) => ({
       ...prev,
       status: 'checking',
@@ -2404,11 +2410,11 @@ export default function App() {
         message: isSynced ? '서버와 로컬이 일치함' : '서버 반영 대기 또는 불일치',
       });
       if (showToast) {
-        showNotice(
-          isSynced ? '현재 데이터가 서버에 반영되어 있습니다.' : '서버 데이터가 로컬보다 오래되었습니다. 잠시 뒤 다시 확인하세요.',
-          isSynced ? '저장 확인' : '저장 대기',
-          isSynced ? 'success' : 'warning'
-        );
+        noticeAfterSync = {
+          message: isSynced ? '현재 데이터가 서버에 반영되어 있습니다.' : '서버 데이터가 로컬보다 오래되었습니다. 잠시 뒤 다시 확인하세요.',
+          title: isSynced ? '저장 확인' : '저장 대기',
+          type: isSynced ? 'success' : 'warning',
+        };
       }
     } catch {
       setRemoteSync({
@@ -2418,8 +2424,16 @@ export default function App() {
         message: '서버 확인 실패',
       });
       if (showToast) {
-        showNotice('서버 저장 상태를 확인하지 못했습니다.', '저장 확인 실패', 'error');
+        noticeAfterSync = { message: '서버 저장 상태를 확인하지 못했습니다.', title: '저장 확인 실패', type: 'error' };
       }
+    } finally {
+      const remaining = Math.max(0, SYNC_OVERLAY_MIN_DURATION - (Date.now() - syncStartedAt));
+      window.setTimeout(() => {
+        setIsSyncOverlayVisible(false);
+        if (noticeAfterSync) {
+          window.requestAnimationFrame(() => showNotice(noticeAfterSync!.message, noticeAfterSync!.title, noticeAfterSync!.type));
+        }
+      }, remaining);
     }
   }
 
@@ -2634,65 +2648,30 @@ export default function App() {
   return (
     <main className="app-shell">
       {isLoading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'radial-gradient(circle at center, #0f172a 0%, #030712 100%)',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '24px'
-        }}>
-          {/* Logo container with pulsing animation */}
-          <div style={{
-            width: '110px',
-            height: '110px',
-            animation: 'logoPulse 2s infinite ease-in-out'
-          }}>
-            <MyWalletLogo style={{ width: '100%', height: '100%' }} />
+        <div className="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
+          <div className="app-loading-mark" aria-hidden="true">
+            <span className="app-loading-orbit-track" />
+            <span className="app-loading-orbit" />
+            <div className="app-loading-logo">
+              <MyWalletLogo style={{ width: '100%', height: '100%' }} />
+            </div>
           </div>
-
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '8px',
-            textAlign: 'center'
-          }}>
-            <h1 style={{
-              margin: 0,
-              fontSize: '1.9rem',
-              fontWeight: 900,
-              letterSpacing: '-0.03em',
-              color: '#ffffff',
-              fontFamily: 'system-ui, -apple-system, sans-serif'
-            }}>
+          <div className="app-loading-copy">
+            <h1>
               <span style={{ color: '#ffffff' }}>My</span>
               <span style={{ color: 'var(--primary)' }}>Wallet</span>
             </h1>
           </div>
-
-          {/* Premium Progress Bar */}
-          <div style={{
-            width: '220px',
-            height: '4px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '10px',
-            overflow: 'hidden',
-            marginTop: '12px'
-          }}>
-            <div style={{
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(90deg, var(--primary) 0%, #22d3ee 100%)',
-              borderRadius: '10px',
-              animation: 'progressFill 2s infinite linear'
-            }} />
+        </div>
+      )}
+      {!isLoading && isSyncOverlayVisible && (
+        <div className="app-sync-overlay" role="status" aria-live="polite" aria-label="동기화 중" aria-busy="true">
+          <div className="app-loading-mark" aria-hidden="true">
+            <span className="app-loading-orbit-track" />
+            <span className="app-loading-orbit" />
+            <div className="app-loading-logo">
+              <MyWalletLogo style={{ width: '100%', height: '100%' }} />
+            </div>
           </div>
         </div>
       )}

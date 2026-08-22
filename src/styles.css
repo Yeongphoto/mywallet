@@ -321,19 +321,33 @@ button:active {
   display: none;
 }
 
+.app-header .brand-text {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+}
+
 .app-header .mywallet-logo {
   width: 32px;
   height: 32px;
   box-sizing: border-box;
   padding: 4px;
   border-radius: 9px;
+  border: 1px solid #fff;
   background: #172033;
   box-shadow: 0 8px 18px rgba(2, 132, 199, 0.18);
 }
 
 .app-header .brand-text strong {
-  font-size: 0.98rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 16px;
   line-height: 1;
+}
+
+.app-header .brand-wordmark {
+  align-items: center;
 }
 
 .app-header .brand-wordmark span:first-child {
@@ -3326,25 +3340,83 @@ textarea:focus {
   padding-top: 9px !important;
 }
 
-/* Loading Landing Page Keyframes */
-@keyframes logoPulse {
-  0%, 100% {
-    opacity: 0.75;
-    filter: drop-shadow(0 0 4px rgba(11, 142, 199, 0.15));
-  }
-  50% {
-    opacity: 1;
-    filter: drop-shadow(0 0 24px rgba(11, 142, 199, 0.55));
-  }
+/* App loading screen */
+.app-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 22px;
+  background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
 }
 
-@keyframes progressFill {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+.app-loading-mark {
+  position: relative;
+  display: grid;
+  width: 136px;
+  height: 136px;
+  place-items: center;
+}
+
+.app-loading-logo {
+  width: 90px;
+  height: 90px;
+  filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.2));
+}
+
+.app-loading-orbit-track,
+.app-loading-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.app-loading-orbit-track {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-loading-orbit {
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #22d3ee 74deg, #0b8ec7 126deg, transparent 164deg 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: loadingOrbit 1.2s linear infinite;
+}
+
+.app-loading-copy h1 {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 1.9rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.app-sync-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: grid;
+  place-items: center;
+  background: rgba(3, 7, 18, 0.56);
+}
+
+.app-sync-overlay .app-loading-mark {
+  width: 104px;
+  height: 104px;
+}
+
+.app-sync-overlay .app-loading-logo {
+  width: 66px;
+  height: 66px;
+}
+
+@keyframes loadingOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loading-orbit { animation-duration: 3.5s; }
 }
 
 /* Ledger workspace */

@@ -272,11 +272,6 @@
     height: 36px;
   }
   
-  .app-header .brand-text strong {
-    font-size: 0.88rem;
-    line-height: 1;
-  }
-
   .app-header .brand-wordmark span:first-child {
     color: #fff;
   }
