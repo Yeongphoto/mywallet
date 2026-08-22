@@ -54,7 +54,7 @@ export interface Budget {
   amount: number;
 }
 
-export type Theme = 'light' | 'dark';
+export type Theme = 'system' | 'light' | 'dark';
 
 export type EntryType = 'expense' | 'income' | 'transfer';
 

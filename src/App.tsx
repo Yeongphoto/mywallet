@@ -51,6 +51,7 @@ type HiddenCategoryMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
+type ThemePreference = 'system' | 'light' | 'dark';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 interface NoticeState {
@@ -343,6 +344,14 @@ function createUnifiedForm(defaultDate = getToday(), defaultType: EntryType = 'e
   };
 }
 
+function normalizeThemePreference(value: unknown): ThemePreference {
+  return value === 'system' || value === 'light' || value === 'dark' ? value : 'light';
+}
+
+function getSystemTheme(): 'light' | 'dark' {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 function loadStoredData() {
   if (typeof window === 'undefined') {
     return { 
@@ -415,7 +424,7 @@ function loadStoredData() {
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       assets: Array.isArray(parsed.assets) ? parsed.assets : [],
       budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
-      theme: parsed.theme === 'dark' ? ('dark' as const) : ('light' as const),
+      theme: normalizeThemePreference(parsed.theme),
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
       customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
@@ -455,7 +464,7 @@ function saveLocalStorage(
   transactions: Transaction[], 
   assets: AssetItem[], 
   budget: number, 
-  theme: 'light' | 'dark', 
+  theme: ThemePreference,
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
   customIncomeCategories: CategoryOption[],
@@ -500,7 +509,7 @@ function saveRemoteD1(
   transactions: Transaction[], 
   assets: AssetItem[], 
   budget: number, 
-  theme: 'light' | 'dark', 
+  theme: ThemePreference,
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
   customIncomeCategories: CategoryOption[],
@@ -623,7 +632,8 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(storedData.transactions);
   const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
   const [budget, setBudget] = useState<number>(storedData.budget);
-  const [theme, setTheme] = useState<'light' | 'dark'>(storedData.theme);
+  const [theme, setTheme] = useState<ThemePreference>(storedData.theme);
+  const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme);
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
   const [customAssetCategories, setCustomAssetCategories] = useState<CategoryOption[]>(storedData.customAssetCategories || []);
@@ -1020,10 +1030,20 @@ export default function App() {
     isLoading
   ]);
 
-  // Handle theme attribute
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+    mediaQuery.addEventListener('change', updateSystemTheme);
+    return () => mediaQuery.removeEventListener('change', updateSystemTheme);
+  }, []);
+
+  // Handle theme attribute and native browser colors.
+  useEffect(() => {
+    const resolvedTheme = theme === 'system' ? systemTheme : theme;
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    document.documentElement.style.colorScheme = resolvedTheme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
+  }, [theme, systemTheme]);
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
@@ -1112,7 +1132,7 @@ export default function App() {
             setTransactions(fetchedTxs);
             setAssets(data.assets || []);
             setBudget(data.budget ?? 1000000);
-            setTheme(data.theme === 'dark' ? 'dark' : 'light');
+            setTheme(normalizeThemePreference(data.theme));
             setCustomExpenseCategories(data.customExpenseCategories || []);
             setCustomIncomeCategories(data.customIncomeCategories || []);
             setCustomAssetCategories(data.customAssetCategories || []);
@@ -2450,7 +2470,7 @@ export default function App() {
         const newPlans: CategoryPlan[] = [];
         let importedSettings: Partial<{
           budget: number;
-          theme: 'light' | 'dark';
+          theme: ThemePreference;
           customExpenseCategories: CategoryOption[];
           customIncomeCategories: CategoryOption[];
           customAssetCategories: CategoryOption[];
@@ -2515,7 +2535,7 @@ export default function App() {
               setTransactions(newTransactions);
               setAssets(newAssets);
               setBudget(newBudget);
-              setTheme(importedSettings?.theme === 'dark' ? 'dark' : 'light');
+              setTheme(normalizeThemePreference(importedSettings?.theme));
               setCustomExpenseCategories(Array.isArray(importedSettings?.customExpenseCategories) ? importedSettings.customExpenseCategories : []);
               setCustomIncomeCategories(Array.isArray(importedSettings?.customIncomeCategories) ? importedSettings.customIncomeCategories : []);
               setCustomAssetCategories(Array.isArray(importedSettings?.customAssetCategories) ? importedSettings.customAssetCategories : []);
@@ -3903,11 +3923,14 @@ export default function App() {
                 <div className="settings-row theme-settings-row">
                   <strong>화면 테마</strong>
                   <div className="theme-toggle" role="group" aria-label="화면 테마">
+                    <button type="button" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
+                      시스템 설정
+                    </button>
                     <button type="button" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
-                      라이트 모드
+                      라이트
                     </button>
                     <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
-                      다크 모드
+                      다크
                     </button>
                   </div>
                 </div>
