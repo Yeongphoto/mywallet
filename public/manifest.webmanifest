@@ -13,7 +13,7 @@
   "icons": [
     {
       "src": "/logo.png",
-      "sizes": "322x322",
+      "sizes": "1280x1280",
       "type": "image/png",
       "purpose": "any maskable"
     }
