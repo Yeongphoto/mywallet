@@ -789,6 +789,12 @@ export default function App() {
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
+
+  function switchRegistrationMode(mode: EntryType | 'asset') {
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement) focused.blur();
+    setRegistrationMode(mode);
+  }
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedCategoryColor, setSelectedCategoryColor] = useState<string>('#ef4444');
   const [categoryDraft, setCategoryDraft] = useState<{ type: CategoryScope; label: string; color: string }>({
@@ -5156,10 +5162,10 @@ export default function App() {
               <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
             </div>
             <div className="registration-mode-tabs" aria-label="등록 종류">
-              <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => setRegistrationMode('asset')}>자산</button>
-              <button type="button" className={registrationMode === 'expense' ? 'active expense' : ''} onClick={() => setRegistrationMode('expense')}>지출</button>
-              <button type="button" className={registrationMode === 'income' ? 'active income' : ''} onClick={() => setRegistrationMode('income')}>수입</button>
-              <button type="button" className={registrationMode === 'transfer' ? 'active transfer' : ''} onClick={() => setRegistrationMode('transfer')}>이체</button>
+              <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => switchRegistrationMode('asset')}>자산</button>
+              <button type="button" className={registrationMode === 'expense' ? 'active expense' : ''} onClick={() => switchRegistrationMode('expense')}>지출</button>
+              <button type="button" className={registrationMode === 'income' ? 'active income' : ''} onClick={() => switchRegistrationMode('income')}>수입</button>
+              <button type="button" className={registrationMode === 'transfer' ? 'active transfer' : ''} onClick={() => switchRegistrationMode('transfer')}>이체</button>
             </div>
             {registrationMode === 'asset' ? (
               <AssetRegistrationForm
@@ -5554,6 +5560,12 @@ function InstantSelect({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
+  const selectOption = (option: { value: string | number }) => {
+    onChange(String(option.value));
+    setIsOpen(false);
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement) focused.blur();
+  };
 
   return (
     <div className="instant-select">
@@ -5577,10 +5589,13 @@ function InstantSelect({
               aria-selected={String(option.value) === String(value)}
               className={String(option.value) === String(value) ? 'selected' : ''}
               key={String(option.value)}
-              onClick={() => {
-                onChange(String(option.value));
-                setIsOpen(false);
+              onPointerDown={(event) => {
+                if (event.pointerType === 'touch') {
+                  event.preventDefault();
+                  selectOption(option);
+                }
               }}
+              onClick={() => selectOption(option)}
             >
               {option.label}
             </button>

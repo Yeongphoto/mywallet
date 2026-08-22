@@ -2,7 +2,19 @@ interface Env {
   DB: D1Database;
 }
 
-async function ensureSchema(db: D1Database) {
+let schemaReady: Promise<void> | null = null;
+
+function ensureSchema(db: D1Database) {
+  if (!schemaReady) {
+    schemaReady = ensureSchemaOnce(db).catch((error) => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+  return schemaReady;
+}
+
+async function ensureSchemaOnce(db: D1Database) {
   await db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS transactions (
       id TEXT PRIMARY KEY,
