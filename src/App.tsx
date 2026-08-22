@@ -4853,12 +4853,9 @@ export default function App() {
       {/* Edit Transaction Modal */}
       {editingTransaction && (
         <div className="modal-backdrop" onClick={() => setEditingTransaction(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>거래 내역 수정</h3>
-              <button type="button" className="close-btn" onClick={() => setEditingTransaction(null)}>
-                &times;
-              </button>
             </div>
             <div className="modal-body">
               <TransactionEditForm
@@ -6331,6 +6328,10 @@ function TransactionEditForm({
   ));
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
+  const categoryRef = useRef<HTMLButtonElement>(null);
+  const assetRef = useRef<HTMLButtonElement>(null);
+  const toAssetRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
   const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);
   const paidInstallmentAmount = installmentTransactions
@@ -6462,27 +6463,25 @@ function TransactionEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
-      <label>
-        날짜
+    <form className="transaction-edit-form" onSubmit={handleSubmit}>
+      <label className="compact-entry-field" aria-label="날짜">
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
-      <label>
-        시간 (선택)
+      <label className="compact-entry-field" aria-label="시간">
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </label>
-      <label>
-        금액 (원)
+      <label className="compact-entry-field amount-entry-field" style={{ gridColumn: 'span 2' }} aria-label="금액">
         <input
           type="text"
           inputMode="numeric"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          placeholder="금액"
+          value={amount ? formatNumberInput(parseNumberInput(amount)) : ''}
+          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
         />
+        <span className="currency-suffix" aria-hidden="true">원</span>
       </label>
-      <label>
-        내용
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <label className="compact-entry-field content-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
+        <input ref={titleRef} type="text" placeholder="내용" value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
 
       {isInstallment && (
@@ -6494,52 +6493,52 @@ function TransactionEditForm({
 
       {transaction.type === 'transfer' ? (
         <>
-          <label>
-            보내는 계좌 (출금)
-            <select value={assetId} onChange={(e) => setAssetId(e.target.value)}>
-              <option value="">-- 출금 계좌 선택 --</option>
-              {assets.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {formatAssetLabel(a)}
-                </option>
-              ))}
-            </select>
+          <label className="compact-entry-field" aria-label="보내는 계좌">
+            <InstantSelect
+              ariaLabel="보내는 계좌"
+              value={assetId}
+              placeholder="보내는 계좌"
+              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
+              onChange={setAssetId}
+              triggerRef={assetRef}
+              onSelectNext={() => toAssetRef.current?.focus()}
+            />
           </label>
-          <label>
-            받는 계좌 (입금)
-            <select value={toAssetId} onChange={(e) => setToAssetId(e.target.value)}>
-              <option value="">-- 입금 계좌 선택 --</option>
-              {assets.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {formatAssetLabel(a)}
-                </option>
-              ))}
-            </select>
+          <label className="compact-entry-field" aria-label="받는 계좌">
+            <InstantSelect
+              ariaLabel="받는 계좌"
+              value={toAssetId}
+              placeholder="받는 계좌"
+              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
+              onChange={setToAssetId}
+              triggerRef={toAssetRef}
+              onSelectNext={() => titleRef.current?.focus()}
+            />
           </label>
         </>
       ) : (
         <>
-      <label>
-        카테고리
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          <option value="" disabled>카테고리 선택</option>
-          {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            결제/입금 계좌 (선택)
-            <select value={assetId} onChange={(e) => setAssetId(e.target.value)}>
-              <option value="">-- 계좌 미지정 --</option>
-              {assets.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {formatAssetLabel(a)}
-                </option>
-              ))}
-            </select>
+      <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="카테고리">
+        <InstantSelect
+          ariaLabel="카테고리"
+          value={category}
+          placeholder="카테고리"
+          options={categories.map((item) => ({ value: item.id, label: item.label }))}
+          onChange={setCategory}
+          triggerRef={categoryRef}
+          onSelectNext={() => assetRef.current?.focus()}
+        />
+      </label>
+          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="계좌">
+            <InstantSelect
+              ariaLabel="계좌"
+              value={assetId}
+              placeholder="계좌"
+              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
+              onChange={setAssetId}
+              triggerRef={assetRef}
+              onSelectNext={() => titleRef.current?.focus()}
+            />
           </label>
         </>
       )}
@@ -6554,7 +6553,7 @@ function TransactionEditForm({
         <span className="recurring-toggle-text">정기 기록</span>
       </label>}
 
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
+      <div className="transaction-edit-actions">
         <button type="button" className="danger-button" onClick={onCancel}>
           취소
         </button>
