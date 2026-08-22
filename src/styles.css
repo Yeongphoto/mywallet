@@ -440,15 +440,15 @@ button:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 115px;
-  min-height: 42px;
+  width: var(--month-label-width);
+  min-height: var(--month-label-height);
   border: 0;
   border-inline: 0;
   box-sizing: border-box;
   border-radius: 0;
   padding: 0 6px;
   font-weight: 850;
-  font-size: 1rem;
+  font-size: var(--month-label-font-size);
   letter-spacing: 0.01em;
   cursor: pointer;
   box-shadow: none;
@@ -462,6 +462,11 @@ button:active {
 }
 
 .month-navigation {
+  --month-label-height: 42px;
+  --month-nav-button-size: 42px;
+  --month-label-width: 115px;
+  --month-label-font-size: 15px;
+  --month-label-color: var(--primary);
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -494,14 +499,14 @@ button:active {
 
 .month-nav-button {
   display: inline-grid;
-  width: 42px;
-  height: 42px;
+  width: var(--month-nav-button-size);
+  height: var(--month-nav-button-size);
   place-items: center;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--primary);
+  color: var(--month-label-color);
   box-shadow: none;
   transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
@@ -536,7 +541,9 @@ button:active {
   border: 0;
   background: transparent;
   font: inherit;
-  color: inherit;
+  line-height: 1;
+  letter-spacing: inherit;
+  color: var(--month-label-color);
   cursor: pointer;
   pointer-events: auto;
   white-space: nowrap;
@@ -696,12 +703,12 @@ button:active {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-primary);
+  color: var(--month-label-color);
   pointer-events: none;
 }
 
 .month-picker-display .app-icon {
-  color: var(--primary);
+  color: currentColor;
 }
 
 .header-actions {
@@ -4446,10 +4453,12 @@ textarea:focus {
 }
 
 .yearly-asset-current {
+  flex-basis: 100%;
   color: var(--color-asset);
   font-size: 0.8rem;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   white-space: nowrap;
 }
 

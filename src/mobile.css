@@ -449,10 +449,6 @@
   
   /* Mobile month picker adapt */
   .app-header .month-picker-wrap {
-    width: 115px;
-    min-height: 42px;
-    padding: 0 6px;
-    font-size: 0.94rem;
     background: rgba(14, 165, 233, 0.16);
     border-color: rgba(125, 211, 252, 0.72);
     box-shadow: 0 4px 14px rgba(14, 165, 233, 0.16);
@@ -468,18 +464,8 @@
   .app-header .month-nav-button {
     border: 0;
     background: transparent;
-    color: #fff;
   }
   
-  .app-header .month-picker-display {
-    color: #fff;
-    font-weight: 850;
-  }
-
-  .app-header .month-picker-display .app-icon {
-    color: #7dd3fc;
-  }
-
   html[data-theme='dark'] .app-header .month-navigation {
     background: color-mix(in srgb, var(--primary) 8%, var(--bg-input));
     border-color: color-mix(in srgb, var(--primary) 34%, var(--border-input));
@@ -502,12 +488,6 @@
     background: var(--bg-input);
     border-color: color-mix(in srgb, var(--primary) 30%, var(--border-input));
     box-shadow: none;
-  }
-
-  html[data-theme='light'] .app-header .month-nav-button,
-  html[data-theme='light'] .app-header .month-picker-display,
-  html[data-theme='light'] .app-header .month-picker-display .app-icon {
-    color: var(--primary);
   }
 
   .app-header .header-settings-btn {
@@ -1361,19 +1341,13 @@
     gap: 8px;
   }
 
-  .app-header .month-picker-wrap {
-    width: 102px;
-    padding-inline: 4px;
-    font-size: 0.86rem;
-  }
-
   .app-header .month-navigation {
-    gap: 0;
+    --month-label-width: 102px;
+    --month-nav-button-size: 34px;
   }
 
   .app-header .month-nav-button {
-    width: 34px;
-    height: 34px;
     border-radius: 10px;
   }
+
 }
