@@ -22,6 +22,7 @@ export interface Transaction {
   installmentGroupId?: string | null;
   installmentIndex?: number | null;
   installmentMonths?: number | null;
+  revision?: number;
 }
 
 export interface AssetItem {

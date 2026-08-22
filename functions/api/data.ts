@@ -2,100 +2,6 @@ interface Env {
   DB: D1Database;
 }
 
-let schemaReady: Promise<void> | null = null;
-
-function ensureSchema(db: D1Database) {
-  if (!schemaReady) {
-    schemaReady = ensureSchemaOnce(db).catch((error) => {
-      schemaReady = null;
-      throw error;
-    });
-  }
-  return schemaReady;
-}
-
-async function ensureSchemaOnce(db: D1Database) {
-  await db.batch([
-    db.prepare(`CREATE TABLE IF NOT EXISTS transactions (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      date TEXT NOT NULL,
-      transaction_time TEXT,
-      amount INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      created_at INTEGER,
-      asset_id TEXT,
-      to_asset_id TEXT,
-      recurring_rule_id TEXT,
-      installment_group_id TEXT,
-      installment_index INTEGER,
-      installment_months INTEGER
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS assets (
-      id TEXT PRIMARY KEY,
-      category TEXT NOT NULL,
-      name TEXT,
-      kind TEXT,
-      amount INTEGER NOT NULL,
-      memo TEXT NOT NULL
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS plans (
-      category TEXT NOT NULL,
-      type TEXT NOT NULL,
-      plannedAmount INTEGER NOT NULL,
-      PRIMARY KEY (category, type)
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS custom_categories (
-      id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      label TEXT NOT NULL,
-      color TEXT,
-      PRIMARY KEY (id, type)
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS recurring_rules (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      day INTEGER NOT NULL,
-      transaction_time TEXT,
-      amount INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      asset_id TEXT,
-      to_asset_id TEXT,
-      startMonth TEXT NOT NULL,
-      endMonth TEXT
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS deleted_recurring_txs (
-      id TEXT PRIMARY KEY
-    )`),
-    db.prepare(`CREATE TABLE IF NOT EXISTS sync_groups (
-      id TEXT PRIMARY KEY,
-      revision INTEGER NOT NULL DEFAULT 0
-    )`)
-  ]);
-
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN asset_id TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN to_asset_id TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN created_at INTEGER").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN transaction_time TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_group_id TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_index INTEGER").run(); } catch {}
-  try { await db.prepare("ALTER TABLE transactions ADD COLUMN installment_months INTEGER").run(); } catch {}
-  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN asset_id TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN to_asset_id TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE recurring_rules ADD COLUMN transaction_time TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE assets ADD COLUMN name TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE assets ADD COLUMN kind TEXT").run(); } catch {}
-  try { await db.prepare("ALTER TABLE assets ADD COLUMN revision INTEGER NOT NULL DEFAULT 1").run(); } catch {}
-  try { await db.prepare("ALTER TABLE assets ADD COLUMN sort_order INTEGER").run(); } catch {}
-  await db.prepare("INSERT OR IGNORE INTO sync_groups (id, revision) SELECT 'asset-order:' || category, 0 FROM assets GROUP BY category").run();
-}
-
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const db = context.env.DB;
   if (!db) {
@@ -103,10 +9,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    await ensureSchema(db);
-
     const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
-      db.prepare("SELECT * FROM transactions").all(),
+      db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL").all(),
       db.prepare("SELECT * FROM assets ORDER BY category, sort_order IS NULL, sort_order, rowid").all(),
       db.prepare("SELECT * FROM plans").all(),
       db.prepare("SELECT * FROM custom_categories").all(),
@@ -136,7 +40,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         recurringRuleId: t.recurring_rule_id || null,
         installmentGroupId: t.installment_group_id || null,
         installmentIndex: t.installment_index == null ? null : Number(t.installment_index),
-        installmentMonths: t.installment_months == null ? null : Number(t.installment_months)
+        installmentMonths: t.installment_months == null ? null : Number(t.installment_months),
+        revision: Number(t.revision) || 1,
       })),
       assets: (asts.results || []).map((asset: any) => ({
         ...asset,
@@ -203,6 +108,66 @@ function assetRow(asset: any) {
   };
 }
 
+function transactionRow(transaction: any) {
+  return {
+    id: transaction.id,
+    type: transaction.type,
+    date: transaction.date,
+    time: transaction.transaction_time || null,
+    amount: Number(transaction.amount),
+    title: transaction.title,
+    category: transaction.category,
+    createdAt: transaction.created_at == null ? null : Number(transaction.created_at),
+    assetId: transaction.asset_id || null,
+    toAssetId: transaction.to_asset_id || null,
+    recurringRuleId: transaction.recurring_rule_id || null,
+    installmentGroupId: transaction.installment_group_id || null,
+    installmentIndex: transaction.installment_index == null ? null : Number(transaction.installment_index),
+    installmentMonths: transaction.installment_months == null ? null : Number(transaction.installment_months),
+    revision: Number(transaction.revision) || 1,
+  };
+}
+
+function validTransaction(transaction: any) {
+  return Boolean(
+    transaction?.id &&
+    ['income', 'expense', 'transfer'].includes(transaction.type) &&
+    transaction.date &&
+    Number.isFinite(Number(transaction.amount)) &&
+    Number(transaction.amount) > 0 &&
+    transaction.title &&
+    transaction.category
+  );
+}
+
+function isOperationId(value: unknown): value is string {
+  return typeof value === 'string' && value.length >= 12 && value.length <= 128;
+}
+
+function transactionInsertStatement(db: D1Database, transaction: any, operationId: string) {
+  return db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, created_at, asset_id, to_asset_id, recurring_rule_id, installment_group_id, installment_index, installment_months, revision, last_operation_id, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NULL)")
+    .bind(transaction.id, transaction.type, transaction.date, transaction.time || null, transaction.amount, transaction.title, transaction.category, transaction.createdAt ?? null, transaction.assetId || null, transaction.toAssetId || null, transaction.recurringRuleId || null, transaction.installmentGroupId || null, transaction.installmentIndex ?? null, transaction.installmentMonths ?? null, operationId);
+}
+
+async function completedOperation(db: D1Database, operationId: string) {
+  return db.prepare("SELECT entity_type, entity_id, status FROM operation_results WHERE operation_id = ?").bind(operationId).first<any>();
+}
+
+async function operationSuccessResponse(db: D1Database, operation: any, operationId: string) {
+  if (operation.entity_type === 'transaction_batch') {
+    const rows = await db.prepare("SELECT * FROM transactions WHERE last_operation_id = ? AND deleted_at IS NULL").bind(operationId).all<any>();
+    return new Response(JSON.stringify({ success: true, operationId, transactions: (rows.results || []).map(transactionRow) }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (operation.entity_type !== 'transaction') return null;
+  const transaction = await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(operation.entity_id).first<any>();
+  return new Response(JSON.stringify({
+    success: true,
+    operationId,
+    transaction: transaction && !transaction.deleted_at ? transactionRow(transaction) : null,
+    deleted: Boolean(transaction?.deleted_at),
+  }), { headers: { 'Content-Type': 'application/json' } });
+}
+
 function conflictResponse(current: unknown) {
   return new Response(JSON.stringify({ error: 'SYNC_CONFLICT', current }), {
     status: 409,
@@ -213,10 +178,97 @@ function conflictResponse(current: unknown) {
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
   const db = context.env.DB;
   if (!db) return new Response(JSON.stringify({ error: 'D1 Binding not found' }), { status: 500 });
+  let body: any;
 
   try {
-    await ensureSchema(db);
-    const body: any = await context.request.json();
+    body = await context.request.json();
+
+    if (body.op === 'transaction.create' || body.op === 'transaction.createBatch') {
+      const transactions = body.op === 'transaction.createBatch' ? body.transactions : [body.transaction];
+      const operationId = body.operationId;
+      if (!isOperationId(operationId) || !Array.isArray(transactions) || transactions.length === 0 || transactions.some((transaction) => !validTransaction(transaction))) {
+        return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION' }), { status: 400 });
+      }
+      const ids = transactions.map((transaction) => String(transaction.id));
+      if (new Set(ids).size !== ids.length) return new Response(JSON.stringify({ error: 'DUPLICATE_TRANSACTION_ID' }), { status: 400 });
+      const previous = await completedOperation(db, operationId);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
+      }
+      const now = Date.now();
+      const entityId = body.op === 'transaction.createBatch' ? String(body.groupId || operationId) : ids[0];
+      const responseJson = JSON.stringify({ operationId, entityId, change: 'create' });
+      await db.batch([
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, ?, ?, 'pending', ?, ?)")
+          .bind(operationId, body.op === 'transaction.createBatch' ? 'transaction_batch' : 'transaction', entityId, responseJson, now),
+        ...transactions.map((transaction) => transactionInsertStatement(db, transaction, operationId)),
+        ...transactions.map((transaction) => db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) VALUES ('transaction', ?, 'upsert', 1, ?, ?)")
+          .bind(transaction.id, JSON.stringify({ ...transaction, revision: 1 }), now)),
+        db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND (SELECT COUNT(*) FROM transactions WHERE last_operation_id = ?) = ?")
+          .bind(operationId, operationId, transactions.length),
+        db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+      ]);
+      const created = await db.prepare(`SELECT * FROM transactions WHERE id IN (${ids.map(() => '?').join(', ')})`).bind(...ids).all<any>();
+      const result = (created.results || []).map(transactionRow);
+      return new Response(JSON.stringify({ success: true, operationId, transaction: body.op === 'transaction.create' ? result[0] : undefined, transactions: result }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (body.op === 'transaction.update') {
+      const transaction = body.transaction;
+      const expectedRevision = Number(body.expectedRevision);
+      const operationId = body.operationId;
+      if (!isOperationId(operationId) || !validTransaction(transaction) || !Number.isInteger(expectedRevision)) {
+        return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION_UPDATE' }), { status: 400 });
+      }
+      const previous = await completedOperation(db, operationId);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
+      }
+      const now = Date.now();
+      const nextRevision = expectedRevision + 1;
+      const responseJson = JSON.stringify({ operationId, entityId: transaction.id, change: 'update' });
+      await db.batch([
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?)")
+          .bind(operationId, transaction.id, responseJson, now),
+        db.prepare("UPDATE transactions SET type = ?, date = ?, transaction_time = ?, amount = ?, title = ?, category = ?, created_at = ?, asset_id = ?, to_asset_id = ?, recurring_rule_id = ?, installment_group_id = ?, installment_index = ?, installment_months = ?, revision = ?, last_operation_id = ? WHERE id = ? AND revision = ? AND deleted_at IS NULL")
+          .bind(transaction.type, transaction.date, transaction.time || null, transaction.amount, transaction.title, transaction.category, transaction.createdAt ?? null, transaction.assetId || null, transaction.toAssetId || null, transaction.recurringRuleId || null, transaction.installmentGroupId || null, transaction.installmentIndex ?? null, transaction.installmentMonths ?? null, nextRevision, operationId, transaction.id, expectedRevision),
+        db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'transaction', id, 'upsert', revision, ?, ? FROM transactions WHERE id = ? AND last_operation_id = ?")
+          .bind(JSON.stringify({ ...transaction, revision: nextRevision }), now, transaction.id, operationId),
+        db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND EXISTS (SELECT 1 FROM transactions WHERE id = ? AND last_operation_id = ?)")
+          .bind(operationId, transaction.id, operationId),
+        db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+      ]);
+      const updated = await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(String(transaction.id)).first<any>();
+      return new Response(JSON.stringify({ success: true, operationId, transaction: transactionRow(updated) }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (body.op === 'transaction.delete') {
+      const transactionId = String(body.transactionId || '');
+      const expectedRevision = Number(body.expectedRevision);
+      const operationId = body.operationId;
+      if (!isOperationId(operationId) || !transactionId || !Number.isInteger(expectedRevision)) return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION_DELETE' }), { status: 400 });
+      const previous = await completedOperation(db, operationId);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
+      }
+      const now = Date.now();
+      const responseJson = JSON.stringify({ operationId, entityId: transactionId, change: 'delete' });
+      await db.batch([
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?)")
+          .bind(operationId, transactionId, responseJson, now),
+        db.prepare("UPDATE transactions SET deleted_at = ?, revision = revision + 1, last_operation_id = ? WHERE id = ? AND revision = ? AND deleted_at IS NULL")
+          .bind(now, operationId, transactionId, expectedRevision),
+        db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'transaction', id, 'delete', revision, NULL, ? FROM transactions WHERE id = ? AND last_operation_id = ?")
+          .bind(now, transactionId, operationId),
+        db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND EXISTS (SELECT 1 FROM transactions WHERE id = ? AND last_operation_id = ?)")
+          .bind(operationId, transactionId, operationId),
+        db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+      ]);
+      return new Response(JSON.stringify({ success: true, operationId, transactionId, deleted: true }), { headers: { 'Content-Type': 'application/json' } });
+    }
 
     if (body.op === 'asset.create') {
       const asset = body.asset;
@@ -324,6 +376,20 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ error: 'UNKNOWN_OPERATION' }), { status: 400 });
   } catch (err: any) {
+    if (body?.op === 'transaction.update' || body?.op === 'transaction.delete') {
+      const transactionId = String(body.transaction?.id || body.transactionId || '');
+      const current = transactionId
+        ? await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>()
+        : null;
+      return conflictResponse({ transaction: current && !current.deleted_at ? transactionRow(current) : null });
+    }
+    if (body?.op === 'transaction.create') {
+      const transactionId = String(body.transaction?.id || '');
+      const current = transactionId
+        ? await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>()
+        : null;
+      return conflictResponse({ transaction: current && !current.deleted_at ? transactionRow(current) : null });
+    }
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 };
@@ -335,8 +401,6 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    await ensureSchema(db);
-
     const body: any = await context.request.json();
     const { 
       transactions, 

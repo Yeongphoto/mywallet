@@ -565,6 +565,32 @@ function saveRemoteD1(
   });
 }
 
+async function saveTransactionOperation(payload: Record<string, unknown>, operationId = createId()) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch('/api/data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, operationId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(result.error || 'TRANSACTION_SAVE_FAILED') as Error & { status?: number; current?: unknown; operationId?: string };
+        error.status = response.status;
+        error.current = result.current;
+        error.operationId = operationId;
+        throw error;
+      }
+      return result as { transaction?: Transaction | null; transactions?: Transaction[]; transactionId?: string };
+    } catch (error) {
+      lastError = error;
+      if ((error as { status?: number }).status || attempt === 1) throw error;
+    }
+  }
+  throw lastError;
+}
+
 function sumAmount<T extends { amount: number }>(items: T[]) {
   return items.reduce((total, item) => total + item.amount, 0);
 }
@@ -986,7 +1012,7 @@ export default function App() {
     };
   }, []);
 
-  // Sync state to LocalStorage and D1 (Debounced with Timestamp updates)
+  // Keep only the non-authoritative recovery cache here. Normal saves use row APIs.
   useEffect(() => {
     if (isLoading || !isDbLoadedRef.current) {
       return;
@@ -1014,6 +1040,27 @@ export default function App() {
       );
       return;
     }
+
+    saveLocalStorage(
+      transactions,
+      assets,
+      budget,
+      theme,
+      plans,
+      customExpenseCategories,
+      customIncomeCategories,
+      customAssetCategories,
+      categoryColors,
+      categoryLabels,
+      categoryBudgetExcluded,
+      categoryOrder,
+      hiddenCategories,
+      recurringRules,
+      deletedRecurringTxs,
+      updatedAt
+    );
+    // Snapshot POST is intentionally disabled during the row-operation migration.
+    return;
 
     const newUpdatedAt = Date.now();
     setUpdatedAt(newUpdatedAt);
@@ -1206,41 +1253,13 @@ export default function App() {
             storedData.deletedRecurringTxs.length > 0;
 
           if (!hasDbData && serverUpdatedAt === 0) {
-            if (hasLocalData && pendingSyncAt > 0) {
-              const newTime = localUpdatedAt || pendingSyncAt;
-              setUpdatedAt(newTime);
-              void saveRemoteD1(
-                storedData.transactions,
-                storedData.assets,
-                storedData.budget,
-                storedData.theme,
-                storedData.plans,
-                storedData.customExpenseCategories,
-                storedData.customIncomeCategories,
-                storedData.customAssetCategories,
-                storedData.categoryColors,
-                storedData.categoryLabels,
-                storedData.categoryBudgetExcluded,
-                storedData.categoryOrder,
-                storedData.hiddenCategories,
-                storedData.recurringRules,
-                storedData.deletedRecurringTxs,
-                newTime,
-                serverUpdatedAtRef.current
-              )
-                .then((res) => {
-                  if (!res.ok) throw new Error('remote save failed');
-                  window.localStorage.removeItem(PENDING_SYNC_KEY);
-                })
-                .catch(() => undefined);
-            } else {
-              setTransactions([]);
-              setAssets([]);
-              setRecurringRules([]);
-              setDeletedRecurringTxs([]);
-              setPlans([]);
-              setUpdatedAt(0);
-            }
+            // A recovery upload must be an explicit administrative action.
+            setTransactions([]);
+            setAssets([]);
+            setRecurringRules([]);
+            setDeletedRecurringTxs([]);
+            setPlans([]);
+            setUpdatedAt(0);
             return;
           }
 
@@ -1729,27 +1748,69 @@ export default function App() {
   }, [monthlyTransactions, searchTerm, filterCategory, allExpenseCategories, allIncomeCategories]);
 
   // Actions
-  function handleAddTransaction(transaction: Transaction) {
-    setTransactions((prev) => [transaction, ...prev]);
-    const transactionMonth = transaction.date.slice(0, 7);
-    if (transactionMonth !== selectedMonth) {
-      setSelectedMonth(transactionMonth);
+  async function handleAddTransaction(transaction: Transaction) {
+    try {
+      const result = await saveTransactionOperation({ op: 'transaction.create', transaction });
+      const saved = result.transaction;
+      if (!saved) throw new Error('TRANSACTION_SAVE_FAILED');
+      skipNextPersistenceRef.current = true;
+      setTransactions((prev) => [saved, ...prev]);
+      const transactionMonth = saved.date.slice(0, 7);
+      if (transactionMonth !== selectedMonth) setSelectedMonth(transactionMonth);
+      return true;
+    } catch (error) {
+      const conflict = (error as { status?: number }).status === 409;
+      showNotice(
+        conflict ? '같은 거래가 이미 변경되었어요. 최신 내용을 확인해 주세요.' : '거래를 저장하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.',
+        conflict ? '거래 충돌' : '거래 저장 실패',
+        'error'
+      );
+      return false;
     }
   }
 
-  function handleDeleteTransaction(id: string) {
-    setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+  async function handleDeleteTransaction(id: string) {
+    const current = transactions.find((transaction) => transaction.id === id);
+    if (!current) return false;
     if (id.startsWith('rec_')) {
       setDeletedRecurringTxs((prev) => [...prev, id]);
+      return true;
+    }
+    try {
+      await saveTransactionOperation({ op: 'transaction.delete', transactionId: id, expectedRevision: current.revision ?? 1 });
+      skipNextPersistenceRef.current = true;
+      setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+      return true;
+    } catch (error) {
+      showNotice('거래를 삭제하지 못했습니다. 최신 내용을 확인한 뒤 다시 시도해 주세요.', '거래 삭제 실패', 'error');
+      return false;
     }
   }
 
-  function handleUpdateTransaction(oldId: string, updated: Transaction) {
-    setTransactions((prev) => {
-      const filtered = prev.filter((t) => t.id !== oldId);
-      return [updated, ...filtered];
-    });
-    setEditingTransaction(null);
+  async function handleUpdateTransaction(oldId: string, updated: Transaction) {
+    const current = transactions.find((transaction) => transaction.id === oldId);
+    if (!current) return false;
+    try {
+      const result = await saveTransactionOperation({
+        op: 'transaction.update',
+        transaction: { ...updated, id: oldId },
+        expectedRevision: current.revision ?? 1,
+      });
+      const saved = result.transaction;
+      if (!saved) throw new Error('TRANSACTION_SAVE_FAILED');
+      skipNextPersistenceRef.current = true;
+      setTransactions((prev) => prev.map((transaction) => transaction.id === oldId ? saved : transaction));
+      setEditingTransaction(null);
+      return true;
+    } catch (error) {
+      const currentServer = (error as { current?: { transaction?: Transaction } }).current?.transaction;
+      if (currentServer) {
+        skipNextPersistenceRef.current = true;
+        setTransactions((prev) => prev.map((transaction) => transaction.id === oldId ? currentServer : transaction));
+      }
+      showNotice('다른 기기에서 먼저 수정했어요. 입력 내용은 그대로 두었으니 최신 내용을 확인한 뒤 다시 저장해 주세요.', '거래 충돌', 'warning');
+      return false;
+    }
   }
 
   function handleAddRecurringRule(rule: RecurringRule) {
@@ -2101,10 +2162,24 @@ export default function App() {
     setEditingTransaction(null);
   }
 
-  function handleAddTransactions(newTransactions: Transaction[]) {
-    if (newTransactions.length === 0) return;
-    setTransactions((prev) => [...newTransactions, ...prev]);
-    setSelectedMonth(newTransactions[0].date.slice(0, 7));
+  async function handleAddTransactions(newTransactions: Transaction[]) {
+    if (newTransactions.length === 0) return false;
+    try {
+      const result = await saveTransactionOperation({
+        op: 'transaction.createBatch',
+        groupId: newTransactions[0].installmentGroupId || newTransactions[0].id,
+        transactions: newTransactions,
+      });
+      const saved = result.transactions || [];
+      if (saved.length !== newTransactions.length) throw new Error('TRANSACTION_SAVE_FAILED');
+      skipNextPersistenceRef.current = true;
+      setTransactions((prev) => [...saved, ...prev]);
+      setSelectedMonth(saved[0].date.slice(0, 7));
+      return true;
+    } catch {
+      showNotice('할부 거래를 저장하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '할부 등록 실패', 'error');
+      return false;
+    }
   }
 
   function openAmountEntry(action: () => void) {
@@ -5668,13 +5743,15 @@ export default function App() {
                 <UnifiedEntryForm
                 key={registrationMode}
                 initialType={registrationMode}
-                onAddTransaction={(t) => {
-                  handleAddTransaction(t);
-                  setIsEntryModalOpen(false);
+                onAddTransaction={async (t) => {
+                  const saved = await handleAddTransaction(t);
+                  if (saved) setIsEntryModalOpen(false);
+                  return saved;
                 }}
-                onAddTransactions={(transactions) => {
-                  handleAddTransactions(transactions);
-                  setIsEntryModalOpen(false);
+                onAddTransactions={async (transactions) => {
+                  const saved = await handleAddTransactions(transactions);
+                  if (saved) setIsEntryModalOpen(false);
+                  return saved;
                 }}
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
@@ -6248,8 +6325,8 @@ function UnifiedEntryForm({
 }: {
   defaultDate?: string;
   initialType?: EntryType;
-  onAddTransaction: (t: Transaction) => void;
-  onAddTransactions?: (transactions: Transaction[]) => void;
+  onAddTransaction: (t: Transaction) => void | Promise<boolean>;
+  onAddTransactions?: (transactions: Transaction[]) => void | Promise<boolean>;
   onAddAsset?: (a: AssetItem) => void;
   isQuickAdd?: boolean;
   expenseCategories: CategoryOption[];
@@ -6289,7 +6366,7 @@ function UnifiedEntryForm({
     if (newType !== 'expense') setInstallmentMonths(1);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const amount = parseAmount(form.amount);
 
@@ -6346,7 +6423,10 @@ function UnifiedEntryForm({
         installmentIndex: index + 1,
         installmentMonths: installmentCount,
       }));
-      if (onAddTransactions) onAddTransactions(installmentTransactions);
+      if (onAddTransactions) {
+        const saved = await onAddTransactions(installmentTransactions);
+        if (saved === false) return;
+      }
       else installmentTransactions.forEach(onAddTransaction);
     } else if (isRecurring && onAddRecurringRule) {
       const day = Number(form.date.slice(8, 10)) || 1;
@@ -6382,7 +6462,7 @@ function UnifiedEntryForm({
         recurringRuleId: ruleId,
       });
     } else {
-      onAddTransaction({
+      const saved = await onAddTransaction({
         id: createId(),
         type: form.type as TransactionType,
         date: form.date,
@@ -6394,6 +6474,7 @@ function UnifiedEntryForm({
         assetId: form.assetId || null,
         toAssetId: form.type === 'transfer' ? form.toAssetId : null,
       });
+      if (saved === false) return;
     }
 
     setForm((prev) => ({
@@ -6620,7 +6701,7 @@ function TransactionEditForm({
   onNotify,
 }: {
   transaction: Transaction;
-  onSave: (t: Transaction) => void;
+  onSave: (t: Transaction) => void | Promise<boolean>;
   onSaveInstallment?: (t: Transaction) => void;
   installmentTransactions?: Transaction[];
   onCancel: () => void;
@@ -6673,7 +6754,7 @@ function TransactionEditForm({
     setIsRecurring(rule ? !rule.endMonth : false);
   }, [transaction.recurringRuleId, recurringRules]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const numericAmount = parseAmount(amount);
     if (!date || !title.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
@@ -6765,7 +6846,7 @@ function TransactionEditForm({
       onNotify?.('정기 반복 결제 정보가 변경되었습니다.', '정기 기록 수정', 'success');
     }
 
-    onSave({
+    const saved = await onSave({
       ...transaction,
       date,
       time: transactionTime,
@@ -6776,6 +6857,7 @@ function TransactionEditForm({
       toAssetId: transaction.type === 'transfer' ? toAssetId : null,
       recurringRuleId: nextRuleId,
     });
+    if (saved === false) return;
   }
 
   return (

@@ -1,30 +1,48 @@
 # MyWallet 작업 규칙
 
 
-## Sync API policy and delivery plan
+## 동기화 설계 규칙 — 장부 우선
 
-### Non-negotiable rules
+### 절대 금지
 
-- `POST /api/data` must never delete and recreate every table as a normal save path. It is legacy-only until removed after migration.
-- A user action writes only its own logical unit: one transaction, one asset, one recurring rule, one category, one setting key, or one explicit reorder group.
-- Reordering assets or categories writes only that group order. It must not rewrite transactions, unrelated assets, plans, settings, or recurring rules.
-- Every mutable row has a stable `id` and a server-managed `revision` (or equivalent version). The client sends the last known revision for update/delete requests.
-- A conflict is scoped to the same row or the same reorder group. Unrelated changes by another user must not block or overwrite each other.
-- The server validates and applies an operation atomically. A version check and its data mutation must be in the same D1 transaction/batch; a failed operation must leave all data unchanged.
-- `GET /api/data` remains the initial-load/safe-recovery snapshot endpoint only. It is not a persistence mechanism.
-- Browser local storage is an offline recovery cache only. It is never evidence that a remote write succeeded.
-- A UI action is marked saved only after the operation API responds successfully. On network failure, keep an explicit retryable pending operation; never silently replace the remote dataset.
-- API changes require build verification, a read-only remote-D1 verification, and a local UI review on the fixed `5174` server. Do not change production data during diagnosis or test interactions without explicit authorization.
+- 일반 사용자 동작에서 전체 데이터 스냅샷을 `POST /api/data`로 저장하거나, 테이블을 `DELETE` 후 재삽입하지 않는다.
+- 원격 D1의 `updatedAt` 단일 전역 시간으로 서로 다른 거래의 최신 여부를 판정하지 않는다.
+- 충돌한 장부 행을 클라이언트의 늦은 값으로 자동 덮어쓰지 않는다.
+- 서버 성공 응답 전에는 등록 모달을 닫거나 “저장 완료” 알림을 표시하지 않는다.
+- 브라우저 localStorage, `.wrangler`, 로컬 D1은 저장 성공 근거나 충돌 판정 근거가 아니다.
 
-### Staged replacement plan
+### 저장 단위와 최신성
 
-1. Freeze the destructive snapshot-save path: audit every `saveRemoteD1` call and prevent it from being used by normal edits, drag/drop, registration, deletion, or category ordering.
-2. Add version/order support safely: introduce additive schema fields and an order record for each reorderable group. Existing records keep their IDs and values; no deletion, rewrite, or data conversion is allowed.
-3. Add operation endpoints alongside the existing snapshot endpoint: create/update/delete by row ID and reorder by group. Return the affected canonical row/group and its revision.
-4. Replace client mutation paths one domain at a time, starting with asset drag/drop. Queue only operations for the same row/group; allow unrelated rows to save independently.
-5. Add conflict UX: refresh only the conflicting row/group, preserve unsaved user input, and show a clear retry choice. No global "all data conflict" state for a one-row change.
-6. Verify with remote D1 using non-destructive reads and controlled UI actions: asset reorder persistence, simultaneous independent edits, same-row conflict, offline retry, reload, and cross-device refresh.
-7. Remove the legacy full-snapshot write route only after all domains use operation APIs and the backup/restore flow has a separately verified administrative import route.
+- 장부 일반 거래는 한 행(`transaction.id`)이 하나의 저장 단위다. 등록에는 안정적인 클라이언트 생성 ID를 사용하고, 같은 ID의 재시도는 중복이 아닌 멱등 성공으로 처리한다.
+- 거래 수정·삭제는 서버가 발급한 `revision`을 함께 보낸다. 서버는 `id + revision`이 일치할 때만 원자적으로 처리하고, 성공 시 revision을 증가시킨다.
+- 동일 거래가 충돌하면 서버의 정본 행을 반환한다. 모달의 사용자 입력은 유지하고, 사용자가 최신 행을 확인한 뒤 다시 저장한다. 금융 금액·계좌·분류는 자동 병합하지 않는다.
+- 서로 다른 거래 행의 등록·수정·삭제는 서로 막지 않는다. 전역 잠금이나 전역 충돌은 사용하지 않는다.
+- 이체는 하나의 거래 행으로 저장해 하나의 revision으로 보호한다.
+- 할부 수정은 현재 회차와 남은 회차를 함께 바꾸므로 `installment_group_id`별 그룹 revision과 단일 원자 작업으로 처리한다.
+- 정기기록은 규칙 행 revision으로 처리하고, 이미 발생한 장부 행은 규칙 수정·중지·삭제로 변경하지 않는다.
+- 자산·카테고리 정렬은 해당 그룹 revision으로만 처리하며, 장부 거래와 서로 영향을 주지 않는다.
+- 설정은 설정 키별 revision을 사용한다. 여러 설정 키를 하나의 전역 저장으로 묶지 않는다.
+
+### 서버·클라이언트 계약
+
+- `GET /api/data`는 초기 읽기·명시적 복구에만 사용한다. 정상 저장은 행/그룹 작업 API만 사용한다.
+- 각 작업 요청은 `operationId`, 대상 ID, 예상 revision, 변경값을 가진다. 서버는 operationId 결과를 보관해 네트워크 재시도에도 정확히 한 번만 적용한다.
+- 각 변경 행에는 `last_operation_id`를 기록한다. operationId 재시도는 저장된 결과를 반환하고, 같은 ID의 신규 등록은 중복 생성하지 않는다.
+- 서버는 검증과 변경, operationId 기록을 같은 D1 원자 작업으로 실행한다. 실패·충돌이면 데이터와 revision을 전혀 바꾸지 않는다.
+- 클라이언트는 같은 행/그룹의 작업만 순서대로 전송하고, 다른 행은 독립적으로 전송한다.
+- 오프라인·시간초과 작업은 작업 단위로 대기시키며, 재접속 시 원래 operationId로 재시도한다. 전체 스냅샷 재전송으로 대체하지 않는다.
+- 충돌·실패 화면은 대상 행, 서버 최신 상태, 다시 시도 방법을 보여 준다. 다른 정상 작업은 계속 저장한다.
+- 스키마 변경은 배포 전 검증된 D1 migration으로 한 번만 실행한다. 요청 처리 중 `ALTER TABLE` 또는 데이터 구조 변경을 실행하지 않는다.
+- 미래에 D1 읽기 복제를 켜면 충돌 확인·저장 직후 읽기는 Session bookmark 또는 primary read를 사용해 오래된 복제본을 최신값으로 오인하지 않는다.
+
+### 전환 및 검증 순서
+
+1. 장부 일반 등록·수정·삭제와 재시도 멱등성을 먼저 완료한다.
+2. 장부 이체를 같은 행 저장으로 완료한다.
+3. 할부 그룹 수정과 정기기록 규칙을 그룹/행 단위 저장으로 완료한다.
+4. 자산·카테고리·계획·설정을 각자의 행/키/정렬 그룹 API로 전환한다.
+5. 모든 정상 저장 경로가 전환된 뒤에만 기존 전체 스냅샷 POST를 차단·제거한다.
+6. 각 단계마다 원격 D1 읽기 검증, 동일 행 충돌, 서로 다른 행 동시 저장, 재시도 중복 방지, 새로고침 후 상태 유지, 5174 UI 검증을 통과해야 다음 단계로 간다.
 ## 브라우저 검토 유지
 
 - 작업 완료 뒤에도 사용자가 결과를 직접 검토할 수 있도록 Codex 내부 브라우저 탭을 닫지 않는다. 사용자의 명시적 요청 없이 브라우저를 닫거나 검토 화면을 대체하지 않는다.
