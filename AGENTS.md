@@ -1,8 +1,40 @@
 # MyWallet 작업 규칙
 
+
+## Sync API policy and delivery plan
+
+### Non-negotiable rules
+
+- `POST /api/data` must never delete and recreate every table as a normal save path. It is legacy-only until removed after migration.
+- A user action writes only its own logical unit: one transaction, one asset, one recurring rule, one category, one setting key, or one explicit reorder group.
+- Reordering assets or categories writes only that group order. It must not rewrite transactions, unrelated assets, plans, settings, or recurring rules.
+- Every mutable row has a stable `id` and a server-managed `revision` (or equivalent version). The client sends the last known revision for update/delete requests.
+- A conflict is scoped to the same row or the same reorder group. Unrelated changes by another user must not block or overwrite each other.
+- The server validates and applies an operation atomically. A version check and its data mutation must be in the same D1 transaction/batch; a failed operation must leave all data unchanged.
+- `GET /api/data` remains the initial-load/safe-recovery snapshot endpoint only. It is not a persistence mechanism.
+- Browser local storage is an offline recovery cache only. It is never evidence that a remote write succeeded.
+- A UI action is marked saved only after the operation API responds successfully. On network failure, keep an explicit retryable pending operation; never silently replace the remote dataset.
+- API changes require build verification, a read-only remote-D1 verification, and a local UI review on the fixed `5174` server. Do not change production data during diagnosis or test interactions without explicit authorization.
+
+### Staged replacement plan
+
+1. Freeze the destructive snapshot-save path: audit every `saveRemoteD1` call and prevent it from being used by normal edits, drag/drop, registration, deletion, or category ordering.
+2. Add version/order support safely: introduce additive schema fields and an order record for each reorderable group. Existing records keep their IDs and values; no deletion, rewrite, or data conversion is allowed.
+3. Add operation endpoints alongside the existing snapshot endpoint: create/update/delete by row ID and reorder by group. Return the affected canonical row/group and its revision.
+4. Replace client mutation paths one domain at a time, starting with asset drag/drop. Queue only operations for the same row/group; allow unrelated rows to save independently.
+5. Add conflict UX: refresh only the conflicting row/group, preserve unsaved user input, and show a clear retry choice. No global "all data conflict" state for a one-row change.
+6. Verify with remote D1 using non-destructive reads and controlled UI actions: asset reorder persistence, simultaneous independent edits, same-row conflict, offline retry, reload, and cross-device refresh.
+7. Remove the legacy full-snapshot write route only after all domains use operation APIs and the backup/restore flow has a separately verified administrative import route.
 ## 브라우저 검토 유지
 
 - 작업 완료 뒤에도 사용자가 결과를 직접 검토할 수 있도록 Codex 내부 브라우저 탭을 닫지 않는다. 사용자의 명시적 요청 없이 브라우저를 닫거나 검토 화면을 대체하지 않는다.
+
+## 고정 검토 서버
+
+- 검토용 로컬 서버 주소는 반드시 `http://127.0.0.1:5174`로 고정한다. 포트 `5173` 또는 다른 주소로 변경·안내·실행하지 않는다.
+- `run.bat`, `package.json`의 개발 실행 명령, Codex 내부 브라우저 주소는 모두 `5174`와 일치해야 한다. 하나라도 다르면 작업을 중단하고 먼저 통일한다.
+- 검토 서버는 `wrangler.toml`의 `remote = true` D1 바인딩만 사용한다. `--d1=DB` 같은 로컬 D1 강제 인자와 `.wrangler` 데이터를 사용한 검토를 금지한다.
+- 같은 포트에 이전 서버와 최신 서버를 함께 실행하지 않는다. 시작 전 기존 리스너의 실행 명령과 데이터 연결을 확인하고, 최신 원격 D1 서버 하나만 유지한다.
 
 ## UI/UX 기준 문서
 

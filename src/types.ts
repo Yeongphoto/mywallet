@@ -32,6 +32,8 @@ export interface AssetItem {
   name?: string;
   amount: number;
   memo: string;
+  revision?: number;
+  sortOrder?: number;
 }
 
 export interface TransactionFormState {

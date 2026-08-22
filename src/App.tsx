@@ -624,6 +624,22 @@ function parseCSVRows(text: string) {
   return rows;
 }
 
+function saveAssetOrder(categoryId: string, assetIds: string[], expectedRevision: number) {
+  return fetch('/api/data', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ op: 'asset.reorder', categoryId, assetIds, expectedRevision }),
+  });
+}
+
+function saveAssetMutation(payload: Record<string, unknown>) {
+  return fetch('/api/data', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 function formatSyncTime(value?: number) {
   if (!value) return '-';
   return new Intl.DateTimeFormat('ko-KR', {
@@ -767,6 +783,9 @@ export default function App() {
   const serverUpdatedAtRef = useRef(storedData.updatedAt || 0);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const remoteSyncConflictRef = useRef(false);
+  const assetsRef = useRef<AssetItem[]>(assets);
+  const assetOrderRevisionsRef = useRef<Record<string, number>>({});
+  const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[] } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [monthPickerYear, setMonthPickerYear] = useState(() => Number(getCurrentMonth().slice(0, 4)));
@@ -1131,6 +1150,10 @@ export default function App() {
     return () => mediaQuery.removeEventListener('change', updateSystemTheme);
   }, []);
 
+  useEffect(() => {
+    assetsRef.current = assets;
+  }, [assets]);
+
   // Handle theme attribute and native browser colors.
   useEffect(() => {
     const resolvedTheme = theme === 'system' ? systemTheme : theme;
@@ -1226,6 +1249,7 @@ export default function App() {
             const fetchedTxs: Transaction[] = data.transactions || [];
             setTransactions(fetchedTxs);
             setAssets(data.assets || []);
+            assetOrderRevisionsRef.current = data.assetOrderRevisions || {};
             setBudget(data.budget ?? 1000000);
             setTheme(normalizeThemePreference(data.theme));
             setCustomExpenseCategories(data.customExpenseCategories || []);
@@ -1789,26 +1813,65 @@ export default function App() {
     });
   }
 
-  function handleAddAsset(asset: AssetItem) {
-    // Opening money is recorded as a ledger transaction, not duplicated in the asset record.
-    setAssets((prev) => [{ ...asset, amount: 0 }, ...prev]);
-    if (asset.amount > 0) {
-      handleAddTransaction({
-        id: createId(),
-        type: 'income',
-        date: todayStr,
-        time: new Date().toTimeString().slice(0, 5),
-        amount: asset.amount,
-        title: '기초 잔액',
-        category: openingBalanceCategoryId,
-        assetId: asset.id,
+  async function handleAddAsset(asset: AssetItem) {
+    const openingTransaction: Transaction | null = asset.amount > 0 ? {
+      id: createId(),
+      type: 'income',
+      date: todayStr,
+      time: new Date().toTimeString().slice(0, 5),
+      amount: asset.amount,
+      title: '기초 잔액',
+      category: openingBalanceCategoryId,
+      assetId: asset.id,
+    } : null;
+    setRemoteSync({ status: 'saving', message: '자산을 저장 중' });
+    try {
+      const response = await saveAssetMutation({ op: 'asset.create', asset, openingTransaction });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'asset create failed');
+      skipNextPersistenceRef.current = true;
+      setAssets((previous) => {
+        const next = [payload.asset as AssetItem, ...previous];
+        assetsRef.current = next;
+        return next;
       });
+      if (payload.transaction) setTransactions((previous) => [payload.transaction as Transaction, ...previous]);
+      setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 저장 완료' });
+      return true;
+    } catch {
+      setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '자산을 저장하지 못함' });
+      showNotice('자산을 저장하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '자산 등록 실패', 'error');
+      return false;
     }
   }
 
-  function handleUpdateAsset(updated: AssetItem) {
-    setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-    setEditingAsset(null);
+  async function handleUpdateAsset(updated: AssetItem) {
+    const current = assetsRef.current.find((asset) => asset.id === updated.id);
+    if (!current) return false;
+    setRemoteSync({ status: 'saving', message: '자산 정보를 저장 중' });
+    try {
+      const response = await saveAssetMutation({ op: 'asset.update', asset: updated, expectedRevision: current.revision || 1 });
+      const payload = await response.json();
+      if (response.status === 409) {
+        setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '다른 기기에서 자산 정보가 변경됨' });
+        showNotice('다른 기기에서 이 자산을 먼저 수정했습니다. 최신 내용을 확인한 뒤 다시 수정해 주세요.', '자산 수정 충돌', 'warning');
+        return false;
+      }
+      if (!response.ok) throw new Error(payload.error || 'asset update failed');
+      skipNextPersistenceRef.current = true;
+      setAssets((previous) => {
+        const next = previous.map((asset) => asset.id === updated.id ? payload.asset as AssetItem : asset);
+        assetsRef.current = next;
+        return next;
+      });
+      setEditingAsset(null);
+      setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 정보 저장 완료' });
+      return true;
+    } catch {
+      setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '자산 정보를 저장하지 못함' });
+      showNotice('자산 정보를 저장하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '자산 수정 실패', 'error');
+      return false;
+    }
   }
 
   function handleAssetBalanceAdjustment(asset: AssetItem, nextBalance: number) {
@@ -1827,11 +1890,101 @@ export default function App() {
     });
   }
 
-  function handleDeleteAsset(id: string) {
-    setAssets((prev) => prev.filter((asset) => asset.id !== id));
+  async function handleDeleteAsset(id: string) {
+    const current = assetsRef.current.find((asset) => asset.id === id);
+    if (!current) return false;
+    setRemoteSync({ status: 'saving', message: '자산을 삭제 중' });
+    try {
+      const response = await saveAssetMutation({ op: 'asset.delete', assetId: id, expectedRevision: current.revision || 1 });
+      const payload = await response.json();
+      if (response.status === 409) {
+        setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '다른 기기에서 자산 정보가 변경됨' });
+        showNotice('다른 기기에서 이 자산을 먼저 수정했습니다. 최신 내용을 확인한 뒤 다시 시도해 주세요.', '자산 삭제 충돌', 'warning');
+        return false;
+      }
+      if (!response.ok) throw new Error(payload.error || 'asset delete failed');
+      skipNextPersistenceRef.current = true;
+      setAssets((previous) => {
+        const next = previous.filter((asset) => asset.id !== id);
+        assetsRef.current = next;
+        return next;
+      });
+      setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 삭제 완료' });
+      return true;
+    } catch {
+      setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '자산을 삭제하지 못함' });
+      showNotice('자산을 삭제하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '자산 삭제 실패', 'error');
+      return false;
+    }
+  }
+
+  function rememberAssetOrderBeforeDrag(assetId: string) {
+    const source = assetsRef.current.find((asset) => asset.id === assetId);
+    if (!source) return;
+    const categoryId = getAssetCategoryGroupId(source);
+    assetOrderBeforeDragRef.current = {
+      categoryId,
+      assetIds: assetsRef.current
+        .filter((asset) => getAssetCategoryGroupId(asset) === categoryId)
+        .map((asset) => asset.id),
+    };
+  }
+
+  function restoreAssetOrder(categoryId: string, assetIds: string[]) {
+    skipNextPersistenceRef.current = true;
+    setAssets((previous) => {
+      const byId = new Map(previous.map((asset) => [asset.id, asset]));
+      const restored = assetIds.map((id) => byId.get(id)).filter((asset): asset is AssetItem => Boolean(asset));
+      let index = 0;
+      const next = previous.map((asset) => (
+        getAssetCategoryGroupId(asset) === categoryId ? (restored[index++] || asset) : asset
+      ));
+      assetsRef.current = next;
+      return next;
+    });
+  }
+
+  async function persistAssetOrder(categoryId: string) {
+    const orderedAssets = assetsRef.current.filter((asset) => getAssetCategoryGroupId(asset) === categoryId);
+    const beforeDrag = assetOrderBeforeDragRef.current;
+    if (orderedAssets.length < 2 || !beforeDrag || beforeDrag.categoryId !== categoryId) return;
+    const assetIds = orderedAssets.map((asset) => asset.id);
+    if (assetIds.every((id, index) => id === beforeDrag.assetIds[index])) return;
+
+    const expectedRevision = assetOrderRevisionsRef.current[categoryId] || 0;
+    setRemoteSync({ status: 'saving', message: '자산 순서를 저장 중' });
+    try {
+      const response = await saveAssetOrder(categoryId, assetIds, expectedRevision);
+      const payload = await response.json();
+      if (response.status === 409) {
+        restoreAssetOrder(categoryId, beforeDrag.assetIds);
+        setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '같은 카테고리의 순서가 다른 기기에서 변경됨' });
+        showNotice('다른 기기에서 같은 카테고리의 순서를 먼저 바꿨습니다. 최신 순서를 확인한 뒤 다시 정렬해 주세요.', '자산 순서 충돌', 'warning');
+        return;
+      }
+      if (!response.ok) throw new Error(payload.error || 'asset order save failed');
+
+      assetOrderRevisionsRef.current[categoryId] = Number(payload.revision) || expectedRevision + 1;
+      const savedById = new Map<string, AssetItem>((payload.assets || []).map((asset: AssetItem) => [asset.id, asset]));
+      skipNextPersistenceRef.current = true;
+      setAssets((previous) => {
+        const next = previous.map((asset) => savedById.get(asset.id) || asset);
+        assetsRef.current = next;
+        return next;
+      });
+      setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 순서 저장 완료' });
+    } catch {
+      restoreAssetOrder(categoryId, beforeDrag.assetIds);
+      setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '자산 순서를 저장하지 못함' });
+      showNotice('순서를 저장하지 못해 이전 순서로 되돌렸습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '자산 순서 저장 실패', 'error');
+    } finally {
+      assetOrderBeforeDragRef.current = null;
+    }
   }
 
   function handleAssetDragStart(e: React.DragEvent, index: number) {
+    const asset = assets[index];
+    if (asset) rememberAssetOrderBeforeDrag(asset.id);
     setDraggedAssetIndex(index);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', index.toString());
@@ -1850,14 +2003,17 @@ export default function App() {
     newAssets.splice(draggedAssetIndex, 1);
     newAssets.splice(targetIndex, 0, draggedItem);
 
-    skipNextPersistenceRef.current = false;
+    skipNextPersistenceRef.current = true;
     setAssets(newAssets);
+    assetsRef.current = newAssets;
     setDraggedAssetIndex(targetIndex);
   }
 
   function handleAssetDragEnd() {
+    const categoryId = assetOrderBeforeDragRef.current?.categoryId;
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
+    if (categoryId) void persistAssetOrder(categoryId);
   }
 
   function startAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>, assetId: string) {
@@ -1865,6 +2021,7 @@ export default function App() {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+    rememberAssetOrderBeforeDrag(assetId);
     assetHandleDragRef.current = { id: assetId, startX: event.clientX, startY: event.clientY, active: true, moved: false, justDragged: false };
   }
 
@@ -1888,8 +2045,9 @@ export default function App() {
       const nextAssets = [...currentAssets];
       nextAssets.splice(sourceIndex, 1);
       nextAssets.splice(targetIndex, 0, source);
-      skipNextPersistenceRef.current = false;
+      skipNextPersistenceRef.current = true;
       setDraggedAssetIndex(targetIndex);
+      assetsRef.current = nextAssets;
       return nextAssets;
     });
   }
@@ -1901,8 +2059,10 @@ export default function App() {
     event.stopPropagation();
     gesture.active = false;
     gesture.justDragged = gesture.moved;
+    const categoryId = assetOrderBeforeDragRef.current?.categoryId;
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
+    if (gesture.moved && categoryId) void persistAssetOrder(categoryId);
     window.setTimeout(() => { assetHandleDragRef.current.justDragged = false; }, 0);
   }
 
@@ -1956,7 +2116,8 @@ export default function App() {
   }
 
   function moveAssetWithinCategory(id: string, categoryId: string, targetId?: string) {
-    skipNextPersistenceRef.current = false;
+    rememberAssetOrderBeforeDrag(id);
+    skipNextPersistenceRef.current = true;
     setAssets((prev) => {
       const source = prev.find((asset) => asset.id === id);
       if (!source || getAssetCategoryGroupId(source) !== categoryId) return prev;
@@ -1968,10 +2129,13 @@ export default function App() {
       else reordered.push(source);
 
       let groupIndex = 0;
-      return prev.map((asset) => (
+      const next = prev.map((asset) => (
         getAssetCategoryGroupId(asset) === categoryId ? reordered[groupIndex++] : asset
       ));
+      assetsRef.current = next;
+      return next;
     });
+    window.queueMicrotask(() => { void persistAssetOrder(categoryId); });
   }
 
   useEffect(() => {
@@ -3911,7 +4075,7 @@ export default function App() {
                         <div className="asset-table-list" data-asset-category-id={group.id} style={{ display: 'grid', gap: '3px' }}>
                     {group.assets.map((asset) => {
                       const index = assets.findIndex((item) => item.id === asset.id);
-                      const isDragging = draggedAssetIndex === index;
+                      const isDragging = draggedAssetIndex === index && !assetHandleDragRef.current.active;
                       const isHovered = hoveredRowIndex === index;
 
                       // 그림자 없는 1px 테두리 스트로크 및 8px 보더 반경
@@ -5092,7 +5256,7 @@ export default function App() {
             <form 
               key={editingAsset ? editingAsset.id : 'new'}
               className="asset-entry-form"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 const category = (e.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
                 const name = (e.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
@@ -5113,12 +5277,10 @@ export default function App() {
                   return;
                 }
 
-                if (editingAsset) {
-                  handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo });
-                } else {
-                  handleAddAsset({ id: createId(), category, name, amount, memo });
-                }
-                setIsAssetModalOpen(false);
+                const saved = editingAsset
+                  ? await handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo })
+                  : await handleAddAsset({ id: createId(), category, name, amount, memo });
+                if (saved) setIsAssetModalOpen(false);
               }} 
             >
               <div className="form-group">
@@ -5489,12 +5651,14 @@ export default function App() {
                 allCategories={allAssetCategories}
                 getOpeningBalance={getAssetOpeningBalance}
                 onCancel={() => setIsEntryModalOpen(false)}
-                onSave={({ category, name, amount, memo }) => {
+                onSave={async ({ category, name, amount, memo }) => {
                   if (!category) { showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning'); return; }
                   if (!name) { showNotice('자산 이름을 입력해 주세요.', '입력 확인', 'warning'); return; }
                   if (!editingAsset && amount <= 0) { showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
-                  if (editingAsset) handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo });
-                  else handleAddAsset({ id: createId(), category, name, amount, memo });
+                  const saved = editingAsset
+                    ? await handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo })
+                    : await handleAddAsset({ id: createId(), category, name, amount, memo });
+                  if (!saved) return;
                   setIsEntryModalOpen(false);
                   showNotice(editingAsset ? '자산 정보를 수정했습니다.' : '자산을 등록했습니다.', editingAsset ? '자산 수정' : '자산 등록', 'success');
                 }}
@@ -5994,7 +6158,6 @@ function InstantSelect({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onFocus={() => setIsOpen(true)}
         onClick={() => setIsOpen(true)}
       >
         <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
@@ -6038,7 +6201,7 @@ function AssetRegistrationForm({
   categories: CategoryOption[];
   allCategories: CategoryOption[];
   getOpeningBalance: (asset: AssetItem) => number;
-  onSave: (values: { category: string; name: string; amount: number; memo: string }) => void;
+  onSave: (values: { category: string; name: string; amount: number; memo: string }) => Promise<void> | void;
   onCancel: () => void;
 }) {
   const [category, setCategory] = useState(editingAsset?.category || '');
@@ -6051,12 +6214,12 @@ function AssetRegistrationForm({
     <form
       key={editingAsset ? editingAsset.id : 'new'}
       className="asset-entry-form"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
         const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
         const amount = parseAmount((event.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value) || 0;
         const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
-        onSave({ category, name, amount, memo });
+        await onSave({ category, name, amount, memo });
       }}
     >
       <div className="form-group"><InstantSelect ariaLabel="자산 카테고리" value={category} placeholder="자산 카테고리" options={categories.map((item) => ({ value: item.id, label: item.label }))} onChange={setCategory} triggerRef={categoryRef} onSelectNext={() => nameRef.current?.focus()} /></div>
