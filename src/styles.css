@@ -1614,6 +1614,16 @@ textarea:focus {
   flex-shrink: 0;
 }
 
+.managed-category-card:has(.category-palette-popover) {
+  position: relative;
+  z-index: 100;
+}
+
+.category-row:has(.category-palette-popover),
+.category-color-menu:has(.category-palette-popover) {
+  z-index: 101;
+}
+
 .category-color-swatch {
   width: 34px;
   height: 34px;
@@ -2473,9 +2483,19 @@ textarea:focus {
 .modal-body:has(.entry-form) { display: flex; min-height: 0; max-height: calc(100vh - 124px); padding: 12px 20px !important; overflow: hidden; }
 .modal-body:has(.entry-form) .entry-form { flex: 1; min-height: 0; gap: 6px; overflow: hidden; }
 .modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; gap: 6px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.modal-body:has(.entry-form) .entry-form .form-grid:has(.instant-select-menu) { overflow: visible; }
 .modal-body:has(.entry-form) .entry-form .form-grid > label:not(.recurring-toggle) { min-height: 46px; padding: 5px 12px 6px !important; }
 .modal-body:has(.entry-form) .entry-form .recurring-toggle { min-height: 36px; }
-.modal-body:has(.entry-form) .entry-submit { flex: 0 0 auto; margin-top: 0 !important; }
+.modal-body:has(.entry-form) .entry-actions { display: flex; flex: 0 0 auto; gap: 8px; margin-top: 0; }
+.modal-body:has(.entry-form) .entry-actions > button { flex: 1; min-height: 46px; margin: 0 !important; }
+
+.entry-modal,
+.asset-entry-modal { --entry-field-height: clamp(72px, 10dvh, 104px); }
+.entry-modal .entry-form .form-grid { align-content: start; }
+.entry-modal .form-grid > label:not(.recurring-toggle) { min-height: var(--entry-field-height) !important; }
+.entry-modal .entry-actions > button { height: var(--entry-field-height); min-height: var(--entry-field-height); }
+.entry-modal .entry-actions > button,
+.asset-entry-modal .asset-entry-actions > button { font-size: clamp(1.1rem, 2.3dvh, 1.35rem); font-weight: 850; }
 
 .modal-content .form-grid label:not(.recurring-toggle),
 .modal-content .form-group {
@@ -2502,6 +2522,10 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12), 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
+.entry-modal .form-grid label:not(.recurring-toggle):focus-within {
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.18);
+}
+
 .modal-content .form-grid .compact-entry-field {
   min-height: 40px !important;
   padding-block: 4px !important;
@@ -2510,6 +2534,145 @@ textarea:focus {
 .modal-content .form-grid .compact-entry-field > input,
 .modal-content .form-grid .compact-entry-field > select {
   align-self: center;
+}
+
+.modal-content .form-grid .instant-select {
+  position: relative;
+  align-self: center;
+  width: 100%;
+}
+
+.modal-content .form-grid .instant-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.instant-select-placeholder {
+  color: var(--text-secondary);
+}
+
+.modal-content .form-grid .instant-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 220;
+  display: grid;
+  max-height: 216px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+}
+
+.modal-content .form-grid .instant-select-menu button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.modal-content .form-grid .instant-select-menu button.selected,
+.modal-content .form-grid .instant-select-menu button:hover {
+  background: var(--bg-balance-light);
+  color: var(--primary-dark);
+}
+
+@media (max-width: 768px) {
+  .modal-backdrop:has(.entry-modal) {
+    display: block;
+    padding: 0 !important;
+    background: var(--bg-app);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .modal-content.entry-modal {
+    position: absolute !important;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border: 0;
+    border-radius: 0 !important;
+    box-shadow: none;
+  }
+
+  .entry-modal .modal-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    max-height: none !important;
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Keep the generously sized input areas, while scaling their guidance
+     text with the viewport instead of letting it overwhelm the fields. */
+  .entry-modal .entry-form .form-grid > label:not(.recurring-toggle) {
+    font-size: clamp(0.78rem, 1.8dvh, 1.05rem);
+  }
+
+  .entry-modal .entry-form .form-grid > label:not(.recurring-toggle) > input,
+  .entry-modal .entry-form .form-grid > label:not(.recurring-toggle) .instant-select-trigger {
+    font-size: clamp(0.94rem, 2dvh, 1.18rem) !important;
+  }
+
+  .entry-modal .entry-form .currency-suffix {
+    font-size: clamp(0.88rem, 1.8dvh, 1.05rem);
+  }
+
+  .entry-modal .entry-form .recurring-toggle {
+    justify-self: start;
+    align-self: center;
+    width: auto;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .entry-modal .form-grid:has(.instant-select-menu) {
+    overflow: visible !important;
+  }
+
+  .entry-modal .instant-select-menu {
+    position: fixed;
+    top: auto;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 240;
+    height: min(46dvh, 360px);
+    min-height: 180px;
+    max-height: min(46dvh, 360px);
+    grid-auto-rows: 36px;
+    align-content: start;
+    border-radius: 18px;
+    box-shadow: 0 -10px 32px rgba(15, 23, 42, 0.2);
+  }
 }
 
 .modal-content .form-grid .amount-entry-field > input {
@@ -2596,6 +2759,102 @@ textarea:focus {
 .asset-entry-form > div:last-child {
   grid-column: span 2;
   margin-top: 2px !important;
+}
+
+.asset-entry-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.asset-entry-actions > button {
+  flex: 1;
+  margin: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .modal-backdrop:has(.asset-entry-modal) {
+    display: block;
+    padding: 0 !important;
+    background: var(--bg-app);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .modal-content.asset-entry-modal {
+    position: absolute !important;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    border: 0;
+    border-radius: 0 !important;
+    box-shadow: none;
+  }
+
+  .asset-entry-modal .asset-entry-form {
+    display: grid;
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, var(--entry-field-height)) minmax(0, 1fr) var(--entry-field-height);
+    align-content: start;
+    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+
+  .asset-entry-modal .asset-entry-form .form-group {
+    height: var(--entry-field-height) !important;
+    min-height: var(--entry-field-height) !important;
+    padding: 0 16px !important;
+    border: 1px solid var(--border-input) !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.76) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 6px 18px rgba(15, 23, 42, 0.035) !important;
+  }
+
+  .asset-entry-modal .asset-entry-form .form-group:focus-within {
+    border-color: rgba(var(--primary-rgb), 0.6) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.18) !important;
+  }
+
+  .asset-entry-modal .asset-entry-form .form-group > input,
+  .asset-entry-modal .asset-entry-form .form-group > select {
+    height: 100% !important;
+    min-height: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    font-size: clamp(1rem, 2dvh, 1.16rem) !important;
+    line-height: 1.25;
+  }
+
+  .asset-entry-modal .asset-entry-form .form-group > select {
+    color: var(--text-secondary) !important;
+    padding-right: 2em !important;
+  }
+
+  .asset-entry-modal .asset-entry-form .form-group:has(select)::after {
+    right: 16px;
+    font-size: 1.15em;
+  }
+
+  .asset-entry-modal .asset-entry-actions {
+    grid-row: 6;
+    grid-column: span 1;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .asset-entry-modal .asset-entry-actions > button {
+    height: var(--entry-field-height);
+    min-height: var(--entry-field-height);
+  }
 }
 
 .modal-content .form-group > label {

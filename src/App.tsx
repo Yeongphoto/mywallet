@@ -659,6 +659,14 @@ export default function App() {
     () => allAssetCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'asset', category.id)),
     [allAssetCategories, hiddenCategories]
   );
+  const openingBalanceCategoryId = useMemo(
+    () => allIncomeCategories.find((category) => category.label === OPENING_BALANCE_CATEGORY)?.id ?? OPENING_BALANCE_CATEGORY,
+    [allIncomeCategories],
+  );
+  const isOpeningBalanceTransaction = useCallback(
+    (transaction: Transaction) => transaction.category === OPENING_BALANCE_CATEGORY || transaction.category === openingBalanceCategoryId,
+    [openingBalanceCategoryId],
+  );
   function getAssetCategoryGroupId(asset: AssetItem) {
     return allAssetCategories.find((category) => category.id === asset.category || category.label === asset.category)?.id ?? asset.category;
   }
@@ -734,7 +742,7 @@ export default function App() {
       const monthStr = `${year}-${mo}`;
       const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr) && t.date <= today);
       const income = monthlyTxs
-        .filter((t) => t.type === 'income' && t.category !== '기초잔액')
+        .filter((t) => t.type === 'income' && !isOpeningBalanceTransaction(t))
         .reduce((sum, t) => sum + t.amount, 0);
       const expense = monthlyTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       const monthEnd = `${monthStr}-${String(new Date(Number(year), Number(mo), 0).getDate()).padStart(2, '0')}`;
@@ -761,7 +769,7 @@ export default function App() {
         asset,
       };
     });
-  }, [transactions, assets, selectedMonth, allAssetCategories, categoryLabels]);
+  }, [transactions, assets, selectedMonth, allAssetCategories, categoryLabels, isOpeningBalanceTransaction]);
 
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
@@ -1366,7 +1374,7 @@ export default function App() {
   const todayStr = getToday();
   const monthlyExpenses = monthlyTransactions.filter((transaction) => transaction.type === 'expense' && transaction.date <= todayStr);
   const monthlyIncomes = monthlyTransactions.filter(
-    (transaction) => transaction.type === 'income' && transaction.date <= todayStr && transaction.category !== '기초잔액',
+    (transaction) => transaction.type === 'income' && transaction.date <= todayStr && !isOpeningBalanceTransaction(transaction),
   );
   const expenseTotal = sumAmount(monthlyExpenses);
   const incomeTotal = sumAmount(monthlyIncomes);
@@ -1380,7 +1388,7 @@ export default function App() {
       return {
         month,
         label: `${monthNumber}월`,
-        income: items.filter((transaction) => transaction.type === 'income' && transaction.category !== '기초잔액').reduce((sum, transaction) => sum + transaction.amount, 0),
+        income: items.filter((transaction) => transaction.type === 'income' && !isOpeningBalanceTransaction(transaction)).reduce((sum, transaction) => sum + transaction.amount, 0),
         expense: items.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
       };
     }).filter((summary) => summary.income > 0 || summary.expense > 0);
@@ -1405,18 +1413,18 @@ export default function App() {
         start: weekStart,
         end: weekEnd,
         label: `${cursor.getMonth() + 1}. ${cursor.getDate()}. ~ ${weekEndDate.getMonth() + 1}. ${weekEndDate.getDate()}.`,
-        income: items.filter((transaction) => transaction.type === 'income' && transaction.category !== '기초잔액').reduce((sum, transaction) => sum + transaction.amount, 0),
+        income: items.filter((transaction) => transaction.type === 'income' && !isOpeningBalanceTransaction(transaction)).reduce((sum, transaction) => sum + transaction.amount, 0),
         expense: items.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
       });
     }
 
     return weeks.reverse();
-  }, [transactions, expandedLedgerMonth, selectedMonth]);
+  }, [transactions, expandedLedgerMonth, selectedMonth, isOpeningBalanceTransaction]);
   
   const getAssetOpeningBalance = useCallback((asset: AssetItem) => {
     let openingBalance = 0;
     for (const transaction of transactions) {
-      if (transaction.category !== OPENING_BALANCE_CATEGORY) continue;
+      if (!isOpeningBalanceTransaction(transaction)) continue;
       if (transaction.type === 'income' && transaction.assetId === asset.id) openingBalance += transaction.amount;
       else if (transaction.type === 'expense' && transaction.assetId === asset.id) openingBalance -= transaction.amount;
       else if (transaction.type === 'transfer') {
@@ -1425,12 +1433,12 @@ export default function App() {
       }
     }
     return openingBalance || Number(asset.amount) || 0;
-  }, [transactions]);
+  }, [transactions, isOpeningBalanceTransaction]);
 
   const getAssetFlow = useCallback((assetId: string) => {
     let flow = 0;
     for (const transaction of transactions) {
-      if (transaction.date > todayStr || transaction.category === OPENING_BALANCE_CATEGORY) continue;
+      if (transaction.date > todayStr || isOpeningBalanceTransaction(transaction)) continue;
       if (transaction.type === 'income' && transaction.assetId === assetId) flow += transaction.amount;
       else if (transaction.type === 'expense' && transaction.assetId === assetId) flow -= transaction.amount;
       else if (transaction.type === 'transfer') {
@@ -1439,7 +1447,7 @@ export default function App() {
       }
     }
     return flow;
-  }, [transactions, todayStr]);
+  }, [transactions, todayStr, isOpeningBalanceTransaction]);
 
   const getAssetBalance = useCallback(
     (assetId: string, openingBalance: number) => (Number(openingBalance) || 0) + getAssetFlow(assetId),
@@ -1699,7 +1707,7 @@ export default function App() {
         time: new Date().toTimeString().slice(0, 5),
         amount: asset.amount,
         title: '기초 잔액',
-        category: OPENING_BALANCE_CATEGORY,
+        category: openingBalanceCategoryId,
         assetId: asset.id,
       });
     }
@@ -4746,10 +4754,9 @@ export default function App() {
 
       {isAssetModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsAssetModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <div className="modal-content asset-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
-              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> {editingAsset ? '자산 수정' : '자산 추가'}</h3>
-              <button type="button" className="close-btn" onClick={() => setIsAssetModalOpen(false)}>✕</button>
+              <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> 통합 자산/거래 등록</h3>
             </div>
             <form 
               key={editingAsset ? editingAsset.id : 'new'}
@@ -4839,11 +4846,10 @@ export default function App() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <div className="asset-entry-actions">
                 <button 
                   type="button" 
                   className="secondary-button" 
-                  style={{ flex: 1, marginTop: 0 }}
                   onClick={() => setIsAssetModalOpen(false)}
                 >
                   취소
@@ -4851,7 +4857,6 @@ export default function App() {
                 <button 
                   type="submit" 
                   className="primary-button" 
-                  style={{ flex: 2, marginTop: 0 }}
                 >
                   <AppIcon name={editingAsset ? 'edit' : 'plus'} size={17} /> {editingAsset ? '자산 수정' : '자산 등록'}
                 </button>
@@ -5133,13 +5138,12 @@ export default function App() {
         </div>
       )}
 
-      {/* 통합 거래 등록 모달 */}
+      {/* 통합 자산/거래 등록 모달 */}
       {isEntryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsEntryModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+          <div className="modal-content entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
-              <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 거래 등록</h3>
-              <button type="button" className="close-btn" onClick={() => setIsEntryModalOpen(false)}>✕</button>
+              <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
             </div>
             <div className="modal-body" style={{ padding: '24px 28px' }}>
               <UnifiedEntryForm
@@ -5160,6 +5164,7 @@ export default function App() {
                   setIsEntryModalOpen(false);
                 }}
                 onNotify={showNotice}
+                onCancel={() => setIsEntryModalOpen(false)}
                 isQuickAdd={true}
               />
             </div>
@@ -5498,6 +5503,58 @@ function TransactionListTable({
   );
 }
 
+function InstantSelect({
+  ariaLabel,
+  value,
+  placeholder,
+  options,
+  onChange,
+}: {
+  ariaLabel: string;
+  value: string | number;
+  placeholder: string;
+  options: Array<{ value: string | number; label: string }>;
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
+
+  return (
+    <div className="instant-select">
+      <button
+        type="button"
+        className="instant-select-trigger"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
+        <span aria-hidden="true">⌄</span>
+      </button>
+      {isOpen && (
+        <div className="instant-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={String(option.value) === String(value)}
+              className={String(option.value) === String(value) ? 'selected' : ''}
+              key={String(option.value)}
+              onClick={() => {
+                onChange(String(option.value));
+                setIsOpen(false);
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UnifiedEntryForm({
   defaultDate = getCurrentTransactionDate(),
   onAddTransaction,
@@ -5510,6 +5567,7 @@ function UnifiedEntryForm({
   onAddAsset,
   onAddRecurringRule,
   onNotify,
+  onCancel,
 }: {
   defaultDate?: string;
   onAddTransaction: (t: Transaction) => void;
@@ -5522,6 +5580,7 @@ function UnifiedEntryForm({
   assets?: AssetItem[];
   onAddRecurringRule?: (r: RecurringRule) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
+  onCancel?: () => void;
 }) {
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
   const [isRecurring, setIsRecurring] = useState(false);
@@ -5672,7 +5731,7 @@ function UnifiedEntryForm({
     <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
       {!isQuickAdd && (
         <div className={`entry-form-title ${formColorClass}`}>
-          <strong>통합 거래 등록</strong>
+          <strong>통합 자산/거래 등록</strong>
           <span>수입, 지출 및 계좌 간 이체 내역을 드롭다운 선택으로 등록합니다.</span>
         </div>
       )}
@@ -5744,19 +5803,20 @@ function UnifiedEntryForm({
 
         {form.type === 'expense' && (
           <label className="installment-select compact-entry-field" aria-label="할부">
-            <select
-              aria-label="할부"
+            <InstantSelect
+              ariaLabel="할부"
               value={installmentMonths}
-              onChange={(event) => {
-                const months = Number(event.target.value);
+              placeholder="일시불"
+              options={Array.from({ length: 24 }, (_, index) => index + 1).map((months) => ({
+                value: months,
+                label: months === 1 ? '일시불' : `${months}개월`,
+              }))}
+              onChange={(value) => {
+                const months = Number(value);
                 setInstallmentMonths(months);
                 if (months > 1) setIsRecurring(false);
               }}
-            >
-              {Array.from({ length: 24 }, (_, index) => index + 1).map((months) => (
-                <option key={months} value={months}>{months === 1 ? '일시불' : `${months}개월`}</option>
-              ))}
-            </select>
+            />
             {installmentMonths > 1 && <small>총액을 {installmentMonths}개월로 나누어 매월 무이자로 등록합니다.</small>}
           </label>
         )}
@@ -5764,18 +5824,13 @@ function UnifiedEntryForm({
         {/* 4. 카테고리 (이체 선택 시 비표시) */}
         {form.type !== 'transfer' && (
           <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="카테고리">
-            <select
-              aria-label="카테고리"
+            <InstantSelect
+              ariaLabel="카테고리"
               value={form.category}
-              onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-            >
-              <option value="" disabled>카테고리</option>
-              {activeCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              placeholder="카테고리"
+              options={activeCategories.map((category) => ({ value: category.id, label: category.label }))}
+              onChange={(category) => setForm((prev) => ({ ...prev, category }))}
+            />
           </label>
         )}
 
@@ -5783,48 +5838,33 @@ function UnifiedEntryForm({
         {form.type === 'transfer' ? (
           <>
             <label className="compact-entry-field" aria-label="보내는 계좌">
-              <select
-                aria-label="보내는 계좌"
+              <InstantSelect
+                ariaLabel="보내는 계좌"
                 value={form.assetId}
-                onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
-              >
-                <option value="">보내는 계좌</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {formatAssetLabel(a, currentAssetCategories)}
-                  </option>
-                ))}
-              </select>
+                placeholder="보내는 계좌"
+                options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
+                onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
+              />
             </label>
             <label className="compact-entry-field" aria-label="받는 계좌">
-              <select
-                aria-label="받는 계좌"
+              <InstantSelect
+                ariaLabel="받는 계좌"
                 value={form.toAssetId}
-                onChange={(e) => setForm((prev) => ({ ...prev, toAssetId: e.target.value }))}
-              >
-                <option value="">받는 계좌</option>
-                {assets.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {formatAssetLabel(a, currentAssetCategories)}
-                  </option>
-                ))}
-              </select>
+                placeholder="받는 계좌"
+                options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
+                onChange={(toAssetId) => setForm((prev) => ({ ...prev, toAssetId }))}
+              />
             </label>
           </>
         ) : (
           <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="계좌">
-            <select
-              aria-label="계좌"
+            <InstantSelect
+              ariaLabel="계좌"
               value={form.assetId}
-              onChange={(e) => setForm((prev) => ({ ...prev, assetId: e.target.value }))}
-            >
-              <option value="">계좌</option>
-              {assets.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {formatAssetLabel(a, currentAssetCategories)}
-                </option>
-              ))}
-            </select>
+              placeholder="계좌"
+              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
+              onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
+            />
           </label>
         )}
 
@@ -5851,9 +5891,12 @@ function UnifiedEntryForm({
         </label>
       </div>
 
-      <button type="submit" className="primary-button entry-submit" style={{ marginTop: '8px', background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
-        {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
-      </button>
+      <div className="entry-actions">
+        <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
+        <button type="submit" className="primary-button entry-submit" style={{ background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
+          {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
+        </button>
+      </div>
     </form>
   );
 }
