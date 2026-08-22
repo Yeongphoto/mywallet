@@ -260,6 +260,35 @@ button:active {
   display: none;
 }
 
+.desktop-registration-action {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.desktop-registration-action > button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid rgba(125, 211, 252, 0.7);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
+  font: inherit;
+  font-weight: 850;
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.desktop-registration-action > button:hover {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  box-shadow: 0 14px 26px rgba(2, 132, 199, 0.36);
+  transform: translateY(-1px);
+}
+
 /* Theme Toggle Button in Sidebar */
 .theme-toggle-area {
   padding-top: 20px;
@@ -365,14 +394,15 @@ button:active {
   position: relative;
   display: inline-flex;
   align-items: center;
-  background: var(--bg-input);
-  border: 1px solid var(--border-input);
-  border-radius: 10px;
-  padding: 6px 12px;
-  font-weight: 700;
-  font-size: 0.9rem;
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg-input));
+  border: 1px solid color-mix(in srgb, var(--primary) 48%, var(--border-input));
+  border-radius: 11px;
+  padding: 7px 13px;
+  font-weight: 850;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.12);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
@@ -399,6 +429,10 @@ button:active {
   gap: 8px;
   color: var(--text-primary);
   pointer-events: none;
+}
+
+.month-picker-display .app-icon {
+  color: var(--primary);
 }
 
 .header-actions {

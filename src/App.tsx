@@ -2813,6 +2813,27 @@ export default function App() {
               <strong>장부</strong>
             </a>
           </nav>
+          <div className="desktop-registration-action">
+            <button
+              type="button"
+              onClick={() => {
+                openAmountEntry(() => {
+                  if (activeTab === 'asset') {
+                    setEditingAsset(null);
+                    setRegistrationMode('asset');
+                    setIsEntryModalOpen(true);
+                    return;
+                  }
+                  setRegistrationMode('expense');
+                  setIsEntryModalOpen(true);
+                  setModalTab('add');
+                });
+              }}
+            >
+              <AppIcon name="plus" size={20} />
+              <span>{activeTab === 'asset' ? '자산 등록' : '거래 등록'}</span>
+            </button>
+          </div>
         </div>
       </aside>
 

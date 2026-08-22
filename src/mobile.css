@@ -111,6 +111,10 @@
     flex-direction: row;
     align-items: center;
   }
+
+  .desktop-registration-action {
+    display: none;
+  }
   
   .brand {
     display: none; /* Hide brand logo in mobile navigation bar */
@@ -296,14 +300,21 @@
   
   /* Mobile month picker adapt */
   .app-header .month-picker-wrap {
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.96rem;
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(125, 211, 252, 0.72);
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.16);
   }
   
   .app-header .month-picker-display {
     color: #fff;
+    font-weight: 850;
+  }
+
+  .app-header .month-picker-display .app-icon {
+    color: #7dd3fc;
   }
   
   .app-header .header-settings-btn {
@@ -998,6 +1009,64 @@
 }
 
 @media (min-width: 540px) and (min-aspect-ratio: 3 / 4) {
+  .modal-backdrop:has(.entry-modal) {
+    padding: 24px !important;
+  }
+
+  .modal-content.entry-modal {
+    width: min(640px, calc(100vw - 48px)) !important;
+    max-height: min(88dvh, 760px) !important;
+  }
+
+  .entry-modal {
+    --entry-field-height: 78px;
+    --registration-field-gap: 10px;
+  }
+
+  .entry-modal .modal-header {
+    padding: 16px 22px;
+  }
+
+  .entry-modal .registration-mode-tabs {
+    padding: 12px 20px 10px;
+  }
+
+  .entry-modal .registration-mode-tabs > button {
+    min-height: 40px;
+  }
+
+  .entry-modal .modal-body {
+    padding: 10px 20px 16px !important;
+  }
+
+  .entry-modal .entry-form .form-grid > label:not(.recurring-toggle) {
+    min-height: var(--entry-field-height) !important;
+    padding: 7px 12px 8px !important;
+  }
+
+  .entry-modal .entry-actions,
+  .entry-modal .asset-entry-actions {
+    height: var(--entry-field-height);
+    min-height: var(--entry-field-height);
+  }
+
+  .entry-modal .entry-actions > button,
+  .entry-modal .asset-entry-actions > button {
+    height: var(--entry-field-height);
+    min-height: var(--entry-field-height);
+    font-size: 1.08rem;
+  }
+
+  .modal-content.entry-modal.asset-entry-modal .asset-entry-form {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: repeat(4, var(--entry-field-height)) var(--entry-field-height) !important;
+  }
+
+  .modal-content.entry-modal.asset-entry-modal .asset-entry-actions {
+    grid-row: 5 !important;
+    grid-column: 1 !important;
+  }
+
   .summary-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
