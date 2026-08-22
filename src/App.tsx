@@ -788,6 +788,7 @@ export default function App() {
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedCategoryColor, setSelectedCategoryColor] = useState<string>('#ef4444');
   const [categoryDraft, setCategoryDraft] = useState<{ type: CategoryScope; label: string; color: string }>({
@@ -2722,9 +2723,11 @@ export default function App() {
                 openAmountEntry(() => {
                   if (activeTab === 'asset') {
                     setEditingAsset(null);
+                    setRegistrationMode('asset');
                     setIsAssetModalOpen(true);
                     return;
                   }
+                  setRegistrationMode('expense');
                   setIsEntryModalOpen(true);
                   setModalTab('add');
                 });
@@ -3754,6 +3757,7 @@ export default function App() {
                               style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px' }}
                               onClick={() => openAmountEntry(() => {
                                 setEditingAsset(asset); // 수정 모드 전환
+                                setRegistrationMode('asset');
                                 setIsAssetModalOpen(true);
                               })}
                             >
@@ -4758,6 +4762,12 @@ export default function App() {
             <div className="modal-header">
               <h3 className="modal-title-icon"><AppIcon name="asset" size={20} /> 통합 자산/거래 등록</h3>
             </div>
+            <div className="registration-mode-tabs" aria-label="등록 종류">
+              <button type="button" className="active asset" onClick={() => setRegistrationMode('asset')}>자산</button>
+              <button type="button" onClick={() => { setRegistrationMode('expense'); setIsAssetModalOpen(false); setIsEntryModalOpen(true); }}>지출</button>
+              <button type="button" onClick={() => { setRegistrationMode('income'); setIsAssetModalOpen(false); setIsEntryModalOpen(true); }}>수입</button>
+              <button type="button" onClick={() => { setRegistrationMode('transfer'); setIsAssetModalOpen(false); setIsEntryModalOpen(true); }}>이체</button>
+            </div>
             <form 
               key={editingAsset ? editingAsset.id : 'new'}
               className="asset-entry-form"
@@ -5145,8 +5155,16 @@ export default function App() {
             <div className="modal-header">
               <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
             </div>
+            <div className="registration-mode-tabs" aria-label="등록 종류">
+              <button type="button" onClick={() => { setRegistrationMode('asset'); setIsEntryModalOpen(false); setIsAssetModalOpen(true); }}>자산</button>
+              <button type="button" className={registrationMode === 'expense' ? 'active expense' : ''} onClick={() => setRegistrationMode('expense')}>지출</button>
+              <button type="button" className={registrationMode === 'income' ? 'active income' : ''} onClick={() => setRegistrationMode('income')}>수입</button>
+              <button type="button" className={registrationMode === 'transfer' ? 'active transfer' : ''} onClick={() => setRegistrationMode('transfer')}>이체</button>
+            </div>
             <div className="modal-body" style={{ padding: '24px 28px' }}>
               <UnifiedEntryForm
+                key={registrationMode}
+                initialType={registrationMode === 'asset' ? 'expense' : registrationMode}
                 onAddTransaction={(t) => {
                   handleAddTransaction(t);
                   setIsEntryModalOpen(false);
@@ -5557,6 +5575,7 @@ function InstantSelect({
 
 function UnifiedEntryForm({
   defaultDate = getCurrentTransactionDate(),
+  initialType = 'expense',
   onAddTransaction,
   onAddTransactions,
   isQuickAdd = false,
@@ -5570,6 +5589,7 @@ function UnifiedEntryForm({
   onCancel,
 }: {
   defaultDate?: string;
+  initialType?: EntryType;
   onAddTransaction: (t: Transaction) => void;
   onAddTransactions?: (transactions: Transaction[]) => void;
   onAddAsset?: (a: AssetItem) => void;
@@ -5582,7 +5602,7 @@ function UnifiedEntryForm({
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
   onCancel?: () => void;
 }) {
-  const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, 'expense'));
+  const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
 

@@ -2492,10 +2492,34 @@ textarea:focus {
 .entry-modal,
 .asset-entry-modal { --entry-field-height: clamp(72px, 10dvh, 104px); }
 .entry-modal .entry-form .form-grid { align-content: start; }
+.entry-modal .entry-form .type-toggle-group { display: none; }
 .entry-modal .form-grid > label:not(.recurring-toggle) { min-height: var(--entry-field-height) !important; }
 .entry-modal .entry-actions > button { height: var(--entry-field-height); min-height: var(--entry-field-height); }
 .entry-modal .entry-actions > button,
 .asset-entry-modal .asset-entry-actions > button { font-size: clamp(1.1rem, 2.3dvh, 1.35rem); font-weight: 850; }
+
+.registration-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+
+.registration-mode-tabs > button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.registration-mode-tabs > button.active { background: var(--primary); color: #fff; }
+.registration-mode-tabs > button.active.expense { background: var(--color-expense); }
+.registration-mode-tabs > button.active.income { background: var(--color-income); }
+.registration-mode-tabs > button.active.transfer { background: var(--color-transfer); }
 
 .modal-content .form-grid label:not(.recurring-toggle),
 .modal-content .form-group {
