@@ -2734,8 +2734,7 @@ export default function App() {
     const rawFirstDayOfWeek = date.getDay();
     const lastDate = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
-    // 35칸(5주)을 초과하는 달의 경우 시작 요일을 강제로 일요일(0)로 당겨 5행 수용 보장
-    const firstDayOfWeek = (rawFirstDayOfWeek + lastDate > 35) ? 0 : rawFirstDayOfWeek;
+    const firstDayOfWeek = rawFirstDayOfWeek;
     const prevMonthLastDate = new Date(calendarYear, calendarMonth, 0).getDate();
 
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
@@ -2763,8 +2762,8 @@ export default function App() {
       });
     }
 
-    // 무조건 5행(35일)으로 픽스하여 남은 공간 채움
-    const remaining = 35 - days.length;
+    // 모든 달을 실제 요일 기준의 6행(42일)으로 유지한다.
+    const remaining = 42 - days.length;
     for (let i = 1; i <= remaining; i++) {
       const nextDate = new Date(calendarYear, calendarMonth + 1, i);
       const y = nextDate.getFullYear();
@@ -4327,11 +4326,13 @@ export default function App() {
                       등록된 자산 항목이 없습니다. 하단 중앙의 + 버튼으로 자산을 추가해보세요.
                     </p>
                   ) : (
-                    assetGroups.map((group) => (
+                    assetGroups.map((group) => {
+                      const groupTotal = group.assets.reduce((sum, asset) => sum + getNetAssetBalance(asset), 0);
+                      return (
                       <section key={group.id} className="asset-list-category-group" data-asset-category-id={group.id}>
                         <div className="asset-list-category-head">
                           <strong>{group.label}</strong>
-                          <span>{group.assets.length}개</span>
+                          <span className="asset-list-category-summary"><span>{group.assets.length}개</span><strong>{displayCurrency(groupTotal)}</strong></span>
                         </div>
                         <div className="asset-table-list" data-asset-category-id={group.id} style={{ display: 'grid', gap: '3px' }}>
                     {group.assets.map((asset) => {
@@ -4543,7 +4544,8 @@ export default function App() {
                     })}
                         </div>
                       </section>
-                    ))
+                    );
+                    })
                 )}
                 </div>
               </div>
@@ -6407,6 +6409,7 @@ function InstantSelect({
   onSelectNext?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
   const selectOption = (option: { value: string | number }) => {
     onChange(String(option.value));
@@ -6414,8 +6417,24 @@ function InstantSelect({
     requestAnimationFrame(() => onSelectNext?.());
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeOutsideSelect = (event: Event) => {
+      if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
+      setIsOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOutsideSelect, true);
+    document.addEventListener('focusin', closeOutsideSelect, true);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutsideSelect, true);
+      document.removeEventListener('focusin', closeOutsideSelect, true);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="instant-select">
+    <div ref={rootRef} className="instant-select">
       <button
         type="button"
         ref={triggerRef}

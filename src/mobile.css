@@ -565,6 +565,21 @@
     min-height: 380px !important;
     grid-auto-rows: 1fr !important;
   }
+
+  .ledger-workspace:has(.ledger-calendar-view) {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .ledger-calendar-view {
+    gap: 8px;
+  }
+
+  .ledger-calendar-view .calendar-grid {
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: repeat(6, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
