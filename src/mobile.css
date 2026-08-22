@@ -1234,6 +1234,16 @@
     white-space: nowrap;
   }
 
+  .mobile-ledger-swipe-region {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 88px;
+    min-height: 44px;
+    touch-action: pan-y;
+    cursor: ew-resize;
+  }
+
   .mobile-ledger-empty {
     margin: 0;
     padding: 32px 0;

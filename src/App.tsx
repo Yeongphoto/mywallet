@@ -146,6 +146,14 @@ interface PendingTransactionOperation {
   status: 'retry' | 'conflict';
 }
 
+interface SyncRunResult {
+  appliedChanges: number;
+  replayedOperations: number;
+  conflictedOperations: number;
+  pendingOperations: number;
+  blocked: boolean;
+}
+
 function readPendingTransactionOperations(): PendingTransactionOperation[] {
   try {
     const value = window.localStorage.getItem(PENDING_TRANSACTION_OPERATIONS_KEY);
@@ -868,6 +876,7 @@ export default function App() {
   const syncCursorRef = useRef(Number(window.localStorage.getItem(SYNC_CURSOR_KEY)) || 0);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const remoteSyncConflictRef = useRef(false);
+  const transactionSyncRunRef = useRef<Promise<SyncRunResult> | null>(null);
   const assetsRef = useRef<AssetItem[]>(assets);
   const assetOrderRevisionsRef = useRef<Record<string, number>>({});
   const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[] } | null>(null);
@@ -1069,7 +1078,7 @@ export default function App() {
     }
   }
 
-  async function pullTransactionChanges() {
+  async function pullTransactionChanges(): Promise<{ appliedChanges: number; blocked: boolean }> {
     const cursor = syncCursorRef.current;
     const response = await fetch(`/api/data?after=${cursor}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('SYNC_PULL_FAILED');
@@ -1090,7 +1099,7 @@ export default function App() {
       applicable.push(change);
       appliedCursor = change.cursor;
     }
-    if (applicable.length === 0) return;
+    if (applicable.length === 0) return { appliedChanges: 0, blocked: changes.length > 0 };
     skipNextPersistenceRef.current = true;
     setTransactions((previous) => applicable.reduce((next, change) => {
       if (change.changeType === 'delete') return next.filter((transaction) => transaction.id !== change.entityId);
@@ -1101,6 +1110,47 @@ export default function App() {
     }, previous));
     syncCursorRef.current = appliedCursor;
     window.localStorage.setItem(SYNC_CURSOR_KEY, String(appliedCursor));
+    return { appliedChanges: applicable.length, blocked: applicable.length < changes.length };
+  }
+
+  async function replayPendingTransactionOperations() {
+    const pending = readPendingTransactionOperations().filter((operation) => operation.status === 'retry');
+    let replayedOperations = 0;
+    for (const operation of pending) {
+      try {
+        const result = await saveTransactionOperation(operation.payload, operation.operationId);
+        applySavedTransactionOperation(operation.payload, result);
+        replayedOperations += 1;
+      } catch {
+        // Retain the exact operationId until it succeeds or the user resolves its conflict.
+      }
+    }
+    return {
+      replayedOperations,
+      conflictedOperations: readPendingTransactionOperations().filter((operation) => operation.status === 'conflict').length,
+      pendingOperations: readPendingTransactionOperations().filter((operation) => operation.status === 'retry').length,
+    };
+  }
+
+  function synchronizeTransactionState(): Promise<SyncRunResult> {
+    if (transactionSyncRunRef.current) return transactionSyncRunRef.current;
+    const run = (async () => {
+      const replay = await replayPendingTransactionOperations();
+      let appliedChanges = 0;
+      let blocked = false;
+      for (let page = 0; page < 20; page += 1) {
+        const pulled = await pullTransactionChanges();
+        appliedChanges += pulled.appliedChanges;
+        blocked = pulled.blocked;
+        if (pulled.appliedChanges === 0 || pulled.blocked) break;
+      }
+      return { appliedChanges, ...replay, blocked };
+    })();
+    transactionSyncRunRef.current = run;
+    void run.finally(() => {
+      if (transactionSyncRunRef.current === run) transactionSyncRunRef.current = null;
+    });
+    return run;
   }
 
   useEffect(() => {
@@ -1313,37 +1363,8 @@ export default function App() {
   useEffect(() => {
     if (isLoading || !isOnline) return;
     let cancelled = false;
-
-    const replayPendingTransactionOperations = async () => {
-      const pending = readPendingTransactionOperations().filter((operation) => operation.status === 'retry');
-      let restored = 0;
-      for (const operation of pending) {
-        if (cancelled) return;
-        try {
-          const result = await saveTransactionOperation(operation.payload, operation.operationId);
-          if (cancelled) return;
-          applySavedTransactionOperation(operation.payload, result);
-          restored += 1;
-        } catch {
-          // Keep this operation with its original operationId for a later retry.
-        }
-      }
-      if (restored > 0 && !cancelled) {
-        showNotice(`${restored}건의 저장 대기 작업을 서버에 반영했습니다.`, '저장 재개', 'success');
-      }
-    };
-
-    void replayPendingTransactionOperations();
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoading, isOnline]);
-
-  useEffect(() => {
-    if (isLoading || !isOnline) return;
-    let cancelled = false;
     const syncChanges = () => {
-      void pullTransactionChanges().catch(() => {
+      void synchronizeTransactionState().catch(() => {
         if (!cancelled) setRemoteSync((previous) => ({ ...previous, status: 'error', message: '서버 변경을 확인하지 못했습니다.' }));
       });
     };
@@ -2933,31 +2954,29 @@ export default function App() {
     setRemoteSync((prev) => ({
       ...prev,
       status: 'checking',
-      message: '서버 저장 상태 확인 중',
+      message: '서버 변경을 동기화하는 중',
     }));
 
     try {
-      const response = await fetch(`/api/data?check=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error('remote check failed');
-      const data = await response.json();
-      const remoteUpdatedAt = Number(data.updatedAt) || 0;
-      serverUpdatedAtRef.current = remoteUpdatedAt;
-      const isSynced = remoteUpdatedAt >= (updatedAt || 0);
-      if (isSynced) {
-        window.localStorage.removeItem(PENDING_SYNC_KEY);
-        remoteSyncConflictRef.current = false;
-      }
+      const result = await synchronizeTransactionState();
+      const hasPending = result.pendingOperations > 0;
+      const hasConflict = result.conflictedOperations > 0 || result.blocked;
+      const isSynced = !hasConflict && !hasPending;
+      if (isSynced) window.localStorage.removeItem(PENDING_SYNC_KEY);
       setRemoteSync({
         status: isSynced ? 'synced' : 'stale',
         localUpdatedAt: updatedAt || 0,
-        remoteUpdatedAt,
         checkedAt: Date.now(),
-        message: isSynced ? '서버와 로컬이 일치함' : '서버 반영 대기 또는 불일치',
+        message: isSynced ? '서버 변경 반영 완료' : hasConflict ? '충돌한 저장 작업을 확인해 주세요' : '저장 대기 작업을 다시 시도해 주세요',
       });
       if (showToast) {
+        const summary = [
+          result.replayedOperations > 0 ? `대기 저장 ${result.replayedOperations}건 완료` : '',
+          result.appliedChanges > 0 ? `서버 변경 ${result.appliedChanges}건 반영` : '',
+        ].filter(Boolean).join(', ');
         noticeAfterSync = {
-          message: isSynced ? '현재 데이터가 서버에 반영되어 있습니다.' : '서버 데이터가 로컬보다 오래되었습니다. 잠시 뒤 다시 확인하세요.',
-          title: isSynced ? '저장 확인' : '저장 대기',
+          message: isSynced ? (summary || '새로운 서버 변경이 없습니다.') : hasConflict ? `충돌 또는 보류 작업 ${result.conflictedOperations}건이 있습니다. 최신 내용을 확인한 뒤 다시 저장해 주세요.` : `저장 대기 작업 ${result.pendingOperations}건을 서버에 반영하지 못했습니다. 네트워크를 확인한 뒤 다시 동기화해 주세요.`,
+          title: isSynced ? '동기화 완료' : hasConflict ? '저장 충돌' : '저장 대기',
           type: isSynced ? 'success' : 'warning',
         };
       }
@@ -2966,10 +2985,10 @@ export default function App() {
         status: 'error',
         localUpdatedAt: updatedAt || 0,
         checkedAt: Date.now(),
-        message: '서버 확인 실패',
+        message: '서버 동기화 실패',
       });
       if (showToast) {
-        noticeAfterSync = { message: '서버 저장 상태를 확인하지 못했습니다.', title: '저장 확인 실패', type: 'error' };
+        noticeAfterSync = { message: '서버 변경을 가져오지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', title: '동기화 실패', type: 'error' };
       }
     } finally {
       const remaining = Math.max(0, SYNC_OVERLAY_MIN_DURATION - (Date.now() - syncStartedAt));
@@ -6110,38 +6129,40 @@ function MobileLedgerSwipeItem({
       <article
         className={`mobile-ledger-item ${typeClass}`}
         style={{ transform: `translateX(${offset}px)` }}
-        onPointerDown={(event) => {
-          gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
-        }}
-        onPointerMove={(event) => {
-          const deltaX = event.clientX - gestureRef.current.startX;
-          const deltaY = event.clientY - gestureRef.current.startY;
-          if (!gestureRef.current.isHorizontal) {
-            if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-            gestureRef.current.isHorizontal = true;
-            setIsDragging(true);
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }
-          setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
-        }}
-        onPointerUp={(event) => {
-          if (!gestureRef.current.isHorizontal) return;
-          const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
-          onOpenChange(nextOffset <= -(actionWidth / 2));
-          gestureRef.current.isHorizontal = false;
-          setIsDragging(false);
-        }}
-        onPointerCancel={() => {
-          onOpenChange(offset <= -(actionWidth / 2));
-          gestureRef.current.isHorizontal = false;
-          setIsDragging(false);
-        }}
       >
         <span className="mobile-ledger-category">{category}</span>
         <div className="mobile-ledger-copy">
           <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
         </div>
-        <strong className="mobile-ledger-amount">
+        <strong
+          className="mobile-ledger-amount mobile-ledger-swipe-region"
+          onPointerDown={(event) => {
+            gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
+          }}
+          onPointerMove={(event) => {
+            const deltaX = event.clientX - gestureRef.current.startX;
+            const deltaY = event.clientY - gestureRef.current.startY;
+            if (!gestureRef.current.isHorizontal) {
+              if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+              gestureRef.current.isHorizontal = true;
+              setIsDragging(true);
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }
+            setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
+          }}
+          onPointerUp={(event) => {
+            if (!gestureRef.current.isHorizontal) return;
+            const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
+            onOpenChange(nextOffset <= -(actionWidth / 2));
+            gestureRef.current.isHorizontal = false;
+            setIsDragging(false);
+          }}
+          onPointerCancel={() => {
+            onOpenChange(offset <= -(actionWidth / 2));
+            gestureRef.current.isHorizontal = false;
+            setIsDragging(false);
+          }}
+        >
           {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
         </strong>
         <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
