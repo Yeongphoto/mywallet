@@ -2724,7 +2724,7 @@ export default function App() {
                   if (activeTab === 'asset') {
                     setEditingAsset(null);
                     setRegistrationMode('asset');
-                    setIsAssetModalOpen(true);
+                    setIsEntryModalOpen(true);
                     return;
                   }
                   setRegistrationMode('expense');
@@ -3758,7 +3758,7 @@ export default function App() {
                               onClick={() => openAmountEntry(() => {
                                 setEditingAsset(asset); // 수정 모드 전환
                                 setRegistrationMode('asset');
-                                setIsAssetModalOpen(true);
+                                setIsEntryModalOpen(true);
                               })}
                             >
                               수정
@@ -5151,20 +5151,37 @@ export default function App() {
       {/* 통합 자산/거래 등록 모달 */}
       {isEntryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsEntryModalOpen(false)}>
-          <div className="modal-content entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+          <div className={`modal-content entry-modal${registrationMode === 'asset' ? ' asset-entry-modal' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
             </div>
             <div className="registration-mode-tabs" aria-label="등록 종류">
-              <button type="button" onClick={() => { setRegistrationMode('asset'); setIsEntryModalOpen(false); setIsAssetModalOpen(true); }}>자산</button>
+              <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => setRegistrationMode('asset')}>자산</button>
               <button type="button" className={registrationMode === 'expense' ? 'active expense' : ''} onClick={() => setRegistrationMode('expense')}>지출</button>
               <button type="button" className={registrationMode === 'income' ? 'active income' : ''} onClick={() => setRegistrationMode('income')}>수입</button>
               <button type="button" className={registrationMode === 'transfer' ? 'active transfer' : ''} onClick={() => setRegistrationMode('transfer')}>이체</button>
             </div>
-            <div className="modal-body" style={{ padding: '24px 28px' }}>
-              <UnifiedEntryForm
+            {registrationMode === 'asset' ? (
+              <AssetRegistrationForm
+                editingAsset={editingAsset}
+                categories={activeAssetCategories}
+                allCategories={allAssetCategories}
+                getOpeningBalance={getAssetOpeningBalance}
+                onCancel={() => setIsEntryModalOpen(false)}
+                onSave={({ category, name, amount, memo }) => {
+                  if (!category) { showNotice('자산 종류를 선택해 주세요.', '입력 확인', 'warning'); return; }
+                  if (!name) { showNotice('자산 이름을 입력해 주세요.', '입력 확인', 'warning'); return; }
+                  if (!editingAsset && amount <= 0) { showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
+                  if (editingAsset) handleUpdateAsset({ id: editingAsset.id, category, name, amount: editingAsset.amount, memo });
+                  else handleAddAsset({ id: createId(), category, name, amount, memo });
+                  setIsEntryModalOpen(false);
+                }}
+              />
+            ) : (
+              <div className="modal-body" style={{ padding: '24px 28px' }}>
+                <UnifiedEntryForm
                 key={registrationMode}
-                initialType={registrationMode === 'asset' ? 'expense' : registrationMode}
+                initialType={registrationMode}
                 onAddTransaction={(t) => {
                   handleAddTransaction(t);
                   setIsEntryModalOpen(false);
@@ -5184,8 +5201,9 @@ export default function App() {
                 onNotify={showNotice}
                 onCancel={() => setIsEntryModalOpen(false)}
                 isQuickAdd={true}
-              />
-            </div>
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -5570,6 +5588,43 @@ function InstantSelect({
         </div>
       )}
     </div>
+  );
+}
+
+function AssetRegistrationForm({
+  editingAsset,
+  categories,
+  allCategories,
+  getOpeningBalance,
+  onSave,
+  onCancel,
+}: {
+  editingAsset: AssetItem | null;
+  categories: CategoryOption[];
+  allCategories: CategoryOption[];
+  getOpeningBalance: (asset: AssetItem) => number;
+  onSave: (values: { category: string; name: string; amount: number; memo: string }) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form
+      key={editingAsset ? editingAsset.id : 'new'}
+      className="asset-entry-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const category = (event.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
+        const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
+        const amount = parseAmount((event.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value) || 0;
+        const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
+        onSave({ category, name, amount, memo });
+      }}
+    >
+      <div className="form-group"><label>자산 분류</label><select name="asset-cat" required defaultValue={editingAsset?.category || ''}><option value="">자산 카테고리</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select></div>
+      <div className="form-group"><label>자산 이름</label><input name="asset-name" placeholder="자산 이름" required defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''} /></div>
+      <div className="form-group"><label>기초 금액</label><input type="text" name="asset-amount" inputMode="numeric" placeholder="기초 금액" required defaultValue={editingAsset ? formatNumberInput(getOpeningBalance(editingAsset)) : ''} readOnly={Boolean(editingAsset)} onChange={(event) => { const digits = event.currentTarget.value.replace(/[^\d]/g, ''); event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : ''; }} /></div>
+      <div className="form-group"><label>메모</label><input name="asset-memo" placeholder="메모 (선택)" defaultValue={editingAsset?.memo || ''} /></div>
+      <div className="asset-entry-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button"><AppIcon name={editingAsset ? 'edit' : 'plus'} size={17} /> {editingAsset ? '자산 수정' : '자산 등록'}</button></div>
+    </form>
   );
 }
 
