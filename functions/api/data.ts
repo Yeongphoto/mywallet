@@ -100,7 +100,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
     const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
       db.prepare("SELECT * FROM transactions").all(),
-      db.prepare("SELECT * FROM assets").all(),
+      db.prepare("SELECT * FROM assets ORDER BY rowid").all(),
       db.prepare("SELECT * FROM plans").all(),
       db.prepare("SELECT * FROM custom_categories").all(),
       db.prepare("SELECT * FROM settings").all(),

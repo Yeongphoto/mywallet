@@ -765,6 +765,8 @@ export default function App() {
   const isDbLoadedRef = useRef(false);
   const skipNextPersistenceRef = useRef(true);
   const serverUpdatedAtRef = useRef(storedData.updatedAt || 0);
+  const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const remoteSyncConflictRef = useRef(false);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [monthPickerYear, setMonthPickerYear] = useState(() => Number(getCurrentMonth().slice(0, 4)));
@@ -1032,7 +1034,7 @@ export default function App() {
         localUpdatedAt: newUpdatedAt,
         message: '서버에 저장 중',
       }));
-      saveRemoteD1(
+      const syncSnapshot = () => saveRemoteD1(
         transactions, 
         assets, 
         budget, 
@@ -1056,6 +1058,7 @@ export default function App() {
             const conflict = await res.json();
             const remoteUpdatedAt = Number(conflict.updatedAt) || 0;
             serverUpdatedAtRef.current = remoteUpdatedAt;
+            remoteSyncConflictRef.current = true;
             window.localStorage.removeItem(PENDING_SYNC_KEY);
             setRemoteSync({
               status: 'stale',
@@ -1092,6 +1095,10 @@ export default function App() {
             };
           });
         });
+      remoteSaveQueueRef.current = remoteSaveQueueRef.current.then(
+        () => remoteSyncConflictRef.current ? undefined : syncSnapshot(),
+        () => remoteSyncConflictRef.current ? undefined : syncSnapshot()
+      );
     }, 1000);
 
     return () => {
@@ -2528,9 +2535,11 @@ export default function App() {
       if (!response.ok) throw new Error('remote check failed');
       const data = await response.json();
       const remoteUpdatedAt = Number(data.updatedAt) || 0;
+      serverUpdatedAtRef.current = remoteUpdatedAt;
       const isSynced = remoteUpdatedAt >= (updatedAt || 0);
       if (isSynced) {
         window.localStorage.removeItem(PENDING_SYNC_KEY);
+        remoteSyncConflictRef.current = false;
       }
       setRemoteSync({
         status: isSynced ? 'synced' : 'stale',
