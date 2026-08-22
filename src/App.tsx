@@ -4471,85 +4471,71 @@ export default function App() {
 
             {settingsSection === 'recurring' && (
               <div className="settings-stack settings-recurring-stack">
-          <section className="glass-panel" style={{ marginTop: '24px' }}>
-            <div className="panel-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <section className="settings-recurring-panel">
+            <div className="recurring-section-header">
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🔄</span> 정기 지출
-                </h3>
+                <h3>정기기록</h3>
+                <p>등록된 규칙 {recurringRules.length}개</p>
               </div>
-              <strong style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                등록된 규칙: {recurringRules.length}개
-              </strong>
+              <div className="recurring-type-legend" aria-label="정기기록 구분">
+                <span className="expense"><i aria-hidden="true" />지출</span>
+                <span className="income"><i aria-hidden="true" />수입</span>
+                <span className="transfer"><i aria-hidden="true" />이체</span>
+              </div>
             </div>
 
-            <div className="ledger-table-scroll">
-              <table className="ledger-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>구분</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>매달 예정일</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>내용</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>금액</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>시작 ~ 종료</th>
-                    <th style={{ padding: '12px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>작업</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recurringRules.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="empty-cell" style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-secondary)' }}>
-                        등록된 정기 반복 규칙이 없습니다. 장부 탭이나 달력 모달의 거래 등록 양식에서 [매달 정기 기록으로 등록]을 체크하고 추가해보세요.
-                      </td>
-                    </tr>
-                  ) : (
-                    recurringRules.map((rule) => {
-                      const isStopped = !!rule.endMonth;
-                      const ruleTypeLabel = rule.type === 'expense' ? '지출 🔴' : '수입 🔵';
-                      const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
-                      
-                      return (
-                        <tr key={rule.id} className={isStopped ? 'recurring-rule-row-ended' : undefined} style={{ borderBottom: '1px solid var(--border-card)', opacity: isStopped ? 0.72 : 1 }}>
-                          <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{ruleTypeLabel}</td>
-                          <td style={{ padding: '12px 8px' }}>매월 {rule.day}일{rule.time ? ` ${rule.time}` : ''}</td>
-                          <td style={{ padding: '12px 8px' }}><CategoryBadge categories={catList} idOrLabel={rule.category} /></td>
-                          <td style={{ padding: '12px 8px' }}>{rule.title}</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 'bold' }}>{displayCurrency(rule.amount)}</td>
-                          <td style={{ padding: '12px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            {rule.startMonth} ~ {rule.endMonth || '진행중'}
-                          </td>
-                          <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                            <div className="recurring-rule-actions">
-                              {!isStopped ? (
-                                <button
-                                  type="button"
-                                  className="recurring-rule-action recurring-rule-action-stop"
-                                  onClick={() => handleStopRecurringRule(rule.id)}
-                                >
-                                  끊기
-                                </button>
-                              ) : (
-                                <div className="recurring-rule-ended-actions">
-                                  <button
-                                    type="button"
-                                    className="recurring-rule-action recurring-rule-action-delete"
-                                    onClick={() => handleDeleteRecurringRule(rule.id)}
-                                    title="이 정기 기록 규칙을 관리 목록에서 완전히 삭제합니다 (과거 거래 내역 보존)"
-                                  >
-                                    삭제
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {recurringRules.length === 0 ? (
+              <div className="recurring-rules-empty">
+                등록된 정기기록이 없습니다. 거래 등록에서 ‘매달 정기 기록으로 등록’을 선택해 추가할 수 있습니다.
+              </div>
+            ) : (
+              <div className="recurring-rule-list">
+                {recurringRules.map((rule) => {
+                  const isStopped = !!rule.endMonth;
+                  const typeClass = rule.type === 'expense' ? 'expense' : rule.type === 'income' ? 'income' : 'transfer';
+                  const catList = rule.type === 'expense' ? allExpenseCategories : allIncomeCategories;
+                  const fromAsset = assets.find((asset) => asset.id === rule.assetId);
+                  const toAsset = assets.find((asset) => asset.id === rule.toAssetId);
+                  const formatRuleDate = (month: string) => `${month.replace('-', '.')}.${String(rule.day).padStart(2, '0')}.`;
+                  const statusLabel = isStopped
+                    ? `${formatRuleDate(rule.startMonth)} ~ ${formatRuleDate(rule.endMonth!)}`
+                    : `${formatRuleDate(rule.startMonth)}${rule.time ? ` ${rule.time}` : ''}부터 기록 중`;
+
+                  return (
+                    <article key={rule.id} className={`recurring-rule-card ${typeClass}${isStopped ? ' is-stopped' : ''}`}>
+                      <span className="recurring-rule-type-dot" aria-hidden="true" />
+                      <div className="recurring-rule-copy">
+                        <div className="recurring-rule-title">
+                          <h4>{rule.title}</h4>
+                        </div>
+                        <span className={`recurring-rule-status${isStopped ? ' is-stopped' : ''}`}>{statusLabel}</span>
+                        <div className="recurring-rule-side">
+                          <div className="recurring-rule-finance">
+                            {rule.type === 'transfer' ? (
+                              <span>{fromAsset ? formatAssetLabel(fromAsset, allAssetCategories) : '보내는 계좌'} → {toAsset ? formatAssetLabel(toAsset, allAssetCategories) : '받는 계좌'}</span>
+                            ) : (
+                              <CategoryBadge categories={catList} idOrLabel={rule.category} />
+                          )}
+                            <strong>{displayCurrency(rule.amount)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="recurring-rule-actions">
+                        {!isStopped ? (
+                          <button type="button" className="recurring-rule-action recurring-rule-action-stop" onClick={() => handleStopRecurringRule(rule.id)}>
+                            끊기
+                          </button>
+                        ) : (
+                          <button type="button" className="recurring-rule-action recurring-rule-action-delete" onClick={() => handleDeleteRecurringRule(rule.id)} title="이 정기기록 규칙만 목록에서 삭제합니다. 이미 기록된 거래는 유지됩니다.">
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </section>
               </div>
             )}

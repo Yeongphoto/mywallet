@@ -2066,6 +2066,198 @@ textarea:focus {
   margin-bottom: 0;
 }
 
+.settings-recurring-panel {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+}
+
+.recurring-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.recurring-section-header h3,
+.recurring-section-header p {
+  margin: 0;
+}
+
+.recurring-section-header h3 {
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  font-weight: 850;
+}
+
+.recurring-section-header p {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.recurring-type-legend {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.recurring-type-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.recurring-type-legend i,
+.recurring-rule-type-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-expense);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.recurring-rule-type-dot {
+  align-self: stretch;
+  width: 8px;
+  height: auto;
+  min-height: 52px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.recurring-type-legend .income i,
+.recurring-rule-card.income .recurring-rule-type-dot {
+  background: var(--color-income);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.recurring-type-legend .transfer i,
+.recurring-rule-card.transfer .recurring-rule-type-dot {
+  background: var(--color-transfer);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+}
+
+.recurring-rule-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recurring-rule-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  background: var(--bg-card);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.recurring-rule-card.is-stopped {
+  opacity: 0.68;
+}
+
+.recurring-rule-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  min-width: 0;
+  gap: 12px;
+}
+
+.recurring-rule-title h4 {
+  margin: 0;
+}
+
+.recurring-rule-title h4 {
+  color: var(--text-primary);
+  font-size: 1.22rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.recurring-rule-finance,
+.recurring-rule-status {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.recurring-rule-title,
+.recurring-rule-finance {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.recurring-rule-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.recurring-rule-finance {
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.recurring-rule-side {
+  display: grid;
+  justify-items: end;
+}
+
+.recurring-rule-finance > span {
+  display: inline-flex !important;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 22px;
+  padding: 2px 6px !important;
+  font-size: 0.68rem !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recurring-rule-finance strong {
+  flex: 0 0 auto;
+  color: var(--text-primary);
+  font-size: 1.22rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recurring-rule-status {
+  color: color-mix(in srgb, var(--text-secondary) 54%, transparent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.recurring-rule-status.is-stopped {
+  color: var(--text-secondary);
+}
+
+.recurring-rules-empty {
+  padding: 28px 20px;
+  border: 1px dashed var(--border-card);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .settings-managed-category-grid {
   width: 100%;
 }
@@ -2277,9 +2469,9 @@ textarea:focus {
 }
 
 .recurring-rule-action {
-  min-height: 34px;
-  padding: 0 12px;
-  border-radius: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
   border: 1px solid var(--border-card);
   background: var(--bg-card);
   color: var(--text-primary);

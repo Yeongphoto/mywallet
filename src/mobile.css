@@ -415,6 +415,38 @@
     align-items: center !important;
   }
 
+  .recurring-section-header {
+    align-items: flex-start;
+  }
+
+  .recurring-type-legend {
+    max-width: 52%;
+    gap: 6px;
+    margin-right: 16px;
+  }
+
+  .recurring-rule-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .recurring-rule-type-dot {
+    margin-top: 0;
+  }
+
+  .recurring-rule-actions {
+    grid-column: auto;
+    justify-content: center;
+    width: auto;
+  }
+
+  .recurring-rule-action {
+    width: auto;
+    min-height: 44px;
+  }
+
   .calendar-view-container {
     overflow: hidden;
   }
