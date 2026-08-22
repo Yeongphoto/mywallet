@@ -2923,6 +2923,7 @@ export default function App() {
 
 
             {/* 자산 분배 현황 원형 그래프 패널 */}
+            <div className="summary-visual-grid">
             <section className="glass-panel asset-distribution-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
               <div className="panel-header asset-distribution-header">
                 <h2 className="panel-title-kor">자산 분배 현황</h2>
@@ -3099,7 +3100,7 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px', overflow: 'visible', zIndex: 10 }}>
+            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', paddingLeft: '8px', paddingRight: '8px', overflow: 'visible', zIndex: 10 }}>
               <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 <div>
                   <h2 className="panel-title-kor">연간 그래프</h2>
@@ -3188,7 +3189,7 @@ export default function App() {
               {/* 연간 차트 영역 */}
               <div style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '100%', position: 'relative' }}>
-                  <svg width="100%" height="240" viewBox="0 0 560 240" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
+                  <svg width="100%" height="320" viewBox="0 0 560 320" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
@@ -3232,12 +3233,12 @@ export default function App() {
                       const chartMaxY = isAssetChart
                         ? Math.ceil((assetMaximum + stepSize * 0.5) / stepSize) * stepSize
                         : Math.ceil(standardMaximum / stepSize) * stepSize;
-                      const scale = 150 / Math.max(chartMaxY - chartMinY, stepSize);
+                      const scale = 210 / Math.max(chartMaxY - chartMinY, stepSize);
                       const gridValues = [];
                       for (let value = chartMinY; value <= chartMaxY; value += stepSize) {
                         gridValues.push(value);
                       }
-                      const chartY = (value: number) => 190 - (value - chartMinY) * scale;
+                      const chartY = (value: number) => 260 - (value - chartMinY) * scale;
                       const chartX = (index: number) => 48 + index * (482 / 12) + (482 / 24);
                       const formatAxisValue = (value: number) => {
                         const sign = value < 0 ? '-' : '';
@@ -3324,7 +3325,7 @@ export default function App() {
                                   x={xCenter - (482 / 24)} 
                                   y="20" 
                                   width={482 / 12} 
-                                  height="180" 
+                                  height="250"
                                   fill="transparent"
                                 />
 
@@ -3332,7 +3333,7 @@ export default function App() {
                                 {showIncome && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter - 12 : xCenter - 9}
-                                    y={190 - incHeight}
+                                    y={260 - incHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
@@ -3347,7 +3348,7 @@ export default function App() {
                                 {showExpense && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
-                                    y={190 - expHeight}
+                                    y={260 - expHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
@@ -3373,7 +3374,7 @@ export default function App() {
                                 {/* X축 월 이름 라벨 */}
                                 <text
                                   x={xCenter}
-                                  y="210"
+                                  y="280"
                                   textAnchor="middle"
                                   fontSize="11"
                                   fontWeight="bold"
@@ -3450,16 +3451,18 @@ export default function App() {
                 </div>
               )}
             </section>
+            </div>
 
             {/* Category summary table */}
-            <section className="glass-panel summary-table-grid" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <section className="glass-panel summary-table-grid">
               <div className="panel-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px', marginBottom: '8px', gridColumn: '1 / -1' }}>
                 <div>
                   <h2 className="panel-title-kor">카테고리별 요약</h2>
                 </div>
                 
                 {/* 드롭다운 셀렉트 박스 */}
-                <select 
+                <select
+                  className="summary-category-select"
                   value={summaryType} 
                   onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
                   style={{
@@ -3484,7 +3487,13 @@ export default function App() {
               </div>
 
               {/* 선택된 요약 테이블만 렌더링 */}
-              <div style={{ width: '100%', gridColumn: '1 / -1' }}>
+              <div className="summary-category-columns">
+                <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} />
+                <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} formatMoney={displayCurrency} />
+                <CategorySummaryColumn title="자산 분배 상태 요약" categories={activeAssetCategories} values={assetSummary} formatMoney={displayCurrency} />
+              </div>
+
+              <div className="summary-category-mobile">
                 {summaryType === 'expense' && (
                   <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} />
                 )}
@@ -5373,6 +5382,7 @@ function FlowRowItem({
 function CategorySummaryColumn({ title, categories, values, formatMoney = formatCurrency }: { title: string; categories: CategoryOption[]; values: Record<string, number>; formatMoney?: (value: number) => string }) {
   const validCategories = categories.filter(category => (values[category.id] ?? 0) !== 0);
   const total = validCategories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
+  const summaryKind = title.includes('지출') ? 'expense' : title.includes('수입') ? 'income' : 'asset';
 
   let emptyMsg = "표시할 내역이 없습니다.";
   if (title.includes("지출")) emptyMsg = "표시할 지출이 없습니다.";
@@ -5381,14 +5391,15 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
 
   if (validCategories.length === 0) {
     return (
-      <article className="summary-column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', background: 'var(--bg-input)', borderRadius: '16px', border: '1px dashed var(--border-input)' }}>
+      <article className={`summary-column summary-column-${summaryKind}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', background: 'var(--bg-input)', borderRadius: '16px', border: '1px dashed var(--border-input)' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: 'bold', margin: 0 }}>{emptyMsg}</p>
       </article>
     );
   }
 
   return (
-    <article className="summary-column">
+    <article className={`summary-column summary-column-${summaryKind}`}>
+      <h3>{title}</h3>
       <table>
         <tbody>
           {validCategories.map((category) => (

@@ -726,6 +726,18 @@ textarea:focus {
   margin-bottom: 14px;
 }
 
+.summary-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.summary-visual-grid > .glass-panel {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
 .summary-card {
   position: relative;
   overflow: hidden;
@@ -2584,6 +2596,22 @@ textarea:focus {
   gap: 20px;
 }
 
+.summary-category-columns {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-category-mobile {
+  display: none;
+  grid-column: 1 / -1;
+}
+
+.summary-category-select {
+  display: none;
+}
+
 .summary-column {
   border-radius: 16px;
   overflow: hidden;
@@ -2599,6 +2627,21 @@ textarea:focus {
   text-align: center;
   background: var(--bg-sidebar);
   color: #fff;
+}
+
+.summary-column-expense h3 {
+  background: color-mix(in srgb, var(--color-expense) 16%, var(--bg-card));
+  color: color-mix(in srgb, var(--color-expense) 72%, var(--text-primary));
+}
+
+.summary-column-income h3 {
+  background: color-mix(in srgb, var(--color-income) 15%, var(--bg-card));
+  color: color-mix(in srgb, var(--color-income) 72%, var(--text-primary));
+}
+
+.summary-column-asset h3 {
+  background: color-mix(in srgb, var(--color-asset) 15%, var(--bg-card));
+  color: color-mix(in srgb, var(--color-asset) 72%, var(--text-primary));
 }
 
 .summary-column table {
