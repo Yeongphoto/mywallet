@@ -55,6 +55,7 @@ type ThemePreference = 'system' | 'light' | 'dark';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 const SYNC_OVERLAY_MIN_DURATION = 2000;
+const LOADING_ORBIT_DURATION = 1200;
 
 interface NoticeState {
   id: number;
@@ -833,6 +834,10 @@ export default function App() {
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingOrbitDelay] = useState(() => {
+    const elapsed = typeof performance === 'undefined' ? 0 : performance.now() % LOADING_ORBIT_DURATION;
+    return `-${elapsed}ms`;
+  });
   const [isSyncOverlayVisible, setIsSyncOverlayVisible] = useState(false);
   const [remoteSync, setRemoteSync] = useState<RemoteSyncState>({
     status: 'checking',
@@ -2651,7 +2656,7 @@ export default function App() {
         <div className="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
           <div className="app-loading-mark" aria-hidden="true">
             <span className="app-loading-orbit-track" />
-            <span className="app-loading-orbit" />
+            <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
             <div className="app-loading-logo">
               <MyWalletLogo style={{ width: '100%', height: '100%' }} />
             </div>
