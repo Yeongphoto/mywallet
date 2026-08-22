@@ -3732,6 +3732,27 @@ textarea:focus {
   cursor: pointer;
 }
 
+.asset-distribution-header {
+  margin-bottom: 0;
+}
+
+.asset-distribution-header h2 {
+  margin: 0;
+}
+
+.asset-distribution-header .asset-detail-toggle {
+  align-self: auto;
+  margin: 0;
+}
+
+.yearly-asset-current {
+  color: var(--color-asset);
+  font-size: 0.8rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .asset-detail-toggle input {
   width: 17px;
   height: 17px;

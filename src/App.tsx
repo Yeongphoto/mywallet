@@ -761,10 +761,38 @@ export default function App() {
         .filter((t) => t.type === 'income' && !isOpeningBalanceTransaction(t))
         .reduce((sum, t) => sum + t.amount, 0);
       const expense = monthlyTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const isFutureMonth = monthStr > today.slice(0, 7);
+      if (isFutureMonth) {
+        return { month: `${Number(mo)}월`, income, expense, asset: null };
+      }
       const monthEnd = `${monthStr}-${String(new Date(Number(year), Number(mo), 0).getDate()).padStart(2, '0')}`;
       const balanceDate = monthEnd < today ? monthEnd : today;
-      const balances = new Map(assets.map((asset) => [asset.id, asset.amount]));
-      transactions.filter((t) => t.date <= balanceDate).forEach((transaction) => {
+      const balanceTransactions = transactions.filter((transaction) => transaction.date <= balanceDate);
+      const balances = new Map(assets.map((asset) => {
+        let openingBalance = 0;
+        let hasOpeningBalance = false;
+        balanceTransactions.forEach((transaction) => {
+          if (!isOpeningBalanceTransaction(transaction)) return;
+          if (transaction.type === 'income' && transaction.assetId === asset.id) {
+            openingBalance += transaction.amount;
+            hasOpeningBalance = true;
+          } else if (transaction.type === 'expense' && transaction.assetId === asset.id) {
+            openingBalance -= transaction.amount;
+            hasOpeningBalance = true;
+          } else if (transaction.type === 'transfer') {
+            if (transaction.assetId === asset.id) {
+              openingBalance -= transaction.amount;
+              hasOpeningBalance = true;
+            }
+            if (transaction.toAssetId === asset.id) {
+              openingBalance += transaction.amount;
+              hasOpeningBalance = true;
+            }
+          }
+        });
+        return [asset.id, hasOpeningBalance ? openingBalance : asset.amount] as const;
+      }));
+      balanceTransactions.filter((transaction) => !isOpeningBalanceTransaction(transaction)).forEach((transaction) => {
         if (transaction.type === 'income' && transaction.assetId) {
           balances.set(transaction.assetId, (balances.get(transaction.assetId) ?? 0) + transaction.amount);
         } else if (transaction.type === 'expense' && transaction.assetId) {
@@ -786,6 +814,11 @@ export default function App() {
       };
     });
   }, [transactions, assets, selectedMonth, allAssetCategories, categoryLabels, isOpeningBalanceTransaction]);
+
+  const latestTrackedAsset = useMemo(
+    () => [...yearlyData].reverse().find((data) => data.asset !== null) ?? null,
+    [yearlyData],
+  );
 
   // Calendar states
   const [calendarYear, setCalendarYear] = useState(() => Number(selectedMonth.slice(0, 4)));
@@ -2837,18 +2870,16 @@ export default function App() {
 
 
             {/* 자산 분배 현황 원형 그래프 패널 */}
-            <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
-              <div className="panel-header" style={{ marginBottom: '0px' }}>
-                <div>
-                  <h2 className="panel-title-kor">자산 분배 현황</h2>
-                  <dl style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'nowrap', gap: '20px', margin: '8px 0 0' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', whiteSpace: 'nowrap' }}><dt>자산</dt><dd style={{ margin: 0 }}>{displayCurrency(grossAssetTotal)}</dd></div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', whiteSpace: 'nowrap' }}><dt>부채</dt><dd style={{ margin: 0 }}>{displayCurrency(liabilityTotal)}</dd></div>
-                  </dl>
-                </div>
+            <section className="glass-panel asset-distribution-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
+              <div className="panel-header asset-distribution-header">
+                <h2 className="panel-title-kor">자산 분배 현황</h2>
+                <label className="asset-detail-toggle">
+                  <input type="checkbox" checked={showAssetDetails} onChange={(event) => setShowAssetDetails(event.target.checked)} />
+                  <span>세부 자산</span>
+                </label>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '36px 0 0' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '12px 0 0' }}>
                 {/* 파이 원형 그래프 (2배 이상 확대 & 여백 완전 밀착) */}
                 <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg 
@@ -3012,10 +3043,6 @@ export default function App() {
                   </svg>
                 </div>
               </div>
-              <label className="asset-detail-toggle">
-                <input type="checkbox" checked={showAssetDetails} onChange={(event) => setShowAssetDetails(event.target.checked)} />
-                <span>세부 자산 보기</span>
-              </label>
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
@@ -3100,12 +3127,15 @@ export default function App() {
                     자산
                   </button>
                 </div>
+                {chartFilter === 'asset' && latestTrackedAsset && latestTrackedAsset.asset !== null && (
+                  <span className="yearly-asset-current">현재 순자산 {displayCurrency(latestTrackedAsset.asset)}</span>
+                )}
               </div>
 
               {/* 연간 차트 영역 */}
               <div style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ width: '100%', position: 'relative' }}>
-                  <svg width="100%" height="240" viewBox="0 0 520 240" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
+                  <svg width="100%" height="240" viewBox="0 0 560 240" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
@@ -3124,39 +3154,56 @@ export default function App() {
 
                     {/* Y축 그리드 라인 & 라벨 */}
                     {(() => {
-                      const maxVal = Math.max(
-                        ...yearlyData.map(d => {
-                          if (chartFilter === 'income') return d.income;
-                          if (chartFilter === 'expense') return d.expense;
-                          if (chartFilter === 'asset') return d.asset;
-                          return Math.max(d.income, d.expense);
+                      const isAssetChart = chartFilter === 'asset';
+                      const toNiceStep = (value: number) => {
+                        const magnitude = 10 ** Math.floor(Math.log10(value));
+                        const normalized = value / magnitude;
+                        return (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
+                      };
+                      const assetValues = yearlyData.flatMap((data) => data.asset === null ? [] : [data.asset]);
+                      const assetMinimum = Math.min(...assetValues);
+                      const assetMaximum = Math.max(...assetValues);
+                      const standardMaximum = Math.max(
+                        ...yearlyData.map((data) => {
+                          if (chartFilter === 'income') return data.income;
+                          if (chartFilter === 'expense') return data.expense;
+                          return Math.max(data.income, data.expense);
                         }),
                         100000
                       );
-
-                      const roughStep = maxVal / 5;
-                      const magnitude = 10 ** Math.floor(Math.log10(roughStep));
-                      const normalizedStep = roughStep / magnitude;
-                      const stepSize = (normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10) * magnitude;
-                      
-                      const chartMaxY = Math.ceil(maxVal / stepSize) * stepSize;
-                      const scale = 150 / chartMaxY;
-
+                      const valueRange = isAssetChart
+                        ? Math.max(assetMaximum - assetMinimum, Math.max(Math.abs(assetMaximum) * 0.04, 100000))
+                        : standardMaximum;
+                      const stepSize = toNiceStep(valueRange / 5);
+                      const chartMinY = isAssetChart ? Math.floor((assetMinimum - stepSize * 0.5) / stepSize) * stepSize : 0;
+                      const chartMaxY = isAssetChart
+                        ? Math.ceil((assetMaximum + stepSize * 0.5) / stepSize) * stepSize
+                        : Math.ceil(standardMaximum / stepSize) * stepSize;
+                      const scale = 150 / Math.max(chartMaxY - chartMinY, stepSize);
                       const gridValues = [];
-                      for (let val = 0; val <= chartMaxY; val += stepSize) {
-                        gridValues.push(val);
+                      for (let value = chartMinY; value <= chartMaxY; value += stepSize) {
+                        gridValues.push(value);
                       }
+                      const chartY = (value: number) => 190 - (value - chartMinY) * scale;
+                      const chartX = (index: number) => 48 + index * (482 / 12) + (482 / 24);
+                      const formatAxisValue = (value: number) => {
+                        const sign = value < 0 ? '-' : '';
+                        const absolute = Math.abs(value);
+                        if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(1)}억`;
+                        if (absolute >= 10000) return `${sign}${Math.round(absolute / 10000)}만`;
+                        return `${value}`;
+                      };
 
                       return (
                         <g>
                           {gridValues.map((val, idx) => {
-                            const y = 190 - (val / chartMaxY) * 150; // 차트 높이 기준 Y 좌표 (y=40 ~ y=190)
+                            const y = chartY(val); // 차트 높이 기준 Y 좌표 (y=40 ~ y=190)
                             return (
                               <g key={idx}>
                                 <line 
-                                  x1="28" 
+                                  x1="48" 
                                   y1={y} 
-                                  x2="515" 
+                                  x2="530" 
                                   y2={y} 
                                   stroke="var(--border-card)" 
                                   strokeDasharray="4 4" 
@@ -3164,36 +3211,39 @@ export default function App() {
                                   opacity="0.5"
                                 />
                                 <text 
-                                  x="22" 
+                                  x="40" 
                                   y={y + 4} 
                                   textAnchor="end" 
                                   fontSize="9.5" 
                                   fontWeight="600"
                                   fill="var(--text-secondary)"
                                 >
-                                  {val === 0 
-                                    ? '0' 
-                                    : val >= 100000000 
-                                    ? `${(val / 100000000).toFixed(1)}억` 
-                                    : val >= 10000 
-                                    ? `${Math.round(val / 10000)}만` 
-                                    : `${val}`
-                                  }
+                                  {formatAxisValue(val)}
                                 </text>
                               </g>
                             );
                           })}
 
                           {/* X축 기본 라인 */}
-                          <line x1="28" y1="190" x2="515" y2="190" stroke="var(--border-card)" strokeWidth="1.5" />
+                          <line x1="48" y1={chartY(isAssetChart ? chartMinY : 0)} x2="530" y2={chartY(isAssetChart ? chartMinY : 0)} stroke="var(--border-card)" strokeWidth="1.5" />
+
+                          {isAssetChart && (
+                            <polyline
+                              points={yearlyData.map((data, index) => data.asset === null ? null : `${chartX(index)},${chartY(data.asset)}`).filter((point): point is string => point !== null).join(' ')}
+                              fill="none"
+                              stroke="url(#chart-asset-grad)"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
 
                           {/* 12개월 바 차트 렌더 */}
                           {yearlyData.map((d, idx) => {
-                            const xCenter = 28 + idx * 40 + 20; // X축 마진을 28px까지 바짝 밀고 간격을 40px로 획기적 확장
+                            const xCenter = chartX(idx);
                             
                             const incHeight = d.income * scale;
                             const expHeight = d.expense * scale;
-                            const assetHeight = d.asset * scale;
                             
                             const showIncome = chartFilter === 'both' || chartFilter === 'income';
                             const showExpense = chartFilter === 'both' || chartFilter === 'expense';
@@ -3218,9 +3268,9 @@ export default function App() {
                               >
                                 {/* 백그라운드 마우스 감지 보이지 않는 바 */}
                                 <rect 
-                                  x={xCenter - 20} 
+                                  x={xCenter - (482 / 24)} 
                                   y="20" 
-                                  width="40" 
+                                  width={482 / 12} 
                                   height="180" 
                                   fill="transparent"
                                 />
@@ -3255,16 +3305,14 @@ export default function App() {
                                   />
                                 )}
 
-                                {showAsset && (
-                                  <rect
-                                    x={xCenter - 9}
-                                    y={190 - assetHeight}
-                                    width="18"
-                                    height={Math.max(assetHeight, 2)}
-                                    rx="3"
-                                    ry="3"
-                                    fill="url(#chart-asset-grad)"
-                                    opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
+                                {showAsset && d.asset !== null && (
+                                  <circle
+                                    cx={xCenter}
+                                    cy={chartY(d.asset)}
+                                    r={hoveredChartIndex === idx ? 5 : 3.5}
+                                    fill="var(--bg-card)"
+                                    stroke="#10b981"
+                                    strokeWidth="2.5"
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
                                 )}
@@ -3334,7 +3382,7 @@ export default function App() {
                     {chartFilter === 'asset' && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                         <span style={{ color: '#34d399', fontWeight: 600 }}>자산:</span>
-                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
+                        <span style={{ fontWeight: 'bold' }}>{yearlyData[hoveredChartIndex].asset === null ? '기록 전' : displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
                       </div>
                     )}
                     {chartFilter === 'both' && (

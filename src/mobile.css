@@ -410,6 +410,11 @@
     flex-direction: column !important;
   }
 
+  .asset-distribution-header.panel-header {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
   .calendar-view-container {
     overflow: hidden;
   }
