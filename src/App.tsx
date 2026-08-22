@@ -4756,7 +4756,7 @@ export default function App() {
         </div>
       )}
 
-      {isAssetModalOpen && (
+      {isAssetModalOpen && !isEntryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsAssetModalOpen(false)}>
           <div className="modal-content asset-entry-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
             <div className="modal-header">
@@ -4868,7 +4868,7 @@ export default function App() {
                   type="submit" 
                   className="primary-button" 
                 >
-                  <AppIcon name={editingAsset ? 'edit' : 'plus'} size={17} /> {editingAsset ? '자산 수정' : '자산 등록'}
+                  {editingAsset ? '자산 수정' : '자산 등록'}
                 </button>
               </div>
             </form>
@@ -5606,24 +5606,25 @@ function AssetRegistrationForm({
   onSave: (values: { category: string; name: string; amount: number; memo: string }) => void;
   onCancel: () => void;
 }) {
+  const [category, setCategory] = useState(editingAsset?.category || '');
+
   return (
     <form
       key={editingAsset ? editingAsset.id : 'new'}
       className="asset-entry-form"
       onSubmit={(event) => {
         event.preventDefault();
-        const category = (event.currentTarget.elements.namedItem('asset-cat') as HTMLSelectElement).value;
         const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
         const amount = parseAmount((event.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value) || 0;
         const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
         onSave({ category, name, amount, memo });
       }}
     >
-      <div className="form-group"><label>자산 분류</label><select name="asset-cat" required defaultValue={editingAsset?.category || ''}><option value="">자산 카테고리</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select></div>
+      <div className="form-group"><InstantSelect ariaLabel="자산 카테고리" value={category} placeholder="자산 카테고리" options={categories.map((item) => ({ value: item.id, label: item.label }))} onChange={setCategory} /></div>
       <div className="form-group"><label>자산 이름</label><input name="asset-name" placeholder="자산 이름" required defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''} /></div>
       <div className="form-group"><label>기초 금액</label><input type="text" name="asset-amount" inputMode="numeric" placeholder="기초 금액" required defaultValue={editingAsset ? formatNumberInput(getOpeningBalance(editingAsset)) : ''} readOnly={Boolean(editingAsset)} onChange={(event) => { const digits = event.currentTarget.value.replace(/[^\d]/g, ''); event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : ''; }} /></div>
       <div className="form-group"><label>메모</label><input name="asset-memo" placeholder="메모 (선택)" defaultValue={editingAsset?.memo || ''} /></div>
-      <div className="asset-entry-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button"><AppIcon name={editingAsset ? 'edit' : 'plus'} size={17} /> {editingAsset ? '자산 수정' : '자산 등록'}</button></div>
+      <div className="asset-entry-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button">{editingAsset ? '자산 수정' : '자산 등록'}</button></div>
     </form>
   );
 }

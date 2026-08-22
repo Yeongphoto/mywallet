@@ -2482,7 +2482,7 @@ textarea:focus {
 
 .modal-body:has(.entry-form) { display: flex; min-height: 0; max-height: calc(100vh - 124px); padding: 12px 20px !important; overflow: hidden; }
 .modal-body:has(.entry-form) .entry-form { flex: 1; min-height: 0; gap: 6px; overflow: hidden; }
-.modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; gap: 6px; overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; gap: var(--registration-field-gap); overflow-y: auto; overscroll-behavior: contain; padding-right: calc(var(--registration-gutter-right) - var(--registration-gutter-left)); }
 .modal-body:has(.entry-form) .entry-form .form-grid:has(.instant-select-menu) { overflow: visible; }
 .modal-body:has(.entry-form) .entry-form .form-grid > label:not(.recurring-toggle) { min-height: 46px; padding: 5px 12px 6px !important; }
 .modal-body:has(.entry-form) .entry-form .recurring-toggle { min-height: 36px; }
@@ -2490,13 +2490,30 @@ textarea:focus {
 .modal-body:has(.entry-form) .entry-actions > button { flex: 1; min-height: 46px; margin: 0 !important; }
 
 .entry-modal,
-.asset-entry-modal { --entry-field-height: clamp(72px, 10dvh, 104px); }
+.asset-entry-modal {
+  --entry-field-height: clamp(72px, 10dvh, 104px);
+  --registration-field-gap: 12px;
+  --registration-gutter-left: 20px;
+  --registration-gutter-right: 22px;
+}
+
+/* The retired asset modal must never overlap the unified registration modal. */
+.modal-content.asset-entry-modal:not(.entry-modal) {
+  display: none !important;
+}
 .entry-modal .entry-form .form-grid { align-content: start; }
 .entry-modal .entry-form .type-toggle-group { display: none; }
 .entry-modal .form-grid > label:not(.recurring-toggle) { min-height: var(--entry-field-height) !important; }
 .entry-modal .entry-actions > button { height: var(--entry-field-height); min-height: var(--entry-field-height); }
 .entry-modal .entry-actions > button,
 .asset-entry-modal .asset-entry-actions > button { font-size: clamp(1.1rem, 2.3dvh, 1.35rem); font-weight: 850; }
+.entry-modal .entry-actions,
+.entry-modal .asset-entry-actions {
+  box-sizing: border-box;
+  height: var(--entry-field-height);
+  min-height: var(--entry-field-height);
+  padding-top: 0 !important;
+}
 
 .registration-mode-tabs {
   display: grid;
@@ -2560,13 +2577,13 @@ textarea:focus {
   align-self: center;
 }
 
-.modal-content .form-grid .instant-select {
+.modal-content .instant-select {
   position: relative;
   align-self: center;
   width: 100%;
 }
 
-.modal-content .form-grid .instant-select-trigger {
+.modal-content .instant-select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2586,7 +2603,7 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-.modal-content .form-grid .instant-select-menu {
+.modal-content .instant-select-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -2602,7 +2619,7 @@ textarea:focus {
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
 }
 
-.modal-content .form-grid .instant-select-menu button {
+.modal-content .instant-select-menu button {
   min-height: 36px;
   padding: 0 10px;
   border: 0;
@@ -2614,8 +2631,8 @@ textarea:focus {
   text-align: left;
 }
 
-.modal-content .form-grid .instant-select-menu button.selected,
-.modal-content .form-grid .instant-select-menu button:hover {
+.modal-content .instant-select-menu button.selected,
+.modal-content .instant-select-menu button:hover {
   background: var(--bg-balance-light);
   color: var(--primary-dark);
 }
@@ -2678,24 +2695,25 @@ textarea:focus {
     box-shadow: none !important;
   }
 
-  .entry-modal .form-grid:has(.instant-select-menu) {
+  .entry-modal .form-grid:has(.instant-select-menu),
+  .entry-modal .asset-entry-form:has(.instant-select-menu) {
     overflow: visible !important;
   }
 
   .entry-modal .instant-select-menu {
-    position: fixed;
-    top: auto;
-    right: 16px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 16px;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    bottom: auto;
+    left: 0;
     z-index: 240;
-    height: min(46dvh, 360px);
-    min-height: 180px;
-    max-height: min(46dvh, 360px);
+    height: auto;
+    min-height: 0;
+    max-height: min(42dvh, 216px);
     grid-auto-rows: 36px;
     align-content: start;
-    border-radius: 18px;
-    box-shadow: 0 -10px 32px rgba(15, 23, 42, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
   }
 }
 
@@ -2717,67 +2735,12 @@ textarea:focus {
 .asset-entry-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  padding: 12px 20px;
-}
-
-.modal-content .asset-entry-form .form-group {
-  position: relative;
-  display: block !important;
-  min-height: 40px;
-  padding: 0 !important;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  gap: var(--registration-field-gap);
+  padding: 12px var(--registration-gutter-right) 16px var(--registration-gutter-left);
 }
 
 .modal-content .asset-entry-form .form-group > label {
   display: none !important;
-}
-
-.asset-entry-form .form-group > input,
-.asset-entry-form .form-group > select {
-  width: 100% !important;
-  height: 40px;
-  min-height: 40px !important;
-  padding: 0 12px !important;
-  border-radius: 14px !important;
-  font-weight: 800 !important;
-  line-height: 40px;
-}
-
-.asset-entry-form .form-group > select {
-  -webkit-appearance: none;
-  appearance: none;
-  padding-right: 34px !important;
-}
-
-.asset-entry-form .form-group:has(select)::after {
-  content: '⌄';
-  position: absolute;
-  top: 50%;
-  right: 13px;
-  transform: translateY(-54%);
-  color: var(--text-secondary);
-  font-size: 1.15rem;
-  font-weight: 900;
-  pointer-events: none;
-}
-
-.asset-entry-form .form-group:nth-child(3)::after {
-  content: '원';
-  position: absolute;
-  top: 50%;
-  right: 13px;
-  transform: translateY(-50%);
-  color: var(--text-secondary);
-  font-size: 0.92rem;
-  font-weight: 800;
-  pointer-events: none;
-}
-
-.asset-entry-form .form-group:nth-child(3) > input {
-  padding-right: 2.1em !important;
 }
 
 .asset-entry-form > div:last-child {
@@ -2826,28 +2789,20 @@ textarea:focus {
     grid-template-columns: 1fr;
     grid-template-rows: repeat(4, var(--entry-field-height)) minmax(0, 1fr) var(--entry-field-height);
     align-content: start;
-    padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+    gap: var(--registration-field-gap) !important;
+    padding: 12px var(--registration-gutter-right) calc(16px + env(safe-area-inset-bottom)) var(--registration-gutter-left);
     overflow-y: auto;
   }
 
   .asset-entry-modal .asset-entry-form .form-group {
     height: var(--entry-field-height) !important;
     min-height: var(--entry-field-height) !important;
-    padding: 0 16px !important;
-    border: 1px solid var(--border-input) !important;
-    border-radius: 18px !important;
-    background: rgba(255, 255, 255, 0.76) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 6px 18px rgba(15, 23, 42, 0.035) !important;
-  }
-
-  .asset-entry-modal .asset-entry-form .form-group:focus-within {
-    border-color: rgba(var(--primary-rgb), 0.6) !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: inset 0 0 0 1px rgba(var(--primary-rgb), 0.18) !important;
   }
 
   .asset-entry-modal .asset-entry-form .form-group > input,
-  .asset-entry-modal .asset-entry-form .form-group > select {
+  .asset-entry-modal .asset-entry-form .form-group > select,
+  .asset-entry-modal .asset-entry-form .form-group > .instant-select,
+  .asset-entry-modal .asset-entry-form .instant-select-trigger {
     height: 100% !important;
     min-height: 100% !important;
     padding: 0 !important;
@@ -2855,16 +2810,6 @@ textarea:focus {
     border-radius: 0 !important;
     font-size: clamp(1rem, 2dvh, 1.16rem) !important;
     line-height: 1.25;
-  }
-
-  .asset-entry-modal .asset-entry-form .form-group > select {
-    color: var(--text-secondary) !important;
-    padding-right: 2em !important;
-  }
-
-  .asset-entry-modal .asset-entry-form .form-group:has(select)::after {
-    right: 16px;
-    font-size: 1.15em;
   }
 
   .asset-entry-modal .asset-entry-actions {
@@ -2921,11 +2866,6 @@ textarea:focus {
 
 .modal-content .form-group > div:has(button) {
   margin-top: 2px !important;
-}
-
-.modal-content .form-group button[type="button"] {
-  width: 32px !important;
-  height: 32px !important;
 }
 
 .modal-content .recurring-toggle {
