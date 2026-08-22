@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import type { DragEvent, FormEvent } from 'react';
+import type { DragEvent, FormEvent, RefObject } from 'react';
 import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 
@@ -5553,31 +5553,36 @@ function InstantSelect({
   placeholder,
   options,
   onChange,
+  triggerRef,
+  onSelectNext,
 }: {
   ariaLabel: string;
   value: string | number;
   placeholder: string;
   options: Array<{ value: string | number; label: string }>;
   onChange: (value: string) => void;
+  triggerRef?: RefObject<HTMLButtonElement | null>;
+  onSelectNext?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
   const selectOption = (option: { value: string | number }) => {
     onChange(String(option.value));
     setIsOpen(false);
-    const focused = document.activeElement;
-    if (focused instanceof HTMLElement) focused.blur();
+    requestAnimationFrame(() => onSelectNext?.());
   };
 
   return (
     <div className="instant-select">
       <button
         type="button"
+        ref={triggerRef}
         className="instant-select-trigger"
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen((open) => !open)}
+        onFocus={() => setIsOpen(true)}
+        onClick={() => setIsOpen(true)}
       >
         <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
         <span aria-hidden="true">⌄</span>
@@ -5624,6 +5629,10 @@ function AssetRegistrationForm({
   onCancel: () => void;
 }) {
   const [category, setCategory] = useState(editingAsset?.category || '');
+  const categoryRef = useRef<HTMLButtonElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const memoRef = useRef<HTMLInputElement>(null);
 
   return (
     <form
@@ -5637,10 +5646,10 @@ function AssetRegistrationForm({
         onSave({ category, name, amount, memo });
       }}
     >
-      <div className="form-group"><InstantSelect ariaLabel="자산 카테고리" value={category} placeholder="자산 카테고리" options={categories.map((item) => ({ value: item.id, label: item.label }))} onChange={setCategory} /></div>
-      <div className="form-group"><label>자산 이름</label><input name="asset-name" placeholder="자산 이름" required defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''} /></div>
-      <div className="form-group"><label>기초 금액</label><input type="text" name="asset-amount" inputMode="numeric" placeholder="기초 금액" required defaultValue={editingAsset ? formatNumberInput(getOpeningBalance(editingAsset)) : ''} readOnly={Boolean(editingAsset)} onChange={(event) => { const digits = event.currentTarget.value.replace(/[^\d]/g, ''); event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : ''; }} /></div>
-      <div className="form-group"><label>메모</label><input name="asset-memo" placeholder="메모 (선택)" defaultValue={editingAsset?.memo || ''} /></div>
+      <div className="form-group"><InstantSelect ariaLabel="자산 카테고리" value={category} placeholder="자산 카테고리" options={categories.map((item) => ({ value: item.id, label: item.label }))} onChange={setCategory} triggerRef={categoryRef} onSelectNext={() => nameRef.current?.focus()} /></div>
+      <div className="form-group"><label>자산 이름</label><input ref={nameRef} name="asset-name" placeholder="자산 이름" required defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''} /></div>
+      <div className="form-group"><label>기초 금액</label><input ref={amountRef} type="text" name="asset-amount" inputMode="numeric" placeholder="기초 금액" required defaultValue={editingAsset ? formatNumberInput(getOpeningBalance(editingAsset)) : ''} readOnly={Boolean(editingAsset)} onChange={(event) => { const digits = event.currentTarget.value.replace(/[^\d]/g, ''); event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : ''; }} /></div>
+      <div className="form-group"><label>메모</label><input ref={memoRef} name="asset-memo" placeholder="메모 (선택)" defaultValue={editingAsset?.memo || ''} /></div>
       <div className="asset-entry-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button">{editingAsset ? '자산 수정' : '자산 등록'}</button></div>
     </form>
   );
@@ -5678,6 +5687,12 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const installmentRef = useRef<HTMLButtonElement>(null);
+  const categoryRef = useRef<HTMLButtonElement>(null);
+  const assetRef = useRef<HTMLButtonElement>(null);
+  const toAssetRef = useRef<HTMLButtonElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const currentAssetCategories = propAssetCategories || assetCategories;
 
@@ -5885,8 +5900,16 @@ function UnifiedEntryForm({
             inputMode="numeric"
             aria-label="금액"
             placeholder="금액"
+            ref={amountRef}
             value={form.amount ? formatNumberInput(parseNumberInput(form.amount)) : ''}
             onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value.replace(/[^\d]/g, '') }))}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              if (form.type === 'expense') installmentRef.current?.focus();
+              else if (form.type === 'transfer') assetRef.current?.focus();
+              else categoryRef.current?.focus();
+            }}
             autoFocus
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
@@ -5907,6 +5930,8 @@ function UnifiedEntryForm({
                 setInstallmentMonths(months);
                 if (months > 1) setIsRecurring(false);
               }}
+              triggerRef={installmentRef}
+              onSelectNext={() => categoryRef.current?.focus()}
             />
             {installmentMonths > 1 && <small>총액을 {installmentMonths}개월로 나누어 매월 무이자로 등록합니다.</small>}
           </label>
@@ -5921,6 +5946,8 @@ function UnifiedEntryForm({
               placeholder="카테고리"
               options={activeCategories.map((category) => ({ value: category.id, label: category.label }))}
               onChange={(category) => setForm((prev) => ({ ...prev, category }))}
+              triggerRef={categoryRef}
+              onSelectNext={() => assetRef.current?.focus()}
             />
           </label>
         )}
@@ -5935,6 +5962,8 @@ function UnifiedEntryForm({
                 placeholder="보내는 계좌"
                 options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
                 onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
+                triggerRef={assetRef}
+                onSelectNext={() => toAssetRef.current?.focus()}
               />
             </label>
             <label className="compact-entry-field" aria-label="받는 계좌">
@@ -5944,6 +5973,8 @@ function UnifiedEntryForm({
                 placeholder="받는 계좌"
                 options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
                 onChange={(toAssetId) => setForm((prev) => ({ ...prev, toAssetId }))}
+                triggerRef={toAssetRef}
+                onSelectNext={() => titleRef.current?.focus()}
               />
             </label>
           </>
@@ -5955,6 +5986,8 @@ function UnifiedEntryForm({
               placeholder="계좌"
               options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
               onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
+              triggerRef={assetRef}
+              onSelectNext={() => titleRef.current?.focus()}
             />
           </label>
         )}
@@ -5963,6 +5996,7 @@ function UnifiedEntryForm({
         <label className="content-entry-field compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
           <input
             type="text"
+            ref={titleRef}
             placeholder="내용"
             value={form.title}
             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
