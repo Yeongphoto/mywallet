@@ -33,6 +33,8 @@ const assetCategories: CategoryOption[] = [
 
 const STORAGE_KEY = 'mywallet:v2';
 const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
+const PENDING_TRANSACTION_OPERATIONS_KEY = 'mywallet:v2:pendingTransactionOperations';
+const SYNC_CURSOR_KEY = 'mywallet:v2:syncCursor';
 const MONTH_PICKER_YEAR_START = 2000;
 const MONTH_PICKER_YEAR_END = 2100;
 const MONTH_PICKER_ROW_HEIGHT = 38;
@@ -135,6 +137,50 @@ const numberFormatter = new Intl.NumberFormat('ko-KR', {
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
+}
+
+interface PendingTransactionOperation {
+  operationId: string;
+  payload: Record<string, unknown>;
+  createdAt: number;
+  status: 'retry' | 'conflict';
+}
+
+function readPendingTransactionOperations(): PendingTransactionOperation[] {
+  try {
+    const value = window.localStorage.getItem(PENDING_TRANSACTION_OPERATIONS_KEY);
+    const parsed = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((operation): operation is PendingTransactionOperation =>
+      typeof operation?.operationId === 'string' && operation.payload && typeof operation.payload === 'object'
+    ) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingTransactionOperations(operations: PendingTransactionOperation[]) {
+  try {
+    if (operations.length === 0) {
+      window.localStorage.removeItem(PENDING_TRANSACTION_OPERATIONS_KEY);
+      return;
+    }
+    window.localStorage.setItem(PENDING_TRANSACTION_OPERATIONS_KEY, JSON.stringify(operations));
+  } catch {
+    // A storage failure must not change server mutation behavior.
+  }
+}
+
+function updatePendingTransactionOperation(operationId: string, update?: Partial<PendingTransactionOperation>) {
+  const pending = readPendingTransactionOperations();
+  const index = pending.findIndex((operation) => operation.operationId === operationId);
+  if (index < 0 && update) {
+    pending.push({ operationId, payload: update.payload || {}, createdAt: update.createdAt || Date.now(), status: update.status || 'retry' });
+  } else if (index >= 0 && update) {
+    pending[index] = { ...pending[index], ...update };
+  } else if (index >= 0) {
+    pending.splice(index, 1);
+  }
+  writePendingTransactionOperations(pending);
 }
 
 function getCurrentTransactionDate() {
@@ -566,6 +612,11 @@ function saveRemoteD1(
 }
 
 async function saveTransactionOperation(payload: Record<string, unknown>, operationId = createId()) {
+  updatePendingTransactionOperation(operationId, {
+    payload,
+    createdAt: Date.now(),
+    status: 'retry',
+  });
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -582,10 +633,17 @@ async function saveTransactionOperation(payload: Record<string, unknown>, operat
         error.operationId = operationId;
         throw error;
       }
+      updatePendingTransactionOperation(operationId);
       return result as { transaction?: Transaction | null; transactions?: Transaction[]; transactionId?: string };
     } catch (error) {
       lastError = error;
-      if ((error as { status?: number }).status || attempt === 1) throw error;
+      if ((error as { status?: number }).status) {
+        if ((error as { status?: number }).status === 409) {
+          updatePendingTransactionOperation(operationId, { status: 'conflict' });
+        }
+        throw error;
+      }
+      if (attempt === 1) throw error;
     }
   }
   throw lastError;
@@ -807,6 +865,7 @@ export default function App() {
   const isDbLoadedRef = useRef(false);
   const skipNextPersistenceRef = useRef(true);
   const serverUpdatedAtRef = useRef(storedData.updatedAt || 0);
+  const syncCursorRef = useRef(Number(window.localStorage.getItem(SYNC_CURSOR_KEY)) || 0);
   const remoteSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const remoteSyncConflictRef = useRef(false);
   const assetsRef = useRef<AssetItem[]>(assets);
@@ -988,6 +1047,60 @@ export default function App() {
 
   function closeConfirmDialog() {
     setConfirmDialog(null);
+  }
+
+  function applySavedTransactionOperation(payload: Record<string, unknown>, result: { transaction?: Transaction | null; transactions?: Transaction[]; transactionId?: string }) {
+    skipNextPersistenceRef.current = true;
+    if (payload.op === 'transaction.create' && result.transaction) {
+      setTransactions((previous) => [result.transaction!, ...previous.filter((transaction) => transaction.id !== result.transaction!.id)]);
+      return;
+    }
+    if (payload.op === 'transaction.createBatch' && result.transactions) {
+      const savedIds = new Set(result.transactions.map((transaction) => transaction.id));
+      setTransactions((previous) => [...result.transactions!, ...previous.filter((transaction) => !savedIds.has(transaction.id))]);
+      return;
+    }
+    if (payload.op === 'transaction.update' && result.transaction) {
+      setTransactions((previous) => previous.map((transaction) => transaction.id === result.transaction!.id ? result.transaction! : transaction));
+      return;
+    }
+    if (payload.op === 'transaction.delete' && result.transactionId) {
+      setTransactions((previous) => previous.filter((transaction) => transaction.id !== result.transactionId));
+    }
+  }
+
+  async function pullTransactionChanges() {
+    const cursor = syncCursorRef.current;
+    const response = await fetch(`/api/data?after=${cursor}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('SYNC_PULL_FAILED');
+    const result = await response.json() as {
+      changes?: Array<{ cursor: number; entityType: string; entityId: string; changeType: string; payload: Transaction | null }>;
+    };
+    const pendingIds = new Set(readPendingTransactionOperations().flatMap((operation) => {
+      const transaction = operation.payload.transaction as { id?: string } | undefined;
+      const transactions = operation.payload.transactions as Array<{ id?: string }> | undefined;
+      return [transaction?.id, operation.payload.transactionId, ...(Array.isArray(transactions) ? transactions.map((item) => item.id) : [])]
+        .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    }));
+    const changes = result.changes || [];
+    const applicable: typeof changes = [];
+    let appliedCursor = cursor;
+    for (const change of changes) {
+      if (change.entityType !== 'transaction' || pendingIds.has(change.entityId)) break;
+      applicable.push(change);
+      appliedCursor = change.cursor;
+    }
+    if (applicable.length === 0) return;
+    skipNextPersistenceRef.current = true;
+    setTransactions((previous) => applicable.reduce((next, change) => {
+      if (change.changeType === 'delete') return next.filter((transaction) => transaction.id !== change.entityId);
+      if (!change.payload) return next;
+      const existing = next.find((transaction) => transaction.id === change.entityId);
+      if (existing && (existing.revision ?? 1) > (change.payload.revision ?? 1)) return next;
+      return [change.payload, ...next.filter((transaction) => transaction.id !== change.entityId)];
+    }, previous));
+    syncCursorRef.current = appliedCursor;
+    window.localStorage.setItem(SYNC_CURSOR_KEY, String(appliedCursor));
   }
 
   useEffect(() => {
@@ -1198,6 +1311,58 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isLoading || !isOnline) return;
+    let cancelled = false;
+
+    const replayPendingTransactionOperations = async () => {
+      const pending = readPendingTransactionOperations().filter((operation) => operation.status === 'retry');
+      let restored = 0;
+      for (const operation of pending) {
+        if (cancelled) return;
+        try {
+          const result = await saveTransactionOperation(operation.payload, operation.operationId);
+          if (cancelled) return;
+          applySavedTransactionOperation(operation.payload, result);
+          restored += 1;
+        } catch {
+          // Keep this operation with its original operationId for a later retry.
+        }
+      }
+      if (restored > 0 && !cancelled) {
+        showNotice(`${restored}건의 저장 대기 작업을 서버에 반영했습니다.`, '저장 재개', 'success');
+      }
+    };
+
+    void replayPendingTransactionOperations();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isOnline]);
+
+  useEffect(() => {
+    if (isLoading || !isOnline) return;
+    let cancelled = false;
+    const syncChanges = () => {
+      void pullTransactionChanges().catch(() => {
+        if (!cancelled) setRemoteSync((previous) => ({ ...previous, status: 'error', message: '서버 변경을 확인하지 못했습니다.' }));
+      });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncChanges();
+    };
+    syncChanges();
+    window.addEventListener('online', syncChanges);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const timer = window.setInterval(syncChanges, 60_000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', syncChanges);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.clearInterval(timer);
+    };
+  }, [isLoading, isOnline]);
+
+  useEffect(() => {
     assetsRef.current = assets;
   }, [assets]);
 
@@ -1283,6 +1448,8 @@ export default function App() {
             setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             setUpdatedAt(serverUpdatedAt);
             serverUpdatedAtRef.current = serverUpdatedAt;
+            syncCursorRef.current = Number(data.cursor) || 0;
+            window.localStorage.setItem(SYNC_CURSOR_KEY, String(syncCursorRef.current));
             window.localStorage.removeItem(PENDING_SYNC_KEY);
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);

@@ -9,6 +9,32 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    const url = new URL(context.request.url);
+    const after = url.searchParams.get('after');
+    if (after !== null) {
+      const cursor = Number(after);
+      if (!Number.isInteger(cursor) || cursor < 0) {
+        return new Response(JSON.stringify({ error: 'INVALID_CURSOR' }), { status: 400 });
+      }
+      const changes = await db.prepare("SELECT cursor, entity_type, entity_id, change_type, revision, payload_json FROM sync_changes WHERE cursor > ? ORDER BY cursor LIMIT 200")
+        .bind(cursor)
+        .all<any>();
+      const rows = changes.results || [];
+      return new Response(JSON.stringify({
+        changes: rows.map((change: any) => ({
+          cursor: Number(change.cursor),
+          entityType: change.entity_type,
+          entityId: change.entity_id,
+          changeType: change.change_type,
+          revision: change.revision == null ? null : Number(change.revision),
+          payload: change.payload_json ? JSON.parse(change.payload_json) : null,
+        })),
+        nextCursor: rows.length ? Number(rows[rows.length - 1].cursor) : cursor,
+      }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+    }
+    // Read the cursor first. Later writes may be included in this snapshot, but will
+    // also be returned by incremental sync; reading it first prevents a missed gap.
+    const syncCursor = await db.prepare("SELECT MAX(cursor) AS cursor FROM sync_changes").first<{ cursor: number | null }>();
     const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
       db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL").all(),
       db.prepare("SELECT * FROM assets ORDER BY category, sort_order IS NULL, sort_order, rowid").all(),
@@ -81,7 +107,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           Number(group.revision) || 0,
         ])
       ),
-      updatedAt: Number(settingsMap['updatedAt']) || 0
+      updatedAt: Number(settingsMap['updatedAt']) || 0,
+      cursor: Number(syncCursor?.cursor) || 0
     };
 
     return new Response(JSON.stringify(data), {
@@ -144,35 +171,54 @@ function isOperationId(value: unknown): value is string {
   return typeof value === 'string' && value.length >= 12 && value.length <= 128;
 }
 
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function operationRequestHash(payload: unknown) {
+  const bytes = new TextEncoder().encode(stableJson(payload));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function transactionInsertStatement(db: D1Database, transaction: any, operationId: string) {
   return db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, created_at, asset_id, to_asset_id, recurring_rule_id, installment_group_id, installment_index, installment_months, revision, last_operation_id, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NULL)")
     .bind(transaction.id, transaction.type, transaction.date, transaction.time || null, transaction.amount, transaction.title, transaction.category, transaction.createdAt ?? null, transaction.assetId || null, transaction.toAssetId || null, transaction.recurringRuleId || null, transaction.installmentGroupId || null, transaction.installmentIndex ?? null, transaction.installmentMonths ?? null, operationId);
 }
 
 async function completedOperation(db: D1Database, operationId: string) {
-  return db.prepare("SELECT entity_type, entity_id, status FROM operation_results WHERE operation_id = ?").bind(operationId).first<any>();
+  return db.prepare("SELECT entity_type, entity_id, status, response_json, request_hash FROM operation_results WHERE operation_id = ?").bind(operationId).first<any>();
 }
 
 async function operationSuccessResponse(db: D1Database, operation: any, operationId: string) {
-  if (operation.entity_type === 'transaction_batch') {
-    const rows = await db.prepare("SELECT * FROM transactions WHERE last_operation_id = ? AND deleted_at IS NULL").bind(operationId).all<any>();
-    return new Response(JSON.stringify({ success: true, operationId, transactions: (rows.results || []).map(transactionRow) }), { headers: { 'Content-Type': 'application/json' } });
-  }
-  if (operation.entity_type !== 'transaction') return null;
-  const transaction = await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(operation.entity_id).first<any>();
-  return new Response(JSON.stringify({
-    success: true,
-    operationId,
-    transaction: transaction && !transaction.deleted_at ? transactionRow(transaction) : null,
-    deleted: Boolean(transaction?.deleted_at),
-  }), { headers: { 'Content-Type': 'application/json' } });
+  if (operation.status !== 'success') return null;
+  const result = JSON.parse(operation.response_json);
+  return new Response(JSON.stringify({ ...result, operationId }), { headers: { 'Content-Type': 'application/json' } });
+}
+
+function apiError(error: string, status: number, current?: unknown) {
+  return new Response(JSON.stringify({ error, current }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 function conflictResponse(current: unknown) {
-  return new Response(JSON.stringify({ error: 'SYNC_CONFLICT', current }), {
-    status: 409,
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return apiError('REVISION_CONFLICT', 409, current);
+}
+
+async function transactionFailureResponse(db: D1Database, transactionId: string) {
+  const current = transactionId
+    ? await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>()
+    : null;
+  if (!current) return apiError('NOT_FOUND', 404);
+  if (current.deleted_at) return apiError('DELETED_CONFLICT', 409, { transaction: transactionRow(current) });
+  return conflictResponse({ transaction: transactionRow(current) });
 }
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
@@ -182,26 +228,36 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
   try {
     body = await context.request.json();
+  } catch {
+    return apiError('BAD_REQUEST', 400);
+  }
 
+  try {
     if (body.op === 'transaction.create' || body.op === 'transaction.createBatch') {
       const transactions = body.op === 'transaction.createBatch' ? body.transactions : [body.transaction];
       const operationId = body.operationId;
-      if (!isOperationId(operationId) || !Array.isArray(transactions) || transactions.length === 0 || transactions.some((transaction) => !validTransaction(transaction))) {
-        return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION' }), { status: 400 });
-      }
+      if (!isOperationId(operationId)) return apiError('BAD_REQUEST', 400);
+      if (!Array.isArray(transactions) || transactions.length === 0 || transactions.some((transaction) => !validTransaction(transaction))) return apiError('VALIDATION_ERROR', 422);
       const ids = transactions.map((transaction) => String(transaction.id));
-      if (new Set(ids).size !== ids.length) return new Response(JSON.stringify({ error: 'DUPLICATE_TRANSACTION_ID' }), { status: 400 });
+      if (new Set(ids).size !== ids.length) return apiError('VALIDATION_ERROR', 422);
+      const requestHash = await operationRequestHash(body);
       const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
       if (previous?.status === 'success') {
         const response = await operationSuccessResponse(db, previous, operationId);
         if (response) return response;
       }
       const now = Date.now();
       const entityId = body.op === 'transaction.createBatch' ? String(body.groupId || operationId) : ids[0];
-      const responseJson = JSON.stringify({ operationId, entityId, change: 'create' });
+      const savedTransactions = transactions.map((transaction) => ({ ...transaction, revision: 1 }));
+      const responseJson = JSON.stringify({
+        success: true,
+        transaction: body.op === 'transaction.create' ? savedTransactions[0] : undefined,
+        transactions: savedTransactions,
+      });
       await db.batch([
-        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, ?, ?, 'pending', ?, ?)")
-          .bind(operationId, body.op === 'transaction.createBatch' ? 'transaction_batch' : 'transaction', entityId, responseJson, now),
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, ?, ?, 'pending', ?, ?, ?)")
+          .bind(operationId, body.op === 'transaction.createBatch' ? 'transaction_batch' : 'transaction', entityId, responseJson, requestHash, now),
         ...transactions.map((transaction) => transactionInsertStatement(db, transaction, operationId)),
         ...transactions.map((transaction) => db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) VALUES ('transaction', ?, 'upsert', 1, ?, ?)")
           .bind(transaction.id, JSON.stringify({ ...transaction, revision: 1 }), now)),
@@ -209,6 +265,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
           .bind(operationId, operationId, transactions.length),
         db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
       ]);
+      const completed = await completedOperation(db, operationId);
+      if (completed?.status !== 'success') return transactionFailureResponse(db, entityId);
       const created = await db.prepare(`SELECT * FROM transactions WHERE id IN (${ids.map(() => '?').join(', ')})`).bind(...ids).all<any>();
       const result = (created.results || []).map(transactionRow);
       return new Response(JSON.stringify({ success: true, operationId, transaction: body.op === 'transaction.create' ? result[0] : undefined, transactions: result }), { headers: { 'Content-Type': 'application/json' } });
@@ -218,20 +276,21 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const transaction = body.transaction;
       const expectedRevision = Number(body.expectedRevision);
       const operationId = body.operationId;
-      if (!isOperationId(operationId) || !validTransaction(transaction) || !Number.isInteger(expectedRevision)) {
-        return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION_UPDATE' }), { status: 400 });
-      }
+      if (!isOperationId(operationId)) return apiError('BAD_REQUEST', 400);
+      if (!validTransaction(transaction) || !Number.isInteger(expectedRevision)) return apiError('VALIDATION_ERROR', 422);
+      const requestHash = await operationRequestHash(body);
       const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
       if (previous?.status === 'success') {
         const response = await operationSuccessResponse(db, previous, operationId);
         if (response) return response;
       }
       const now = Date.now();
       const nextRevision = expectedRevision + 1;
-      const responseJson = JSON.stringify({ operationId, entityId: transaction.id, change: 'update' });
+      const responseJson = JSON.stringify({ success: true, transaction: { ...transaction, revision: nextRevision } });
       await db.batch([
-        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?)")
-          .bind(operationId, transaction.id, responseJson, now),
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?, ?)")
+          .bind(operationId, transaction.id, responseJson, requestHash, now),
         db.prepare("UPDATE transactions SET type = ?, date = ?, transaction_time = ?, amount = ?, title = ?, category = ?, created_at = ?, asset_id = ?, to_asset_id = ?, recurring_rule_id = ?, installment_group_id = ?, installment_index = ?, installment_months = ?, revision = ?, last_operation_id = ? WHERE id = ? AND revision = ? AND deleted_at IS NULL")
           .bind(transaction.type, transaction.date, transaction.time || null, transaction.amount, transaction.title, transaction.category, transaction.createdAt ?? null, transaction.assetId || null, transaction.toAssetId || null, transaction.recurringRuleId || null, transaction.installmentGroupId || null, transaction.installmentIndex ?? null, transaction.installmentMonths ?? null, nextRevision, operationId, transaction.id, expectedRevision),
         db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'transaction', id, 'upsert', revision, ?, ? FROM transactions WHERE id = ? AND last_operation_id = ?")
@@ -240,6 +299,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
           .bind(operationId, transaction.id, operationId),
         db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
       ]);
+      const completed = await completedOperation(db, operationId);
+      if (completed?.status !== 'success') return transactionFailureResponse(db, String(transaction.id));
       const updated = await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(String(transaction.id)).first<any>();
       return new Response(JSON.stringify({ success: true, operationId, transaction: transactionRow(updated) }), { headers: { 'Content-Type': 'application/json' } });
     }
@@ -248,17 +309,19 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const transactionId = String(body.transactionId || '');
       const expectedRevision = Number(body.expectedRevision);
       const operationId = body.operationId;
-      if (!isOperationId(operationId) || !transactionId || !Number.isInteger(expectedRevision)) return new Response(JSON.stringify({ error: 'INVALID_TRANSACTION_DELETE' }), { status: 400 });
+      if (!isOperationId(operationId) || !transactionId || !Number.isInteger(expectedRevision)) return apiError('BAD_REQUEST', 400);
+      const requestHash = await operationRequestHash(body);
       const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
       if (previous?.status === 'success') {
         const response = await operationSuccessResponse(db, previous, operationId);
         if (response) return response;
       }
       const now = Date.now();
-      const responseJson = JSON.stringify({ operationId, entityId: transactionId, change: 'delete' });
+      const responseJson = JSON.stringify({ success: true, transactionId, deleted: true });
       await db.batch([
-        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?)")
-          .bind(operationId, transactionId, responseJson, now),
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, 'transaction', ?, 'pending', ?, ?, ?)")
+          .bind(operationId, transactionId, responseJson, requestHash, now),
         db.prepare("UPDATE transactions SET deleted_at = ?, revision = revision + 1, last_operation_id = ? WHERE id = ? AND revision = ? AND deleted_at IS NULL")
           .bind(now, operationId, transactionId, expectedRevision),
         db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'transaction', id, 'delete', revision, NULL, ? FROM transactions WHERE id = ? AND last_operation_id = ?")
@@ -267,6 +330,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
           .bind(operationId, transactionId, operationId),
         db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
       ]);
+      const completed = await completedOperation(db, operationId);
+      if (completed?.status !== 'success') return transactionFailureResponse(db, transactionId);
       return new Response(JSON.stringify({ success: true, operationId, transactionId, deleted: true }), { headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -376,19 +441,14 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     return new Response(JSON.stringify({ error: 'UNKNOWN_OPERATION' }), { status: 400 });
   } catch (err: any) {
-    if (body?.op === 'transaction.update' || body?.op === 'transaction.delete') {
+    const isConstraintError = /constraint failed/i.test(String(err?.message || ''));
+    if (isConstraintError && (body?.op === 'transaction.update' || body?.op === 'transaction.delete')) {
       const transactionId = String(body.transaction?.id || body.transactionId || '');
-      const current = transactionId
-        ? await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>()
-        : null;
-      return conflictResponse({ transaction: current && !current.deleted_at ? transactionRow(current) : null });
+      return transactionFailureResponse(db, transactionId);
     }
-    if (body?.op === 'transaction.create') {
-      const transactionId = String(body.transaction?.id || '');
-      const current = transactionId
-        ? await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>()
-        : null;
-      return conflictResponse({ transaction: current && !current.deleted_at ? transactionRow(current) : null });
+    if (isConstraintError && (body?.op === 'transaction.create' || body?.op === 'transaction.createBatch')) {
+      const transactionId = String(body.transaction?.id || body.transactions?.[0]?.id || '');
+      return transactionFailureResponse(db, transactionId);
     }
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
