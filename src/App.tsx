@@ -33,6 +33,9 @@ const assetCategories: CategoryOption[] = [
 
 const STORAGE_KEY = 'mywallet:v2';
 const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
+const MONTH_PICKER_YEAR_START = 2000;
+const MONTH_PICKER_YEAR_END = 2100;
+const MONTH_PICKER_ROW_HEIGHT = 38;
 const OPENING_BALANCE_CATEGORY = '\uAE30\uCD08\uC794\uC561';
 const categoryColorPresets = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
@@ -156,6 +159,12 @@ function getNextMonth(month: string) {
   const [year, monthNumber] = month.split('-').map(Number);
   const nextDate = new Date(year, monthNumber, 1);
   return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getPreviousMonth(month: string) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const previousDate = new Date(year, monthNumber - 2, 1);
+  return `${previousDate.getFullYear()}-${String(previousDate.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function createId() {
@@ -755,10 +764,32 @@ export default function App() {
   const skipNextPersistenceRef = useRef(true);
   const serverUpdatedAtRef = useRef(storedData.updatedAt || 0);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [monthPickerYear, setMonthPickerYear] = useState(() => Number(getCurrentMonth().slice(0, 4)));
+  const [monthPickerMonth, setMonthPickerMonth] = useState(() => Number(getCurrentMonth().slice(5, 7)));
+  const monthPickerYearRef = useRef<HTMLDivElement>(null);
+  const monthPickerMonthRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [ledgerView, setLedgerView] = useState<'daily' | 'calendar' | 'monthly'>('daily');
   const [expandedLedgerMonth, setExpandedLedgerMonth] = useState<string | null>(selectedMonth);
+
+  useEffect(() => {
+    if (!isMonthPickerOpen) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      monthPickerYearRef.current?.scrollTo({
+        top: (monthPickerYear - MONTH_PICKER_YEAR_START) * MONTH_PICKER_ROW_HEIGHT,
+        behavior: 'auto',
+      });
+      monthPickerMonthRef.current?.scrollTo({
+        top: (monthPickerMonth - 1) * MONTH_PICKER_ROW_HEIGHT,
+        behavior: 'auto',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isMonthPickerOpen]);
 
   const yearlyData = useMemo(() => {
     const year = selectedMonth.slice(0, 4);
@@ -2872,16 +2903,59 @@ export default function App() {
           >
             <AppIcon name={privacyMode ? 'eyeOff' : 'eye'} size={18} />
           </button>
-          {/* 공통 월 선택 영역 */}
-          <div className="month-picker-wrap">
-            <div className="month-picker-display">
-              {selectedMonth.replace('-', '.')} <AppIcon name="calendar" size={16} />
+          <div className="month-navigation" aria-label="조회 월 이동">
+            <button type="button" className="month-nav-button" aria-label="이전 달" onClick={() => setSelectedMonth(getPreviousMonth(selectedMonth))}>
+              <AppIcon name="chevronLeft" size={18} />
+            </button>
+            <div className="month-picker-wrap">
+              <button
+                type="button"
+                className="month-picker-display"
+                aria-haspopup="dialog"
+                aria-expanded={isMonthPickerOpen}
+                onClick={() => {
+                  setMonthPickerYear(Number(selectedMonth.slice(0, 4)));
+                  setMonthPickerMonth(Number(selectedMonth.slice(5, 7)));
+                  setIsMonthPickerOpen((open) => !open);
+                }}
+              >
+                {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월 <AppIcon name="calendar" size={16} />
+              </button>
             </div>
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={(event) => setSelectedMonth(event.target.value)}
-            />
+            <button type="button" className="month-nav-button" aria-label="다음 달" onClick={() => setSelectedMonth(getNextMonth(selectedMonth))}>
+              <AppIcon name="chevronRight" size={18} />
+            </button>
+            {isMonthPickerOpen && (
+              <div className="month-picker-popover" role="dialog" aria-label="조회 월 선택">
+                <div className="month-picker-wheel" aria-label="년월 선택">
+                  <div
+                    ref={monthPickerYearRef}
+                    className="month-picker-wheel-column"
+                    onScroll={(event) => {
+                      const index = Math.round(event.currentTarget.scrollTop / MONTH_PICKER_ROW_HEIGHT);
+                      setMonthPickerYear(Math.min(MONTH_PICKER_YEAR_END, Math.max(MONTH_PICKER_YEAR_START, MONTH_PICKER_YEAR_START + index)));
+                    }}
+                  >
+                    {Array.from({ length: MONTH_PICKER_YEAR_END - MONTH_PICKER_YEAR_START + 1 }, (_, index) => MONTH_PICKER_YEAR_START + index).map((year) => (
+                      <button key={year} type="button" className={year === monthPickerYear ? 'active' : ''} onClick={() => monthPickerYearRef.current?.scrollTo({ top: (year - MONTH_PICKER_YEAR_START) * MONTH_PICKER_ROW_HEIGHT, behavior: 'smooth' })}>{year}년</button>
+                    ))}
+                  </div>
+                  <div
+                    ref={monthPickerMonthRef}
+                    className="month-picker-wheel-column"
+                    onScroll={(event) => {
+                      const index = Math.round(event.currentTarget.scrollTop / MONTH_PICKER_ROW_HEIGHT);
+                      setMonthPickerMonth(Math.min(12, Math.max(1, index + 1)));
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+                      <button key={month} type="button" className={month === monthPickerMonth ? 'active' : ''} onClick={() => monthPickerMonthRef.current?.scrollTo({ top: (month - 1) * MONTH_PICKER_ROW_HEIGHT, behavior: 'smooth' })}>{month}월</button>
+                    ))}
+                  </div>
+                </div>
+                <button type="button" className="month-picker-confirm" onClick={() => { setSelectedMonth(`${monthPickerYear}-${String(monthPickerMonth).padStart(2, '0')}`); setIsMonthPickerOpen(false); }}>선택 완료</button>
+              </div>
+            )}
           </div>
 
           {/* 설정 바로가기 버튼 */}

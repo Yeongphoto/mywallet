@@ -13,6 +13,10 @@
   --primary: #0b8ec7;
   --primary-hover: #0675a7;
   --primary-rgb: 11, 142, 199;
+  --primary-light: #38bdf8;
+  --primary-soft: #e3f5fc;
+  --surface-inverse: #172033;
+  --brand-highlight: #0ea5e9;
   
   --color-expense: #ef4444;
   --color-income: #3b82f6;
@@ -66,6 +70,10 @@
   --primary: #38bdf8;
   --primary-hover: #7dd3fc;
   --primary-rgb: 56, 189, 248;
+  --primary-light: #7dd3fc;
+  --primary-soft: rgba(56, 189, 248, 0.16);
+  --surface-inverse: #172033;
+  --brand-highlight: #7dd3fc;
   
   --color-expense: #f87171;
   --color-income: #60a5fa;
@@ -207,7 +215,7 @@ button:active {
 }
 
 .brand-wordmark span:last-child {
-  color: #0ea5e9;
+  color: var(--brand-highlight);
 }
 
 .brand strong {
@@ -275,7 +283,7 @@ button:active {
   gap: 9px;
   border: 1px solid rgba(125, 211, 252, 0.7);
   border-radius: 14px;
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary));
   color: #fff;
   font: inherit;
   font-weight: 850;
@@ -284,7 +292,7 @@ button:active {
 }
 
 .desktop-registration-action > button:hover {
-  background: linear-gradient(135deg, #38bdf8, #0284c7);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-hover));
   box-shadow: 0 14px 26px rgba(2, 132, 199, 0.36);
   transform: translateY(-1px);
 }
@@ -314,7 +322,7 @@ button:active {
 
 
 .content {
-  padding: 88px 20px 40px;
+  padding: 104px 20px 40px;
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -330,12 +338,12 @@ button:active {
   top: 0;
   left: 260px;
   right: 0;
-  height: 56px;
+  height: 72px;
   background-color: var(--bg-app);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--border-card);
   z-index: 90;
 }
@@ -363,7 +371,7 @@ button:active {
   padding: 4px;
   border-radius: 9px;
   border: 1px solid #fff;
-  background: #172033;
+  background: var(--surface-inverse);
   box-shadow: 0 8px 18px rgba(2, 132, 199, 0.18);
 }
 
@@ -386,7 +394,7 @@ button:active {
 .app-header .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 18px;
 }
 
 /* Month Picker Overlay Styling */
@@ -394,24 +402,215 @@ button:active {
   position: relative;
   display: inline-flex;
   align-items: center;
-  background: color-mix(in srgb, var(--primary) 10%, var(--bg-input));
-  border: 1px solid color-mix(in srgb, var(--primary) 48%, var(--border-input));
-  border-radius: 11px;
-  padding: 7px 13px;
+  justify-content: center;
+  width: 144px;
+  min-height: 42px;
+  border: 0;
+  border-inline: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border-input));
+  box-sizing: border-box;
+  border-radius: 0;
+  padding: 0 14px;
   font-weight: 850;
-  font-size: 0.98rem;
+  font-size: 1.18rem;
   letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.12);
+  box-shadow: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
 .month-picker-wrap:hover {
-  border-color: var(--primary);
-  background: var(--bg-balance-light);
+  background: color-mix(in srgb, var(--primary) 18%, var(--bg-input));
+  transform: none;
+}
+
+.month-navigation {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--border-input));
+  border-radius: 14px;
+  background: var(--bg-input);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.1);
+}
+
+.month-nav-button {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--primary-soft);
+  color: var(--primary);
+  box-shadow: none;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.month-navigation > .month-nav-button:first-child { border-radius: 13px 0 0 13px; }
+.month-navigation > .month-nav-button:last-of-type { border-radius: 0 13px 13px 0; }
+
+.month-nav-button:hover {
+  background: var(--primary);
+  color: #fff;
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+}
+
+.month-picker-display {
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.month-picker-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 240;
+  width: 320px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border-card));
+  border-radius: 18px;
+  background: var(--bg-input);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.month-picker-year-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.month-picker-year-row strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.month-picker-year-row button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  justify-self: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.month-picker-year-row button:hover {
+  background: var(--bg-balance-light);
+  color: var(--primary);
+}
+
+.month-picker-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.month-picker-month-grid button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.month-picker-month-grid button:hover {
+  background: var(--bg-balance-light);
+  color: var(--primary);
+}
+
+.month-picker-month-grid button.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(var(--primary-rgb), 0.24);
+}
+
+.month-picker-wrap .month-picker-display {
+  pointer-events: auto;
+}
+
+.month-picker-wheel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: relative;
+  margin: 0 -4px 12px;
+}
+
+.month-picker-wheel-column {
+  display: block;
+  height: 190px;
+  overflow-y: auto;
+  padding: 76px 0;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  text-align: center;
+}
+
+.month-picker-wheel-column::-webkit-scrollbar { display: none; }
+
+.month-picker-wheel-column button {
+  width: 100%;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  opacity: 0.28;
+  scroll-snap-align: center;
+  transition: opacity 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.month-picker-wheel-column button:hover {
+  opacity: 0.75;
+}
+
+.month-picker-wheel-column button:focus:not(:focus-visible) { outline: none; }
+.month-picker-wheel-column button:focus-visible { outline: 2px solid var(--primary); outline-offset: -3px; }
+
+.month-picker-wheel-column button.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 1.12rem;
+  font-weight: 850;
+  opacity: 1;
+}
+
+.month-picker-confirm {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(var(--primary-rgb), 0.28);
+  font: inherit;
+  font-weight: 850;
+}
+
+.month-picker-confirm:hover {
+  background: var(--primary-hover);
 }
 
 .month-picker-wrap input[type="month"] {
@@ -438,17 +637,19 @@ button:active {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 18px;
 }
 
 .sync-mini-indicator {
-  width: 20px;
-  height: 20px;
-  min-height: 0;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
   display: inline-flex;
   padding: 0;
-  border: 0;
-  background: transparent;
+  border: 1px solid var(--border-input);
+  border-radius: 12px;
+  background: var(--bg-input);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   align-items: center;
   justify-content: center;
@@ -467,8 +668,8 @@ button:active {
 }
 
 .sync-mini-indicator span {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
   display: block;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -510,8 +711,8 @@ button:active {
 }
 
 .privacy-toggle {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   display: inline-grid;
   place-items: center;
   border: 1px solid var(--border-input);
@@ -537,8 +738,8 @@ button:active {
 .header-settings-btn {
   background: var(--bg-input);
   border: 1px solid var(--border-input);
-  border-radius: 10px;
-  padding: 6px 12px;
+  border-radius: 12px;
+  padding: 8px 14px;
   font-weight: 700;
   font-size: 0.9rem;
   color: var(--text-primary);
@@ -548,7 +749,10 @@ button:active {
   gap: 6px;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 35px; /* 날짜선택기와 동등한 미니멀 높이 */
+  width: 42px;
+  min-height: 42px; /* 날짜선택기와 동등한 미니멀 높이 */
+  padding: 0;
+  justify-content: center;
 }
 
 .header-settings-btn:hover {
