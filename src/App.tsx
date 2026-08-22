@@ -579,28 +579,38 @@ function createCSVRow(values: unknown[]) {
   return values.map(escapeCSVCell).join(',');
 }
 
-function parseCSVLine(line: string) {
-  const cells: string[] = [];
+function parseCSVRows(text: string) {
+  const rows: string[][] = [];
+  let cells: string[] = [];
   let current = '';
   let inQuotes = false;
 
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    const next = line[i + 1];
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
     if (char === '"' && inQuotes && next === '"') {
       current += '"';
       i += 1;
     } else if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
-      cells.push(current.trim());
+      cells.push(current);
+      current = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i += 1;
+      cells.push(current);
+      if (cells.some((cell) => cell.length > 0)) rows.push(cells);
+      cells = [];
       current = '';
     } else {
       current += char;
     }
   }
-  cells.push(current.trim());
-  return cells;
+
+  if (inQuotes) throw new Error('닫히지 않은 CSV 따옴표가 있습니다.');
+  cells.push(current);
+  if (cells.some((cell) => cell.length > 0)) rows.push(cells);
+  return rows;
 }
 
 function formatSyncTime(value?: number) {
@@ -2477,7 +2487,7 @@ export default function App() {
 
   function exportFullCSV() {
     const backupSettings = {
-      version: 2,
+      version: 3,
       exportedAt: Date.now(),
       budget,
       theme,
@@ -2495,12 +2505,12 @@ export default function App() {
     };
 
     const rows = [
-      createCSVRow(['SECTION', 'ID', 'TYPE_OR_CATEGORY', 'DATE_OR_MEMO', 'AMOUNT', 'TITLE', 'EXTRA', 'JSON']),
-      createCSVRow(['SETTINGS', 'mywallet-v2', '', '', '', '', '', JSON.stringify(backupSettings)]),
-      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? '', t.assetId ?? '', t.toAssetId ?? '', t.time ?? '', t.createdAt ?? ''])),
-      ...assets.map((a) => createCSVRow(['A', a.id, a.category, a.amount, a.memo, '', '', ''])),
-      ...plans.map((p) => createCSVRow(['P', p.category, p.type, p.plannedAmount, '', '', '', ''])),
-      createCSVRow(['BUDGET', budget, '', '', '', '', '', '']),
+      createCSVRow(['SECTION', 'ID', 'TYPE_OR_CATEGORY', 'DATE_OR_MEMO', 'AMOUNT', 'TITLE', 'EXTRA', 'RECURRING_RULE_ID', 'ASSET_ID', 'TO_ASSET_ID', 'TIME', 'CREATED_AT', 'INSTALLMENT_GROUP_ID', 'INSTALLMENT_INDEX', 'INSTALLMENT_MONTHS', 'JSON']),
+      createCSVRow(['SETTINGS', 'mywallet-v3', '', '', '', '', '', '', '', '', '', '', '', '', '', JSON.stringify(backupSettings)]),
+      ...transactions.map((t) => createCSVRow(['T', t.id, t.type, t.date, t.amount, t.title, t.category, t.recurringRuleId ?? '', t.assetId ?? '', t.toAssetId ?? '', t.time ?? '', t.createdAt ?? '', t.installmentGroupId ?? '', t.installmentIndex ?? '', t.installmentMonths ?? '', ''])),
+      ...assets.map((a) => createCSVRow(['A', a.id, a.category, a.amount, a.memo, a.name ?? '', '', '', '', '', '', '', '', '', '', ''])),
+      ...plans.map((p) => createCSVRow(['P', p.category, p.type, p.plannedAmount, '', '', '', '', '', '', '', '', '', '', '', ''])),
+      createCSVRow(['BUDGET', budget, '', '', '', '', '', '', '', '', '', '', '', '', '', '']),
     ];
 
     downloadCSV(`${rows.join('\n')}\n`, `mywallet_full_backup_${selectedMonth.replace('-', '')}.csv`);
@@ -2517,11 +2527,17 @@ export default function App() {
       if (!text) return;
 
       try {
-        const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim());
+        const rows = parseCSVRows(text.replace(/^\uFEFF/, ''));
+        const [header, ...dataRows] = rows;
+        if (!header || header[0] !== 'SECTION') throw new Error('MyWallet 전체 백업 CSV 형식이 아닙니다.');
         const newTransactions: Transaction[] = [];
         const newAssets: AssetItem[] = [];
         const newPlans: CategoryPlan[] = [];
+        const transactionIds = new Set<string>();
+        const assetIds = new Set<string>();
+        let invalidRows = 0;
         let importedSettings: Partial<{
+          version: number;
           budget: number;
           theme: ThemePreference;
           customExpenseCategories: CategoryOption[];
@@ -2537,15 +2553,23 @@ export default function App() {
         }> | null = null;
         let newBudget = budget;
 
-        lines.forEach((line) => {
-          const cells = parseCSVLine(line);
+        dataRows.forEach((cells) => {
           if (cells[0] === 'SECTION') return;
           if (cells[0] === 'T') {
+            const type = cells[2];
+            const amount = Number(cells[4]);
+            if (!cells[1] || transactionIds.has(cells[1]) || !['income', 'expense', 'transfer'].includes(type) || !/^\d{4}-\d{2}-\d{2}$/.test(cells[3]) || !Number.isFinite(amount) || amount < 0 || !cells[5]) {
+              invalidRows += 1;
+              return;
+            }
+            const installmentIndex = Number(cells[13]);
+            const installmentMonths = Number(cells[14]);
+            transactionIds.add(cells[1]);
             newTransactions.push({
               id: cells[1],
-              type: cells[2] as TransactionType,
+              type: type as TransactionType,
               date: cells[3],
-              amount: Number(cells[4]),
+              amount,
               title: cells[5],
               category: cells[6],
               recurringRuleId: cells[7] || null,
@@ -2553,30 +2577,59 @@ export default function App() {
               toAssetId: cells[9] || null,
               time: normalizeTransactionTime(cells[10]),
               createdAt: cells[11] ? Number(cells[11]) : cells[10] && !isValidTransactionTime(cells[10]) ? Number(cells[10]) : null,
+              installmentGroupId: cells[12] || null,
+              installmentIndex: Number.isInteger(installmentIndex) && installmentIndex > 0 ? installmentIndex : null,
+              installmentMonths: Number.isInteger(installmentMonths) && installmentMonths > 0 ? installmentMonths : null,
             });
           } else if (cells[0] === 'A') {
+            const amount = Number(cells[3]);
+            if (!cells[1] || assetIds.has(cells[1]) || !cells[2] || !Number.isFinite(amount)) {
+              invalidRows += 1;
+              return;
+            }
+            assetIds.add(cells[1]);
             newAssets.push({
               id: cells[1],
               category: cells[2],
-              amount: Number(cells[3]),
+              amount,
               memo: cells[4],
+              name: cells[5] || undefined,
             });
           } else if (cells[0] === 'P') {
+            const plannedAmount = Number(cells[3]);
+            if (!cells[1] || !['income', 'expense', 'transfer'].includes(cells[2]) || !Number.isFinite(plannedAmount)) {
+              invalidRows += 1;
+              return;
+            }
             newPlans.push({
               category: cells[1],
               type: cells[2] as TransactionType,
-              plannedAmount: Number(cells[3]) || 0,
+              plannedAmount,
             });
           } else if (cells[0] === 'BUDGET') {
-            newBudget = Number(cells[1]) || 1000000;
+            const parsedBudget = Number(cells[1]);
+            if (!Number.isFinite(parsedBudget)) {
+              invalidRows += 1;
+              return;
+            }
+            newBudget = parsedBudget;
           } else if (cells[0] === 'SETTINGS') {
-            const rawJson = cells[7] || cells[1] || '';
+            const rawJson = cells[15] || cells[7] || cells[1] || '';
             if (rawJson) {
-              importedSettings = JSON.parse(rawJson);
-              newBudget = Number(importedSettings?.budget) || newBudget;
+              const parsedSettings = JSON.parse(rawJson);
+              if (!parsedSettings || typeof parsedSettings !== 'object' || Array.isArray(parsedSettings)) throw new Error('설정 백업 데이터가 올바르지 않습니다.');
+              importedSettings = parsedSettings;
+              const parsedBudget = Number((parsedSettings as { budget?: unknown }).budget);
+              if (Number.isFinite(parsedBudget)) newBudget = parsedBudget;
             }
           }
         });
+
+        if (invalidRows > 0) throw new Error(`유효하지 않은 백업 행 ${invalidRows}개가 있어 복원을 중단했습니다.`);
+        const restoredAssetIds = new Set(newAssets.map((asset) => asset.id));
+        if (newTransactions.some((transaction) => (transaction.assetId && !restoredAssetIds.has(transaction.assetId)) || (transaction.toAssetId && !restoredAssetIds.has(transaction.toAssetId)))) {
+          throw new Error('존재하지 않는 자산을 참조하는 거래가 있어 복원을 중단했습니다.');
+        }
 
         if (newTransactions.length > 0 || newAssets.length > 0 || newPlans.length > 0 || importedSettings) {
           requestConfirm({
@@ -4570,14 +4623,8 @@ export default function App() {
                   </article>
                 </div>
                 <div className="settings-row">
-                  <strong>백업 및 복원</strong>
-                  <div className="settings-actions">
-                    <button type="button" className="primary-button" onClick={exportCSV}>CSV 백업</button>
-                    <label className="primary-button">
-                      CSV 복원
-                      <input type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
-                    </label>
-                  </div>
+                  <strong>안전한 전체 백업</strong>
+                  <span>위 CSV DATA에서 백업과 복원을 진행하세요.</span>
                 </div>
               </div>
             )}
