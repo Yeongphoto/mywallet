@@ -2671,6 +2671,14 @@ textarea:focus {
 }
 
 @media (max-width: 768px) {
+  .entry-modal .modal-header {
+    padding: 24px 40px;
+  }
+
+  .entry-modal .registration-mode-tabs {
+    padding: 16px 40px 8px;
+  }
+
   .modal-backdrop:has(.entry-modal) {
     display: block;
     padding: 0 !important;
@@ -2698,7 +2706,7 @@ textarea:focus {
     flex: 1;
     min-height: 0;
     max-height: none !important;
-    padding: 12px 20px calc(16px + env(safe-area-inset-bottom)) !important;
+    padding: 24px 40px calc(32px + env(safe-area-inset-bottom)) !important;
   }
 
   /* Keep the generously sized input areas, while scaling their guidance
@@ -2720,12 +2728,30 @@ textarea:focus {
     justify-self: start;
     align-self: center;
     width: auto;
-    min-height: 36px !important;
+    min-height: 48px !important;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
+  }
+
+  .entry-modal .entry-form .recurring-toggle-mark {
+    width: 44px;
+    height: 26px;
+  }
+
+  .entry-modal .entry-form .recurring-toggle-mark::after {
+    width: 20px;
+    height: 20px;
+  }
+
+  .entry-modal .entry-form .recurring-toggle input:checked + .recurring-toggle-mark::after {
+    transform: translateX(18px);
+  }
+
+  .entry-modal .entry-form .recurring-toggle-text {
+    font-size: 0.94rem;
   }
 
   .entry-modal .form-grid:has(.instant-select-menu),
@@ -2823,7 +2849,7 @@ textarea:focus {
     grid-template-rows: repeat(4, var(--entry-field-height)) minmax(0, 1fr) var(--entry-field-height);
     align-content: start;
     gap: var(--registration-field-gap) !important;
-    padding: 12px var(--registration-gutter-right) calc(16px + env(safe-area-inset-bottom)) var(--registration-gutter-left);
+    padding: 24px calc(var(--registration-gutter-right) * 2) calc(32px + env(safe-area-inset-bottom)) calc(var(--registration-gutter-left) * 2);
     overflow-y: auto;
   }
 
