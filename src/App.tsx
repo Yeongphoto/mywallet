@@ -573,50 +573,10 @@ function saveLocalStorage(
   }
 }
 
-function saveRemoteD1(
-  transactions: Transaction[], 
-  assets: AssetItem[], 
-  budget: number, 
-  theme: ThemePreference,
-  plans: CategoryPlan[],
-  customExpenseCategories: CategoryOption[],
-  customIncomeCategories: CategoryOption[],
-  customAssetCategories: CategoryOption[],
-  categoryColors: CategoryColorMap,
-  categoryLabels: CategoryLabelMap,
-  categoryBudgetExcluded: CategoryBudgetExcludedMap,
-  categoryOrder: CategoryOrderMap,
-  hiddenCategories: HiddenCategoryMap,
-  recurringRules: RecurringRule[],
-  deletedRecurringTxs: string[],
-  updatedAt: number,
-  baseUpdatedAt?: number
-) {
-  return fetch("/api/data", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      transactions,
-      assets,
-      budget,
-      theme,
-      plans,
-      customExpenseCategories,
-      customIncomeCategories,
-      customAssetCategories,
-      categoryColors,
-      categoryLabels,
-      categoryBudgetExcluded,
-      categoryOrder,
-      hiddenCategories,
-      recurringRules,
-      deletedRecurringTxs,
-      updatedAt,
-      baseUpdatedAt
-    })
-  });
+// The legacy full-snapshot writer is intentionally retained as a no-op while
+// older UI paths are being removed. It must never send client state to D1.
+function saveRemoteD1(..._snapshot: unknown[]) {
+  return Promise.resolve(new Response(JSON.stringify({ error: 'FULL_SNAPSHOT_DISABLED' }), { status: 410 }));
 }
 
 async function saveTransactionOperation(payload: Record<string, unknown>, operationId = createId()) {
