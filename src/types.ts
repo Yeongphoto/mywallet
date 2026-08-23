@@ -22,7 +22,20 @@ export interface Transaction {
   installmentGroupId?: string | null;
   installmentIndex?: number | null;
   installmentMonths?: number | null;
+  cardSettlementId?: string | null;
   revision?: number;
+}
+
+export interface CardSettlement {
+  id: string;
+  cardAssetId: string;
+  paymentAssetId: string;
+  periodStart: string;
+  periodEnd: string;
+  dueDate: string;
+  amount: number;
+  transactionId: string;
+  settledAt: number;
 }
 
 export interface AssetItem {
@@ -35,6 +48,11 @@ export interface AssetItem {
   memo: string;
   revision?: number;
   sortOrder?: number;
+  // Both values are optional. When absent, the asset is tracked as a simple running balance.
+  cardCycleStartDay?: number | null;
+  cardCycleEndDay?: number | null;
+  cardPaymentDay?: number | null;
+  cardPaymentAssetId?: string | null;
 }
 
 export interface TransactionFormState {

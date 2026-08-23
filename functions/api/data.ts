@@ -35,14 +35,15 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     // Read the cursor first. Later writes may be included in this snapshot, but will
     // also be returned by incremental sync; reading it first prevents a missed gap.
     const syncCursor = await db.prepare("SELECT MAX(cursor) AS cursor FROM sync_changes").first<{ cursor: number | null }>();
-    const [txs, asts, plns, cats, sgs, rcRules, delTxs] = await Promise.all([
+    const [txs, asts, plns, cats, sgs, rcRules, delTxs, settlements] = await Promise.all([
       db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL").all(),
       db.prepare("SELECT * FROM assets ORDER BY category, sort_order IS NULL, sort_order, rowid").all(),
       db.prepare("SELECT * FROM plans").all(),
       db.prepare("SELECT * FROM custom_categories").all(),
       db.prepare("SELECT * FROM settings").all(),
       db.prepare("SELECT * FROM recurring_rules").all(),
-      db.prepare("SELECT * FROM deleted_recurring_txs").all()
+      db.prepare("SELECT * FROM deleted_recurring_txs").all(),
+      db.prepare("SELECT * FROM card_settlements ORDER BY due_date DESC, settled_at DESC").all()
     ]);
 
     // parse settings
@@ -67,13 +68,10 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         installmentGroupId: t.installment_group_id || null,
         installmentIndex: t.installment_index == null ? null : Number(t.installment_index),
         installmentMonths: t.installment_months == null ? null : Number(t.installment_months),
+        cardSettlementId: t.card_settlement_id || null,
         revision: Number(t.revision) || 1,
       })),
-      assets: (asts.results || []).map((asset: any) => ({
-        ...asset,
-        revision: Number(asset.revision) || 1,
-        sortOrder: asset.sort_order == null ? null : Number(asset.sort_order),
-      })),
+      assets: (asts.results || []).map(assetRow),
       plans: plns.results || [],
       customExpenseCategories: (cats.results || []).filter((c: any) => c.type === 'expense').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
       customIncomeCategories: (cats.results || []).filter((c: any) => c.type === 'income').map((c: any) => ({ id: c.id, label: c.label, color: c.color || null })),
@@ -101,6 +99,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
         endMonth: r.endMonth || null
       })),
       deletedRecurringTxs: (delTxs.results || []).map((r: any) => r.id),
+      cardSettlements: (settlements.results || []).map((settlement: any) => ({
+        id: settlement.id,
+        cardAssetId: settlement.card_asset_id,
+        paymentAssetId: settlement.payment_asset_id,
+        periodStart: settlement.period_start,
+        periodEnd: settlement.period_end,
+        dueDate: settlement.due_date,
+        amount: Number(settlement.amount),
+        transactionId: settlement.transaction_id,
+        settledAt: Number(settlement.settled_at),
+      })),
       assetOrderRevisions: Object.fromEntries(
         (await db.prepare("SELECT id, revision FROM sync_groups WHERE id LIKE 'asset-order:%'").all()).results.map((group: any) => [
           String(group.id).slice('asset-order:'.length),
@@ -132,6 +141,10 @@ function assetRow(asset: any) {
     memo: asset.memo || '',
     revision: Number(asset.revision) || 1,
     sortOrder: asset.sort_order == null ? null : Number(asset.sort_order),
+    cardCycleStartDay: asset.card_cycle_start_day == null ? null : Number(asset.card_cycle_start_day),
+    cardCycleEndDay: asset.card_cycle_end_day == null ? null : Number(asset.card_cycle_end_day),
+    cardPaymentDay: asset.card_payment_day == null ? null : Number(asset.card_payment_day),
+    cardPaymentAssetId: asset.card_payment_asset_id || null,
   };
 }
 
@@ -151,6 +164,7 @@ function transactionRow(transaction: any) {
     installmentGroupId: transaction.installment_group_id || null,
     installmentIndex: transaction.installment_index == null ? null : Number(transaction.installment_index),
     installmentMonths: transaction.installment_months == null ? null : Number(transaction.installment_months),
+    cardSettlementId: transaction.card_settlement_id || null,
     revision: Number(transaction.revision) || 1,
   };
 }
@@ -335,20 +349,106 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ success: true, operationId, transactionId, deleted: true }), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    if (body.op === 'card.settle') {
+      const operationId = body.operationId;
+      const cardAssetId = String(body.cardAssetId || '');
+      const paymentAssetId = String(body.paymentAssetId || '');
+      const periodStart = String(body.periodStart || '');
+      const periodEnd = String(body.periodEnd || '');
+      const dueDate = String(body.dueDate || '');
+      const settledDate = String(body.settledDate || '');
+      const settlementId = String(body.settlementId || '');
+      const transactionId = String(body.transactionId || '');
+      if (!isOperationId(operationId) || !cardAssetId || !paymentAssetId || !settlementId || !transactionId
+        || !/^\d{4}-\d{2}-\d{2}$/.test(periodStart) || !/^\d{4}-\d{2}-\d{2}$/.test(periodEnd)
+        || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) || !/^\d{4}-\d{2}-\d{2}$/.test(settledDate)) return apiError('BAD_REQUEST', 400);
+      const requestHash = await operationRequestHash(body);
+      const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
+      }
+      const cardAsset = await db.prepare("SELECT * FROM assets WHERE id = ?").bind(cardAssetId).first<any>();
+      const paymentAsset = await db.prepare("SELECT id FROM assets WHERE id = ?").bind(paymentAssetId).first<any>();
+      if (!cardAsset || !paymentAsset || cardAsset.card_payment_asset_id !== paymentAssetId) return apiError('INVALID_CARD_PAYMENT_ACCOUNT', 422);
+      const sourceRows = await db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL AND card_settlement_id IS NULL AND asset_id = ? AND date >= ? AND date <= ? AND date <= ? AND category <> ? AND type IN ('expense', 'income') ORDER BY date, transaction_time, id")
+        .bind(cardAssetId, periodStart, periodEnd, settledDate, 'opening-balance').all<any>();
+      const sources = sourceRows.results || [];
+      const amount = sources.reduce((sum: number, transaction: any) => sum + (transaction.type === 'expense' ? Number(transaction.amount) : -Number(transaction.amount)), 0);
+      if (!sources.length || amount <= 0) return apiError('NO_CARD_BALANCE_TO_SETTLE', 422);
+      const now = Date.now();
+      const transfer = {
+        id: transactionId,
+        type: 'transfer',
+        date: settledDate,
+        time: new Date(now).toISOString().slice(11, 16),
+        amount,
+        title: `${cardAsset.name || '카드'} 결제`,
+        category: 'card-payment',
+        assetId: paymentAssetId,
+        toAssetId: cardAssetId,
+        cardSettlementId: settlementId,
+        revision: 1,
+      };
+      const settlement = { id: settlementId, cardAssetId, paymentAssetId, periodStart, periodEnd, dueDate, amount, transactionId, settledAt: now };
+      const responseJson = JSON.stringify({ success: true, settlement, transaction: transfer, settledTransactionIds: sources.map((source: any) => source.id) });
+      try {
+        await db.batch([
+          db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, 'card_settlement', ?, 'pending', ?, ?, ?)")
+            .bind(operationId, settlementId, responseJson, requestHash, now),
+          db.prepare("INSERT INTO card_settlements (id, card_asset_id, payment_asset_id, period_start, period_end, due_date, amount, transaction_id, settled_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(settlementId, cardAssetId, paymentAssetId, periodStart, periodEnd, dueDate, amount, transactionId, now),
+          db.prepare("INSERT INTO transactions (id, type, date, transaction_time, amount, title, category, asset_id, to_asset_id, card_settlement_id, revision, last_operation_id, deleted_at) VALUES (?, 'transfer', ?, ?, ?, ?, 'card-payment', ?, ?, ?, 1, ?, NULL)")
+            .bind(transactionId, settledDate, transfer.time, amount, transfer.title, paymentAssetId, cardAssetId, settlementId, operationId),
+          ...sources.flatMap((source: any) => [
+            db.prepare("UPDATE transactions SET card_settlement_id = ?, revision = revision + 1 WHERE id = ? AND revision = ? AND card_settlement_id IS NULL AND deleted_at IS NULL")
+              .bind(settlementId, source.id, source.revision),
+            db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) SELECT ?, 'card_settlement_guard', ?, 'pending', '', '', ? WHERE (SELECT changes()) = 0")
+              .bind(operationId, source.id, now),
+          ]),
+          db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) VALUES ('transaction', ?, 'upsert', 1, ?, ?)")
+            .bind(transactionId, JSON.stringify(transfer), now),
+          db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND EXISTS (SELECT 1 FROM card_settlements WHERE id = ?) AND EXISTS (SELECT 1 FROM transactions WHERE id = ? AND last_operation_id = ?)")
+            .bind(operationId, settlementId, transactionId, operationId),
+          db.prepare("UPDATE operation_results SET response_json = NULL WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+        ]);
+      } catch (error) {
+        if (/constraint failed/i.test(String((error as Error)?.message || error))) return conflictResponse({ asset: assetRow(cardAsset) });
+        throw error;
+      }
+      const completed = await completedOperation(db, operationId);
+      if (completed?.status !== 'success') return apiError('CARD_SETTLEMENT_FAILED', 500);
+      const savedTransfer = await db.prepare("SELECT * FROM transactions WHERE id = ?").bind(transactionId).first<any>();
+      return new Response(JSON.stringify({ success: true, operationId, settlement, transaction: transactionRow(savedTransfer), settledTransactionIds: sources.map((source: any) => source.id) }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
     if (body.op === 'asset.create') {
       const asset = body.asset;
       const openingTransaction = body.openingTransaction;
-      if (!asset?.id || !asset.category || !asset.name || !Number.isFinite(Number(asset.amount)) || typeof asset.memo !== 'string') {
+      const cardCycleStartDay = asset?.cardCycleStartDay == null ? null : Number(asset.cardCycleStartDay);
+      const cardCycleEndDay = asset?.cardCycleEndDay == null ? null : Number(asset.cardCycleEndDay);
+      const cardPaymentDay = asset?.cardPaymentDay == null ? null : Number(asset.cardPaymentDay);
+      const cardPaymentAssetId = asset?.cardPaymentAssetId == null ? null : String(asset.cardPaymentAssetId);
+      if (!asset?.id || !asset.category || !asset.name || !Number.isFinite(Number(asset.amount)) || typeof asset.memo !== 'string'
+        || (cardCycleStartDay !== null && (!Number.isInteger(cardCycleStartDay) || cardCycleStartDay < 1 || cardCycleStartDay > 28))
+        || (cardCycleEndDay !== null && (!Number.isInteger(cardCycleEndDay) || cardCycleEndDay < 1 || cardCycleEndDay > 28))
+        || (cardPaymentDay !== null && (!Number.isInteger(cardPaymentDay) || cardPaymentDay < 1 || cardPaymentDay > 28))
+        || (cardPaymentAssetId !== null && cardPaymentAssetId === String(asset.id))) {
         return new Response(JSON.stringify({ error: 'INVALID_ASSET' }), { status: 400 });
       }
       const existing = await db.prepare("SELECT id FROM assets WHERE id = ?").bind(String(asset.id)).first();
       if (existing) return conflictResponse({ asset: existing });
+      if (cardPaymentAssetId) {
+        const paymentAsset = await db.prepare("SELECT id FROM assets WHERE id = ?").bind(cardPaymentAssetId).first();
+        if (!paymentAsset) return new Response(JSON.stringify({ error: 'INVALID_CARD_PAYMENT_ACCOUNT' }), { status: 422 });
+      }
 
       const maxSort = await db.prepare("SELECT MAX(sort_order) AS value FROM assets WHERE category = ?").bind(String(asset.category)).first<{ value: number | null }>();
       const sortOrder = Number.isFinite(Number(maxSort?.value)) ? Number(maxSort?.value) + 1 : 0;
       const statements: D1PreparedStatement[] = [
-        db.prepare("INSERT INTO assets (id, category, name, kind, amount, memo, revision, sort_order) VALUES (?, ?, ?, ?, ?, ?, 1, ?)")
-          .bind(String(asset.id), String(asset.category), String(asset.name), asset.kind || null, 0, String(asset.memo), sortOrder),
+        db.prepare("INSERT INTO assets (id, category, name, kind, amount, memo, card_cycle_start_day, card_cycle_end_day, card_payment_day, card_payment_asset_id, revision, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
+          .bind(String(asset.id), String(asset.category), String(asset.name), asset.kind || null, 0, String(asset.memo), cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId, sortOrder),
         db.prepare("INSERT OR IGNORE INTO sync_groups (id, revision) VALUES (?, 0)").bind(`asset-order:${String(asset.category)}`),
       ];
       if (openingTransaction) {
@@ -367,19 +467,31 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     if (body.op === 'asset.update') {
       const asset = body.asset;
       const expectedRevision = Number(body.expectedRevision);
-      if (!asset?.id || !asset.category || !asset.name || typeof asset.memo !== 'string' || !Number.isInteger(expectedRevision)) {
+      const cardCycleStartDay = asset?.cardCycleStartDay == null ? null : Number(asset.cardCycleStartDay);
+      const cardCycleEndDay = asset?.cardCycleEndDay == null ? null : Number(asset.cardCycleEndDay);
+      const cardPaymentDay = asset?.cardPaymentDay == null ? null : Number(asset.cardPaymentDay);
+      const cardPaymentAssetId = asset?.cardPaymentAssetId == null ? null : String(asset.cardPaymentAssetId);
+      if (!asset?.id || !asset.category || !asset.name || typeof asset.memo !== 'string' || !Number.isInteger(expectedRevision)
+        || (cardCycleStartDay !== null && (!Number.isInteger(cardCycleStartDay) || cardCycleStartDay < 1 || cardCycleStartDay > 28))
+        || (cardCycleEndDay !== null && (!Number.isInteger(cardCycleEndDay) || cardCycleEndDay < 1 || cardCycleEndDay > 28))
+        || (cardPaymentDay !== null && (!Number.isInteger(cardPaymentDay) || cardPaymentDay < 1 || cardPaymentDay > 28))
+        || (cardPaymentAssetId !== null && cardPaymentAssetId === String(asset.id))) {
         return new Response(JSON.stringify({ error: 'INVALID_ASSET_UPDATE' }), { status: 400 });
       }
       const current = await db.prepare("SELECT * FROM assets WHERE id = ?").bind(String(asset.id)).first<any>();
       if (!current || Number(current.revision) !== expectedRevision) return conflictResponse({ asset: current ? assetRow(current) : null });
+      if (cardPaymentAssetId) {
+        const paymentAsset = await db.prepare("SELECT id FROM assets WHERE id = ?").bind(cardPaymentAssetId).first();
+        if (!paymentAsset) return new Response(JSON.stringify({ error: 'INVALID_CARD_PAYMENT_ACCOUNT' }), { status: 422 });
+      }
 
       const movedCategory = current.category !== asset.category;
       const maxSort = movedCategory
         ? await db.prepare("SELECT MAX(sort_order) AS value FROM assets WHERE category = ?").bind(String(asset.category)).first<{ value: number | null }>()
         : null;
       const nextSortOrder = movedCategory && Number.isFinite(Number(maxSort?.value)) ? Number(maxSort?.value) + 1 : movedCategory ? 0 : current.sort_order;
-      const result = await db.prepare("UPDATE assets SET category = ?, name = ?, kind = ?, memo = ?, sort_order = ?, revision = revision + 1 WHERE id = ? AND revision = ?")
-        .bind(String(asset.category), String(asset.name), asset.kind || null, String(asset.memo), nextSortOrder, String(asset.id), expectedRevision).run();
+      const result = await db.prepare("UPDATE assets SET category = ?, name = ?, kind = ?, memo = ?, card_cycle_start_day = ?, card_cycle_end_day = ?, card_payment_day = ?, card_payment_asset_id = ?, sort_order = ?, revision = revision + 1 WHERE id = ? AND revision = ?")
+        .bind(String(asset.category), String(asset.name), asset.kind || null, String(asset.memo), cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId, nextSortOrder, String(asset.id), expectedRevision).run();
       if (!result.meta.changes) {
         const latest = await db.prepare("SELECT * FROM assets WHERE id = ?").bind(String(asset.id)).first<any>();
         return conflictResponse({ asset: latest ? assetRow(latest) : null });

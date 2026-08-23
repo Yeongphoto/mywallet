@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { DragEvent, FormEvent, RefObject } from 'react';
-import type { AssetItem, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
+import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 
 const expenseCategories: CategoryOption[] = [
@@ -763,6 +763,7 @@ export default function App() {
   // App states
   const [transactions, setTransactions] = useState<Transaction[]>(storedData.transactions);
   const [assets, setAssets] = useState<AssetItem[]>(storedData.assets);
+  const [cardSettlements, setCardSettlements] = useState<CardSettlement[]>([]);
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<ThemePreference>(storedData.theme);
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme);
@@ -988,6 +989,8 @@ export default function App() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetItem | null>(null);
   const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
+  const [showAllCardPayments, setShowAllCardPayments] = useState(false);
+  const [isAssetSettingsOpen, setIsAssetSettingsOpen] = useState(false);
   const [assetBalanceDraft, setAssetBalanceDraft] = useState('');
   const [draggedAssetIndex, setDraggedAssetIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -1454,6 +1457,7 @@ export default function App() {
             const fetchedTxs: Transaction[] = data.transactions || [];
             setTransactions(fetchedTxs);
             setAssets(data.assets || []);
+            setCardSettlements(data.cardSettlements || []);
             assetOrderRevisionsRef.current = data.assetOrderRevisions || {};
             setBudget(data.budget ?? 1000000);
             setTheme(normalizeThemePreference(data.theme));
@@ -1762,7 +1766,8 @@ export default function App() {
   const getAssetFlow = useCallback((assetId: string) => {
     let flow = 0;
     for (const transaction of transactions) {
-      if (transaction.date > todayStr || isOpeningBalanceTransaction(transaction)) continue;
+      const isScheduledInstallment = Boolean(transaction.installmentGroupId && transaction.installmentMonths && transaction.installmentMonths > 1);
+      if ((transaction.date > todayStr && !isScheduledInstallment) || isOpeningBalanceTransaction(transaction)) continue;
       if (transaction.type === 'income' && transaction.assetId === assetId) flow += transaction.amount;
       else if (transaction.type === 'expense' && transaction.assetId === assetId) flow -= transaction.amount;
       else if (transaction.type === 'transfer') {
@@ -2137,6 +2142,43 @@ export default function App() {
       category: 'etc',
       assetId: asset.id,
     });
+  }
+
+  async function handleCardSettlement(asset: AssetItem, period: CardPaymentPeriod) {
+    const paymentAssetId = asset.cardPaymentAssetId;
+    if (!paymentAssetId) return false;
+    const operationId = createId();
+    const settlementId = createId();
+    const transactionId = createId();
+    setRemoteSync({ status: 'saving', message: '카드 결제 처리 중' });
+    try {
+      const response = await saveAssetMutation({
+        op: 'card.settle',
+        operationId,
+        settlementId,
+        transactionId,
+        cardAssetId: asset.id,
+        paymentAssetId,
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+        dueDate: period.dueDate,
+        settledDate: todayStr,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || 'CARD_SETTLEMENT_FAILED');
+      skipNextPersistenceRef.current = true;
+      const settledIds = new Set<string>(payload.settledTransactionIds || []);
+      setTransactions((previous) => [payload.transaction as Transaction, ...previous.map((transaction) => settledIds.has(transaction.id) ? { ...transaction, cardSettlementId: payload.settlement.id, revision: (transaction.revision ?? 1) + 1 } : transaction)]);
+      setCardSettlements((previous) => [payload.settlement as CardSettlement, ...previous]);
+      setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '카드 결제 처리 완료' });
+      showNotice('결제 계좌 이체와 카드 결제 완료 처리를 기록했습니다.', '결제 처리 완료', 'success');
+      return true;
+    } catch (error) {
+      const conflict = (error as { message?: string }).message === 'REVISION_CONFLICT';
+      setRemoteSync({ status: conflict ? 'stale' : 'error', checkedAt: Date.now(), message: conflict ? '이미 처리된 결제 기간' : '카드 결제 처리 실패' });
+      showNotice(conflict ? '이 청구 기간은 다른 기기에서 이미 처리되었습니다. 최신 이력을 확인해 주세요.' : '카드 결제를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.', conflict ? '결제 처리 충돌' : '결제 처리 실패', 'warning');
+      return false;
+    }
   }
 
   async function handleDeleteAsset(id: string) {
@@ -4302,6 +4344,108 @@ export default function App() {
         {/* 정기 지출 규칙 관리 영역 외부 분리 */}
 {/* Assets Portfolio Tab */}
         {activeTab === 'asset' && (
+          selectedAsset ? (
+            (() => {
+              const openingBalance = getAssetOpeningBalance(selectedAsset!);
+              const currentBalance = getAssetBalance(selectedAsset!.id, openingBalance);
+              const history = transactions
+                .filter((transaction) => transaction.date <= todayStr && (transaction.assetId === selectedAsset!.id || transaction.toAssetId === selectedAsset!.id))
+                .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')));
+              const hasCardSchedule = selectedAsset.cardCycleStartDay != null && selectedAsset.cardCycleEndDay != null && selectedAsset.cardPaymentDay != null && selectedAsset.cardPaymentAssetId != null;
+              const currentAsset = assets.find((asset) => asset.id === selectedAsset.id) ?? selectedAsset;
+              const paymentAsset = assets.find((asset) => asset.id === selectedAsset.cardPaymentAssetId) ?? null;
+              const paymentAssetOptions = assets.filter((asset) => asset.id !== currentAsset.id && !isLiabilityAsset(asset, allAssetCategories, categoryLabels));
+              const pendingCardPayments = cardPaymentPeriods(currentAsset, transactions);
+              const currentPaymentDueDate = cardPaymentDueDateForToday(currentAsset, todayStr);
+              const visibleCardPayments = showAllCardPayments || !currentPaymentDueDate
+                ? pendingCardPayments
+                : pendingCardPayments.filter((period) => period.dueDate <= currentPaymentDueDate);
+              const hiddenCardPaymentCount = pendingCardPayments.length - visibleCardPayments.length;
+              return <section className="asset-history-page" aria-label="자산 상세 이력">
+                <header className="asset-history-page-header">
+                  <button type="button" className="asset-history-back" onClick={() => setSelectedAsset(null)} aria-label="자산 목록으로 돌아가기">
+                    <AppIcon name="chevronLeft" size={20} />
+                  </button>
+                  <div className="asset-history-page-title"><span>자산 이력</span><strong>{formatAssetLabel(currentAsset, allAssetCategories)}</strong></div>
+                  <button type="button" className="asset-history-settings-button" onClick={() => setIsAssetSettingsOpen(true)}>자산 설정</button>
+                </header>
+                <div className="asset-history-page-body">
+                  <div className="asset-history-current">
+                    <div><span>현재 자산</span><strong>{displayCurrency(currentBalance)}</strong><small>기초 금액 {displayCurrency(openingBalance)}</small></div>
+                    <CategoryBadge categories={allAssetCategories} idOrLabel={currentAsset.category} />
+                  </div>
+                  {hasCardSchedule && pendingCardPayments.length > 0 && <section className="asset-card-payment-list" aria-label="미결제 카드 청구 기간">
+                    {visibleCardPayments.map((period) => <div className="asset-card-payment-row" key={period.periodStart}>
+                      <div><span>{period.dueDate.replace(/-/g, '.')} 결제 예상액</span><strong>{displayCurrency(period.amount)}</strong></div>
+                      {(!currentPaymentDueDate || period.dueDate <= currentPaymentDueDate) ? <button type="button" className="primary-button" onClick={() => {
+                        if (window.confirm(`${period.periodStart} ~ ${period.periodEnd} 사용분 ${displayCurrency(period.amount)}을 ${paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '결제 계좌'}에서 결제 처리할까요?`)) {
+                          void handleCardSettlement(currentAsset, period);
+                        }
+                      }}>결제</button> : <span className="asset-card-payment-future">예정</span>}
+                    </div>)}
+                    {!showAllCardPayments && hiddenCardPaymentCount > 0 && <button type="button" className="asset-card-payment-toggle" onClick={() => setShowAllCardPayments(true)}>결제 금액 전체 보기 · {hiddenCardPaymentCount}건</button>}
+                    {showAllCardPayments && hiddenCardPaymentCount > 0 && <button type="button" className="asset-card-payment-toggle" onClick={() => setShowAllCardPayments(false)}>결제 금액 간단히 보기</button>}
+                  </section>}
+                  {hasCardSchedule && <div className="asset-card-schedule-summary">사용 기간 {selectedAsset.cardCycleStartDay}일 ~ 다음 달 {selectedAsset.cardCycleEndDay}일 · 결제일(다음 달) {selectedAsset.cardPaymentDay}일 · 결제 계좌 {paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '미선택'}</div>}
+                  <form className="asset-balance-adjust-form" onSubmit={(e) => {
+                    e.preventDefault();
+                    const nextBalance = Number(assetBalanceDraft);
+                    const difference = nextBalance - currentBalance;
+                    if (!Number.isFinite(nextBalance) || nextBalance < 0) { showNotice('0원 이상의 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
+                    if (!difference) return;
+                    const direction = difference > 0 ? '수입(+)' : '지출(-)';
+                    if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
+                      handleAssetBalanceAdjustment(selectedAsset, nextBalance);
+                    }
+                  }}>
+                    <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
+                    <div><input id="asset-balance-draft" type="text" inputMode="numeric" value={assetBalanceDraft ? formatNumberInput(parseNumberInput(assetBalanceDraft)) : ''} onChange={(e) => setAssetBalanceDraft(e.target.value.replace(/[^\d]/g, ''))} /><button type="submit" className="primary-button">차액 기록</button></div>
+                    <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
+                  </form>
+                  <div className="asset-history-list">
+                    <h4>변동 내역 <span>{history.length}건</span></h4>
+                    {history.length === 0 ? <p className="empty-note">변동 내역이 없습니다.</p> : history.map((transaction) => {
+                      const isIncoming = (transaction.type === 'income' && transaction.assetId === selectedAsset.id) || transaction.toAssetId === selectedAsset.id;
+                      return <div className="asset-history-item" key={transaction.id}><div><strong>{transaction.category === OPENING_BALANCE_CATEGORY ? '기초 잔액' : (transaction.title || '거래')}{transaction.cardSettlementId && <em className="card-settled-tag">결제완료</em>}</strong><span>{transaction.date}{transaction.time ? ' ' + transaction.time : ''}</span></div><b className={isIncoming ? 'income' : 'expense'}>{isIncoming ? '+' : '−'}{displayCurrency(transaction.amount)}</b></div>;
+                    })}
+                  </div>
+                </div>
+                {isAssetSettingsOpen && (
+                  <div className="modal-backdrop asset-settings-backdrop" onClick={() => setIsAssetSettingsOpen(false)}>
+                    <form className="modal-content asset-settings-modal" onClick={(event) => event.stopPropagation()} onSubmit={async (event) => {
+                      event.preventDefault();
+                      const form = new FormData(event.currentTarget);
+                      const cardCycleStartDay = Number(form.get('cardCycleStartDay')) || null;
+                      const cardCycleEndDay = Number(form.get('cardCycleEndDay')) || null;
+                      const cardPaymentDay = Number(form.get('cardPaymentDay')) || null;
+                      const cardPaymentAssetId = String(form.get('cardPaymentAssetId') || '') || null;
+                      if ([cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId].some((value) => value == null) && [cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId].some((value) => value != null)) {
+                        showNotice('사용 기간·결제일·결제 계좌는 함께 설정해 주세요.', '입력 확인', 'warning');
+                        return;
+                      }
+                      const saved = await handleUpdateAsset({ ...currentAsset, cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId });
+                      if (saved) {
+                        setSelectedAsset((previous) => previous ? { ...previous, cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId } : previous);
+                        setIsAssetSettingsOpen(false);
+                      }
+                    }}>
+                      <div className="modal-header"><h3>자산 설정</h3></div>
+                      <div className="asset-settings-fields">
+                        <p>비워 두면 이 자산은 결제 주기 없이 단순 누적으로 관리됩니다.</p>
+                        <div className="asset-settings-schedule-row">
+                          <label>시작일<select name="cardCycleStartDay" defaultValue={currentAsset.cardCycleStartDay ?? ''}><option value="">설정 안 함</option>{Array.from({ length: 28 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}일</option>)}</select></label>
+                          <label>종료일<select name="cardCycleEndDay" defaultValue={currentAsset.cardCycleEndDay ?? ''}><option value="">설정 안 함</option>{Array.from({ length: 28 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}일</option>)}</select></label>
+                        </div>
+                        <label>결제일(다음 달)<select name="cardPaymentDay" defaultValue={currentAsset.cardPaymentDay ?? ''}><option value="">설정 안 함</option>{Array.from({ length: 28 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}일</option>)}</select></label>
+                        <label>결제 계좌<select name="cardPaymentAssetId" defaultValue={currentAsset.cardPaymentAssetId ?? ''}><option value="">설정 안 함</option>{paymentAssetOptions.map((asset) => <option key={asset.id} value={asset.id}>{formatAssetLabel(asset, allAssetCategories)}</option>)}</select></label>
+                      </div>
+                      <div className="asset-settings-actions"><button type="button" className="secondary-button" onClick={() => setIsAssetSettingsOpen(false)}>취소</button><button type="submit" className="primary-button">저장</button></div>
+                    </form>
+                  </div>
+                )}
+              </section>;
+            })()
+          ) : (
           <>
             {/* 자산 탭 상단 헤더 및 등록 제어 단추 */}
             <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -4450,7 +4594,9 @@ export default function App() {
                             }
                             openAmountEntry(() => {
                               setSelectedAsset(asset);
+                              setShowAllCardPayments(false);
                               setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
+                              window.requestAnimationFrame(() => document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0, behavior: 'auto' }));
                             });
                           }}
                           style={{
@@ -4554,6 +4700,7 @@ export default function App() {
               <div style={{ height: '80px' }} />
             </div>
           </>
+          )
         )}
 
         {/* Plans Tab */}
@@ -5457,7 +5604,7 @@ export default function App() {
       )}
 
       {/* 자산 개별 항목 등록/수정 모달 */}
-      {selectedAsset && (
+      {selectedAsset && false && (
         <div className="modal-backdrop" onClick={() => setSelectedAsset(null)}>
           <div className="modal-content asset-history-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -5465,15 +5612,15 @@ export default function App() {
               <button type="button" className="close-btn" onClick={() => setSelectedAsset(null)}>×</button>
             </div>
             {(() => {
-              const openingBalance = getAssetOpeningBalance(selectedAsset);
-              const currentBalance = getAssetBalance(selectedAsset.id, openingBalance);
+              const openingBalance = getAssetOpeningBalance(selectedAsset!);
+              const currentBalance = getAssetBalance(selectedAsset!.id, openingBalance);
               const history = transactions
-                .filter((transaction) => transaction.date <= todayStr && (transaction.assetId === selectedAsset.id || transaction.toAssetId === selectedAsset.id))
+                .filter((transaction) => transaction.date <= todayStr && (transaction.assetId === selectedAsset!.id || transaction.toAssetId === selectedAsset!.id))
                 .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')));
               return <div className="asset-history-body">
                 <div className="asset-history-current">
                   <div><span>{'\uD604\uC7AC \uC790\uC0B0'}</span><strong>{displayCurrency(currentBalance)}</strong><small>{'\uAE30\uCD08\uAE08\uC561'} {displayCurrency(openingBalance)}</small></div>
-                  <CategoryBadge categories={allAssetCategories} idOrLabel={selectedAsset.category} />
+                  <CategoryBadge categories={allAssetCategories} idOrLabel={selectedAsset!.category} />
                 </div>
                 <form className="asset-balance-adjust-form" onSubmit={(e) => {
                   e.preventDefault();
@@ -5483,7 +5630,7 @@ export default function App() {
                   if (!difference) { setSelectedAsset(null); return; }
                   const direction = difference > 0 ? '수입(+)' : '지출(-)';
                   if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
-                    handleAssetBalanceAdjustment(selectedAsset, nextBalance);
+                    handleAssetBalanceAdjustment(selectedAsset!, nextBalance);
                     setSelectedAsset(null);
                   }
                 }}>
@@ -5494,7 +5641,7 @@ export default function App() {
                 <div className="asset-history-list">
                   <h4>변동 내역</h4>
                   {history.length === 0 ? <p className="empty-note">변동 내역이 없습니다.</p> : history.map((transaction) => {
-                    const isIncoming = (transaction.type === 'income' && transaction.assetId === selectedAsset.id) || transaction.toAssetId === selectedAsset.id;
+                    const isIncoming = (transaction.type === 'income' && transaction.assetId === selectedAsset!.id) || transaction.toAssetId === selectedAsset!.id;
                     return <div className="asset-history-item" key={transaction.id}><div><strong>{transaction.category === OPENING_BALANCE_CATEGORY ? '기초 잔액' : (transaction.title || '거래')}</strong><span>{transaction.date}{transaction.time ? ' ' + transaction.time : ''}</span></div><b className={isIncoming ? 'income' : 'expense'}>{isIncoming ? '+' : '−'}{displayCurrency(transaction.amount)}</b></div>;
                   })}
                 </div>
@@ -6179,6 +6326,56 @@ function MobileLedgerSwipeItem({
   );
 }
 
+type CardPaymentPeriod = { periodStart: string; periodEnd: string; dueDate: string; amount: number };
+
+function shiftYearMonth(yearMonth: string, delta: number) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const date = new Date(year, month - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function cardPaymentPeriods(asset: AssetItem, transactions: Transaction[]): CardPaymentPeriod[] {
+  const startDay = asset.cardCycleStartDay;
+  const endDay = asset.cardCycleEndDay;
+  const paymentDay = asset.cardPaymentDay;
+  if (!startDay || !endDay || !paymentDay || !asset.cardPaymentAssetId) return [];
+  const grouped = new Map<string, CardPaymentPeriod>();
+  transactions.filter((transaction) => transaction.assetId === asset.id && !transaction.cardSettlementId && !isOpeningBalanceCategory(transaction.category) && (transaction.type === 'expense' || transaction.type === 'income')).forEach((transaction) => {
+    const yearMonth = transaction.date.slice(0, 7);
+    const day = Number(transaction.date.slice(8, 10));
+    const crossesMonth = startDay > endDay;
+    if (!crossesMonth && (day < startDay || day > endDay)) return;
+    const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
+    const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
+    const periodStart = `${startMonth}-${String(startDay).padStart(2, '0')}`;
+    const periodEnd = `${endMonth}-${String(endDay).padStart(2, '0')}`;
+    const dueDate = `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
+    const key = `${periodStart}:${periodEnd}`;
+    const current = grouped.get(key) ?? { periodStart, periodEnd, dueDate, amount: 0 };
+    current.amount += transaction.type === 'expense' ? transaction.amount : -transaction.amount;
+    grouped.set(key, current);
+  });
+  return Array.from(grouped.values()).filter((period) => period.amount > 0).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
+}
+
+function cardPaymentDueDateForToday(asset: AssetItem, today: string) {
+  const startDay = asset.cardCycleStartDay;
+  const endDay = asset.cardCycleEndDay;
+  const paymentDay = asset.cardPaymentDay;
+  if (!startDay || !endDay || !paymentDay) return null;
+  const yearMonth = today.slice(0, 7);
+  const day = Number(today.slice(8, 10));
+  const crossesMonth = startDay > endDay;
+  if (!crossesMonth && (day < startDay || day > endDay)) return null;
+  const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
+  const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
+  return `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
+}
+
+function isOpeningBalanceCategory(category: string) {
+  return category === OPENING_BALANCE_CATEGORY || category.startsWith('opening-balance');
+}
+
 // Transaction List Table sub-component
 function MobileLedgerTimeline({
   items,
@@ -6456,12 +6653,6 @@ function InstantSelect({
               aria-selected={String(option.value) === String(value)}
               className={String(option.value) === String(value) ? 'selected' : ''}
               key={String(option.value)}
-              onPointerDown={(event) => {
-                if (event.pointerType === 'touch') {
-                  event.preventDefault();
-                  selectOption(option);
-                }
-              }}
               onClick={() => selectOption(option)}
             >
               {option.label}
