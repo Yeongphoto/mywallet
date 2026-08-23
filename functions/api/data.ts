@@ -116,6 +116,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
           Number(group.revision) || 0,
         ])
       ),
+      categoryOrderRevisions: Object.fromEntries(
+        (await db.prepare("SELECT id, revision FROM sync_groups WHERE id LIKE 'category-order:%'").all()).results.map((group: any) => [
+          String(group.id).slice('category-order:'.length),
+          Number(group.revision) || 0,
+        ])
+      ),
       updatedAt: Number(settingsMap['updatedAt']) || 0,
       cursor: Number(syncCursor?.cursor) || 0
     };
@@ -549,6 +555,67 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         assets: (ordered.results || []).map(assetRow),
         revision: expectedRevision + 1,
       }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (body.op === 'category.reorder') {
+      const type = body.type;
+      const categoryIds = Array.isArray(body.categoryIds) ? body.categoryIds.map(String) : [];
+      const expectedRevision = Number(body.expectedRevision);
+      const operationId = body.operationId;
+      const labelPatch = body.categoryLabels && typeof body.categoryLabels === 'object' && !Array.isArray(body.categoryLabels)
+        ? body.categoryLabels as Record<string, unknown>
+        : {};
+      if (!isOperationId(operationId) || !['asset', 'expense', 'income'].includes(type) || !Number.isInteger(expectedRevision)
+        || categoryIds.length === 0 || new Set(categoryIds).size !== categoryIds.length
+        || categoryIds.some((id) => !id)) {
+        return new Response(JSON.stringify({ error: 'INVALID_CATEGORY_REORDER' }), { status: 400 });
+      }
+
+      const requestHash = await operationRequestHash(body);
+      const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
+      }
+
+      const groupId = `category-order:${type}`;
+      await db.prepare("INSERT OR IGNORE INTO sync_groups (id, revision) VALUES (?, 0)").bind(groupId).run();
+      const currentGroup = await db.prepare("SELECT revision FROM sync_groups WHERE id = ?").bind(groupId).first<{ revision: number }>();
+      const settingsRows = await db.prepare("SELECT key, value FROM settings WHERE key IN ('categoryOrder', 'categoryLabels')").all<any>();
+      const settings = Object.fromEntries((settingsRows.results || []).map((row: any) => [String(row.key), String(row.value)])) as Record<string, string>;
+      const currentOrder = settings.categoryOrder ? JSON.parse(settings.categoryOrder) : {};
+      const currentLabels = settings.categoryLabels ? JSON.parse(settings.categoryLabels) : {};
+      const currentRevision = Number(currentGroup?.revision) || 0;
+      if (currentRevision !== expectedRevision) {
+        return conflictResponse({ categoryOrder: currentOrder, categoryLabels: currentLabels, revision: currentRevision });
+      }
+
+      const nextOrder = { ...currentOrder, [type]: categoryIds };
+      const nextLabels = { ...currentLabels, ...labelPatch };
+      const now = Date.now();
+      const responsePayload = { success: true, type, categoryOrder: nextOrder, categoryLabels: nextLabels, revision: currentRevision + 1 };
+      const statements: D1PreparedStatement[] = [
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, 'category_order', ?, 'pending', ?, ?, ?)")
+          .bind(operationId, type, JSON.stringify(responsePayload), requestHash, now),
+        db.prepare("UPDATE sync_groups SET revision = revision + 1 WHERE id = ? AND revision = ?")
+          .bind(groupId, expectedRevision),
+        db.prepare("INSERT INTO settings (key, value) SELECT 'categoryOrder', ? WHERE EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+          .bind(JSON.stringify(nextOrder), groupId, currentRevision + 1),
+        db.prepare("INSERT INTO settings (key, value) SELECT 'categoryLabels', ? WHERE EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+          .bind(JSON.stringify(nextLabels), groupId, currentRevision + 1),
+        db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'category-order', ?, 'upsert', ?, ?, ? WHERE EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?)")
+          .bind(type, currentRevision + 1, JSON.stringify(responsePayload), now, groupId, currentRevision + 1),
+        db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?)")
+          .bind(operationId, groupId, currentRevision + 1),
+        db.prepare("DELETE FROM operation_results WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+      ];
+      const results = await db.batch(statements);
+      if (!results[5].meta.changes) {
+        const latestGroup = await db.prepare("SELECT revision FROM sync_groups WHERE id = ?").bind(groupId).first<{ revision: number }>();
+        return conflictResponse({ categoryOrder: currentOrder, categoryLabels: currentLabels, revision: Number(latestGroup?.revision) || 0 });
+      }
+      return new Response(JSON.stringify({ ...responsePayload, operationId }), { headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify({ error: 'UNKNOWN_OPERATION' }), { status: 400 });

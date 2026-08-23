@@ -47,6 +47,112 @@
 .row-action-delete::before { transform: translate(-50%, -50%) rotate(45deg); }
 .row-action-delete::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
+/* Category rows share the ledger/asset action controls while keeping drag, title,
+   and action gestures in deliberately separate hit areas. */
+.category-swipe-row {
+  position: relative;
+  min-width: 0;
+}
+
+.category-swipe-row > .category-swipe-front > .category-row > .category-row-action:not(.category-row-action-save):not(.category-row-action-muted) {
+  display: none !important;
+}
+
+.category-swipe-row .category-drag-handle {
+  touch-action: none;
+}
+
+.category-swipe-row .category-row.touch-sort-source {
+  opacity: 0.42;
+}
+
+.category-swipe-row .category-row.touch-sort-target {
+  box-shadow: 0 -2px 0 var(--primary);
+}
+
+body.touch-sort-active {
+  user-select: none;
+}
+
+@media (min-width: 993px), (min-width: 540px) and (min-aspect-ratio: 3 / 4) {
+  .category-swipe-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 96px;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .category-swipe-front {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    transform: none !important;
+  }
+
+  .category-swipe-actions {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 539px), (max-aspect-ratio: 2 / 3) {
+  .category-swipe-row {
+    overflow: hidden;
+    border-radius: 14px;
+    isolation: isolate;
+  }
+
+  .category-swipe-row.is-palette-open {
+    overflow: visible;
+    z-index: 5;
+  }
+
+  .category-swipe-row.is-palette-open .category-swipe-actions {
+    display: none;
+  }
+
+  .category-swipe-actions {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 0;
+    display: flex;
+    width: 104px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .category-swipe-row:not(.is-open):not(.is-dragging) .category-swipe-actions {
+    visibility: hidden;
+  }
+
+  .category-swipe-actions .row-action-button {
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    padding: 0;
+    border-radius: 50%;
+    color: #fff;
+  }
+
+  .category-swipe-front {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    touch-action: pan-y;
+    will-change: transform;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .category-swipe-row.is-dragging .category-swipe-front {
+    transition: none;
+  }
+}
+
 /* Wide screens use the same card-based ledger language as mobile and assets.
    Actions are persistent here, so horizontal swipe remains touch-only. */
 @media (min-width: 769px) {

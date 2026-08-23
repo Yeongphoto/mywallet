@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
-import type { DragEvent, FormEvent, RefObject } from 'react';
+import type { DragEvent, FormEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 
@@ -137,6 +137,27 @@ const numberFormatter = new Intl.NumberFormat('ko-KR', {
 
 function getToday() {
   return new Date().toISOString().slice(0, 10);
+}
+
+interface CategoryOrderSyncPayload {
+  type: CategoryScope;
+  categoryOrder: CategoryOrderMap;
+  categoryLabels: CategoryLabelMap;
+  revision: number;
+}
+
+function isCategoryOrderSyncPayload(value: unknown): value is CategoryOrderSyncPayload {
+  if (!value || typeof value !== 'object') return false;
+  const payload = value as Partial<CategoryOrderSyncPayload>;
+  return (payload.type === 'asset' || payload.type === 'expense' || payload.type === 'income')
+    && Boolean(payload.categoryOrder && typeof payload.categoryOrder === 'object')
+    && Boolean(payload.categoryLabels && typeof payload.categoryLabels === 'object')
+    && Number.isInteger(payload.revision);
+}
+
+function isTransaction(value: unknown): value is Transaction {
+  return Boolean(value && typeof value === 'object' && typeof (value as Transaction).id === 'string'
+    && typeof (value as Transaction).type === 'string' && typeof (value as Transaction).date === 'string');
 }
 
 interface PendingTransactionOperation {
@@ -684,6 +705,20 @@ function saveAssetOrder(categoryId: string, assetIds: string[], expectedRevision
   });
 }
 
+function saveCategoryOrder(
+  type: CategoryScope,
+  categoryIds: string[],
+  expectedRevision: number,
+  operationId: string,
+  categoryLabels?: CategoryLabelMap,
+) {
+  return fetch('/api/data', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ op: 'category.reorder', type, categoryIds, expectedRevision, operationId, categoryLabels }),
+  });
+}
+
 function saveAssetMutation(payload: Record<string, unknown>) {
   return fetch('/api/data', {
     method: 'PATCH',
@@ -844,6 +879,8 @@ export default function App() {
   const transactionSyncRunRef = useRef<Promise<SyncRunResult> | null>(null);
   const assetsRef = useRef<AssetItem[]>(assets);
   const assetOrderRevisionsRef = useRef<Record<string, number>>({});
+  const categoryOrderRevisionsRef = useRef<Record<string, number>>({});
+  const categoryOrderSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[] } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -1072,7 +1109,7 @@ export default function App() {
     const response = await fetch(`/api/data?after=${cursor}`, { cache: 'no-store' });
     if (!response.ok) throw new Error('SYNC_PULL_FAILED');
     const result = await response.json() as {
-      changes?: Array<{ cursor: number; entityType: string; entityId: string; changeType: string; payload: Transaction | null }>;
+      changes?: Array<{ cursor: number; entityType: string; entityId: string; changeType: string; payload: Transaction | CategoryOrderSyncPayload | null }>;
     };
     const pendingIds = new Set(readPendingTransactionOperations().flatMap((operation) => {
       const transaction = operation.payload.transaction as { id?: string } | undefined;
@@ -1081,25 +1118,44 @@ export default function App() {
         .filter((id): id is string => typeof id === 'string' && id.length > 0);
     }));
     const changes = result.changes || [];
-    const applicable: typeof changes = [];
+    const applicableTransactions: typeof changes = [];
+    const applicableCategoryOrders: Array<{ cursor: number; payload: CategoryOrderSyncPayload }> = [];
     let appliedCursor = cursor;
     for (const change of changes) {
-      if (change.entityType !== 'transaction' || pendingIds.has(change.entityId)) break;
-      applicable.push(change);
+      if (change.entityType === 'category-order' && change.payload && isCategoryOrderSyncPayload(change.payload)) {
+        applicableCategoryOrders.push({ cursor: change.cursor, payload: change.payload });
+        appliedCursor = change.cursor;
+        continue;
+      }
+      if (change.entityType !== 'transaction') {
+        appliedCursor = change.cursor;
+        continue;
+      }
+      if (pendingIds.has(change.entityId)) break;
+      applicableTransactions.push(change);
       appliedCursor = change.cursor;
     }
-    if (applicable.length === 0) return { appliedChanges: 0, blocked: changes.length > 0 };
+    if (applicableTransactions.length === 0 && applicableCategoryOrders.length === 0) {
+      return { appliedChanges: 0, blocked: appliedCursor !== (changes[changes.length - 1]?.cursor ?? cursor) };
+    }
     skipNextPersistenceRef.current = true;
-    setTransactions((previous) => applicable.reduce((next, change) => {
+    setTransactions((previous) => applicableTransactions.reduce((next, change) => {
       if (change.changeType === 'delete') return next.filter((transaction) => transaction.id !== change.entityId);
       if (!change.payload) return next;
+      if (!isTransaction(change.payload)) return next;
       const existing = next.find((transaction) => transaction.id === change.entityId);
       if (existing && (existing.revision ?? 1) > (change.payload.revision ?? 1)) return next;
       return [change.payload, ...next.filter((transaction) => transaction.id !== change.entityId)];
     }, previous));
+    applicableCategoryOrders.forEach(({ payload }) => {
+      categoryOrderRevisionsRef.current[payload.type] = payload.revision;
+      setCategoryOrder(payload.categoryOrder);
+      setCategoryLabels(payload.categoryLabels);
+    });
     syncCursorRef.current = appliedCursor;
     window.localStorage.setItem(SYNC_CURSOR_KEY, String(appliedCursor));
-    return { appliedChanges: applicable.length, blocked: applicable.length < changes.length };
+    const appliedChanges = applicableTransactions.length + applicableCategoryOrders.length;
+    return { appliedChanges, blocked: appliedCursor !== (changes[changes.length - 1]?.cursor ?? appliedCursor) };
   }
 
   async function replayPendingTransactionOperations() {
@@ -1463,6 +1519,7 @@ export default function App() {
             setAssets(data.assets || []);
             setCardSettlements(data.cardSettlements || []);
             assetOrderRevisionsRef.current = data.assetOrderRevisions || {};
+            categoryOrderRevisionsRef.current = data.categoryOrderRevisions || {};
             setBudget(data.budget ?? 1000000);
             setTheme(normalizeThemePreference(data.theme));
             setCustomExpenseCategories(data.customExpenseCategories || []);
@@ -2644,45 +2701,114 @@ export default function App() {
     });
   }
 
-  function handleCategoryDrop(event: DragEvent<HTMLDivElement>, type: CategoryScope, targetId: string, categories: CategoryOption[]) {
-    event.preventDefault();
-    if (!dragCategory || dragCategory.type !== type || dragCategory.id === targetId) return;
+  function persistCategoryOrder(
+    type: CategoryScope,
+    nextOrder: CategoryOrderMap,
+    previousOrder: CategoryOrderMap,
+    labelPatch?: CategoryLabelMap,
+    previousLabels?: CategoryLabelMap,
+  ) {
+    const operationId = createId();
+    const save = async () => {
+      const expectedRevision = categoryOrderRevisionsRef.current[type] || 0;
+      setRemoteSync({ status: 'saving', message: '카테고리 순서를 저장하는 중입니다.' });
+      try {
+        let response: Response | null = null;
+        let payload: any = {};
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            response = await saveCategoryOrder(type, nextOrder[type] || [], expectedRevision, operationId, labelPatch);
+            payload = await response.json();
+            if (response.ok || response.status === 409) break;
+            throw new Error(payload.error || 'CATEGORY_ORDER_SAVE_FAILED');
+          } catch (error) {
+            lastError = error;
+            if (attempt === 1) throw error;
+          }
+        }
+        if (!response) throw lastError;
+        if (response.status === 409) {
+          const current = payload.current as Partial<CategoryOrderSyncPayload> | undefined;
+          if (current?.categoryOrder && current.categoryLabels && Number.isInteger(current.revision)) {
+            skipNextPersistenceRef.current = true;
+            setCategoryOrder(current.categoryOrder);
+            setCategoryLabels(current.categoryLabels);
+            categoryOrderRevisionsRef.current[type] = Number(current.revision);
+          } else {
+            setCategoryOrder(previousOrder);
+            if (previousLabels) setCategoryLabels(previousLabels);
+          }
+          setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '다른 기기에서 카테고리 순서가 변경되었습니다.' });
+          showNotice('다른 기기의 최신 카테고리 순서를 불러왔습니다. 다시 정렬해 주세요.', '카테고리 순서 충돌', 'warning');
+          return;
+        }
+        if (!response.ok) throw new Error(payload.error || 'CATEGORY_ORDER_SAVE_FAILED');
+        skipNextPersistenceRef.current = true;
+        setCategoryOrder(payload.categoryOrder || nextOrder);
+        if (payload.categoryLabels) setCategoryLabels(payload.categoryLabels);
+        categoryOrderRevisionsRef.current[type] = Number(payload.revision) || expectedRevision + 1;
+        setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '카테고리 순서 저장 완료' });
+      } catch {
+        skipNextPersistenceRef.current = true;
+        setCategoryOrder(previousOrder);
+        if (previousLabels) setCategoryLabels(previousLabels);
+        setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '카테고리 순서를 저장하지 못했습니다.' });
+        showNotice('카테고리 순서를 저장하지 못해 이전 순서로 되돌렸습니다.', '카테고리 순서 저장 실패', 'error');
+      }
+    };
+    categoryOrderSaveQueueRef.current = categoryOrderSaveQueueRef.current.then(save, save);
+    return categoryOrderSaveQueueRef.current;
+  }
+
+  function moveCategory(type: CategoryScope, sourceId: string, targetId: string, categories: CategoryOption[]) {
+    if (sourceId === targetId) return;
 
     const visibleIds = categories.map((category) => category.id);
-    const nextIds = visibleIds.filter((id) => id !== dragCategory.id);
+    const nextIds = visibleIds.filter((id) => id !== sourceId);
     const targetIndex = nextIds.indexOf(targetId);
-    nextIds.splice(targetIndex, 0, dragCategory.id);
+    if (targetIndex < 0) return;
+    nextIds.splice(targetIndex, 0, sourceId);
 
-    skipNextPersistenceRef.current = false;
-    setCategoryOrder((prev) => ({ ...prev, [type]: nextIds }));
+    const previousOrder = categoryOrder;
+    const nextOrder = { ...previousOrder, [type]: nextIds };
+    skipNextPersistenceRef.current = true;
+    setCategoryOrder(nextOrder);
+    void persistCategoryOrder(type, nextOrder, previousOrder);
     setDragCategory(null);
   }
 
+  function handleCategoryDrop(event: DragEvent<HTMLDivElement>, type: CategoryScope, targetId: string, categories: CategoryOption[]) {
+    event.preventDefault();
+    if (!dragCategory || dragCategory.type !== type) return;
+    moveCategory(type, dragCategory.id, targetId, categories);
+  }
+
   function moveAssetCategoryToGroup(id: string, group: 'asset' | 'liability', targetId?: string) {
-    skipNextPersistenceRef.current = false;
-    setCategoryLabels((prev) => ({
-      ...prev,
-      [getAssetCategoryKindKey(id)]: group,
-    }));
-    setCategoryOrder((prev) => {
-      const knownIds = activeAssetCategories.map((category) => category.id);
-      const currentIds = (prev.asset ?? knownIds).filter((categoryId) => knownIds.includes(categoryId));
-      const orderedIds = [...currentIds, ...knownIds.filter((categoryId) => !currentIds.includes(categoryId))];
-      const nextIds = orderedIds.filter((categoryId) => categoryId !== id);
-      const targetIndex = targetId ? nextIds.indexOf(targetId) : -1;
+    const previousOrder = categoryOrder;
+    const previousLabels = categoryLabels;
+    const nextLabels = { ...previousLabels, [getAssetCategoryKindKey(id)]: group };
+    const knownIds = activeAssetCategories.map((category) => category.id);
+    const currentIds = (previousOrder.asset ?? knownIds).filter((categoryId) => knownIds.includes(categoryId));
+    const orderedIds = [...currentIds, ...knownIds.filter((categoryId) => !currentIds.includes(categoryId))];
+    const nextIds = orderedIds.filter((categoryId) => categoryId !== id);
+    const targetIndex = targetId ? nextIds.indexOf(targetId) : -1;
 
-      if (targetIndex >= 0) {
-        nextIds.splice(targetIndex, 0, id);
-      } else {
-        const groupIds = activeAssetCategories
-          .filter((category) => category.id !== id && (categoryLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') === group)
-          .map((category) => category.id);
-        const lastGroupIndex = Math.max(...groupIds.map((categoryId) => nextIds.indexOf(categoryId)), -1);
-        nextIds.splice(lastGroupIndex + 1, 0, id);
-      }
+    if (targetIndex >= 0) {
+      nextIds.splice(targetIndex, 0, id);
+    } else {
+      const groupIds = activeAssetCategories
+        .filter((category) => category.id !== id && (nextLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') === group)
+        .map((category) => category.id);
+      const lastGroupIndex = Math.max(...groupIds.map((categoryId) => nextIds.indexOf(categoryId)), -1);
+      nextIds.splice(lastGroupIndex + 1, 0, id);
+    }
 
-      return { ...prev, asset: nextIds };
-    });
+    const nextOrder = { ...previousOrder, asset: nextIds };
+    skipNextPersistenceRef.current = true;
+    setCategoryLabels(nextLabels);
+    setCategoryOrder(nextOrder);
+    void persistCategoryOrder('asset', nextOrder, previousOrder, { [getAssetCategoryKindKey(id)]: group }, previousLabels);
     setDragCategory(null);
   }
 
@@ -4899,8 +5025,16 @@ export default function App() {
                         const isRenaming = editingCategory?.type === 'asset' && editingCategory.id === category.id;
 
                         return (
-                          <div
+                          <CategorySwipeRow
                             key={`asset-${category.id}`}
+                            categoryId={category.id}
+                            isEditing={isRenaming}
+                            isPaletteOpen={isOpen}
+                            onEdit={() => handleStartCategoryRename('asset', category)}
+                            onDelete={() => handleArchiveCategory('asset', category.id, category.label)}
+                            onTouchDrop={(targetId, targetGroup) => moveAssetCategoryToGroup(category.id, targetGroup ?? group.kind, targetId)}
+                          >
+                          <div
                             data-category-id={category.id}
                             data-category-scope="asset"
                             data-asset-category-kind={group.kind}
@@ -5018,6 +5152,7 @@ export default function App() {
                               </button>
                             )}
                           </div>
+                          </CategorySwipeRow>
                         );
                       })}
                       </div>
@@ -5062,14 +5197,22 @@ export default function App() {
                         const isBudgetExcluded = Boolean(categoryBudgetExcluded[paletteKey]);
 
                         return (
-                          <div
+                          <CategorySwipeRow
                             key={`expense-${category.id}`}
+                            categoryId={category.id}
+                            isEditing={isRenaming}
+                            isPaletteOpen={isOpen}
+                            onEdit={() => handleStartCategoryRename('expense', category)}
+                            onDelete={() => handleArchiveCategory('expense', category.id, category.label)}
+                            onTouchDrop={(targetId) => moveCategory('expense', category.id, targetId, activeExpenseCategories)}
+                          >
+                          <div
                             data-category-id={category.id}
                             data-category-scope="expense"
                             className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable={!isRenaming}
                             onDragStart={(event) => {
-                              if (isRenaming) {
+                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
                                 event.preventDefault();
                                 return;
                               }
@@ -5195,6 +5338,7 @@ export default function App() {
                               </button>
                             )}
                           </div>
+                          </CategorySwipeRow>
                         );
                       })}
                     </div>
@@ -5230,14 +5374,22 @@ export default function App() {
                         const isRenaming = editingCategory?.type === 'income' && editingCategory.id === category.id;
 
                         return (
-                          <div
+                          <CategorySwipeRow
                             key={`income-${category.id}`}
+                            categoryId={category.id}
+                            isEditing={isRenaming}
+                            isPaletteOpen={isOpen}
+                            onEdit={() => handleStartCategoryRename('income', category)}
+                            onDelete={() => handleArchiveCategory('income', category.id, category.label)}
+                            onTouchDrop={(targetId) => moveCategory('income', category.id, targetId, activeIncomeCategories)}
+                          >
+                          <div
                             data-category-id={category.id}
                             data-category-scope="income"
                             className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'dragging' : ''}`}
                             draggable={!isRenaming}
                             onDragStart={(event) => {
-                              if (isRenaming) {
+                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
                                 event.preventDefault();
                                 return;
                               }
@@ -5341,6 +5493,7 @@ export default function App() {
                               </button>
                             )}
                           </div>
+                          </CategorySwipeRow>
                         );
                       })}
                     </div>
@@ -6234,6 +6387,195 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
         </tbody>
       </table>
     </article>
+  );
+}
+
+function CategorySwipeRow({
+  children,
+  categoryId,
+  isEditing,
+  isPaletteOpen = false,
+  onEdit,
+  onDelete,
+  onTouchDrop,
+}: {
+  children: ReactNode;
+  categoryId: string;
+  isEditing: boolean;
+  isPaletteOpen?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTouchDrop: (targetId: string, targetGroup?: 'asset' | 'liability') => void;
+}) {
+  const actionWidth = 104;
+  const gestureRef = useRef({ startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
+  const touchSortRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    timer: number | null;
+    row: HTMLElement;
+    front: HTMLDivElement;
+    ghost: HTMLElement | null;
+    active: boolean;
+    target: HTMLElement | null;
+  } | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const clampOffset = (value: number) => Math.max(-actionWidth, Math.min(0, value));
+
+  const clearTouchSort = () => {
+    const state = touchSortRef.current;
+    if (!state) return;
+    if (state.timer != null) window.clearTimeout(state.timer);
+    state.row.classList.remove('touch-sort-source');
+    state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
+    state.ghost?.remove();
+    document.body.classList.remove('touch-sort-active');
+    touchSortRef.current = null;
+  };
+
+  useEffect(() => () => clearTouchSort(), []);
+
+  useEffect(() => {
+    if (isEditing) {
+      setIsOpen(false);
+      setOffset(0);
+    }
+  }, [isEditing]);
+
+  const canStartSwipe = (target: EventTarget | null, clientX: number, currentTarget: HTMLDivElement) => {
+    if (isEditing || !(target instanceof HTMLElement)) return false;
+    if (target.closest('button, input, select, label, .category-drag-handle, .category-palette-popover')) return false;
+    const rect = currentTarget.getBoundingClientRect();
+    return clientX >= rect.left + rect.width * (2 / 3);
+  };
+
+  const startTouchSort = (front: HTMLDivElement, pointerId: number, row: HTMLElement) => {
+    const state = touchSortRef.current;
+    if (!state || state.pointerId !== pointerId || state.active) return;
+    const rect = row.getBoundingClientRect();
+    const ghost = row.cloneNode(true) as HTMLElement;
+    ghost.classList.remove('touch-sort-source');
+    ghost.style.position = 'fixed';
+    ghost.style.left = `${rect.left}px`;
+    ghost.style.top = `${rect.top}px`;
+    ghost.style.width = `${rect.width}px`;
+    ghost.style.height = `${rect.height}px`;
+    ghost.style.pointerEvents = 'none';
+    ghost.style.zIndex = '9999';
+    ghost.style.opacity = '0.94';
+    document.body.appendChild(ghost);
+    state.timer = null;
+    state.ghost = ghost;
+    state.active = true;
+    row.classList.add('touch-sort-source');
+    document.body.classList.add('touch-sort-active');
+    front.setPointerCapture(pointerId);
+  };
+
+  const moveTouchSort = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const state = touchSortRef.current;
+    if (!state || state.pointerId !== event.pointerId) return false;
+    if (!state.active) {
+      if (Math.hypot(event.clientX - state.startX, event.clientY - state.startY) > 9) clearTouchSort();
+      return true;
+    }
+    event.preventDefault();
+    if (state.ghost) {
+      const rect = state.row.getBoundingClientRect();
+      state.ghost.style.left = `${event.clientX - rect.width / 2}px`;
+      state.ghost.style.top = `${event.clientY - rect.height / 2}px`;
+    }
+    state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
+    const target = (document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null)?.closest<HTMLElement>('.category-swipe-row');
+    state.target = target && target.dataset.categoryId !== categoryId ? target : null;
+    state.target?.querySelector('.category-row')?.classList.add('touch-sort-target');
+    return true;
+  };
+
+  const finishTouchSort = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const state = touchSortRef.current;
+    if (!state || state.pointerId !== event.pointerId) return false;
+    const target = state.target;
+    const targetId = target?.dataset.categoryId;
+    const targetGroup = target?.closest<HTMLElement>('.asset-category-group')?.dataset.assetCategoryKind;
+    const wasActive = state.active;
+    clearTouchSort();
+    if (wasActive && targetId) onTouchDrop(targetId, targetGroup === 'asset' || targetGroup === 'liability' ? targetGroup : undefined);
+    return true;
+  };
+
+  return (
+    <div className={`category-swipe-row ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''} ${isPaletteOpen ? 'is-palette-open' : ''}`} data-category-id={categoryId}>
+      {!isEditing && <div className="category-swipe-actions">
+        <button type="button" className="row-action-button row-action-edit" aria-label="수정" onClick={onEdit}>
+          <AppIcon name="edit" size={18} />
+        </button>
+        <button type="button" className="row-action-button row-action-delete" aria-label="삭제" onClick={onDelete}>×</button>
+      </div>}
+      <div
+        className="category-swipe-front"
+        style={{ transform: `translateX(${offset}px)` }}
+        onPointerDown={(event) => {
+          const handle = (event.target as HTMLElement).closest('.category-drag-handle');
+          const row = event.currentTarget.querySelector<HTMLElement>('.category-row');
+          if (event.pointerType === 'touch' && handle && row && !isEditing) {
+            event.preventDefault();
+            clearTouchSort();
+            const pending = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startY: event.clientY,
+              timer: null as number | null,
+              row,
+              front: event.currentTarget,
+              ghost: null as HTMLElement | null,
+              active: false,
+              target: null as HTMLElement | null,
+            };
+            const front = event.currentTarget;
+            const pointerId = event.pointerId;
+            pending.timer = window.setTimeout(() => startTouchSort(front, pointerId, row), 180);
+            touchSortRef.current = pending;
+            return;
+          }
+          if (!canStartSwipe(event.target, event.clientX, event.currentTarget)) return;
+          gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
+        }}
+        onPointerMove={(event) => {
+          if (moveTouchSort(event)) return;
+          const deltaX = event.clientX - gestureRef.current.startX;
+          const deltaY = event.clientY - gestureRef.current.startY;
+          if (!gestureRef.current.isHorizontal) {
+            if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+            gestureRef.current.isHorizontal = true;
+            setIsDragging(true);
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+          setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
+        }}
+        onPointerUp={(event) => {
+          if (finishTouchSort(event)) return;
+          if (!gestureRef.current.isHorizontal) return;
+          const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
+          const nextOpen = nextOffset <= -(actionWidth / 2);
+          setIsOpen(nextOpen);
+          setOffset(nextOpen ? -actionWidth : 0);
+          gestureRef.current.isHorizontal = false;
+          setIsDragging(false);
+        }}
+        onPointerCancel={(event) => {
+          if (finishTouchSort(event)) return;
+          setOffset(isOpen ? -actionWidth : 0);
+          gestureRef.current.isHorizontal = false;
+          setIsDragging(false);
+        }}
+      >
+        {children}
+      </div>
+    </div>
   );
 }
 
