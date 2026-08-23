@@ -4433,6 +4433,7 @@ textarea:focus {
 .asset-history-page-title strong { overflow: hidden; color: var(--text-primary); font-size: clamp(1.05rem, 2.4vw, 1.32rem); line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .asset-history-settings-button { min-height: 40px; padding: 0 14px; border: 1px solid color-mix(in srgb, var(--color-asset) 45%, var(--border-card)); border-radius: 11px; background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card)); color: var(--color-asset); font-size: .86rem; font-weight: 850; white-space: nowrap; }
 .asset-history-page-body { display: grid; gap: 16px; min-width: 0; }
+.asset-history-overview { display: grid; align-content: start; gap: 16px; min-width: 0; }
 .asset-history-list h4 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .asset-history-list h4 span { color: var(--text-secondary); font-size: .78rem; font-weight: 700; }
 .asset-card-schedule-summary { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-asset) 25%, var(--border-card)); border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 7%, var(--bg-card)); color: var(--text-secondary); font-size: .84rem; line-height: 1.45; }
@@ -4459,8 +4460,8 @@ textarea:focus {
 @media (min-width: 993px), (min-width: 540px) and (min-aspect-ratio: 3 / 4) and (max-width: 992px) {
   .asset-history-page { max-width: 760px; margin: 0 auto; }
   .asset-history-page-body { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); align-items: start; }
-  .asset-history-current, .asset-card-payment-list, .asset-card-schedule-summary, .asset-balance-adjust-form { grid-column: 1; }
-  .asset-history-list { grid-column: 2; grid-row: 1 / span 4; }
+  .asset-history-overview { grid-column: 1; }
+  .asset-history-list { grid-column: 2; grid-row: 1; align-self: start; }
 }
 
 @media (max-width: 539px), (max-aspect-ratio: 2 / 3) {

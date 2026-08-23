@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { DragEvent, FormEvent, RefObject } from 'react';
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
@@ -820,6 +820,10 @@ export default function App() {
     });
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
+  const contentScrollRef = useRef<HTMLElement | null>(null);
+  const assetListScrollRef = useRef({ contentTop: 0, documentTop: 0 });
+  const assetScrollTransitionRef = useRef<'detail' | 'list' | null>(null);
+  const previousTabRef = useRef<AppTab>(activeTab);
   const [settingsSection, setSettingsSection] = useState<'app' | 'category' | 'recurring' | 'data'>('app');
   const [privacyMode, setPrivacyMode] = useState(false);
   const [showAssetDetails, setShowAssetDetails] = useState(false);
@@ -962,6 +966,28 @@ export default function App() {
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
+
+  function scrollAppContent({ contentTop, documentTop }: { contentTop: number; documentTop: number }) {
+    contentScrollRef.current?.scrollTo({ top: contentTop, behavior: 'auto' });
+    window.scrollTo({ top: documentTop, behavior: 'auto' });
+    document.scrollingElement?.scrollTo({ top: documentTop, behavior: 'auto' });
+  }
+
+  function openAssetHistory(asset: AssetItem) {
+    assetListScrollRef.current = {
+      contentTop: contentScrollRef.current?.scrollTop ?? 0,
+      documentTop: window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0,
+    };
+    setSelectedAsset(asset);
+    setShowAllCardPayments(false);
+    setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
+    assetScrollTransitionRef.current = 'detail';
+  }
+
+  function returnToAssetList() {
+    setSelectedAsset(null);
+    assetScrollTransitionRef.current = 'list';
+  }
 
   function switchRegistrationMode(mode: EntryType | 'asset') {
     const focused = document.activeElement;
@@ -1322,6 +1348,24 @@ export default function App() {
     mediaQuery.addEventListener('change', updateSystemTheme);
     return () => mediaQuery.removeEventListener('change', updateSystemTheme);
   }, []);
+
+  useEffect(() => {
+    const previousTab = previousTabRef.current;
+    if (previousTab === 'asset' && activeTab !== 'asset' && selectedAsset) {
+      setSelectedAsset(null);
+      assetListScrollRef.current = { contentTop: 0, documentTop: 0 };
+      window.requestAnimationFrame(() => scrollAppContent(assetListScrollRef.current));
+    }
+    previousTabRef.current = activeTab;
+  }, [activeTab, selectedAsset]);
+
+  useLayoutEffect(() => {
+    const transition = assetScrollTransitionRef.current;
+    if (!transition) return;
+
+    assetScrollTransitionRef.current = null;
+    scrollAppContent(transition === 'detail' ? { contentTop: 0, documentTop: 0 } : assetListScrollRef.current);
+  }, [selectedAsset]);
 
   useEffect(() => {
     if (isLoading || !isOnline) return;
@@ -3460,6 +3504,7 @@ export default function App() {
       </header>
 
       <section 
+        ref={contentScrollRef}
         className="content" 
         style={
           activeTab === 'calendar' 
@@ -4323,13 +4368,14 @@ export default function App() {
               const hiddenCardPaymentCount = pendingCardPayments.length - visibleCardPayments.length;
               return <section className="asset-history-page" aria-label="자산 상세 이력">
                 <header className="asset-history-page-header">
-                  <button type="button" className="asset-history-back" onClick={() => setSelectedAsset(null)} aria-label="자산 목록으로 돌아가기">
+                  <button type="button" className="asset-history-back" onClick={returnToAssetList} aria-label="자산 목록으로 돌아가기">
                     <AppIcon name="chevronLeft" size={20} />
                   </button>
                   <div className="asset-history-page-title"><span>자산 이력</span><strong>{formatAssetLabel(currentAsset, allAssetCategories)}</strong></div>
                   <button type="button" className="asset-history-settings-button" onClick={() => setIsAssetSettingsOpen(true)}>자산 설정</button>
                 </header>
                 <div className="asset-history-page-body">
+                  <div className="asset-history-overview">
                   <div className="asset-history-current">
                     <div><span>현재 자산</span><strong>{displayCurrency(currentBalance)}</strong><small>기초 금액 {displayCurrency(openingBalance)}</small></div>
                     <CategoryBadge categories={allAssetCategories} idOrLabel={currentAsset.category} />
@@ -4362,6 +4408,7 @@ export default function App() {
                     <div><input id="asset-balance-draft" type="text" inputMode="numeric" value={assetBalanceDraft ? formatNumberInput(parseNumberInput(assetBalanceDraft)) : ''} onChange={(e) => setAssetBalanceDraft(e.target.value.replace(/[^\d]/g, ''))} /><button type="submit" className="primary-button">차액 기록</button></div>
                     <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
                   </form>
+                  </div>
                   <div className="asset-history-list">
                     <h4>변동 내역 <span>{history.length}건</span></h4>
                     {history.length === 0 ? <p className="empty-note">변동 내역이 없습니다.</p> : history.map((transaction) => {
@@ -4553,10 +4600,7 @@ export default function App() {
                               return;
                             }
                             openAmountEntry(() => {
-                              setSelectedAsset(asset);
-                              setShowAllCardPayments(false);
-                              setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
-                              window.requestAnimationFrame(() => document.querySelector<HTMLElement>('.content')?.scrollTo({ top: 0, behavior: 'auto' }));
+                              openAssetHistory(asset);
                             });
                           }}
                           style={{
