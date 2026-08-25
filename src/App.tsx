@@ -8692,77 +8692,67 @@ function UnifiedEntryForm({
             </label>
           )}
 
-          <div
-            className={`content-entry-expandable-card ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'is-expanded' : ''}`}
+          <label
+            className="content-entry-field compact-entry-field"
+            style={{ gridColumn: 'span 2', position: 'relative' }}
             aria-label="내용"
           >
+            <input
+              type="text"
+              ref={titleRef}
+              placeholder="내용 (미입력 시 분류명)"
+              value={form.title}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, title: e.target.value }));
+                setIsTitleSuggestionsOpen(true);
+              }}
+              onFocus={() => setIsTitleSuggestionsOpen(true)}
+              onBlur={() => {
+                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+              }}
+            />
             {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-              <div className="expandable-suggestions-section">
-                <div className="expandable-suggestions-header">
+              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="title-suggestions-header">
                   <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
                   <button
                     type="button"
-                    className="expandable-close-btn"
+                    className="title-suggestions-close-btn"
                     tabIndex={-1}
                     onMouseDown={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setIsTitleSuggestionsOpen(false);
                     }}
                   >
                     ✕
                   </button>
                 </div>
-                <div className="expandable-chips-container">
+                <div className="title-suggestions-list">
                   {titleSuggestions.map((item) => (
                     <button
                       key={item.title}
                       type="button"
-                      className="suggestion-chip-btn"
+                      className="title-suggestion-item"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setForm((prev) => ({ ...prev, title: item.title }));
                         setIsTitleSuggestionsOpen(false);
                       }}
                     >
-                      <span className="chip-text">{item.title}</span>
-                      {item.count > 1 && <span className="chip-count">{item.count}회</span>}
+                      <span className="suggestion-title">{item.title}</span>
+                      {item.category && (
+                        <span className="suggestion-badge">
+                          {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-            <div className="expandable-input-row">
-              <input
-                type="text"
-                ref={titleRef}
-                placeholder="내용 (미입력 시 분류명)"
-                value={form.title}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, title: e.target.value }));
-                  setIsTitleSuggestionsOpen(true);
-                }}
-                onFocus={() => setIsTitleSuggestionsOpen(true)}
-                onBlur={() => {
-                  setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
-                }}
-              />
-              {form.title && (
-                <button
-                  type="button"
-                  className="input-clear-btn"
-                  tabIndex={-1}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setForm((prev) => ({ ...prev, title: '' }));
-                    setIsTitleSuggestionsOpen(true);
-                  }}
-                  title="내용 지우기"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          </div>
+          </label>
 
           <label className="recurring-toggle" style={{ gridColumn: 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
             <input
@@ -9159,77 +9149,67 @@ function TransactionEditForm({
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
-        <div
-          className={`content-entry-expandable-card ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'is-expanded' : ''}`}
+        <label
+          className="compact-entry-field content-entry-field"
+          style={{ gridColumn: 'span 2', position: 'relative' }}
           aria-label="내용"
         >
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder="내용 (미입력 시 분류명)"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setIsTitleSuggestionsOpen(true);
+            }}
+            onFocus={() => setIsTitleSuggestionsOpen(true)}
+            onBlur={() => {
+              setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+            }}
+          />
           {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-            <div className="expandable-suggestions-section">
-              <div className="expandable-suggestions-header">
+            <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+              <div className="title-suggestions-header">
                 <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
                 <button
                   type="button"
-                  className="expandable-close-btn"
+                  className="title-suggestions-close-btn"
                   tabIndex={-1}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     setIsTitleSuggestionsOpen(false);
                   }}
                 >
                   ✕
                 </button>
               </div>
-              <div className="expandable-chips-container">
+              <div className="title-suggestions-list">
                 {titleSuggestions.map((item) => (
                   <button
                     key={item.title}
                     type="button"
-                    className="suggestion-chip-btn"
+                    className="title-suggestion-item"
                     onMouseDown={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setTitle(item.title);
                       setIsTitleSuggestionsOpen(false);
                     }}
                   >
-                    <span className="chip-text">{item.title}</span>
-                    {item.count > 1 && <span className="chip-count">{item.count}회</span>}
+                    <span className="suggestion-title">{item.title}</span>
+                    {item.category && (
+                      <span className="suggestion-badge">
+                        {categories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          <div className="expandable-input-row">
-            <input
-              ref={titleRef}
-              type="text"
-              placeholder="내용 (미입력 시 분류명)"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setIsTitleSuggestionsOpen(true);
-              }}
-              onFocus={() => setIsTitleSuggestionsOpen(true)}
-              onBlur={() => {
-                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
-              }}
-            />
-            {title && (
-              <button
-                type="button"
-                className="input-clear-btn"
-                tabIndex={-1}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setTitle('');
-                  setIsTitleSuggestionsOpen(true);
-                }}
-                title="내용 지우기"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </div>
+        </label>
 
         {isInstallment && (
           <div className="installment-edit-summary">
