@@ -2129,28 +2129,29 @@ body.category-handle-drag-active {
   border-color: var(--border-input);
 }
 
-.category-budget-toggle {
+.plan-inclusion-cell {
+  padding: 10px 0 10px 10px;
+  text-align: right;
+}
+
+.plan-inclusion-toggle {
   min-height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border-input);
-  background: var(--bg-input);
+  justify-content: flex-end;
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
 
-.category-budget-toggle input {
+.plan-inclusion-toggle input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.category-budget-toggle span {
+.plan-inclusion-toggle span {
   width: 26px;
   height: 16px;
   position: relative;
@@ -2159,7 +2160,7 @@ body.category-handle-drag-active {
   transition: background 0.16s ease;
 }
 
-.category-budget-toggle span::after {
+.plan-inclusion-toggle span::after {
   content: '';
   position: absolute;
   top: 3px;
@@ -2171,18 +2172,13 @@ body.category-handle-drag-active {
   transition: transform 0.16s ease, background 0.16s ease;
 }
 
-.category-budget-toggle input:checked + span {
-  background: rgba(239, 68, 68, 0.18);
+.plan-inclusion-toggle input:checked + span {
+  background: rgba(var(--primary-rgb), 0.2);
 }
 
-.category-budget-toggle input:checked + span::after {
+.plan-inclusion-toggle input:checked + span::after {
   transform: translateX(10px);
-  background: var(--color-expense);
-}
-
-.category-budget-toggle b {
-  font-size: 0.74rem;
-  font-weight: 900;
+  background: var(--primary);
 }
 
 .category-row-action:disabled {
