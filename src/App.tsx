@@ -947,7 +947,8 @@ export default function App() {
   const monthPickerMonthRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [ledgerView, setLedgerView] = useState<'daily' | 'calendar' | 'monthly' | 'settlement'>('daily');
+  const [ledgerView, setLedgerView] = useState<'daily' | 'calendar' | 'monthly'>('daily');
+  const [planView, setPlanView] = useState<'budget' | 'settlement'>('budget');
   const [settlementType, setSettlementType] = useState<'expense' | 'income'>('expense');
   const [expandedSettlementCategory, setExpandedSettlementCategory] = useState<string | null>(null);
   const [expandedLedgerMonth, setExpandedLedgerMonth] = useState<string | null>(selectedMonth);
@@ -4693,15 +4694,12 @@ export default function App() {
               <button type="button" className={ledgerView === 'daily' ? 'active' : ''} onClick={() => setLedgerView('daily')}>일일</button>
               <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
               <button type="button" className={ledgerView === 'monthly' ? 'active' : ''} onClick={() => setLedgerView('monthly')}>월별</button>
-              <button type="button" className={ledgerView === 'settlement' ? 'active' : ''} onClick={() => setLedgerView('settlement')}>결산</button>
             </div>
-            {ledgerView !== 'settlement' && (
-              <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
-                <div><span>수입</span><strong className="income">{displayCurrency(incomeTotal)}</strong></div>
-                <div><span>지출</span><strong className="expense">{displayCurrency(expenseTotal)}</strong></div>
-                <div><span>합계</span><strong>{displayCurrency(balance)}</strong></div>
-              </div>
-            )}
+            <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
+              <div><span>수입</span><strong className="income">{displayCurrency(incomeTotal)}</strong></div>
+              <div><span>지출</span><strong className="expense">{displayCurrency(expenseTotal)}</strong></div>
+              <div><span>합계</span><strong>{displayCurrency(balance)}</strong></div>
+            </div>
             {ledgerView === 'daily' && (
               <>
               <div className="ledger-filters">
@@ -4818,315 +4816,6 @@ export default function App() {
                     )}
                   </div>
                 ))}
-              </div>
-            )}
-            {ledgerView === 'settlement' && (
-              <div className="ledger-settlement-view">
-                {/* 상단 요약 카드 */}
-                <div className="settlement-summary-card">
-                  <div className="settlement-summary-top">
-                    <h3 className="settlement-summary-title">
-                      <AppIcon name="plan" size={19} /> {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월 예산 결산
-                    </h3>
-                    <div className="settlement-type-toggle" role="tablist" aria-label="결산 구분">
-                      <button
-                        type="button"
-                        className={`expense ${settlementType === 'expense' ? 'active' : ''}`}
-                        onClick={() => setSettlementType('expense')}
-                      >
-                        지출 예산
-                      </button>
-                      <button
-                        type="button"
-                        className={`income ${settlementType === 'income' ? 'active' : ''}`}
-                        onClick={() => setSettlementType('income')}
-                      >
-                        수입 목표
-                      </button>
-                    </div>
-                  </div>
-
-                  {settlementType === 'expense' ? (
-                    <>
-                      <div className="settlement-stat-grid">
-                        <div className="settlement-stat-item">
-                          <span>지출 예산</span>
-                          <strong>{displayCurrency(plannedExpenseTotal)}</strong>
-                        </div>
-                        <div className="settlement-stat-item">
-                          <span>실제 지출</span>
-                          <strong className="expense">{displayCurrency(expenseTotal)}</strong>
-                        </div>
-                        <div className="settlement-stat-item">
-                          <span>{plannedExpenseTotal >= expenseTotal ? '잔여 예산' : '초과 지출'}</span>
-                          {plannedExpenseTotal >= expenseTotal ? (
-                            <strong className="settlement-remain-positive">{displayCurrency(plannedExpenseTotal - expenseTotal)} 남음</strong>
-                          ) : (
-                            <strong className="settlement-remain-negative">{displayCurrency(expenseTotal - plannedExpenseTotal)} 초과</strong>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="settlement-overall-progress">
-                        <div className="settlement-progress-labels">
-                          <span>전체 예산 소진율</span>
-                          <strong className={plannedExpenseTotal > 0 && expenseTotal > plannedExpenseTotal ? 'danger' : ''}>
-                            {plannedExpenseTotal > 0 ? `${Math.round((expenseTotal / plannedExpenseTotal) * 100)}%` : '예산 미설정'}
-                          </strong>
-                        </div>
-                        <div className="settlement-progress-bar">
-                          <div
-                            className={`settlement-progress-fill ${
-                              plannedExpenseTotal > 0 && expenseTotal > plannedExpenseTotal
-                                ? 'danger'
-                                : plannedExpenseTotal > 0 && (expenseTotal / plannedExpenseTotal) >= 0.8
-                                ? 'warn'
-                                : 'safe'
-                            }`}
-                            style={{
-                              width: `${plannedExpenseTotal > 0 ? Math.min(Math.round((expenseTotal / plannedExpenseTotal) * 100), 100) : 0}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="settlement-stat-grid">
-                        <div className="settlement-stat-item">
-                          <span>수입 목표</span>
-                          <strong>{displayCurrency(plannedIncomeTotal)}</strong>
-                        </div>
-                        <div className="settlement-stat-item">
-                          <span>실제 수입</span>
-                          <strong className="income">{displayCurrency(incomeTotal)}</strong>
-                        </div>
-                        <div className="settlement-stat-item">
-                          <span>{incomeTotal >= plannedIncomeTotal ? '초과 달성' : '목표 부족'}</span>
-                          {incomeTotal >= plannedIncomeTotal ? (
-                            <strong className="settlement-remain-positive">{displayCurrency(incomeTotal - plannedIncomeTotal)} 달성</strong>
-                          ) : (
-                            <strong className="settlement-remain-negative">{displayCurrency(plannedIncomeTotal - incomeTotal)} 부족</strong>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="settlement-overall-progress">
-                        <div className="settlement-progress-labels">
-                          <span>목표 대비 달성률</span>
-                          <strong className="income">
-                            {plannedIncomeTotal > 0 ? `${Math.round((incomeTotal / plannedIncomeTotal) * 100)}%` : '목표 미설정'}
-                          </strong>
-                        </div>
-                        <div className="settlement-progress-bar">
-                          <div
-                            className="settlement-progress-fill income-achieved"
-                            style={{
-                              width: `${plannedIncomeTotal > 0 ? Math.min(Math.round((incomeTotal / plannedIncomeTotal) * 100), 100) : 0}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* 카테고리별 결산 목록 */}
-                {settlementType === 'expense' ? (
-                  <div className="settlement-category-list">
-                    {expenseSettlementList.length === 0 ? (
-                      <p className="empty-note">표시할 지출 내역이 없습니다.</p>
-                    ) : (
-                      expenseSettlementList.map((item) => {
-                        const isExpanded = expandedSettlementCategory === `expense-${item.category.id}`;
-                        return (
-                          <div
-                            key={item.category.id}
-                            className={`settlement-category-card ${item.isOver ? 'is-over' : ''}`}
-                          >
-                            <div
-                              className="settlement-category-main"
-                              onClick={() =>
-                                setExpandedSettlementCategory((curr) =>
-                                  curr === `expense-${item.category.id}` ? null : `expense-${item.category.id}`
-                                )
-                              }
-                              role="button"
-                              tabIndex={0}
-                              aria-expanded={isExpanded}
-                            >
-                              <div className="settlement-cat-info">
-                                <CategoryBadge categories={allExpenseCategories} idOrLabel={item.category.id} />
-                                <span className="settlement-budget-label">
-                                  {item.budget > 0 ? `예산 ${displayCurrency(item.budget)}` : '예산 미설정'}
-                                </span>
-                              </div>
-
-                              <div className="settlement-gauge-wrap">
-                                <div className="settlement-gauge-bar">
-                                  <div
-                                    className={`settlement-gauge-fill ${
-                                      item.isOver
-                                        ? 'danger'
-                                        : item.percent >= 80
-                                        ? 'warn'
-                                        : item.budget === 0 && item.spent === 0
-                                        ? 'empty'
-                                        : 'safe'
-                                    }`}
-                                    style={{ width: `${Math.min(item.percent, 100)}%` }}
-                                  />
-                                </div>
-                                <span
-                                  className={`settlement-gauge-percent ${
-                                    item.isOver ? 'danger' : item.percent >= 80 ? 'warn' : ''
-                                  }`}
-                                >
-                                  {item.budget > 0 ? `${item.percent}%` : item.spent > 0 ? '미설정' : '0%'}
-                                </span>
-                              </div>
-
-                              <div className="settlement-cat-result">
-                                <strong className={`settlement-spent-amount ${item.isOver ? 'danger' : ''}`}>
-                                  {displayCurrency(item.spent)}
-                                </strong>
-                                <span className={`settlement-diff-badge ${item.isOver ? 'danger' : 'safe'}`}>
-                                  {item.budget > 0
-                                    ? item.diff >= 0
-                                      ? `${displayCurrency(item.diff)} 남음`
-                                      : `${displayCurrency(Math.abs(item.diff))} 초과`
-                                    : item.spent > 0
-                                    ? `${displayCurrency(item.spent)} 지출`
-                                    : '0원'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {isExpanded && (
-                              <div className="settlement-category-drawer">
-                                <div className="settlement-drawer-inner">
-                                  <div className="settlement-drawer-heading">
-                                    <span>{item.category.label} 지출 세부 내역 ({item.transactions.length}건)</span>
-                                    <span>금액</span>
-                                  </div>
-                                  {item.transactions.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '10px 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                      이번 달 지출 내역이 없습니다.
-                                    </div>
-                                  ) : (
-                                    item.transactions.map((tx) => (
-                                      <div key={tx.id} className="settlement-drawer-tx-item">
-                                        <div className="settlement-drawer-tx-left">
-                                          <span className="settlement-drawer-tx-date">{tx.date.slice(5)}</span>
-                                          <span className="settlement-drawer-tx-title">{tx.title || item.category.label}</span>
-                                        </div>
-                                        <strong className="settlement-drawer-tx-amount expense">
-                                          -{displayCurrency(tx.amount)}
-                                        </strong>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                ) : (
-                  <div className="settlement-category-list">
-                    {incomeSettlementList.length === 0 ? (
-                      <p className="empty-note">표시할 수입 내역이 없습니다.</p>
-                    ) : (
-                      incomeSettlementList.map((item) => {
-                        const isExpanded = expandedSettlementCategory === `income-${item.category.id}`;
-                        return (
-                          <div
-                            key={item.category.id}
-                            className="settlement-category-card"
-                          >
-                            <div
-                              className="settlement-category-main"
-                              onClick={() =>
-                                setExpandedSettlementCategory((curr) =>
-                                  curr === `income-${item.category.id}` ? null : `income-${item.category.id}`
-                                )
-                              }
-                              role="button"
-                              tabIndex={0}
-                              aria-expanded={isExpanded}
-                            >
-                              <div className="settlement-cat-info">
-                                <CategoryBadge categories={allIncomeCategories} idOrLabel={item.category.id} />
-                                <span className="settlement-budget-label">
-                                  {item.target > 0 ? `목표 ${displayCurrency(item.target)}` : '목표 미설정'}
-                                </span>
-                              </div>
-
-                              <div className="settlement-gauge-wrap">
-                                <div className="settlement-gauge-bar">
-                                  <div
-                                    className={`settlement-gauge-fill ${
-                                      item.isAchieved ? 'income' : item.target === 0 && item.actual === 0 ? 'empty' : 'safe'
-                                    }`}
-                                    style={{ width: `${Math.min(item.percent, 100)}%` }}
-                                  />
-                                </div>
-                                <span className="settlement-gauge-percent">
-                                  {item.target > 0 ? `${item.percent}%` : item.actual > 0 ? '미설정' : '0%'}
-                                </span>
-                              </div>
-
-                              <div className="settlement-cat-result">
-                                <strong className="settlement-spent-amount income">
-                                  +{displayCurrency(item.actual)}
-                                </strong>
-                                <span className={`settlement-diff-badge ${item.isAchieved ? 'income-good' : 'safe'}`}>
-                                  {item.target > 0
-                                    ? item.diff >= 0
-                                      ? `${displayCurrency(item.diff)} 달성`
-                                      : `${displayCurrency(Math.abs(item.diff))} 부족`
-                                    : item.actual > 0
-                                    ? `${displayCurrency(item.actual)} 수입`
-                                    : '0원'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {isExpanded && (
-                              <div className="settlement-category-drawer">
-                                <div className="settlement-drawer-inner">
-                                  <div className="settlement-drawer-heading">
-                                    <span>{item.category.label} 수입 세부 내역 ({item.transactions.length}건)</span>
-                                    <span>금액</span>
-                                  </div>
-                                  {item.transactions.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '10px 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                      이번 달 수입 내역이 없습니다.
-                                    </div>
-                                  ) : (
-                                    item.transactions.map((tx) => (
-                                      <div key={tx.id} className="settlement-drawer-tx-item">
-                                        <div className="settlement-drawer-tx-left">
-                                          <span className="settlement-drawer-tx-date">{tx.date.slice(5)}</span>
-                                          <span className="settlement-drawer-tx-title">{tx.title || item.category.label}</span>
-                                        </div>
-                                        <strong className="settlement-drawer-tx-amount income">
-                                          +{displayCurrency(tx.amount)}
-                                        </strong>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </section>
@@ -5476,142 +5165,464 @@ export default function App() {
         {/* Plans Tab */}
         {activeTab === 'plan' && (
           <>
-            <div className="tab-title-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <div>
-                <h1 className="page-title-kor">월간 계획 설정</h1>
-              </div>
+            <div className="ledger-view-toggle" role="tablist" aria-label="계획 보기 전환" style={{ marginBottom: '14px' }}>
+              <button
+                type="button"
+                className={planView === 'budget' ? 'active' : ''}
+                onClick={() => setPlanView('budget')}
+              >
+                예산
+              </button>
+              <button
+                type="button"
+                className={planView === 'settlement' ? 'active' : ''}
+                onClick={() => setPlanView('settlement')}
+              >
+                결산
+              </button>
             </div>
 
-            <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
-              <div className="glass-panel" style={{ padding: '16px' }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                  <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
-                </h3>
+            {planView === 'budget' && (
+              <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
+                <div className="glass-panel" style={{ padding: '16px' }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                    <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
+                  </h3>
 
-                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  {/* 지출 계획 */}
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🔴</span> 지출 예산 계획
-                    </h3>
-                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
-                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeExpenseCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
-                          const value = plan ? plan.plannedAmount : 0;
-                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
-                          return (
-                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
-                              </td>
-                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <PlanAmountInput
-                                  value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
-                                />
-                              </td>
-                              <td className="plan-inclusion-cell">
-                                <label className="plan-inclusion-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={isIncluded}
-                                    onChange={(event) => setPlanCategoryIncluded('expense', c.id, event.target.checked)}
-                                    aria-label={`${c.label} 계획 합계 포함`}
+                  <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    {/* 지출 계획 */}
+                    <div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🔴</span> 지출 예산 계획
+                      </h3>
+                      <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
+                            <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeExpenseCategories.map((c: CategoryOption) => {
+                            const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
+                            const value = plan ? plan.plannedAmount : 0;
+                            const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
+                            return (
+                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                                <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                  <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
+                                </td>
+                                <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                  <PlanAmountInput
+                                    value={value}
+                                    onChange={(amt) => {
+                                      setPlans((prev) =>
+                                        prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
+                                      );
+                                    }}
                                   />
-                                  <span aria-hidden="true" />
-                                </label>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                                </td>
+                                <td className="plan-inclusion-cell">
+                                  <label className="plan-inclusion-toggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={isIncluded}
+                                      onChange={(event) => setPlanCategoryIncluded('expense', c.id, event.target.checked)}
+                                      aria-label={`${c.label} 계획 합계 포함`}
+                                    />
+                                    <span aria-hidden="true" />
+                                  </label>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                  {/* 수입 계획 */}
-                  <div>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>🔵</span> 수입 목표 계획
-                    </h3>
-                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
-                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeIncomeCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'income');
-                          const value = plan ? plan.plannedAmount : 0;
-                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
-                          return (
-                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
-                              </td>
-                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                <PlanAmountInput
-                                  value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
-                                />
-                              </td>
-                              <td className="plan-inclusion-cell">
-                                <label className="plan-inclusion-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={isIncluded}
-                                    onChange={(event) => setPlanCategoryIncluded('income', c.id, event.target.checked)}
-                                    aria-label={`${c.label} 계획 합계 포함`}
+                    {/* 수입 계획 */}
+                    <div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🔵</span> 수입 목표 계획
+                      </h3>
+                      <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
+                            <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeIncomeCategories.map((c: CategoryOption) => {
+                            const plan = plans.find((p) => p.category === c.id && p.type === 'income');
+                            const value = plan ? plan.plannedAmount : 0;
+                            const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
+                            return (
+                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                                <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                  <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
+                                </td>
+                                <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                  <PlanAmountInput
+                                    value={value}
+                                    onChange={(amt) => {
+                                      setPlans((prev) =>
+                                        prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
+                                      );
+                                    }}
                                   />
-                                  <span aria-hidden="true" />
-                                </label>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                                <td className="plan-inclusion-cell">
+                                  <label className="plan-inclusion-toggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={isIncluded}
+                                      onChange={(event) => setPlanCategoryIncluded('income', c.id, event.target.checked)}
+                                      aria-label={`${c.label} 계획 합계 포함`}
+                                    />
+                                    <span aria-hidden="true" />
+                                  </label>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-                <div className="plan-total-bar">
-                  <div className="plan-total-item plan-total-expense">
-                    <span>지출 예산 합계</span>
-                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
-                  </div>
-                  <div className="plan-total-item plan-total-income">
-                    <span>수입 목표 합계</span>
-                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
-                  </div>
-                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
-                    <span>계획 차액</span>
-                    <strong>{displayCurrency(plannedNetTotal)}</strong>
+                  <div className="plan-total-bar">
+                    <div className="plan-total-item plan-total-expense">
+                      <span>지출 예산 합계</span>
+                      <strong>{displayCurrency(plannedExpenseTotal)}</strong>
+                    </div>
+                    <div className="plan-total-item plan-total-income">
+                      <span>수입 목표 합계</span>
+                      <strong>{displayCurrency(plannedIncomeTotal)}</strong>
+                    </div>
+                    <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
+                      <span>계획 차액</span>
+                      <strong>{displayCurrency(plannedNetTotal)}</strong>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* 계획 카테고리 설정 카드 (이식 완료) */}
-              <div style={{ height: '80px' }} />
-            </>
-          )}
+            {planView === 'settlement' && (
+              <div className="ledger-settlement-view">
+                {/* 상단 요약 카드 */}
+                <div className="settlement-summary-card">
+                  <div className="settlement-summary-top">
+                    <h3 className="settlement-summary-title">
+                      <AppIcon name="plan" size={19} /> {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월 예산 결산
+                    </h3>
+                    <div className="settlement-type-toggle" role="tablist" aria-label="결산 구분">
+                      <button
+                        type="button"
+                        className={`expense ${settlementType === 'expense' ? 'active' : ''}`}
+                        onClick={() => setSettlementType('expense')}
+                      >
+                        지출 예산
+                      </button>
+                      <button
+                        type="button"
+                        className={`income ${settlementType === 'income' ? 'active' : ''}`}
+                        onClick={() => setSettlementType('income')}
+                      >
+                        수입 목표
+                      </button>
+                    </div>
+                  </div>
+
+                  {settlementType === 'expense' ? (
+                    <>
+                      <div className="settlement-stat-grid">
+                        <div className="settlement-stat-item">
+                          <span>지출 예산</span>
+                          <strong>{displayCurrency(plannedExpenseTotal)}</strong>
+                        </div>
+                        <div className="settlement-stat-item">
+                          <span>실제 지출</span>
+                          <strong className="expense">{displayCurrency(expenseTotal)}</strong>
+                        </div>
+                        <div className="settlement-stat-item">
+                          <span>{plannedExpenseTotal >= expenseTotal ? '잔여 예산' : '초과 지출'}</span>
+                          {plannedExpenseTotal >= expenseTotal ? (
+                            <strong className="settlement-remain-positive">{displayCurrency(plannedExpenseTotal - expenseTotal)} 남음</strong>
+                          ) : (
+                            <strong className="settlement-remain-negative">{displayCurrency(expenseTotal - plannedExpenseTotal)} 초과</strong>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="settlement-overall-progress">
+                        <div className="settlement-progress-labels">
+                          <span>전체 예산 소진율</span>
+                          <strong className={plannedExpenseTotal > 0 && expenseTotal > plannedExpenseTotal ? 'danger' : ''}>
+                            {plannedExpenseTotal > 0 ? `${Math.round((expenseTotal / plannedExpenseTotal) * 100)}%` : '예산 미설정'}
+                          </strong>
+                        </div>
+                        <div className="settlement-progress-bar">
+                          <div
+                            className={`settlement-progress-fill ${
+                              plannedExpenseTotal > 0 && expenseTotal > plannedExpenseTotal
+                                ? 'danger'
+                                : plannedExpenseTotal > 0 && (expenseTotal / plannedExpenseTotal) >= 0.8
+                                ? 'warn'
+                                : 'safe'
+                            }`}
+                            style={{
+                              width: `${plannedExpenseTotal > 0 ? Math.min(Math.round((expenseTotal / plannedExpenseTotal) * 100), 100) : 0}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="settlement-stat-grid">
+                        <div className="settlement-stat-item">
+                          <span>수입 목표</span>
+                          <strong>{displayCurrency(plannedIncomeTotal)}</strong>
+                        </div>
+                        <div className="settlement-stat-item">
+                          <span>실제 수입</span>
+                          <strong className="income">{displayCurrency(incomeTotal)}</strong>
+                        </div>
+                        <div className="settlement-stat-item">
+                          <span>{incomeTotal >= plannedIncomeTotal ? '초과 달성' : '목표 부족'}</span>
+                          {incomeTotal >= plannedIncomeTotal ? (
+                            <strong className="settlement-remain-positive">{displayCurrency(incomeTotal - plannedIncomeTotal)} 달성</strong>
+                          ) : (
+                            <strong className="settlement-remain-negative">{displayCurrency(plannedIncomeTotal - incomeTotal)} 부족</strong>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="settlement-overall-progress">
+                        <div className="settlement-progress-labels">
+                          <span>목표 대비 달성률</span>
+                          <strong className="income">
+                            {plannedIncomeTotal > 0 ? `${Math.round((incomeTotal / plannedIncomeTotal) * 100)}%` : '목표 미설정'}
+                          </strong>
+                        </div>
+                        <div className="settlement-progress-bar">
+                          <div
+                            className="settlement-progress-fill income-achieved"
+                            style={{
+                              width: `${plannedIncomeTotal > 0 ? Math.min(Math.round((incomeTotal / plannedIncomeTotal) * 100), 100) : 0}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* 카테고리별 결산 목록 */}
+                {settlementType === 'expense' ? (
+                  <div className="settlement-category-list">
+                    {expenseSettlementList.length === 0 ? (
+                      <p className="empty-note">표시할 지출 내역이 없습니다.</p>
+                    ) : (
+                      expenseSettlementList.map((item) => {
+                        const isExpanded = expandedSettlementCategory === `expense-${item.category.id}`;
+                        return (
+                          <div
+                            key={item.category.id}
+                            className={`settlement-category-card ${item.isOver ? 'is-over' : ''}`}
+                          >
+                            <div
+                              className="settlement-category-main"
+                              onClick={() =>
+                                setExpandedSettlementCategory((curr) =>
+                                  curr === `expense-${item.category.id}` ? null : `expense-${item.category.id}`
+                                )
+                              }
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExpanded}
+                            >
+                              <div className="settlement-cat-info">
+                                <CategoryBadge categories={allExpenseCategories} idOrLabel={item.category.id} />
+                                <span className="settlement-budget-label">
+                                  {item.budget > 0 ? `예산 ${displayCurrency(item.budget)}` : '예산 미설정'}
+                                </span>
+                              </div>
+
+                              <div className="settlement-gauge-wrap">
+                                <div className="settlement-gauge-bar">
+                                  <div
+                                    className={`settlement-gauge-fill ${
+                                      item.isOver
+                                        ? 'danger'
+                                        : item.percent >= 80
+                                        ? 'warn'
+                                        : item.budget === 0 && item.spent === 0
+                                        ? 'empty'
+                                        : 'safe'
+                                    }`}
+                                    style={{ width: `${Math.min(item.percent, 100)}%` }}
+                                  />
+                                </div>
+                                <span
+                                  className={`settlement-gauge-percent ${
+                                    item.isOver ? 'danger' : item.percent >= 80 ? 'warn' : ''
+                                  }`}
+                                >
+                                  {item.budget > 0 ? `${item.percent}%` : item.spent > 0 ? '미설정' : '0%'}
+                                </span>
+                              </div>
+
+                              <div className="settlement-cat-result">
+                                <strong className={`settlement-spent-amount ${item.isOver ? 'danger' : ''}`}>
+                                  {displayCurrency(item.spent)}
+                                </strong>
+                                <span className={`settlement-diff-badge ${item.isOver ? 'danger' : 'safe'}`}>
+                                  {item.budget > 0
+                                    ? item.diff >= 0
+                                      ? `${displayCurrency(item.diff)} 남음`
+                                      : `${displayCurrency(Math.abs(item.diff))} 초과`
+                                    : item.spent > 0
+                                    ? `${displayCurrency(item.spent)} 지출`
+                                    : '0원'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="settlement-category-drawer">
+                                <div className="settlement-drawer-inner">
+                                  <div className="settlement-drawer-heading">
+                                    <span>{item.category.label} 지출 세부 내역 ({item.transactions.length}건)</span>
+                                    <span>금액</span>
+                                  </div>
+                                  {item.transactions.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '10px 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      이번 달 지출 내역이 없습니다.
+                                    </div>
+                                  ) : (
+                                    item.transactions.map((tx) => (
+                                      <div key={tx.id} className="settlement-drawer-tx-item">
+                                        <div className="settlement-drawer-tx-left">
+                                          <span className="settlement-drawer-tx-date">{tx.date.slice(5)}</span>
+                                          <span className="settlement-drawer-tx-title">{tx.title || item.category.label}</span>
+                                        </div>
+                                        <strong className="settlement-drawer-tx-amount expense">
+                                          -{displayCurrency(tx.amount)}
+                                        </strong>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : (
+                  <div className="settlement-category-list">
+                    {incomeSettlementList.length === 0 ? (
+                      <p className="empty-note">표시할 수입 내역이 없습니다.</p>
+                    ) : (
+                      incomeSettlementList.map((item) => {
+                        const isExpanded = expandedSettlementCategory === `income-${item.category.id}`;
+                        return (
+                          <div
+                            key={item.category.id}
+                            className="settlement-category-card"
+                          >
+                            <div
+                              className="settlement-category-main"
+                              onClick={() =>
+                                setExpandedSettlementCategory((curr) =>
+                                  curr === `income-${item.category.id}` ? null : `income-${item.category.id}`
+                                )
+                              }
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExpanded}
+                            >
+                              <div className="settlement-cat-info">
+                                <CategoryBadge categories={allIncomeCategories} idOrLabel={item.category.id} />
+                                <span className="settlement-budget-label">
+                                  {item.target > 0 ? `목표 ${displayCurrency(item.target)}` : '목표 미설정'}
+                                </span>
+                              </div>
+
+                              <div className="settlement-gauge-wrap">
+                                <div className="settlement-gauge-bar">
+                                  <div
+                                    className={`settlement-gauge-fill ${
+                                      item.isAchieved ? 'income' : item.target === 0 && item.actual === 0 ? 'empty' : 'safe'
+                                    }`}
+                                    style={{ width: `${Math.min(item.percent, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="settlement-gauge-percent">
+                                  {item.target > 0 ? `${item.percent}%` : item.actual > 0 ? '미설정' : '0%'}
+                                </span>
+                              </div>
+
+                              <div className="settlement-cat-result">
+                                <strong className="settlement-spent-amount income">
+                                  +{displayCurrency(item.actual)}
+                                </strong>
+                                <span className={`settlement-diff-badge ${item.isAchieved ? 'income-good' : 'safe'}`}>
+                                  {item.target > 0
+                                    ? item.diff >= 0
+                                      ? `${displayCurrency(item.diff)} 달성`
+                                      : `${displayCurrency(Math.abs(item.diff))} 부족`
+                                    : item.actual > 0
+                                    ? `${displayCurrency(item.actual)} 수입`
+                                    : '0원'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="settlement-category-drawer">
+                                <div className="settlement-drawer-inner">
+                                  <div className="settlement-drawer-heading">
+                                    <span>{item.category.label} 수입 세부 내역 ({item.transactions.length}건)</span>
+                                    <span>금액</span>
+                                  </div>
+                                  {item.transactions.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '10px 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                      이번 달 수입 내역이 없습니다.
+                                    </div>
+                                  ) : (
+                                    item.transactions.map((tx) => (
+                                      <div key={tx.id} className="settlement-drawer-tx-item">
+                                        <div className="settlement-drawer-tx-left">
+                                          <span className="settlement-drawer-tx-date">{tx.date.slice(5)}</span>
+                                          <span className="settlement-drawer-tx-title">{tx.title || item.category.label}</span>
+                                        </div>
+                                        <strong className="settlement-drawer-tx-amount income">
+                                          +{displayCurrency(tx.amount)}
+                                        </strong>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ height: '80px' }} />
+          </>
+        )}
 
         {activeTab === 'settings' && (
           <section className="settings-hub settings-hub-category">
