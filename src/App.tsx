@@ -8693,25 +8693,27 @@ function UnifiedEntryForm({
             </label>
           )}
 
-          <div className="content-entry-wrapper" style={{ gridColumn: 'span 2' }}>
-            <label className="content-entry-field compact-entry-field" aria-label="내용">
-              <input
-                type="text"
-                ref={titleRef}
-                placeholder="내용 (미입력 시 분류명)"
-                value={form.title}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, title: e.target.value }));
-                  setIsTitleSuggestionsOpen(true);
-                }}
-                onFocus={() => setIsTitleSuggestionsOpen(true)}
-                onBlur={() => {
-                  setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
-                }}
-              />
-            </label>
+          <label
+            className="content-entry-field compact-entry-field"
+            style={{ gridColumn: 'span 2', position: 'relative' }}
+            aria-label="내용"
+          >
+            <input
+              type="text"
+              ref={titleRef}
+              placeholder="내용 (미입력 시 분류명)"
+              value={form.title}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, title: e.target.value }));
+                setIsTitleSuggestionsOpen(true);
+              }}
+              onFocus={() => setIsTitleSuggestionsOpen(true)}
+              onBlur={() => {
+                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+              }}
+            />
             {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-              <div className="title-suggestions-dropdown">
+              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
                 <div className="title-suggestions-header">
                   <span>최근 / 자주 사용한 내역</span>
                   <button
@@ -8720,6 +8722,7 @@ function UnifiedEntryForm({
                     tabIndex={-1}
                     onMouseDown={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setIsTitleSuggestionsOpen(false);
                     }}
                   >
@@ -8734,6 +8737,7 @@ function UnifiedEntryForm({
                       className="title-suggestion-item"
                       onMouseDown={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setForm((prev) => ({
                           ...prev,
                           title: item.title,
@@ -8755,7 +8759,7 @@ function UnifiedEntryForm({
                 </div>
               </div>
             )}
-          </div>
+          </label>
 
           <label className="recurring-toggle" style={{ gridColumn: 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
             <input
@@ -9152,25 +9156,27 @@ function TransactionEditForm({
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
-        <div className="content-entry-wrapper" style={{ gridColumn: 'span 2' }}>
-          <label className="compact-entry-field content-entry-field" aria-label="내용">
-            <input
-              ref={titleRef}
-              type="text"
-              placeholder="내용 (미입력 시 분류명)"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setIsTitleSuggestionsOpen(true);
-              }}
-              onFocus={() => setIsTitleSuggestionsOpen(true)}
-              onBlur={() => {
-                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
-              }}
-            />
-          </label>
+        <label
+          className="compact-entry-field content-entry-field"
+          style={{ gridColumn: 'span 2', position: 'relative' }}
+          aria-label="내용"
+        >
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder="내용 (미입력 시 분류명)"
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setIsTitleSuggestionsOpen(true);
+            }}
+            onFocus={() => setIsTitleSuggestionsOpen(true)}
+            onBlur={() => {
+              setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+            }}
+          />
           {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-            <div className="title-suggestions-dropdown">
+            <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
               <div className="title-suggestions-header">
                 <span>최근 / 자주 사용한 내역</span>
                 <button
@@ -9179,6 +9185,7 @@ function TransactionEditForm({
                   tabIndex={-1}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     setIsTitleSuggestionsOpen(false);
                   }}
                 >
@@ -9193,6 +9200,7 @@ function TransactionEditForm({
                     className="title-suggestion-item"
                     onMouseDown={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setTitle(item.title);
                       if (item.category && categories.some((c) => c.id === item.category || c.label === item.category)) {
                         setCategory(item.category);
@@ -9211,7 +9219,7 @@ function TransactionEditForm({
               </div>
             </div>
           )}
-        </div>
+        </label>
 
         {isInstallment && (
           <div className="installment-edit-summary">
