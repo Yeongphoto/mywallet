@@ -835,21 +835,6 @@ export default function App() {
   function getAssetCategoryGroupId(asset: AssetItem) {
     return allAssetCategories.find((category) => category.id === asset.category || category.label === asset.category)?.id ?? asset.category;
   }
-  const assetGroups = useMemo(() => {
-    const knownGroups = allAssetCategories.map((category) => ({
-      id: category.id,
-      label: category.label,
-      assets: activeAssets.filter((asset) => getAssetCategoryGroupId(asset) === category.id),
-    })).filter((group) => group.assets.length > 0);
-    const knownIds = new Set(knownGroups.map((group) => group.id));
-    const unknownGroups = new Map<string, AssetItem[]>();
-    activeAssets.forEach((asset) => {
-      const groupId = getAssetCategoryGroupId(asset);
-      if (knownIds.has(groupId)) return;
-      unknownGroups.set(groupId, [...(unknownGroups.get(groupId) ?? []), asset]);
-    });
-    return [...knownGroups, ...Array.from(unknownGroups, ([id, groupedAssets]) => ({ id, label: id, assets: groupedAssets }))];
-  }, [activeAssets, allAssetCategories]);
   const assetCategoryGroups = useMemo(() => (
     ([
       { kind: 'asset' as const, label: '자산' },
@@ -861,6 +846,33 @@ export default function App() {
       )),
     }))
   ), [activeAssetCategories, categoryLabels]);
+
+  const assetGroups = useMemo(() => {
+    // Flatten category order: 자산 그룹 카테고리 순서 -> 대출 그룹 카테고리 순서
+    const sortedCategories = assetCategoryGroups.flatMap((group) => group.categories);
+    const knownGroups = sortedCategories.map((category) => ({
+      id: category.id,
+      label: category.label,
+      kind: (categoryLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') as 'asset' | 'liability',
+      assets: activeAssets.filter((asset) => getAssetCategoryGroupId(asset) === category.id),
+    })).filter((group) => group.assets.length > 0);
+    const knownIds = new Set(knownGroups.map((group) => group.id));
+    const unknownGroups = new Map<string, AssetItem[]>();
+    activeAssets.forEach((asset) => {
+      const groupId = getAssetCategoryGroupId(asset);
+      if (knownIds.has(groupId)) return;
+      unknownGroups.set(groupId, [...(unknownGroups.get(groupId) ?? []), asset]);
+    });
+    return [
+      ...knownGroups,
+      ...Array.from(unknownGroups, ([id, groupedAssets]) => ({
+        id,
+        label: id,
+        kind: 'asset' as const,
+        assets: groupedAssets,
+      })),
+    ];
+  }, [activeAssets, assetCategoryGroups, allAssetCategories, categoryLabels]);
   const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
   const categorySortSessionRef = useRef<{
     type: CategoryScope;
