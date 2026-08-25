@@ -4575,74 +4575,73 @@ export default function App() {
                       );
                     })()}
                   </svg>
+                  {/* 실시간 대화형 오버레이 팝업 (그래프 상단에 밀착 배치) */}
+                  {hoveredChartIndex !== null && (
+                    <div 
+                      onClick={() => setHoveredChartIndex(null)}
+                      style={{
+                        position: 'absolute',
+                        left: `calc(16% + ${(hoveredChartIndex / 11) * 68}%)`, /* 1월~12월 기둥 위치에 맞추어 좌우 슬라이딩 */
+                        top: '8px', /* 그래프 최상단 바로 위로 내려서 배치 */
+                        transform: 'translateX(-50%)',
+                        width: 'auto',
+                        minWidth: '175px',
+                        maxWidth: '240px',
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        color: '#ffffff',
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        fontSize: '0.78rem',
+                        zIndex: 1000,
+                        cursor: 'pointer',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        boxSizing: 'border-box',
+                        transition: 'left 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                      }}
+                      title="터치하여 닫기"
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', paddingBottom: '4px' }}>
+                        <strong style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
+                          {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month} 상세
+                        </strong>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginLeft: '6px' }}>✕</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {(chartFilter === 'both' || chartFilter === 'income') && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 수입:</span>
+                            <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].income)}</span>
+                          </div>
+                        )}
+                        {(chartFilter === 'both' || chartFilter === 'expense') && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 지출:</span>
+                            <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].expense)}</span>
+                          </div>
+                        )}
+                        {chartFilter === 'asset' && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ color: '#34d399', fontWeight: 600 }}>자산:</span>
+                            <span style={{ fontWeight: 'bold' }}>{yearlyData[hoveredChartIndex].asset === null ? '기록 전' : displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
+                          </div>
+                        )}
+                        {chartFilter === 'both' && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '3px', marginTop: '2px' }}>
+                            <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
+                            <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
+                              {displayCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* 실시간 대화형 오버레이 팝업 (상단에 위치시켜 모바일/데스크톱 화면 잘림 방지) */}
-              {hoveredChartIndex !== null && (
-                <div 
-                  onClick={() => setHoveredChartIndex(null)}
-                  style={{
-                    position: 'absolute',
-                    left: `calc(28% + ${(hoveredChartIndex / 11) * 44}%)`, /* 1월~12월 기둥 위치에 맞추어 좌우 슬라이딩 */
-                    top: '12px', /* 상단에 배치하여 모바일 화면 하단 잘림 방지 */
-                    transform: 'translateX(-50%)',
-                    width: 'auto',
-                    minWidth: '180px',
-                    maxWidth: '240px',
-                    background: 'rgba(15, 23, 42, 0.95)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
-                    color: '#ffffff',
-                    padding: '8px 12px',
-                    borderRadius: '12px',
-                    fontSize: '0.78rem',
-                    zIndex: 1000,
-                    cursor: 'pointer',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.2)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    boxSizing: 'border-box',
-                    transition: 'left 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                  }}
-                  title="터치하여 닫기"
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', paddingBottom: '4px' }}>
-                    <strong style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
-                      {selectedMonth.slice(0, 4)}년 {yearlyData[hoveredChartIndex].month} 상세
-                    </strong>
-                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginLeft: '6px' }}>✕</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    {(chartFilter === 'both' || chartFilter === 'income') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 수입:</span>
-                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].income)}</span>
-                      </div>
-                    )}
-                    {(chartFilter === 'both' || chartFilter === 'expense') && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                        <span style={{ color: '#f87171', fontWeight: 600 }}>🔴 지출:</span>
-                        <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].expense)}</span>
-                      </div>
-                    )}
-                    {chartFilter === 'asset' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                        <span style={{ color: '#34d399', fontWeight: 600 }}>자산:</span>
-                        <span style={{ fontWeight: 'bold' }}>{yearlyData[hoveredChartIndex].asset === null ? '기록 전' : displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
-                      </div>
-                    )}
-                    {chartFilter === 'both' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px dashed rgba(255, 255, 255, 0.2)', paddingTop: '3px', marginTop: '2px' }}>
-                        <span style={{ color: '#cbd5e1', fontWeight: 600 }}>⚖️ 순수익:</span>
-                        <span style={{ fontWeight: 'bold', color: yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense >= 0 ? '#34d399' : '#f87171' }}>
-                          {displayCurrency(yearlyData[hoveredChartIndex].income - yearlyData[hoveredChartIndex].expense)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </section>
             </div>
 
