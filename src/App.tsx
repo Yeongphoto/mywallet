@@ -5587,90 +5587,7 @@ export default function App() {
             {settingsSection === 'asset' && (
               <div className="settings-stack settings-asset-stack">
                 <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
-                  {/* 삭제/보관된 자산 복원 히스토리 */}
-                  <article className="glass-panel managed-category-card managed-category-card-asset" style={{ width: '100%', padding: '16px' }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AppIcon name="asset" size={19} /> 삭제/보관된 자산 히스토리
-                      </span>
-                      <span className="category-header-actions">
-                        <b>{hiddenAssetsList.length}개 보관 중</b>
-                      </span>
-                    </h3>
-
-                    {hiddenAssetsList.length === 0 ? (
-                      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px dashed var(--border-card)' }}>
-                        삭제되거나 보관된 자산이 없습니다.<br />
-                        <span style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '4px', display: 'inline-block' }}>자산 탭에서 자산을 삭제하면 과거 거래 내역을 안전하게 보존한 채 이곳에 보관되며 언제든 다시 복원할 수 있습니다.</span>
-                      </div>
-                    ) : (
-                      <div className="category-table" style={{ padding: '0', display: 'grid', gap: '8px' }}>
-                        {hiddenAssetsList.map((asset) => {
-                          const linkedCount = transactions.filter((t) => t.assetId === asset.id || t.toAssetId === asset.id).length;
-                          const currentBalance = getNetAssetBalance(asset);
-                          const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
-
-                          return (
-                            <div
-                              key={`archived-asset-${asset.id}`}
-                              className="category-row settings-asset-row is-hidden-asset"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '10px 14px',
-                                border: '1px dashed var(--border-card)',
-                                borderRadius: '10px',
-                                background: 'color-mix(in srgb, var(--bg-card) 65%, var(--bg-input))',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                                <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                  <strong style={{ fontSize: '0.94rem', color: 'var(--text-primary)', textDecoration: 'line-through', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {formatAssetLabel(asset, allAssetCategories)}
-                                  </strong>
-                                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                                    과거 거래 {linkedCount}건 기록됨
-                                  </span>
-                                </div>
-                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isLiability ? 'var(--color-expense)' : 'var(--text-primary)', marginLeft: 'auto', marginRight: '10px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                                  {displayCurrency(currentBalance)}
-                                </span>
-                              </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
-                                <button
-                                  type="button"
-                                  className="primary-button"
-                                  style={{ padding: '6px 14px', fontSize: '0.8rem', marginTop: 0, minHeight: '32px' }}
-                                  onClick={() => handleToggleHideAsset(asset.id, false)}
-                                >
-                                  복원
-                                </button>
-
-                                {linkedCount === 0 && (
-                                  <button
-                                    type="button"
-                                    className="row-action-button row-action-delete"
-                                    aria-label="영구 삭제"
-                                    style={{ width: '30px', height: '30px', fontSize: '0.95rem' }}
-                                    title="연결된 거래가 없어 영구 삭제할 수 있습니다."
-                                    onClick={() => handlePermanentDeleteAsset(asset.id)}
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </article>
-
-                  {/* 등록된 자산 카테고리 (자산/대출 그룹) */}
+                  {/* 1. 등록된 자산 카테고리 (자산/대출 그룹) */}
                   <article className="glass-panel managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', padding: '16px' }}>
                     <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -5837,6 +5754,89 @@ export default function App() {
                         </section>
                       ))}
                     </div>
+                  </article>
+
+                  {/* 2. 삭제/보관된 자산 복원 히스토리 */}
+                  <article className="glass-panel managed-category-card managed-category-card-asset" style={{ width: '100%', padding: '16px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="asset" size={19} /> 삭제/보관된 자산 히스토리
+                      </span>
+                      <span className="category-header-actions">
+                        <b>{hiddenAssetsList.length}개 보관 중</b>
+                      </span>
+                    </h3>
+
+                    {hiddenAssetsList.length === 0 ? (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px dashed var(--border-card)' }}>
+                        삭제되거나 보관된 자산이 없습니다.<br />
+                        <span style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '4px', display: 'inline-block' }}>자산 탭에서 자산을 삭제하면 과거 거래 내역을 안전하게 보존한 채 이곳에 보관되며 언제든 다시 복원할 수 있습니다.</span>
+                      </div>
+                    ) : (
+                      <div className="category-table" style={{ padding: '0', display: 'grid', gap: '8px' }}>
+                        {hiddenAssetsList.map((asset) => {
+                          const linkedCount = transactions.filter((t) => t.assetId === asset.id || t.toAssetId === asset.id).length;
+                          const currentBalance = getNetAssetBalance(asset);
+                          const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
+
+                          return (
+                            <div
+                              key={`archived-asset-${asset.id}`}
+                              className="category-row settings-asset-row is-hidden-asset"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 14px',
+                                border: '1px dashed var(--border-card)',
+                                borderRadius: '10px',
+                                background: 'color-mix(in srgb, var(--bg-card) 65%, var(--bg-input))',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                                <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <strong style={{ fontSize: '0.94rem', color: 'var(--text-primary)', textDecoration: 'line-through', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {formatAssetLabel(asset, allAssetCategories)}
+                                  </strong>
+                                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                    과거 거래 {linkedCount}건 기록됨
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isLiability ? 'var(--color-expense)' : 'var(--text-primary)', marginLeft: 'auto', marginRight: '10px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                                  {displayCurrency(currentBalance)}
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                                <button
+                                  type="button"
+                                  className="primary-button"
+                                  style={{ padding: '6px 14px', fontSize: '0.8rem', marginTop: 0, minHeight: '32px' }}
+                                  onClick={() => handleToggleHideAsset(asset.id, false)}
+                                >
+                                  복원
+                                </button>
+
+                                {linkedCount === 0 && (
+                                  <button
+                                    type="button"
+                                    className="row-action-button row-action-delete"
+                                    aria-label="영구 삭제"
+                                    style={{ width: '30px', height: '30px', fontSize: '0.95rem' }}
+                                    title="연결된 거래가 없어 영구 삭제할 수 있습니다."
+                                    onClick={() => handlePermanentDeleteAsset(asset.id)}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </article>
                 </div>
               </div>
