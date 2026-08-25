@@ -4499,18 +4499,41 @@ body.category-handle-drag-active {
 .settlement-category-card {
   display: grid;
   background: var(--bg-card);
-  border: 1px solid var(--border-card);
+  border: 1px solid rgba(59, 130, 246, 0.38);
   border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.settlement-category-card:hover {
-  border-color: var(--primary);
+.settlement-category-card:hover,
+.settlement-category-card.is-normal:hover {
+  border-color: rgba(59, 130, 246, 0.85);
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.12);
 }
 
+/* 정상: 파란 테두리 */
+.settlement-category-card.is-normal {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+/* 임박: 노란 테두리 */
+.settlement-category-card.is-warn {
+  border-color: rgba(245, 158, 11, 0.65);
+}
+
+.settlement-category-card.is-warn:hover {
+  border-color: rgba(245, 158, 11, 0.95);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
+}
+
+/* 초과: 빨간 테두리 */
 .settlement-category-card.is-over {
-  border-color: color-mix(in srgb, var(--color-expense) 40%, var(--border-card));
+  border-color: rgba(239, 68, 68, 0.65);
+}
+
+.settlement-category-card.is-over:hover {
+  border-color: rgba(239, 68, 68, 0.95);
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.15);
 }
 
 .settlement-category-main {

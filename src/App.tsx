@@ -5423,10 +5423,15 @@ export default function App() {
                     ) : (
                       expenseSettlementList.map((item) => {
                         const isExpanded = expandedSettlementCategory === `expense-${item.category.id}`;
+                        const statusClass = item.isOver
+                          ? 'is-over'
+                          : item.budget > 0 && item.percent >= 80
+                          ? 'is-warn'
+                          : 'is-normal';
                         return (
                           <div
                             key={item.category.id}
-                            className={`settlement-category-card ${item.isOver ? 'is-over' : ''}`}
+                            className={`settlement-category-card ${statusClass}`}
                           >
                             <div
                               className="settlement-category-main"
@@ -5525,10 +5530,15 @@ export default function App() {
                     ) : (
                       incomeSettlementList.map((item) => {
                         const isExpanded = expandedSettlementCategory === `income-${item.category.id}`;
+                        const statusClass = item.isAchieved
+                          ? 'is-normal'
+                          : item.target > 0 && item.percent >= 80
+                          ? 'is-warn'
+                          : 'is-normal';
                         return (
                           <div
                             key={item.category.id}
-                            className="settlement-category-card"
+                            className={`settlement-category-card ${statusClass}`}
                           >
                             <div
                               className="settlement-category-main"
