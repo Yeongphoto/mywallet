@@ -8693,7 +8693,7 @@ function UnifiedEntryForm({
           )}
 
           <label
-            className="content-entry-field compact-entry-field"
+            className={`content-entry-field compact-entry-field ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
             style={{ gridColumn: 'span 2', position: 'relative' }}
             aria-label="내용"
           >
@@ -9150,7 +9150,7 @@ function TransactionEditForm({
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
         <label
-          className="compact-entry-field content-entry-field"
+          className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
           style={{ gridColumn: 'span 2', position: 'relative' }}
           aria-label="내용"
         >
