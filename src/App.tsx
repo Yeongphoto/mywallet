@@ -6569,12 +6569,13 @@ function CategoryActionRow({
             event.preventDefault();
             event.stopPropagation();
             clearCategorySort();
+            const rowRect = row.getBoundingClientRect();
             const pending = {
               pointerId: event.pointerId,
               startX: event.clientX,
               startY: event.clientY,
-              grabOffsetX: 0,
-              grabOffsetY: 0,
+              grabOffsetX: event.clientX - rowRect.left,
+              grabOffsetY: event.clientY - rowRect.top,
               row,
               ghost: null as HTMLElement | null,
               active: false,
