@@ -8350,7 +8350,7 @@ function UnifiedEntryForm({
       return b.latestDate.localeCompare(a.latestDate);
     });
 
-    return list.slice(0, 8);
+    return list.slice(0, 15);
   }, [transactions, form.title, form.category]);
 
   function handleTypeChange(newType: EntryType) {
@@ -8985,7 +8985,7 @@ function TransactionEditForm({
       return b.latestDate.localeCompare(a.latestDate);
     });
 
-    return list.slice(0, 8);
+    return list.slice(0, 15);
   }, [transactions, title, category]);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
   const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);

@@ -5647,26 +5647,54 @@ body.asset-handle-drag-active {
 
 .title-suggestions-dropdown {
   position: absolute;
-  bottom: calc(100% + 6px);
   left: 0;
   right: 0;
   z-index: 100;
   background: rgba(255, 255, 255, 0.96);
   border: 1.5px solid color-mix(in srgb, var(--primary) 30%, var(--border-input));
   border-radius: 16px;
-  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
   overflow: hidden;
-  max-height: clamp(130px, 24vh, 180px);
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 모바일 및 세로가 좁은 화면: 가상 키보드와 겹치지 않도록 입력창 위로 펼침 */
+@media (max-width: 767px), (max-height: 700px) {
+  .title-suggestions-dropdown {
+    bottom: calc(100% + 6px);
+    top: auto;
+    max-height: clamp(140px, 26vh, 200px);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* PC / 태블릿 등 화면 높이가 여유로운 환경: 자연스럽게 입력창 아래로 펼침 */
+@media (min-width: 768px) and (min-height: 701px) {
+  .title-suggestions-dropdown {
+    top: calc(100% + 6px);
+    bottom: auto;
+    max-height: 240px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+}
+
 [data-theme='dark'] .title-suggestions-dropdown {
   background: rgba(30, 41, 59, 0.96);
   border-color: color-mix(in srgb, var(--primary) 40%, rgba(255, 255, 255, 0.16));
-  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 767px), (max-height: 700px) {
+  [data-theme='dark'] .title-suggestions-dropdown {
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (min-width: 768px) and (min-height: 701px) {
+  [data-theme='dark'] .title-suggestions-dropdown {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
 }
 
 .title-suggestions-header {
