@@ -8036,16 +8036,16 @@ function AssetRegistrationForm({
             ref={amountRef}
             type="text"
             name="asset-amount"
-            inputMode="numeric"
+            readOnly
+            inputMode="none"
             placeholder="기초 금액"
             required
             value={amount ? formatNumberInput(parseNumberInput(amount)) : ''}
-            readOnly={Boolean(editingAsset)}
-            onChange={(event) => {
-              const digits = event.currentTarget.value.replace(/[^\d-]/g, '');
-              setAmount(digits);
+            onClick={() => { if (!editingAsset) setActivePopup('amount'); }}
+            onFocus={(event) => {
+              event.currentTarget.blur();
+              if (!editingAsset) setActivePopup('amount');
             }}
-            onFocus={() => { if (!editingAsset) setActivePopup('amount'); }}
           />
         </div>
 
@@ -8190,10 +8190,6 @@ function UnifiedEntryForm({
       onNotify?.('날짜를 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
-    if (!form.title.trim()) {
-      onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
-      return;
-    }
 
     if (form.type !== 'transfer' && !form.category) {
       onNotify?.('카테고리를 선택해 주세요.', '입력 확인', 'warning');
@@ -8211,6 +8207,11 @@ function UnifiedEntryForm({
       }
     }
 
+    const fallbackTitle = form.type === 'transfer'
+      ? '계좌 이체'
+      : (activeCategories.find((c) => c.id === form.category || c.label === form.category)?.label || '기타');
+    const resolvedTitle = form.title.trim() || fallbackTitle;
+
     const transactionTime = normalizeTransactionTime(form.time);
     const installmentCount = form.type === 'expense' ? installmentMonths : 1;
 
@@ -8226,7 +8227,7 @@ function UnifiedEntryForm({
         time: transactionTime,
         createdAt: now + index,
         amount: baseAmount + (index < remainder ? 1 : 0),
-        title: `${form.title.trim()} (${index + 1}/${installmentCount})`,
+        title: `${resolvedTitle} (${index + 1}/${installmentCount})`,
         category: form.category,
         assetId: form.assetId || null,
         toAssetId: null,
@@ -8251,7 +8252,7 @@ function UnifiedEntryForm({
         day,
         time: transactionTime,
         amount,
-        title: form.title.trim(),
+        title: resolvedTitle,
         category: form.type === 'transfer' ? 'transfer' : form.category,
         assetId: form.assetId || null,
         toAssetId: form.type === 'transfer' ? form.toAssetId : null,
@@ -8266,7 +8267,7 @@ function UnifiedEntryForm({
         time: transactionTime,
         createdAt: now,
         amount,
-        title: form.title.trim(),
+        title: resolvedTitle,
         category: form.type === 'transfer' ? 'transfer' : form.category,
         assetId: form.assetId || null,
         toAssetId: form.type === 'transfer' ? form.toAssetId : null,
@@ -8280,7 +8281,7 @@ function UnifiedEntryForm({
         time: transactionTime,
         createdAt: Date.now(),
         amount,
-        title: form.title.trim(),
+        title: resolvedTitle,
         category: form.type === 'transfer' ? 'transfer' : form.category,
         assetId: form.assetId || null,
         toAssetId: form.type === 'transfer' ? form.toAssetId : null,
@@ -8364,19 +8365,16 @@ function UnifiedEntryForm({
           >
             <input
               type="text"
-              inputMode="numeric"
+              readOnly
+              inputMode="none"
               aria-label="금액"
               placeholder="금액"
               ref={amountRef}
               value={form.amount ? formatNumberInput(parseNumberInput(form.amount)) : ''}
-              onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value.replace(/[^\d-]/g, '') }))}
-              onFocus={() => setActivePopup('amount')}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                if (form.type === 'expense') installmentRef.current?.focus();
-                else if (form.type === 'transfer') setActivePopup('asset');
-                else setActivePopup('category');
+              onClick={() => setActivePopup('amount')}
+              onFocus={(event) => {
+                event.currentTarget.blur();
+                setActivePopup('amount');
               }}
             />
             <span className="currency-suffix" aria-hidden="true">원</span>
@@ -8511,7 +8509,7 @@ function UnifiedEntryForm({
             <input
               type="text"
               ref={titleRef}
-              placeholder="내용"
+              placeholder="내용 (미입력 시 분류명)"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
             />
@@ -8713,8 +8711,8 @@ function TransactionEditForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const numericAmount = parseAmount(amount);
-    if (!date || !title.trim() || !Number.isFinite(numericAmount) || numericAmount <= 0) {
-      onNotify?.('금액과 내용을 올바르게 입력해 주세요.', '입력 확인', 'warning');
+    if (!date || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
       return;
     }
 
@@ -8734,6 +8732,11 @@ function TransactionEditForm({
       }
     }
 
+    const fallbackTitle = transaction.type === 'transfer'
+      ? '계좌 이체'
+      : (categories.find((c) => c.id === category || c.label === category)?.label || '기타');
+    const resolvedTitle = title.trim() || fallbackTitle;
+
     const activeRecurringRule = transaction.recurringRuleId
       ? recurringRules.find((rule) => rule.id === transaction.recurringRuleId && !rule.endMonth)
       : undefined;
@@ -8751,7 +8754,7 @@ function TransactionEditForm({
         date,
         time: transactionTime,
         amount: numericAmount,
-        title: title.trim(),
+        title: resolvedTitle,
         category: transaction.type === 'transfer' ? 'transfer' : category,
         assetId: assetId || null,
         toAssetId: transaction.type === 'transfer' ? toAssetId : null,
@@ -8770,7 +8773,7 @@ function TransactionEditForm({
         day: dy,
         time: transactionTime,
         amount: numericAmount,
-        title: title.trim(),
+        title: resolvedTitle,
         category: transaction.type === 'transfer' ? 'transfer' : category,
         assetId: assetId || null,
         toAssetId: transaction.type === 'transfer' ? toAssetId : null,
@@ -8790,7 +8793,7 @@ function TransactionEditForm({
         day: dy,
         time: transactionTime,
         amount: numericAmount,
-        title: title.trim(),
+        title: resolvedTitle,
         category: transaction.type === 'transfer' ? 'transfer' : category,
         assetId: assetId || null,
         toAssetId: transaction.type === 'transfer' ? toAssetId : null,
@@ -8803,7 +8806,7 @@ function TransactionEditForm({
       date,
       time: transactionTime,
       amount: numericAmount,
-      title: title.trim(),
+      title: resolvedTitle,
       category: transaction.type === 'transfer' ? 'transfer' : category,
       assetId: assetId || null,
       toAssetId: transaction.type === 'transfer' ? toAssetId : null,
@@ -8829,17 +8832,21 @@ function TransactionEditForm({
         >
           <input
             type="text"
-            inputMode="numeric"
+            readOnly
+            inputMode="none"
             placeholder="금액"
             ref={amountRef}
             value={amount ? formatNumberInput(parseNumberInput(amount)) : ''}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d-]/g, ''))}
-            onFocus={() => setActivePopup('amount')}
+            onClick={() => setActivePopup('amount')}
+            onFocus={(event) => {
+              event.currentTarget.blur();
+              setActivePopup('amount');
+            }}
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
         <label className="compact-entry-field content-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
-          <input ref={titleRef} type="text" placeholder="내용" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input ref={titleRef} type="text" placeholder="내용 (미입력 시 분류명)" value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
 
         {isInstallment && (
