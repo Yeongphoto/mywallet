@@ -637,6 +637,63 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ ...responsePayload, operationId }), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    if (body.op === 'plan.upsert') {
+      const category = String(body.category || '');
+      const type = String(body.type || '');
+      const plannedAmount = Number(body.plannedAmount) || 0;
+      if (!category || !type) return apiError('VALIDATION_ERROR', 422);
+
+      await db.prepare("INSERT INTO plans (category, type, plannedAmount) VALUES (?, ?, ?) ON CONFLICT(category, type) DO UPDATE SET plannedAmount = excluded.plannedAmount")
+        .bind(category, type, plannedAmount).run();
+
+      return new Response(JSON.stringify({ success: true, plan: { category, type, plannedAmount } }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'plans.sync' || body.op === 'plans.save') {
+      const plans = Array.isArray(body.plans) ? body.plans : [];
+      const statements: D1PreparedStatement[] = [
+        db.prepare("DELETE FROM plans"),
+        ...plans.map((p: any) =>
+          db.prepare("INSERT INTO plans (category, type, plannedAmount) VALUES (?, ?, ?)")
+            .bind(String(p.category), String(p.type), Number(p.plannedAmount) || 0)
+        ),
+      ];
+      await db.batch(statements);
+      return new Response(JSON.stringify({ success: true, count: plans.length }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'setting.set') {
+      const key = String(body.key || '');
+      const value = typeof body.value === 'string' ? body.value : JSON.stringify(body.value);
+      if (!key) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        .bind(key, value).run();
+
+      return new Response(JSON.stringify({ success: true, key }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'settings.batch') {
+      const settings = body.settings && typeof body.settings === 'object' ? body.settings : {};
+      const entries = Object.entries(settings);
+      if (entries.length > 0) {
+        const statements = entries.map(([key, val]) =>
+          db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+            .bind(key, typeof val === 'string' ? val : JSON.stringify(val))
+        );
+        await db.batch(statements);
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'UNKNOWN_OPERATION' }), { status: 400 });
   } catch (err: any) {
     const isConstraintError = /constraint failed/i.test(String(err?.message || ''));

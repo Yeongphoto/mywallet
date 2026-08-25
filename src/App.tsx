@@ -939,6 +939,7 @@ export default function App() {
   const categoryOrderRevisionsRef = useRef<Record<string, number>>({});
   const categoryOrderSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[]; sourceId: string } | null>(null);
+  const planDebounceTimersRef = useRef<Record<string, number>>({});
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [monthPickerYear, setMonthPickerYear] = useState(() => Number(getCurrentMonth().slice(0, 4)));
@@ -2815,11 +2816,57 @@ export default function App() {
     return () => window.removeEventListener('mywallet:asset-group-drop', handleTouchAssetGroupDrop);
   }, [assets, allAssetCategories]);
 
+  function handleUpdatePlanAmount(categoryId: string, type: 'expense' | 'income', plannedAmount: number, categoryLabel?: string) {
+    setPlans((prev) => {
+      const existingIndex = prev.findIndex(
+        (p) => (p.category === categoryId || (categoryLabel && p.category === categoryLabel)) && p.type === type
+      );
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = { ...next[existingIndex], category: categoryId, plannedAmount };
+        return next;
+      }
+      return [...prev, { category: categoryId, type, plannedAmount }];
+    });
+
+    const timerKey = `${type}:${categoryId}`;
+    if (typeof window !== 'undefined') {
+      if (planDebounceTimersRef.current[timerKey]) {
+        window.clearTimeout(planDebounceTimersRef.current[timerKey]);
+      }
+      planDebounceTimersRef.current[timerKey] = window.setTimeout(() => {
+        delete planDebounceTimersRef.current[timerKey];
+        fetch('/api/data', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            op: 'plan.upsert',
+            category: categoryId,
+            type,
+            plannedAmount,
+          }),
+        }).catch(() => {});
+      }, 350);
+    }
+  }
+
   function handleCategoryColorChange(type: CategoryScope, id: string, color: string) {
-    setCategoryColors((prev) => ({
-      ...prev,
-      [getCategoryColorKey(type, id)]: color,
-    }));
+    setCategoryColors((prev) => {
+      const next = {
+        ...prev,
+        [getCategoryColorKey(type, id)]: color,
+      };
+      fetch('/api/data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          op: 'setting.set',
+          key: 'categoryColors',
+          value: next,
+        }),
+      }).catch(() => {});
+      return next;
+    });
   }
 
   function setPlanCategoryIncluded(type: 'expense' | 'income', categoryId: string, included: boolean) {
@@ -2831,6 +2878,15 @@ export default function App() {
       } else {
         next[key] = true;
       }
+      fetch('/api/data', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          op: 'setting.set',
+          key: 'categoryBudgetExcluded',
+          value: next,
+        }),
+      }).catch(() => {});
       return next;
     });
   }
@@ -5200,7 +5256,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {activeExpenseCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
+                          const plan = plans.find((p) => (p.category === c.id || p.category === c.label) && p.type === 'expense');
                           const value = plan ? plan.plannedAmount : 0;
                           const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
                           return (
@@ -5211,11 +5267,7 @@ export default function App() {
                               <td style={{ padding: '10px 0', textAlign: 'right' }}>
                                 <PlanAmountInput
                                   value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
+                                  onChange={(amt) => handleUpdatePlanAmount(c.id, 'expense', amt, c.label)}
                                 />
                               </td>
                               <td className="plan-inclusion-cell">
@@ -5251,7 +5303,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {activeIncomeCategories.map((c: CategoryOption) => {
-                          const plan = plans.find((p) => p.category === c.id && p.type === 'income');
+                          const plan = plans.find((p) => (p.category === c.id || p.category === c.label) && p.type === 'income');
                           const value = plan ? plan.plannedAmount : 0;
                           const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
                           return (
@@ -5262,11 +5314,7 @@ export default function App() {
                               <td style={{ padding: '10px 0', textAlign: 'right' }}>
                                 <PlanAmountInput
                                   value={value}
-                                  onChange={(amt) => {
-                                    setPlans((prev) =>
-                                      prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
-                                    );
-                                  }}
+                                  onChange={(amt) => handleUpdatePlanAmount(c.id, 'income', amt, c.label)}
                                 />
                               </td>
                               <td className="plan-inclusion-cell">
