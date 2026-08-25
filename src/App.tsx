@@ -2425,7 +2425,7 @@ export default function App() {
     setAssetHandleDragVisual({ id: null, targetId: null });
   }
 
-  function startAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>, assetId: string) {
+  function startAssetHandleDrag(event: React.PointerEvent<HTMLSpanElement>, assetId: string) {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -2456,7 +2456,7 @@ export default function App() {
     };
     const releaseListener = (nativeEvent: PointerEvent) => {
       if (nativeEvent.pointerId !== assetHandleDragRef.current.pointerId) return;
-      completeAssetHandleDrag();
+      completeAssetHandleDrag(nativeEvent.type === 'pointercancel');
     };
     assetHandleDragRef.current.moveListener = moveListener;
     assetHandleDragRef.current.releaseListener = releaseListener;
@@ -2478,6 +2478,7 @@ export default function App() {
         const rect = sourceRow.getBoundingClientRect();
         const ghost = sourceRow.cloneNode(true) as HTMLElement;
         ghost.classList.remove('asset-handle-drag-source', 'asset-handle-drag-target');
+        ghost.classList.add('sortable-drag-ghost');
         ghost.style.position = 'fixed';
         ghost.style.left = `${clientX - gesture.grabOffsetX}px`;
         ghost.style.top = `${clientY - gesture.grabOffsetY}px`;
@@ -2523,16 +2524,20 @@ export default function App() {
     setAssetHandleDragVisual((previous) => previous.id === gesture.id && previous.targetId === targetId ? previous : { id: gesture.id, targetId });
   }
 
-  function completeAssetHandleDrag() {
+  function completeAssetHandleDrag(cancelled = false) {
     const gesture = assetHandleDragRef.current;
     if (!gesture.active) return;
     const moved = gesture.moved;
     gesture.active = false;
     gesture.justDragged = moved;
     const targetId = gesture.targetId;
-    const categoryId = assetOrderBeforeDragRef.current?.categoryId;
+    const beforeDrag = assetOrderBeforeDragRef.current;
+    const categoryId = beforeDrag?.categoryId;
     clearAssetHandleDragVisual();
-    if (moved && categoryId && targetId && targetId !== gesture.id) {
+    if (cancelled && moved && beforeDrag) {
+      assetOrderBeforeDragRef.current = null;
+      restoreAssetOrder(beforeDrag.categoryId, beforeDrag.assetIds);
+    } else if (moved && categoryId && targetId && targetId !== gesture.id) {
       const currentAssets = assetsRef.current;
       const source = currentAssets.find((item) => item.id === gesture.id);
       if (source && getAssetCategoryGroupId(source) === categoryId) {
@@ -4836,10 +4841,10 @@ export default function App() {
                             return (
                               <div className="asset-row-summary" style={{ display: 'flex', alignItems: 'center', minHeight: '44px' }}>
                                 <span
-                                  className="asset-drag-handle"
+                                  className="asset-drag-handle sortable-drag-handle"
                                   onClick={(event) => event.stopPropagation()}
-                                  onPointerDown={(event) => startAssetHandleTouchDrag(event, asset.id)}
-                                  style={{ color: 'var(--text-primary)', opacity: isHovered ? 0.8 : 0.45, cursor: 'grab', fontSize: '1.1rem', userSelect: 'none', marginRight: '4px', touchAction: 'none' }}
+                                  onPointerDown={(event) => startAssetHandleDrag(event, asset.id)}
+                                  style={{ opacity: isHovered ? 0.8 : undefined }}
                                 >{'\u283F'}</span>
                                 <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
                                 <strong className="asset-row-name">{formatAssetLabel(asset, allAssetCategories)}</strong>
@@ -5131,7 +5136,7 @@ export default function App() {
                             className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
+                            <span className="category-drag-handle sortable-drag-handle">⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -5293,7 +5298,7 @@ export default function App() {
                             className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
+                            <span className="category-drag-handle sortable-drag-handle">⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -5461,7 +5466,7 @@ export default function App() {
                             className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
+                            <span className="category-drag-handle sortable-drag-handle">⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -6509,6 +6514,7 @@ function CategoryActionRow({
     const rect = state.row.getBoundingClientRect();
     const ghost = state.row.cloneNode(true) as HTMLElement;
     ghost.classList.remove('category-handle-drag-source');
+    ghost.classList.add('sortable-drag-ghost');
     ghost.style.position = 'fixed';
     ghost.style.left = `${state.startX - state.grabOffsetX}px`;
     ghost.style.top = `${state.startY - state.grabOffsetY}px`;
@@ -6516,7 +6522,8 @@ function CategoryActionRow({
     ghost.style.height = `${rect.height}px`;
     ghost.style.pointerEvents = 'none';
     ghost.style.zIndex = '9999';
-    ghost.style.opacity = '0.94';
+    ghost.style.opacity = '0.96';
+    ghost.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.24)';
     document.body.appendChild(ghost);
     state.ghost = ghost;
     state.active = true;
@@ -6568,6 +6575,7 @@ function CategoryActionRow({
           if (handle && row && !isEditing) {
             event.preventDefault();
             event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
             clearCategorySort();
             const rowRect = row.getBoundingClientRect();
             const pending = {
