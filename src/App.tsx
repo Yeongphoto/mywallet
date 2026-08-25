@@ -1901,8 +1901,10 @@ export default function App() {
     [plans, categoryBudgetExcluded]
   );
   const plannedIncomeTotal = useMemo(
-    () => plans.filter(p => p.type === 'income').reduce((sum, p) => sum + p.plannedAmount, 0),
-    [plans]
+    () => plans
+      .filter((p) => p.type === 'income' && !categoryBudgetExcluded[getCategoryColorKey('income', p.category)])
+      .reduce((sum, p) => sum + p.plannedAmount, 0),
+    [plans, categoryBudgetExcluded]
   );
   const monthlyBudgetTotal = plannedExpenseTotal;
   const plannedNetTotal = plannedIncomeTotal - plannedExpenseTotal;
@@ -2648,6 +2650,19 @@ export default function App() {
       ...prev,
       [getCategoryColorKey(type, id)]: color,
     }));
+  }
+
+  function setPlanCategoryIncluded(type: 'expense' | 'income', categoryId: string, included: boolean) {
+    const key = getCategoryColorKey(type, categoryId);
+    setCategoryBudgetExcluded((prev) => {
+      const next = { ...prev };
+      if (included) {
+        delete next[key];
+      } else {
+        next[key] = true;
+      }
+      return next;
+    });
   }
 
   function getBaseCategoryLabel(type: CategoryScope, id: string) {
@@ -4955,12 +4970,14 @@ export default function App() {
                         <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
                           <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
                           <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
+                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
                         </tr>
                       </thead>
                       <tbody>
                         {activeExpenseCategories.map((c: CategoryOption) => {
                           const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
                           const value = plan ? plan.plannedAmount : 0;
+                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
                           return (
                             <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
                               <td style={{ padding: '10px 0', fontWeight: 700 }}>
@@ -4975,6 +4992,17 @@ export default function App() {
                                     );
                                   }}
                                 />
+                              </td>
+                              <td className="plan-inclusion-cell">
+                                <label className="plan-inclusion-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isIncluded}
+                                    onChange={(event) => setPlanCategoryIncluded('expense', c.id, event.target.checked)}
+                                    aria-label={`${c.label} 계획 합계 포함`}
+                                  />
+                                  <span aria-hidden="true" />
+                                </label>
                               </td>
                             </tr>
                           );
@@ -4993,12 +5021,14 @@ export default function App() {
                         <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
                           <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
                           <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
+                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
                         </tr>
                       </thead>
                       <tbody>
                         {activeIncomeCategories.map((c: CategoryOption) => {
                           const plan = plans.find((p) => p.category === c.id && p.type === 'income');
                           const value = plan ? plan.plannedAmount : 0;
+                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
                           return (
                             <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
                               <td style={{ padding: '10px 0', fontWeight: 700 }}>
@@ -5013,6 +5043,17 @@ export default function App() {
                                     );
                                   }}
                                 />
+                              </td>
+                              <td className="plan-inclusion-cell">
+                                <label className="plan-inclusion-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isIncluded}
+                                    onChange={(event) => setPlanCategoryIncluded('income', c.id, event.target.checked)}
+                                    aria-label={`${c.label} 계획 합계 포함`}
+                                  />
+                                  <span aria-hidden="true" />
+                                </label>
                               </td>
                             </tr>
                           );
@@ -5279,7 +5320,6 @@ export default function App() {
                         const paletteKey = getCategoryColorKey('expense', category.id);
                         const isOpen = openPaletteKey === paletteKey;
                         const isRenaming = editingCategory?.type === 'expense' && editingCategory.id === category.id;
-                        const isBudgetExcluded = Boolean(categoryBudgetExcluded[paletteKey]);
 
                         return (
                           <CategoryActionRow
@@ -5373,26 +5413,6 @@ export default function App() {
                             </div>
                             {!isRenaming && (
                               <>
-                                <label className="category-budget-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={isBudgetExcluded}
-                                    onChange={(event) => {
-                                      const checked = event.target.checked;
-                                      setCategoryBudgetExcluded((prev) => {
-                                        const next = { ...prev };
-                                        if (checked) {
-                                          next[paletteKey] = true;
-                                        } else {
-                                          delete next[paletteKey];
-                                        }
-                                        return next;
-                                      });
-                                    }}
-                                  />
-                                  <span aria-hidden="true" />
-                                  <b>예산</b>
-                                </label>
                                 <button
                                   type="button"
                                 className="row-action-button row-action-edit"
@@ -6486,6 +6506,10 @@ function CategoryActionRow({
     ghost: HTMLElement | null;
     active: boolean;
     previewTargetKey: string | null;
+    pendingPreview: { key: string; id: string; group?: 'asset' | 'liability' } | null;
+    previewFrame: number | null;
+    pointerFrame: number | null;
+    pendingPointer: { x: number; y: number } | null;
     moveListener: ((event: PointerEvent) => void) | null;
     releaseListener: ((event: PointerEvent) => void) | null;
   } | null>(null);
@@ -6497,6 +6521,8 @@ function CategoryActionRow({
       window.removeEventListener('pointerup', state.releaseListener);
       window.removeEventListener('pointercancel', state.releaseListener);
     }
+    if (state.previewFrame !== null) window.cancelAnimationFrame(state.previewFrame);
+    if (state.pointerFrame !== null) window.cancelAnimationFrame(state.pointerFrame);
     state.ghost?.remove();
     document.body.classList.remove('category-handle-drag-active');
     categorySortRef.current = null;
@@ -6547,22 +6573,54 @@ function CategoryActionRow({
     const targetId = target?.dataset.categoryId;
     const targetScope = targetRow?.dataset.categoryScope as CategoryScope | undefined;
     const targetGroup = targetRow?.dataset.assetCategoryKind;
-    if (!targetId || targetId === categoryId || targetScope !== scope) return;
+    if (!targetId || targetId === categoryId || targetScope !== scope) {
+      state.pendingPreview = null;
+      if (state.previewFrame !== null) {
+        window.cancelAnimationFrame(state.previewFrame);
+        state.previewFrame = null;
+      }
+      return;
+    }
     const group = targetGroup === 'asset' || targetGroup === 'liability' ? targetGroup : undefined;
     const targetKey = `${group || ''}:${targetId}`;
-    if (state.previewTargetKey === targetKey) return;
-    state.previewTargetKey = targetKey;
-    onSortPreview(targetId, group);
+    if (state.previewTargetKey === targetKey || state.pendingPreview?.key === targetKey) return;
+    state.pendingPreview = { key: targetKey, id: targetId, group };
+    if (state.previewFrame !== null) return;
+    state.previewFrame = window.requestAnimationFrame(() => {
+      state.previewFrame = null;
+      const pending = state.pendingPreview;
+      state.pendingPreview = null;
+      if (!state.active || !pending || state.previewTargetKey === pending.key) return;
+      state.previewTargetKey = pending.key;
+      onSortPreview(pending.id, pending.group);
+    });
   };
 
   const finishCategorySort = (cancelled: boolean) => {
     const state = categorySortRef.current;
     if (!state) return;
+    if (!cancelled && state.pendingPreview && state.previewTargetKey !== state.pendingPreview.key) {
+      const pending = state.pendingPreview;
+      if (state.previewFrame !== null) window.cancelAnimationFrame(state.previewFrame);
+      state.previewFrame = null;
+      state.pendingPreview = null;
+      state.previewTargetKey = pending.key;
+      onSortPreview(pending.id, pending.group);
+    }
     const wasActive = state.active;
     clearCategorySort();
     if (!wasActive) return;
     if (cancelled) onSortCancel();
     else onSortCommit();
+  };
+
+  const flushCategoryPointer = (x: number, y: number) => {
+    const state = categorySortRef.current;
+    if (!state) return;
+    if (state.pointerFrame !== null) window.cancelAnimationFrame(state.pointerFrame);
+    state.pointerFrame = null;
+    state.pendingPointer = null;
+    moveCategorySort(x, y);
   };
 
   return (
@@ -6588,16 +6646,30 @@ function CategoryActionRow({
               ghost: null as HTMLElement | null,
               active: false,
               previewTargetKey: null as string | null,
+              pendingPreview: null as { key: string; id: string; group?: 'asset' | 'liability' } | null,
+              previewFrame: null as number | null,
+              pointerFrame: null as number | null,
+              pendingPointer: null as { x: number; y: number } | null,
               moveListener: null as ((nativeEvent: PointerEvent) => void) | null,
               releaseListener: null as ((nativeEvent: PointerEvent) => void) | null,
             };
             const moveListener = (nativeEvent: PointerEvent) => {
               if (nativeEvent.pointerId !== pending.pointerId) return;
               nativeEvent.preventDefault();
-              moveCategorySort(nativeEvent.clientX, nativeEvent.clientY);
+              const state = categorySortRef.current;
+              if (!state) return;
+              state.pendingPointer = { x: nativeEvent.clientX, y: nativeEvent.clientY };
+              if (state.pointerFrame !== null) return;
+              state.pointerFrame = window.requestAnimationFrame(() => {
+                state.pointerFrame = null;
+                const point = state.pendingPointer;
+                state.pendingPointer = null;
+                if (point) moveCategorySort(point.x, point.y);
+              });
             };
             const releaseListener = (nativeEvent: PointerEvent) => {
               if (nativeEvent.pointerId !== pending.pointerId) return;
+              if (nativeEvent.type !== 'pointercancel') flushCategoryPointer(nativeEvent.clientX, nativeEvent.clientY);
               finishCategorySort(nativeEvent.type === 'pointercancel');
             };
             pending.moveListener = moveListener;
