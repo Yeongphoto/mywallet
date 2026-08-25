@@ -7673,76 +7673,269 @@ function TransactionListTable({
   );
 }
 
-function InstantSelect({
-  ariaLabel,
+function getCategoryIconOrEmoji(cat: CategoryOption): string {
+  const emojiRegex = /(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u;
+  const match = cat.label.match(emojiRegex);
+  if (match) return '';
+
+  const defaultIcons: Record<string, string> = {
+    food: '🍜',
+    daily: '🪑',
+    saving: '💰',
+    utility: '📄',
+    subscription: '📱',
+    medical: '💊',
+    housing: '🏠',
+    transport: '🚗',
+    personal: '👤',
+    travel: '✈️',
+    etc: '📦',
+    salary: '💵',
+    bonus: '🎁',
+    interest: '📈',
+    card: '💳',
+    bank: '🏦',
+  };
+  return defaultIcons[cat.id] || '🏷️';
+}
+
+function getAssetIconOrEmoji(asset: AssetItem, category?: CategoryOption): string {
+  const name = asset.name || '';
+  const emojiRegex = /(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u;
+  if (name.match(emojiRegex)) return '';
+  if (name.includes('카드') || asset.category === 'card') return '💳';
+  if (name.includes('은행') || name.includes('통장') || asset.category === 'bank') return '🏦';
+  if (name.includes('적금') || name.includes('예금') || asset.category === 'saving') return '🪙';
+  if (name.includes('현금')) return '💵';
+  if (name.includes('대출')) return '🏛️';
+  if (name.includes('투자') || name.includes('주식')) return '📊';
+  return '💰';
+}
+
+function formatDisplayDateTime(dateStr: string, timeStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length < 3) return dateStr;
+    const year = parts[0].slice(2);
+    const month = String(Number(parts[1]));
+    const day = String(Number(parts[2]));
+    const dateObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[dateObj.getDay()] || '';
+    const timeDisplay = timeStr ? ` ${timeStr}` : '';
+    return `${year}. ${month}. ${day}. (${weekday})${timeDisplay}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function AmountNumberKeypad({
   value,
-  placeholder,
-  options,
   onChange,
-  triggerRef,
-  onSelectNext,
+  onComplete,
+  onClose,
+  submitLabel = '완료',
+  submitTone = 'primary',
+  title = '금액',
 }: {
-  ariaLabel: string;
-  value: string | number;
-  placeholder: string;
-  options: Array<{ value: string | number; label: string }>;
-  onChange: (value: string) => void;
-  triggerRef?: RefObject<HTMLButtonElement | null>;
-  onSelectNext?: () => void;
+  value: string;
+  onChange: (nextValue: string) => void;
+  onComplete?: () => void;
+  onClose?: () => void;
+  submitLabel?: string;
+  submitTone?: 'expense' | 'income' | 'transfer' | 'asset' | 'primary';
+  title?: string;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
-  const selectOption = (option: { value: string | number }) => {
-    onChange(String(option.value));
-    setIsOpen(false);
-    requestAnimationFrame(() => onSelectNext?.());
+  const numValue = parseNumberInput(value);
+
+  const handleDigit = (digit: string) => {
+    const raw = String(value || '').replace(/[^\d]/g, '');
+    if (!raw || raw === '0') {
+      if (digit === '00' || digit === '000') return;
+      onChange(digit);
+    } else {
+      if (raw.length >= 13) return;
+      onChange(raw + digit);
+    }
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const handleBackspace = () => {
+    const raw = String(value || '').replace(/[^\d]/g, '');
+    if (!raw || raw.length <= 1) {
+      onChange('');
+    } else {
+      onChange(raw.slice(0, -1));
+    }
+  };
 
-    const closeOutsideSelect = (event: Event) => {
-      if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
-      setIsOpen(false);
-    };
+  const handleAddAmount = (add: number) => {
+    const next = Math.max(0, numValue + add);
+    onChange(next > 0 ? String(next) : '');
+  };
 
-    document.addEventListener('pointerdown', closeOutsideSelect, true);
-    document.addEventListener('focusin', closeOutsideSelect, true);
-    return () => {
-      document.removeEventListener('pointerdown', closeOutsideSelect, true);
-      document.removeEventListener('focusin', closeOutsideSelect, true);
-    };
-  }, [isOpen]);
+  const handleClear = () => {
+    onChange('');
+  };
 
   return (
-    <div ref={rootRef} className="instant-select">
-      <button
-        type="button"
-        ref={triggerRef}
-        className="instant-select-trigger"
-        aria-label={ariaLabel}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(true)}
-      >
-        <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
-        <span aria-hidden="true">⌄</span>
-      </button>
-      {isOpen && (
-        <div className="instant-select-menu" role="listbox" aria-label={ariaLabel}>
-          {options.map((option) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={String(option.value) === String(value)}
-              className={String(option.value) === String(value) ? 'selected' : ''}
-              key={String(option.value)}
-              onClick={() => selectOption(option)}
-            >
-              {option.label}
+    <div className="modern-pad-container amount-keypad-container">
+      <div className="modern-pad-header">
+        <strong className="modern-pad-title">{title}</strong>
+        <div className="modern-pad-header-actions">
+          {numValue > 0 && (
+            <button type="button" className="modern-pad-clear-btn" onClick={handleClear}>
+              초기화
             </button>
-          ))}
+          )}
+          {onClose && (
+            <button type="button" className="modern-pad-close-btn" aria-label="닫기" onClick={onClose}>
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="amount-keypad-grid">
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('1')}>1</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('2')}>2</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('3')}>3</button>
+        <button type="button" className="keypad-btn keypad-action-btn" onClick={handleBackspace} aria-label="지우기">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+            <line x1="18" y1="9" x2="12" y2="15" />
+            <line x1="12" y1="9" x2="18" y2="15" />
+          </svg>
+        </button>
+
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('4')}>4</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('5')}>5</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('6')}>6</button>
+        <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}>+1만</button>
+
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('7')}>7</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('8')}>8</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('9')}>9</button>
+        <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(50000)}>+5만</button>
+
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('00')}>00</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('0')}>0</button>
+        <button type="button" className="keypad-btn" onClick={() => handleDigit('000')}>000</button>
+        <button
+          type="button"
+          className={`keypad-btn keypad-submit-btn ${submitTone}`}
+          onClick={onComplete}
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CategoryGridPicker({
+  categories,
+  selectedId,
+  onSelect,
+  onClose,
+  title = '분류',
+}: {
+  categories: CategoryOption[];
+  selectedId?: string;
+  onSelect: (categoryId: string) => void;
+  onClose?: () => void;
+  title?: string;
+}) {
+  return (
+    <div className="modern-pad-container category-picker-container">
+      <div className="modern-pad-header">
+        <strong className="modern-pad-title">{title}</strong>
+        {onClose && (
+          <button type="button" className="modern-pad-close-btn" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        )}
+      </div>
+      <div className="picker-grid-4col">
+        {categories.map((cat) => {
+          const icon = getCategoryIconOrEmoji(cat);
+          const isSelected = selectedId === cat.id || selectedId === cat.label;
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`picker-grid-btn ${isSelected ? 'selected' : ''}`}
+              onClick={() => onSelect(cat.id)}
+            >
+              <span className="picker-grid-icon">
+                {icon ? (
+                  <span className="emoji-char">{icon}</span>
+                ) : (
+                  <span className="color-dot" style={{ background: cat.color || 'var(--primary)' }} />
+                )}
+              </span>
+              <span className="picker-grid-label">{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AssetGridPicker({
+  assets,
+  categories,
+  selectedId,
+  onSelect,
+  onClose,
+  title = '자산 선택',
+}: {
+  assets: AssetItem[];
+  categories: CategoryOption[];
+  selectedId?: string;
+  onSelect: (assetId: string) => void;
+  onClose?: () => void;
+  title?: string;
+}) {
+  return (
+    <div className="modern-pad-container asset-picker-container">
+      <div className="modern-pad-header">
+        <strong className="modern-pad-title">{title}</strong>
+        {onClose && (
+          <button type="button" className="modern-pad-close-btn" aria-label="닫기" onClick={onClose}>
+            ×
+          </button>
+        )}
+      </div>
+      {assets.length === 0 ? (
+        <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+          등록된 자산이 없습니다.
+        </div>
+      ) : (
+        <div className="picker-grid-4col">
+          {assets.map((asset) => {
+            const cat = categories.find((c) => c.id === asset.category || c.label === asset.category);
+            const icon = getAssetIconOrEmoji(asset, cat);
+            const isSelected = selectedId === asset.id;
+            const assetName = formatAssetLabel(asset, categories);
+            return (
+              <button
+                key={asset.id}
+                type="button"
+                className={`picker-grid-btn ${isSelected ? 'selected' : ''}`}
+                onClick={() => onSelect(asset.id)}
+              >
+                <span className="picker-grid-icon">
+                  {icon ? (
+                    <span className="emoji-char">{icon}</span>
+                  ) : (
+                    <span className="color-dot" style={{ background: cat?.color || 'var(--primary)' }} />
+                  )}
+                </span>
+                <span className="picker-grid-label">{assetName}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -7765,28 +7958,138 @@ function AssetRegistrationForm({
   onCancel: () => void;
 }) {
   const [category, setCategory] = useState(editingAsset?.category || '');
-  const categoryRef = useRef<HTMLButtonElement>(null);
+  const [name, setName] = useState(editingAsset ? formatAssetLabel(editingAsset, allCategories) : '');
+  const [amount, setAmount] = useState(editingAsset ? String(getOpeningBalance(editingAsset)) : '');
+  const [padMode, setPadMode] = useState<'category' | 'amount' | 'none'>(editingAsset ? 'none' : 'category');
   const nameRef = useRef<HTMLInputElement>(null);
-  const amountRef = useRef<HTMLInputElement>(null);
   const memoRef = useRef<HTMLInputElement>(null);
+  const [memo, setMemo] = useState(editingAsset?.memo || '');
+
+  const selectedCategory = categories.find((c) => c.id === category || c.label === category);
+
+  const handleCategorySelect = (catId: string) => {
+    setCategory(catId);
+    setPadMode('none');
+    setTimeout(() => nameRef.current?.focus(), 50);
+  };
+
+  const handleAmountComplete = () => {
+    setPadMode('none');
+    setTimeout(() => memoRef.current?.focus(), 50);
+  };
 
   return (
     <form
       key={editingAsset ? editingAsset.id : 'new'}
-      className="asset-entry-form"
+      className="modern-entry-form"
+      style={{ padding: '16px 20px' }}
       onSubmit={async (event) => {
         event.preventDefault();
-        const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
-        const amount = parseAmount((event.currentTarget.elements.namedItem('asset-amount') as HTMLInputElement).value) || 0;
-        const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
-        await onSave({ category, name, amount, memo });
+        const numericAmount = parseAmount(amount) || 0;
+        await onSave({ category, name: name.trim(), amount: numericAmount, memo: memo.trim() });
       }}
     >
-      <div className="form-group"><InstantSelect ariaLabel="자산 카테고리" value={category} placeholder="자산 카테고리" options={categories.map((item) => ({ value: item.id, label: item.label }))} onChange={setCategory} triggerRef={categoryRef} onSelectNext={() => nameRef.current?.focus()} /></div>
-      <div className="form-group"><label>자산 이름</label><input ref={nameRef} name="asset-name" placeholder="자산 이름" required defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''} /></div>
-      <div className="form-group"><label>기초 금액</label><input ref={amountRef} type="text" name="asset-amount" inputMode="numeric" placeholder="기초 금액" required defaultValue={editingAsset ? formatNumberInput(getOpeningBalance(editingAsset)) : ''} readOnly={Boolean(editingAsset)} onChange={(event) => { const digits = event.currentTarget.value.replace(/[^\d]/g, ''); event.currentTarget.value = digits ? formatNumberInput(Number(digits)) : ''; }} /></div>
-      <div className="form-group"><label>메모</label><input ref={memoRef} name="asset-memo" placeholder="메모 (선택)" defaultValue={editingAsset?.memo || ''} /></div>
-      <div className="asset-entry-actions"><button type="button" className="secondary-button" onClick={onCancel}>취소</button><button type="submit" className="primary-button">{editingAsset ? '자산 수정' : '자산 등록'}</button></div>
+      <div className="modern-entry-fields">
+        <div
+          className={`modern-field-row ${padMode === 'category' ? 'is-active asset' : ''}`}
+          onClick={() => setPadMode('category')}
+        >
+          <span className="modern-field-label">자산 분류</span>
+          <span className={`modern-field-value ${selectedCategory ? '' : 'placeholder'}`}>
+            {selectedCategory ? (
+              <CategoryBadge categories={categories} idOrLabel={selectedCategory.id} />
+            ) : (
+              '자산 분류를 선택하세요 →'
+            )}
+          </span>
+        </div>
+
+        <div
+          className="modern-field-row"
+          onClick={() => {
+            setPadMode('none');
+            nameRef.current?.focus();
+          }}
+        >
+          <span className="modern-field-label">자산 이름</span>
+          <div className="modern-field-value" style={{ flex: 1 }}>
+            <input
+              ref={nameRef}
+              type="text"
+              className="modern-field-input"
+              placeholder="자산 이름 입력 (예: 국민은행 주거래)"
+              value={name}
+              required
+              onFocus={() => setPadMode('none')}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div
+          className={`modern-field-row ${padMode === 'amount' ? 'is-active asset' : ''}`}
+          onClick={() => {
+            if (!editingAsset) setPadMode('amount');
+          }}
+        >
+          <span className="modern-field-label">기초 잔액</span>
+          <span className="modern-field-value amount-display">
+            {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
+          </span>
+        </div>
+
+        <div
+          className="modern-field-row"
+          onClick={() => {
+            setPadMode('none');
+            memoRef.current?.focus();
+          }}
+        >
+          <span className="modern-field-label">메모</span>
+          <div className="modern-field-value" style={{ flex: 1 }}>
+            <input
+              ref={memoRef}
+              type="text"
+              className="modern-field-input"
+              placeholder="메모 (선택사항)"
+              value={memo}
+              onFocus={() => setPadMode('none')}
+              onChange={(e) => setMemo(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {padMode === 'category' && (
+        <CategoryGridPicker
+          categories={categories}
+          selectedId={category}
+          onSelect={handleCategorySelect}
+          onClose={() => setPadMode('none')}
+          title="자산 분류 선택 (4분할)"
+        />
+      )}
+
+      {padMode === 'amount' && !editingAsset && (
+        <AmountNumberKeypad
+          value={amount}
+          onChange={setAmount}
+          onComplete={handleAmountComplete}
+          onClose={() => setPadMode('none')}
+          submitLabel="확인"
+          submitTone="primary"
+          title="기초 잔액 입력"
+        />
+      )}
+
+      <div className="entry-actions" style={{ marginTop: '8px' }}>
+        <button type="button" className="secondary-button" onClick={onCancel}>
+          취소
+        </button>
+        <button type="submit" className="primary-button">
+          {editingAsset ? '자산 수정' : '자산 등록'}
+        </button>
+      </div>
     </form>
   );
 }
@@ -7823,11 +8126,8 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
-  const amountRef = useRef<HTMLInputElement>(null);
-  const installmentRef = useRef<HTMLButtonElement>(null);
-  const categoryRef = useRef<HTMLButtonElement>(null);
-  const assetRef = useRef<HTMLButtonElement>(null);
-  const toAssetRef = useRef<HTMLButtonElement>(null);
+  const [padMode, setPadMode] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('amount');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
   const currentAssetCategories = propAssetCategories || assetCategories;
@@ -7847,7 +8147,41 @@ function UnifiedEntryForm({
       category: defaultCat,
     }));
     if (newType !== 'expense') setInstallmentMonths(1);
+    setPadMode('amount');
   }
+
+  const selectedCategory = activeCategories.find((c) => c.id === form.category || c.label === form.category);
+  const selectedAsset = assets.find((a) => a.id === form.assetId);
+  const selectedToAsset = assets.find((a) => a.id === form.toAssetId);
+
+  const handleAmountComplete = () => {
+    if (form.type !== 'transfer') {
+      setPadMode('category');
+    } else {
+      setPadMode('asset');
+    }
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    setForm((prev) => ({ ...prev, category: categoryId }));
+    setPadMode('asset');
+  };
+
+  const handleAssetSelect = (assetId: string) => {
+    setForm((prev) => ({ ...prev, assetId }));
+    if (form.type === 'transfer') {
+      setPadMode('toAsset');
+    } else {
+      setPadMode('none');
+      setTimeout(() => titleRef.current?.focus(), 50);
+    }
+  };
+
+  const handleToAssetSelect = (toAssetId: string) => {
+    setForm((prev) => ({ ...prev, toAssetId }));
+    setPadMode('none');
+    setTimeout(() => titleRef.current?.focus(), 50);
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -7855,6 +8189,7 @@ function UnifiedEntryForm({
 
     if (!Number.isFinite(amount) || amount <= 0) {
       onNotify?.('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
+      setPadMode('amount');
       return;
     }
 
@@ -7864,17 +8199,21 @@ function UnifiedEntryForm({
     }
     if (!form.title.trim()) {
       onNotify?.('내용을 입력해 주세요.', '입력 확인', 'warning');
+      titleRef.current?.focus();
       return;
     }
 
     if (form.type !== 'transfer' && !form.category) {
       onNotify?.('카테고리를 선택해 주세요.', '입력 확인', 'warning');
+      setPadMode('category');
       return;
     }
 
     if (form.type === 'transfer') {
       if (!form.assetId || !form.toAssetId) {
         onNotify?.('보내는 계좌와 받는 계좌를 모두 선택해 주세요.', '입력 확인', 'warning');
+        if (!form.assetId) setPadMode('asset');
+        else setPadMode('toAsset');
         return;
       }
       if (form.assetId === form.toAssetId) {
@@ -7971,180 +8310,178 @@ function UnifiedEntryForm({
     onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
   }
 
-  const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';
+  const formTone = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';
 
   return (
-    <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
-      {!isQuickAdd && (
-        <div className={`entry-form-title ${formColorClass}`}>
-          <strong>통합 자산/거래 등록</strong>
-          <span>수입, 지출 및 계좌 간 이체 내역을 드롭다운 선택으로 등록합니다.</span>
+    <form className="modern-entry-form" onSubmit={handleSubmit}>
+      <div className="type-toggle-group" style={{ margin: '0 0 4px' }}>
+        <div className="type-toggle-row">
+          <button
+            type="button"
+            className={`type-toggle-btn ${form.type === 'expense' ? 'active expense' : ''}`}
+            onClick={() => handleTypeChange('expense')}
+          >
+            지출 🔴
+          </button>
+          <button
+            type="button"
+            className={`type-toggle-btn ${form.type === 'income' ? 'active income' : ''}`}
+            onClick={() => handleTypeChange('income')}
+          >
+            수입 🔵
+          </button>
+          <button
+            type="button"
+            className={`type-toggle-btn ${form.type === 'transfer' ? 'active transfer' : ''}`}
+            onClick={() => handleTypeChange('transfer')}
+          >
+            이체 🟣
+          </button>
         </div>
-      )}
+      </div>
 
-      <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        {/* 1. 구분: 3개 버튼 1행 나열 */}
-        <div className="type-toggle-group">
-          <div className="type-toggle-row">
-            <button
-              type="button"
-              className={`type-toggle-btn ${form.type === 'expense' ? 'active expense' : ''}`}
-              onClick={() => handleTypeChange('expense')}
-            >
-              지출 🔴
-            </button>
-            <button
-              type="button"
-              className={`type-toggle-btn ${form.type === 'income' ? 'active income' : ''}`}
-              onClick={() => handleTypeChange('income')}
-            >
-              수입 🔵
-            </button>
-            <button
-              type="button"
-              className={`type-toggle-btn ${form.type === 'transfer' ? 'active transfer' : ''}`}
-              onClick={() => handleTypeChange('transfer')}
-            >
-              이체 🟣
-            </button>
-          </div>
-        </div>
-
-        {/* 2. 날짜 */}
-        <label className="compact-entry-field" aria-label="날짜">
-          <input
-            type="date"
-            aria-label="날짜"
-            value={form.date}
-            onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-          />
-        </label>
-
-        <label className="compact-entry-field" aria-label="시간">
-          <input
-            type="time"
-            aria-label="시간"
-            value={form.time}
-            onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-          />
-        </label>
-
-        {/* 3. 금액 */}
-        <label
-          className="compact-entry-field amount-entry-field"
-          aria-label="금액"
-          style={form.type !== 'expense' ? { gridColumn: 'span 2' } : undefined}
+      <div className="modern-entry-fields">
+        <div
+          className="modern-field-row"
+          onClick={() => setShowDatePicker((prev) => !prev)}
         >
-          <input
-            type="text"
-            inputMode="numeric"
-            aria-label="금액"
-            placeholder="금액"
-            ref={amountRef}
-            value={form.amount ? formatNumberInput(parseNumberInput(form.amount)) : ''}
-            onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value.replace(/[^\d]/g, '') }))}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter') return;
-              event.preventDefault();
-              if (form.type === 'expense') installmentRef.current?.focus();
-              else if (form.type === 'transfer') assetRef.current?.focus();
-              else categoryRef.current?.focus();
-            }}
-            autoFocus
-          />
-          <span className="currency-suffix" aria-hidden="true">원</span>
-        </label>
+          <span className="modern-field-label">날짜</span>
+          <span className="modern-field-value">
+            {formatDisplayDateTime(form.date, form.time)}
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📅</span>
+          </span>
+        </div>
+
+        {showDatePicker && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '4px 0 8px' }}>
+            <input
+              type="date"
+              className="compact-input"
+              value={form.date}
+              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+            />
+            <input
+              type="time"
+              className="compact-input"
+              value={form.time}
+              onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
+            />
+          </div>
+        )}
+
+        <div
+          className={`modern-field-row ${padMode === 'amount' ? `is-active ${formTone}` : ''}`}
+          onClick={() => setPadMode('amount')}
+        >
+          <span className="modern-field-label">금액</span>
+          <span className={`modern-field-value amount-display ${formTone}`}>
+            {form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}
+          </span>
+        </div>
 
         {form.type === 'expense' && (
-          <label className="installment-select compact-entry-field" aria-label="할부">
-            <InstantSelect
-              ariaLabel="할부"
-              value={installmentMonths}
-              placeholder="일시불"
-              options={Array.from({ length: 24 }, (_, index) => index + 1).map((months) => ({
-                value: months,
-                label: months === 1 ? '일시불' : `${months}개월`,
-              }))}
-              onChange={(value) => {
-                const months = Number(value);
-                setInstallmentMonths(months);
-                if (months > 1) setIsRecurring(false);
-              }}
-              triggerRef={installmentRef}
-              onSelectNext={() => categoryRef.current?.focus()}
-            />
-            {installmentMonths > 1 && <small>총액을 {installmentMonths}개월로 나누어 매월 무이자로 등록합니다.</small>}
-          </label>
+          <div className="modern-field-row" style={{ cursor: 'default' }}>
+            <span className="modern-field-label">할부</span>
+            <div className="modern-field-value" style={{ flex: 1 }}>
+              <select
+                value={installmentMonths}
+                onChange={(e) => {
+                  const m = Number(e.target.value);
+                  setInstallmentMonths(m);
+                  if (m > 1) setIsRecurring(false);
+                }}
+                style={{
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border-card)',
+                  borderRadius: '8px',
+                  padding: '4px 8px',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                }}
+              >
+                <option value={1}>일시불</option>
+                {Array.from({ length: 23 }, (_, i) => i + 2).map((m) => (
+                  <option key={m} value={m}>{m}개월</option>
+                ))}
+              </select>
+            </div>
+          </div>
         )}
 
-        {/* 4. 카테고리 (이체 선택 시 비표시) */}
         {form.type !== 'transfer' && (
-          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="카테고리">
-            <InstantSelect
-              ariaLabel="카테고리"
-              value={form.category}
-              placeholder="카테고리"
-              options={activeCategories.map((category) => ({ value: category.id, label: category.label }))}
-              onChange={(category) => setForm((prev) => ({ ...prev, category }))}
-              triggerRef={categoryRef}
-              onSelectNext={() => assetRef.current?.focus()}
-            />
-          </label>
+          <div
+            className={`modern-field-row ${padMode === 'category' ? `is-active ${formTone}` : ''}`}
+            onClick={() => setPadMode('category')}
+          >
+            <span className="modern-field-label">분류</span>
+            <span className={`modern-field-value ${selectedCategory ? '' : 'placeholder'}`}>
+              {selectedCategory ? (
+                <CategoryBadge categories={activeCategories} idOrLabel={selectedCategory.id} />
+              ) : (
+                '분류를 선택하세요 →'
+              )}
+            </span>
+          </div>
         )}
 
-        {/* 5. 자산 */}
         {form.type === 'transfer' ? (
           <>
-            <label className="compact-entry-field" aria-label="보내는 계좌">
-              <InstantSelect
-                ariaLabel="보내는 계좌"
-                value={form.assetId}
-                placeholder="보내는 계좌"
-                options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
-                onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
-                triggerRef={assetRef}
-                onSelectNext={() => toAssetRef.current?.focus()}
-              />
-            </label>
-            <label className="compact-entry-field" aria-label="받는 계좌">
-              <InstantSelect
-                ariaLabel="받는 계좌"
-                value={form.toAssetId}
-                placeholder="받는 계좌"
-                options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
-                onChange={(toAssetId) => setForm((prev) => ({ ...prev, toAssetId }))}
-                triggerRef={toAssetRef}
-                onSelectNext={() => titleRef.current?.focus()}
-              />
-            </label>
+            <div
+              className={`modern-field-row ${padMode === 'asset' ? `is-active ${formTone}` : ''}`}
+              onClick={() => setPadMode('asset')}
+            >
+              <span className="modern-field-label">출금자산</span>
+              <span className={`modern-field-value ${selectedAsset ? '' : 'placeholder'}`}>
+                {selectedAsset ? formatAssetLabel(selectedAsset, currentAssetCategories) : '보내는 계좌 선택 →'}
+              </span>
+            </div>
+            <div
+              className={`modern-field-row ${padMode === 'toAsset' ? `is-active ${formTone}` : ''}`}
+              onClick={() => setPadMode('toAsset')}
+            >
+              <span className="modern-field-label">입금자산</span>
+              <span className={`modern-field-value ${selectedToAsset ? '' : 'placeholder'}`}>
+                {selectedToAsset ? formatAssetLabel(selectedToAsset, currentAssetCategories) : '받는 계좌 선택 →'}
+              </span>
+            </div>
           </>
         ) : (
-          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="계좌">
-            <InstantSelect
-              ariaLabel="계좌"
-              value={form.assetId}
-              placeholder="계좌"
-              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset, currentAssetCategories) }))}
-              onChange={(assetId) => setForm((prev) => ({ ...prev, assetId }))}
-              triggerRef={assetRef}
-              onSelectNext={() => titleRef.current?.focus()}
-            />
-          </label>
+          <div
+            className={`modern-field-row ${padMode === 'asset' ? `is-active ${formTone}` : ''}`}
+            onClick={() => setPadMode('asset')}
+          >
+            <span className="modern-field-label">자산</span>
+            <span className={`modern-field-value ${selectedAsset ? '' : 'placeholder'}`}>
+              {selectedAsset ? formatAssetLabel(selectedAsset, currentAssetCategories) : '자산을 선택하세요 →'}
+            </span>
+          </div>
         )}
 
         {/* 6. 내용 */}
-        <label className="content-entry-field compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
-          <input
-            type="text"
-            ref={titleRef}
-            placeholder="내용"
-            value={form.title}
-            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-          />
-        </label>
+        <div
+          className="modern-field-row"
+          onClick={() => {
+            setPadMode('none');
+            titleRef.current?.focus();
+          }}
+        >
+          <span className="modern-field-label">내용</span>
+          <div className="modern-field-value" style={{ flex: 1 }}>
+            <input
+              ref={titleRef}
+              type="text"
+              className="modern-field-input"
+              placeholder="내용(메모)을 입력하세요"
+              value={form.title}
+              onFocus={() => setPadMode('none')}
+              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+            />
+          </div>
+        </div>
 
         {/* 7. 매달 정기 기록 체크박스 */}
-        <label className="recurring-toggle" style={{ gridColumn: 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
+        <label className="recurring-toggle" style={{ margin: '4px 0 0', padding: '0 4px', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
           <input
             type="checkbox"
             checked={isRecurring}
@@ -8156,9 +8493,58 @@ function UnifiedEntryForm({
         </label>
       </div>
 
-      <div className="entry-actions">
+      {/* 하단 Drawer / Pad 영역 */}
+      {padMode === 'amount' && (
+        <AmountNumberKeypad
+          value={form.amount}
+          onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
+          onComplete={handleAmountComplete}
+          onClose={() => setPadMode('none')}
+          submitLabel={form.type === 'transfer' ? '자산 선택 →' : '분류 선택 →'}
+          submitTone={formTone}
+          title="금액 입력"
+        />
+      )}
+
+      {padMode === 'category' && (
+        <CategoryGridPicker
+          categories={activeCategories}
+          selectedId={form.category}
+          onSelect={handleCategorySelect}
+          onClose={() => setPadMode('none')}
+          title="분류 선택 (4분할)"
+        />
+      )}
+
+      {padMode === 'asset' && (
+        <AssetGridPicker
+          assets={assets}
+          categories={currentAssetCategories}
+          selectedId={form.assetId}
+          onSelect={handleAssetSelect}
+          onClose={() => setPadMode('none')}
+          title={form.type === 'transfer' ? '출금 자산 선택 (4분할)' : '자산 선택 (4분할)'}
+        />
+      )}
+
+      {padMode === 'toAsset' && (
+        <AssetGridPicker
+          assets={assets}
+          categories={currentAssetCategories}
+          selectedId={form.toAssetId}
+          onSelect={handleToAssetSelect}
+          onClose={() => setPadMode('none')}
+          title="입금 자산 선택 (4분할)"
+        />
+      )}
+
+      <div className="entry-actions" style={{ marginTop: '4px' }}>
         <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
-        <button type="submit" className="primary-button entry-submit" style={{ background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
+        <button
+          type="submit"
+          className={`primary-button entry-submit ${formTone}`}
+          style={{ background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}
+        >
           {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
         </button>
       </div>
@@ -8208,9 +8594,8 @@ function TransactionEditForm({
   ));
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
-  const categoryRef = useRef<HTMLButtonElement>(null);
-  const assetRef = useRef<HTMLButtonElement>(null);
-  const toAssetRef = useRef<HTMLButtonElement>(null);
+  const [padMode, setPadMode] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
   const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);
@@ -8220,14 +8605,12 @@ function TransactionEditForm({
   const remainingInstallments = installmentTransactions.filter((item) => (item.installmentIndex || 0) > (transaction.installmentIndex || 0)).length;
   const previewRemainingBalance = installmentTotal - paidInstallmentAmount - parseAmount(amount);
   
-  // Load initial checkbox state based on transaction recurringRuleId
   const [isRecurring, setIsRecurring] = useState(() => {
     if (!transaction.recurringRuleId) return false;
     const rule = recurringRules.find((r) => r.id === transaction.recurringRuleId);
     return rule ? !rule.endMonth : false;
   });
 
-  // Synchronize checkbox state whenever transaction.recurringRuleId changes
   useEffect(() => {
     if (!transaction.recurringRuleId) {
       setIsRecurring(false);
@@ -8236,6 +8619,11 @@ function TransactionEditForm({
     const rule = recurringRules.find((r) => r.id === transaction.recurringRuleId);
     setIsRecurring(rule ? !rule.endMonth : false);
   }, [transaction.recurringRuleId, recurringRules]);
+
+  const selectedCategory = categories.find((c) => c.id === category || c.label === category);
+  const selectedAsset = assets.find((a) => a.id === assetId);
+  const selectedToAsset = assets.find((a) => a.id === toAssetId);
+  const formTone = transaction.type === 'expense' ? 'expense' : transaction.type === 'income' ? 'income' : 'transfer';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -8286,9 +8674,7 @@ function TransactionEditForm({
       return;
     }
 
-    // Handle transitions
     if (isRecurring && !wasRecurring && onAddRecurringRule) {
-      // 1. Unchecked -> Checked: Add recurring rule starting next month
       const dy = Number(date.slice(8, 10)) || 1;
       const nextMonthStr = getNextMonth(date.slice(0, 7));
       const ruleId = `rule_${Date.now()}`;
@@ -8310,11 +8696,9 @@ function TransactionEditForm({
       nextRuleId = ruleId;
       onNotify?.(`다음 달(${nextMonthStr})부터 매달 ${dy}일에 자동 등록됩니다.`, '정기 기록 설정', 'success');
     } else if (!isRecurring && wasRecurring && onStopRecurring) {
-      // 2. Checked -> Unchecked: Stop recurring rules from next month
       onStopRecurring(transaction.recurringRuleId || transaction.id, date.slice(0, 7));
       nextRuleId = null;
     } else if (isRecurring && wasRecurring && activeRecurringRule && onUpdateRecurringRule) {
-      // 3. Checked -> Checked (Keep recurring, but update information)
       const dy = Number(date.slice(8, 10)) || 1;
       onUpdateRecurringRule({
         ...activeRecurringRule,
@@ -8344,97 +8728,194 @@ function TransactionEditForm({
   }
 
   return (
-    <form className="transaction-edit-form" onSubmit={handleSubmit}>
-      <label className="compact-entry-field" aria-label="날짜">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </label>
-      <label className="compact-entry-field" aria-label="시간">
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-      </label>
-      <label className="compact-entry-field amount-entry-field" style={{ gridColumn: 'span 2' }} aria-label="금액">
-        <input
-          type="text"
-          inputMode="numeric"
-          placeholder="금액"
-          value={amount ? formatNumberInput(parseNumberInput(amount)) : ''}
-          onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-        />
-        <span className="currency-suffix" aria-hidden="true">원</span>
-      </label>
-      <label className="compact-entry-field content-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
-        <input ref={titleRef} type="text" placeholder="내용" value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-
-      {isInstallment && (
-        <div className="installment-edit-summary">
-          <span>총 할부금액 {formatCurrency(installmentTotal)}</span>
-          <span>남은 잔액 {formatCurrency(Math.max(0, previewRemainingBalance))} · 남은 {remainingInstallments}개월</span>
+    <form className="modern-entry-form" onSubmit={handleSubmit}>
+      <div className="modern-entry-fields">
+        {/* 날짜 / 시간 */}
+        <div
+          className="modern-field-row"
+          onClick={() => setShowDatePicker((prev) => !prev)}
+        >
+          <span className="modern-field-label">날짜</span>
+          <span className="modern-field-value">
+            {formatDisplayDateTime(date, time)}
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📅</span>
+          </span>
         </div>
+
+        {showDatePicker && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', padding: '4px 0 8px' }}>
+            <input
+              type="date"
+              className="compact-input"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <input
+              type="time"
+              className="compact-input"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* 금액 */}
+        <div
+          className={`modern-field-row ${padMode === 'amount' ? `is-active ${formTone}` : ''}`}
+          onClick={() => setPadMode('amount')}
+        >
+          <span className="modern-field-label">금액</span>
+          <span className={`modern-field-value amount-display ${formTone}`}>
+            {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
+          </span>
+        </div>
+
+        {/* 분류 (카테고리) */}
+        {transaction.type !== 'transfer' && (
+          <div
+            className={`modern-field-row ${padMode === 'category' ? `is-active ${formTone}` : ''}`}
+            onClick={() => setPadMode('category')}
+          >
+            <span className="modern-field-label">분류</span>
+            <span className={`modern-field-value ${selectedCategory ? '' : 'placeholder'}`}>
+              {selectedCategory ? (
+                <CategoryBadge categories={categories} idOrLabel={selectedCategory.id} />
+              ) : (
+                '분류를 선택하세요 →'
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* 자산 */}
+        {transaction.type === 'transfer' ? (
+          <>
+            <div
+              className={`modern-field-row ${padMode === 'asset' ? `is-active ${formTone}` : ''}`}
+              onClick={() => setPadMode('asset')}
+            >
+              <span className="modern-field-label">출금자산</span>
+              <span className={`modern-field-value ${selectedAsset ? '' : 'placeholder'}`}>
+                {selectedAsset ? formatAssetLabel(selectedAsset, assetCategories) : '보내는 계좌 선택 →'}
+              </span>
+            </div>
+            <div
+              className={`modern-field-row ${padMode === 'toAsset' ? `is-active ${formTone}` : ''}`}
+              onClick={() => setPadMode('toAsset')}
+            >
+              <span className="modern-field-label">입금자산</span>
+              <span className={`modern-field-value ${selectedToAsset ? '' : 'placeholder'}`}>
+                {selectedToAsset ? formatAssetLabel(selectedToAsset, assetCategories) : '받는 계좌 선택 →'}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div
+            className={`modern-field-row ${padMode === 'asset' ? `is-active ${formTone}` : ''}`}
+            onClick={() => setPadMode('asset')}
+          >
+            <span className="modern-field-label">자산</span>
+            <span className={`modern-field-value ${selectedAsset ? '' : 'placeholder'}`}>
+              {selectedAsset ? formatAssetLabel(selectedAsset, assetCategories) : '자산을 선택하세요 →'}
+            </span>
+          </div>
+        )}
+
+        {/* 내용 */}
+        <div
+          className="modern-field-row"
+          onClick={() => {
+            setPadMode('none');
+            titleRef.current?.focus();
+          }}
+        >
+          <span className="modern-field-label">내용</span>
+          <div className="modern-field-value" style={{ flex: 1 }}>
+            <input
+              ref={titleRef}
+              type="text"
+              className="modern-field-input"
+              placeholder="내용"
+              value={title}
+              onFocus={() => setPadMode('none')}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {isInstallment && (
+          <div className="installment-edit-summary" style={{ padding: '6px 8px' }}>
+            <span>총 할부금액 {formatCurrency(installmentTotal)}</span>
+            <span>남은 잔액 {formatCurrency(Math.max(0, previewRemainingBalance))} · 남은 {remainingInstallments}개월</span>
+          </div>
+        )}
+
+        <label className="recurring-toggle" style={{ margin: '4px 0 0', padding: '0 4px' }}>
+          <input
+            type="checkbox"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+          />
+          <span className="recurring-toggle-mark" aria-hidden="true" />
+          <span className="recurring-toggle-text">매달 정기 기록으로 설정</span>
+        </label>
+      </div>
+
+      {padMode === 'amount' && (
+        <AmountNumberKeypad
+          value={amount}
+          onChange={setAmount}
+          onComplete={() => setPadMode(transaction.type === 'transfer' ? 'asset' : 'category')}
+          onClose={() => setPadMode('none')}
+          submitLabel="확인"
+          submitTone={formTone}
+          title="금액 수정"
+        />
       )}
 
-      {transaction.type === 'transfer' ? (
-        <>
-          <label className="compact-entry-field" aria-label="보내는 계좌">
-            <InstantSelect
-              ariaLabel="보내는 계좌"
-              value={assetId}
-              placeholder="보내는 계좌"
-              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
-              onChange={setAssetId}
-              triggerRef={assetRef}
-              onSelectNext={() => toAssetRef.current?.focus()}
-            />
-          </label>
-          <label className="compact-entry-field" aria-label="받는 계좌">
-            <InstantSelect
-              ariaLabel="받는 계좌"
-              value={toAssetId}
-              placeholder="받는 계좌"
-              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
-              onChange={setToAssetId}
-              triggerRef={toAssetRef}
-              onSelectNext={() => titleRef.current?.focus()}
-            />
-          </label>
-        </>
-      ) : (
-        <>
-      <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="카테고리">
-        <InstantSelect
-          ariaLabel="카테고리"
-          value={category}
-          placeholder="카테고리"
-          options={categories.map((item) => ({ value: item.id, label: item.label }))}
-          onChange={setCategory}
-          triggerRef={categoryRef}
-          onSelectNext={() => assetRef.current?.focus()}
+      {padMode === 'category' && (
+        <CategoryGridPicker
+          categories={categories}
+          selectedId={category}
+          onSelect={(catId) => {
+            setCategory(catId);
+            setPadMode('asset');
+          }}
+          onClose={() => setPadMode('none')}
+          title="분류 선택 (4분할)"
         />
-      </label>
-          <label className="compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="계좌">
-            <InstantSelect
-              ariaLabel="계좌"
-              value={assetId}
-              placeholder="계좌"
-              options={assets.map((asset) => ({ value: asset.id, label: formatAssetLabel(asset) }))}
-              onChange={setAssetId}
-              triggerRef={assetRef}
-              onSelectNext={() => titleRef.current?.focus()}
-            />
-          </label>
-        </>
       )}
 
-      {!isInstallment && <label className="recurring-toggle">
-        <input
-          type="checkbox"
-          checked={isRecurring}
-          onChange={(e) => setIsRecurring(e.target.checked)}
+      {padMode === 'asset' && (
+        <AssetGridPicker
+          assets={assets}
+          categories={assetCategories}
+          selectedId={assetId}
+          onSelect={(aId) => {
+            setAssetId(aId);
+            if (transaction.type === 'transfer') setPadMode('toAsset');
+            else setPadMode('none');
+          }}
+          onClose={() => setPadMode('none')}
+          title={transaction.type === 'transfer' ? '출금 자산 선택 (4분할)' : '자산 선택 (4분할)'}
         />
-        <span className="recurring-toggle-mark" aria-hidden="true" />
-        <span className="recurring-toggle-text">정기 기록</span>
-      </label>}
+      )}
 
-      <div className="transaction-edit-actions">
+      {padMode === 'toAsset' && (
+        <AssetGridPicker
+          assets={assets}
+          categories={assetCategories}
+          selectedId={toAssetId}
+          onSelect={(aId) => {
+            setToAssetId(aId);
+            setPadMode('none');
+          }}
+          onClose={() => setPadMode('none')}
+          title="입금 자산 선택 (4분할)"
+        />
+      )}
+
+      <div className="transaction-edit-actions" style={{ marginTop: '6px' }}>
         <button type="button" className="danger-button" onClick={onCancel}>
           취소
         </button>
