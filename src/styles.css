@@ -5640,12 +5640,11 @@ body.asset-handle-drag-active {
   white-space: nowrap;
 }
 
-/* 실시간 거래 내용(제목) 히스토리 추천 - 일체형 결합 및 연속 활성 테두리 스타일 */
+/* 실시간 거래 내용(제목) 히스토리 추천 - 일체형 결합 확장 스타일 */
 .content-entry-field.has-suggestions-open {
-  border: 1px solid rgba(var(--primary-rgb), 0.85) !important;
+  border-color: rgba(var(--primary-rgb), 0.85) !important;
   background: rgba(255, 255, 255, 0.98) !important;
   z-index: 50;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme='dark'] .content-entry-field.has-suggestions-open {
@@ -5656,7 +5655,7 @@ body.asset-handle-drag-active {
 .title-suggestions-dropdown {
   position: absolute;
   left: -1px;
-  width: calc(100% + 2px);
+  right: -1px;
   box-sizing: border-box;
   z-index: 100;
   background: rgba(255, 255, 255, 0.98);
@@ -5665,48 +5664,46 @@ body.asset-handle-drag-active {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 모바일 및 세로가 좁은 화면: 위쪽으로 틈새 없이 한 몸으로 확장 결합 (연속 활성 테두리) */
+/* 모바일 및 세로가 좁은 화면: 위쪽으로 틈새 없이 한 몸으로 확장 결합 */
 @media (max-width: 767px), (max-height: 700px) {
   .content-entry-field.has-suggestions-open {
-    border-top-color: transparent !important;
+    border-top: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent) !important;
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 3px 0 0 rgba(var(--primary-rgb), 0.14) !important;
   }
   .title-suggestions-dropdown {
     bottom: 100%;
     top: auto;
-    border-bottom: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
+    border-bottom: none;
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     max-height: clamp(140px, 28vh, 210px);
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.1), -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 -3px 0 0 rgba(var(--primary-rgb), 0.14);
+    box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06);
   }
 }
 
-/* PC / 태블릿 등 화면 높이가 여유로운 환경: 아래쪽으로 틈새 없이 한 몸으로 확장 결합 (연속 활성 테두리) */
+/* PC / 태블릿 등 화면 높이가 여유로운 환경: 아래쪽으로 틈새 없이 한 몸으로 확장 결합 */
 @media (min-width: 768px) and (min-height: 701px) {
   .content-entry-field.has-suggestions-open {
-    border-bottom-color: transparent !important;
+    border-bottom: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent) !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 -3px 0 0 rgba(var(--primary-rgb), 0.14) !important;
   }
   .title-suggestions-dropdown {
     top: 100%;
     bottom: auto;
-    border-top: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
+    border-top: none;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
     border-bottom-left-radius: 16px;
     border-bottom-right-radius: 16px;
     max-height: 240px;
-    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1), -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 3px 0 0 rgba(var(--primary-rgb), 0.14);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
   }
 }
 
@@ -5716,20 +5713,14 @@ body.asset-handle-drag-active {
 }
 
 @media (max-width: 767px), (max-height: 700px) {
-  [data-theme='dark'] .content-entry-field.has-suggestions-open {
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 3px 0 0 rgba(var(--primary-rgb), 0.25) !important;
-  }
   [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35), -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 -3px 0 0 rgba(var(--primary-rgb), 0.25);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
   }
 }
 
 @media (min-width: 768px) and (min-height: 701px) {
-  [data-theme='dark'] .content-entry-field.has-suggestions-open {
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 -3px 0 0 rgba(var(--primary-rgb), 0.25) !important;
-  }
   [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 3px 0 0 rgba(var(--primary-rgb), 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   }
 }
 
