@@ -895,7 +895,7 @@ export default function App() {
   const assetListScrollRef = useRef({ contentTop: 0, documentTop: 0 });
   const assetScrollTransitionRef = useRef<'detail' | 'list' | null>(null);
   const previousTabRef = useRef<AppTab>(activeTab);
-  const [settingsSection, setSettingsSection] = useState<'app' | 'category' | 'recurring' | 'data'>('app');
+  const [settingsSection, setSettingsSection] = useState<'app' | 'category' | 'asset' | 'recurring' | 'data'>('app');
   const [privacyMode, setPrivacyMode] = useState(false);
   const [showAssetDetails, setShowAssetDetails] = useState(false);
   
@@ -2340,16 +2340,16 @@ export default function App() {
     const linkedCount = linkedTxs.length;
 
     requestConfirm({
-      title: '자산 숨김(보관)',
-      message: `'${assetLabel}' 자산을 목록에서 제외할까요?`,
+      title: '자산 삭제',
+      message: `'${assetLabel}' 자산을 삭제할까요?`,
       warningNote: linkedCount > 0
-        ? `이 자산에 연결된 거래가 ${linkedCount}건 있습니다. 숨김 보관 시 과거 거래 내역은 안전하게 유지되며, [설정 > 카테고리/자산]에서 언제든 다시 복원할 수 있습니다.`
-        : '자산 목록에서 숨겨지며, [설정 > 카테고리/자산]에서 언제든 복원하거나 영구 삭제할 수 있습니다.',
-      confirmLabel: '숨기기',
+        ? `이 자산에 연결된 과거 거래 ${linkedCount}건은 안전하게 보존되며, [설정 > 자산관리]에서 언제든 다시 복원할 수 있습니다.`
+        : '자산 목록에서 삭제되며, [설정 > 자산관리]에서 언제든 복원하거나 영구 삭제할 수 있습니다.',
+      confirmLabel: '삭제',
       tone: 'danger',
       onConfirm: () => {
         setHiddenAssets((prev) => ({ ...prev, [id]: true }));
-        showNotice(`'${assetLabel}' 자산을 숨김 보관했습니다. [설정 > 카테고리]에서 언제든 복원할 수 있습니다.`, '자산 보관', 'success');
+        showNotice(`'${assetLabel}' 자산이 삭제(보관)되었습니다. [설정 > 자산관리]에서 복원할 수 있습니다.`, '자산 보관', 'success');
       },
     });
   }
@@ -5405,7 +5405,7 @@ export default function App() {
                     className="hidden-assets-notice-bar"
                     onClick={() => {
                       setActiveTab('settings');
-                      setSettingsSection('category');
+                      setSettingsSection('asset');
                     }}
                     role="button"
                     tabIndex={0}
@@ -5425,8 +5425,8 @@ export default function App() {
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <span>🔒 숨김 보관된 자산이 <b>{hiddenAssetsList.length}개</b> 있습니다.</span>
-                    <span style={{ color: 'var(--primary)', fontWeight: 800 }}>설정에서 관리 및 복원 →</span>
+                    <span>🔒 삭제/보관된 자산이 <b>{hiddenAssetsList.length}개</b> 있습니다.</span>
+                    <span style={{ color: 'var(--primary)', fontWeight: 800 }}>설정 &gt; 자산관리에서 복원 →</span>
                   </div>
                 )}
               </div>
@@ -5559,6 +5559,7 @@ export default function App() {
               <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
                 <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
                 <button type="button" className={settingsSection === 'category' ? 'active' : ''} onClick={() => setSettingsSection('category')}>카테고리</button>
+                <button type="button" className={settingsSection === 'asset' ? 'active' : ''} onClick={() => setSettingsSection('asset')}>자산관리</button>
                 <button type="button" className={settingsSection === 'recurring' ? 'active' : ''} onClick={() => setSettingsSection('recurring')}>정기기록</button>
                 <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
               </div>
@@ -5583,271 +5584,267 @@ export default function App() {
               </div>
             )}
 
+            {settingsSection === 'asset' && (
+              <div className="settings-stack settings-asset-stack">
+                <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
+                  {/* 삭제/보관된 자산 복원 히스토리 */}
+                  <article className="glass-panel managed-category-card managed-category-card-asset" style={{ width: '100%', padding: '16px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="asset" size={19} /> 삭제/보관된 자산 히스토리
+                      </span>
+                      <span className="category-header-actions">
+                        <b>{hiddenAssetsList.length}개 보관 중</b>
+                      </span>
+                    </h3>
+
+                    {hiddenAssetsList.length === 0 ? (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem', background: 'var(--bg-card)', borderRadius: '8px', border: '1px dashed var(--border-card)' }}>
+                        삭제되거나 보관된 자산이 없습니다.<br />
+                        <span style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '4px', display: 'inline-block' }}>자산 탭에서 자산을 삭제하면 과거 거래 내역을 안전하게 보존한 채 이곳에 보관되며 언제든 다시 복원할 수 있습니다.</span>
+                      </div>
+                    ) : (
+                      <div className="category-table" style={{ padding: '0', display: 'grid', gap: '8px' }}>
+                        {hiddenAssetsList.map((asset) => {
+                          const linkedCount = transactions.filter((t) => t.assetId === asset.id || t.toAssetId === asset.id).length;
+                          const currentBalance = getNetAssetBalance(asset);
+                          const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
+
+                          return (
+                            <div
+                              key={`archived-asset-${asset.id}`}
+                              className="category-row settings-asset-row is-hidden-asset"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '10px 14px',
+                                border: '1px dashed var(--border-card)',
+                                borderRadius: '10px',
+                                background: 'color-mix(in srgb, var(--bg-card) 65%, var(--bg-input))',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                                <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <strong style={{ fontSize: '0.94rem', color: 'var(--text-primary)', textDecoration: 'line-through', opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {formatAssetLabel(asset, allAssetCategories)}
+                                  </strong>
+                                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                    과거 거래 {linkedCount}건 기록됨
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: isLiability ? 'var(--color-expense)' : 'var(--text-primary)', marginLeft: 'auto', marginRight: '10px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                                  {displayCurrency(currentBalance)}
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px' }}>
+                                <button
+                                  type="button"
+                                  className="primary-button"
+                                  style={{ padding: '6px 14px', fontSize: '0.8rem', marginTop: 0, minHeight: '32px' }}
+                                  onClick={() => handleToggleHideAsset(asset.id, false)}
+                                >
+                                  복원
+                                </button>
+
+                                {linkedCount === 0 && (
+                                  <button
+                                    type="button"
+                                    className="row-action-button row-action-delete"
+                                    aria-label="영구 삭제"
+                                    style={{ width: '30px', height: '30px', fontSize: '0.95rem' }}
+                                    title="연결된 거래가 없어 영구 삭제할 수 있습니다."
+                                    onClick={() => handlePermanentDeleteAsset(asset.id)}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </article>
+
+                  {/* 등록된 자산 카테고리 (자산/대출 그룹) */}
+                  <article className="glass-panel managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', padding: '16px' }}>
+                    <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <AppIcon name="settings" size={19} /> 등록된 자산 카테고리
+                      </span>
+                      
+                      <span className="category-header-actions">
+                        <b>{activeAssetCategories.length}개</b>
+                        <button
+                          type="button"
+                          className="category-header-add-button"
+                          onClick={() => {
+                            setCategoryModalType('asset');
+                            setCategoryModalAssetKind('asset');
+                            setSelectedCategoryColor('#0284c7');
+                            setIsCategoryModalOpen(true);
+                          }}
+                        >
+                          <AppIcon name="plus" size={15} /> 등록
+                        </button>
+                      </span>
+                    </h3>
+                    <div className="asset-category-groups">
+                      {assetCategoryGroups.map((group) => (
+                        <section
+                          key={group.kind}
+                          className="asset-category-group"
+                          data-asset-category-kind={group.kind}
+                        >
+                          <div className="asset-category-group-head">
+                            <strong>{group.label}</strong>
+                            <span>{group.categories.length}개</span>
+                          </div>
+                          <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
+                          {group.categories.map((category) => {
+                            const color = category.color || '#64748b';
+                            const paletteKey = getCategoryColorKey('asset', category.id);
+                            const isOpen = openPaletteKey === paletteKey;
+                            const isRenaming = editingCategory?.type === 'asset' && editingCategory.id === category.id;
+
+                            return (
+                              <CategoryActionRow
+                                key={`asset-${category.id}`}
+                                categoryId={category.id}
+                                scope="asset"
+                                isEditing={isRenaming}
+                                onSortStart={() => beginCategorySort('asset', category.id)}
+                                onSortPreview={(targetId, targetGroup) => previewCategorySort('asset', category.id, targetId, targetGroup)}
+                                onSortCommit={commitCategorySort}
+                                onSortCancel={cancelCategorySort}
+                              >
+                              <div
+                                data-category-id={category.id}
+                                data-category-scope="asset"
+                                data-asset-category-kind={group.kind}
+                                className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
+                                style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
+                              >
+                                <span className="category-drag-handle sortable-drag-handle">⠿</span>
+                                <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
+                                  <button
+                                    type="button"
+                                    className="category-color-swatch"
+                                    style={{ background: color, width: '20px', height: '20px', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
+                                    onClick={() => {
+                                      setPaletteDraftColor(color);
+                                      setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
+                                    }}
+                                    aria-label={`${category.label} 색상`}
+                                  />
+                                  {isOpen && (
+                                    <div className="category-palette-popover" style={{ position: 'absolute', top: '24px', left: 0, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
+                                      <div className="category-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '8px' }}>
+                                        {categoryColorPresets.map((preset) => (
+                                          <button
+                                            key={preset}
+                                            type="button"
+                                            className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
+                                            style={{ background: preset, width: '24px', height: '24px', borderRadius: '4px', border: preset.toLowerCase() === paletteDraftColor.toLowerCase() ? '2px solid var(--text-primary)' : 'none', cursor: 'pointer' }}
+                                            onClick={() => setPaletteDraftColor(preset)}
+                                          />
+                                        ))}
+                                      </div>
+                                      <label className="category-custom-color" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                        <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '4px', background: paletteDraftColor }} />
+                                        <input
+                                          type="color"
+                                          value={paletteDraftColor}
+                                          onChange={(event) => setPaletteDraftColor(event.target.value)}
+                                          style={{ display: 'none' }}
+                                        />
+                                        <strong style={{ fontSize: '0.85rem', cursor: 'pointer' }}>커스텀 색상 선택</strong>
+                                      </label>
+                                      <div className="category-palette-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                        <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setOpenPaletteKey(null)}>취소</button>
+                                        <button
+                                          type="button"
+                                          className="primary-button"
+                                          style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
+                                          onClick={() => {
+                                            handleCategoryColorChange('asset', category.id, paletteDraftColor);
+                                            setOpenPaletteKey(null);
+                                          }}
+                                        >
+                                          확인
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="category-row-main" style={{ flex: 1 }}>
+                                  {isRenaming ? (
+                                    <form
+                                      className="category-name-edit"
+                                      onSubmit={(event) => {
+                                        event.preventDefault();
+                                        handleSaveCategoryRename('asset', category.id);
+                                      }}
+                                    >
+                                      <input
+                                        value={categoryNameDraft}
+                                        onChange={(event) => setCategoryNameDraft(event.target.value)}
+                                        autoFocus
+                                      />
+                                      <select
+                                        value={categoryAssetKindDraft}
+                                        onChange={(event) => setCategoryAssetKindDraft(event.target.value as 'asset' | 'liability')}
+                                      >
+                                        <option value="asset">자산 그룹</option>
+                                        <option value="liability">대출 그룹</option>
+                                      </select>
+                                      <button type="submit" className="category-row-action category-row-action-save">저장</button>
+                                      <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
+                                    </form>
+                                  ) : (
+                                    <CategoryBadge categories={activeAssetCategories} idOrLabel={category.id} />
+                                  )}
+                                </div>
+                                {!isRenaming && (
+                                  <button
+                                    type="button"
+                                    className="row-action-button row-action-edit"
+                                    aria-label="수정"
+                                    onClick={() => handleStartCategoryRename('asset', category)}
+                                  >
+                                    <AppIcon name="edit" size={18} />
+                                  </button>
+                                )}
+                                {!isRenaming && (
+                                  <button
+                                    type="button"
+                                    className="row-action-button row-action-delete"
+                                    aria-label="삭제"
+                                    onClick={() => handleArchiveCategory('asset', category.id, category.label)}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                              </CategoryActionRow>
+                            );
+                          })}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </article>
+                </div>
+              </div>
+            )}
 
             {settingsSection === 'category' && (
               <div className="settings-stack settings-category-stack">
                 <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
-              <article className="glass-panel managed-category-card managed-category-card-asset" data-category-scope="asset" style={{ width: '100%', padding: '16px' }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AppIcon name="settings" size={19} /> 등록된 자산 카테고리
-                  </span>
-                  
-                        <span className="category-header-actions">
-                          <b>{activeAssetCategories.length}개</b>
-                          <button
-                            type="button"
-                            className="category-header-add-button"
-                            onClick={() => {
-                              setCategoryModalType('asset');
-                              setCategoryModalAssetKind('asset');
-                              setSelectedCategoryColor('#0284c7');
-                              setIsCategoryModalOpen(true);
-                            }}
-                          >
-                            <AppIcon name="plus" size={15} /> 등록
-                          </button>
-                        </span>
-                </h3>
-                <div className="asset-category-groups">
-                  {assetCategoryGroups.map((group) => (
-                    <section
-                      key={group.kind}
-                      className="asset-category-group"
-                      data-asset-category-kind={group.kind}
-                    >
-                      <div className="asset-category-group-head">
-                        <strong>{group.label}</strong>
-                        <span>{group.categories.length}개</span>
-                      </div>
-                      <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
-                      {group.categories.map((category) => {
-                        const color = category.color || '#64748b';
-                        const paletteKey = getCategoryColorKey('asset', category.id);
-                        const isOpen = openPaletteKey === paletteKey;
-                        const isRenaming = editingCategory?.type === 'asset' && editingCategory.id === category.id;
-
-                        return (
-                          <CategoryActionRow
-                            key={`asset-${category.id}`}
-                            categoryId={category.id}
-                            scope="asset"
-                            isEditing={isRenaming}
-                            onSortStart={() => beginCategorySort('asset', category.id)}
-                            onSortPreview={(targetId, targetGroup) => previewCategorySort('asset', category.id, targetId, targetGroup)}
-                            onSortCommit={commitCategorySort}
-                            onSortCancel={cancelCategorySort}
-                          >
-                          <div
-                            data-category-id={category.id}
-                            data-category-scope="asset"
-                            data-asset-category-kind={group.kind}
-                            className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
-                            style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
-                          >
-                            <span className="category-drag-handle sortable-drag-handle">⠿</span>
-                            <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
-                              <button
-                                type="button"
-                                className="category-color-swatch"
-                                style={{ background: color, width: '20px', height: '20px', borderRadius: '50%', border: 'none', cursor: 'pointer' }}
-                                onClick={() => {
-                                  setPaletteDraftColor(color);
-                                  setOpenPaletteKey((prev) => (prev === paletteKey ? null : paletteKey));
-                                }}
-                                aria-label={`${category.label} 색상`}
-                              />
-                              {isOpen && (
-                                <div className="category-palette-popover" style={{ position: 'absolute', top: '24px', left: 0, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-card)', borderRadius: '8px', padding: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', width: '220px' }}>
-                                  <div className="category-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '8px' }}>
-                                    {categoryColorPresets.map((preset) => (
-                                      <button
-                                        key={preset}
-                                        type="button"
-                                        className={preset.toLowerCase() === paletteDraftColor.toLowerCase() ? 'active' : ''}
-                                        style={{ background: preset, width: '24px', height: '24px', borderRadius: '4px', border: preset.toLowerCase() === paletteDraftColor.toLowerCase() ? '2px solid var(--text-primary)' : 'none', cursor: 'pointer' }}
-                                        onClick={() => setPaletteDraftColor(preset)}
-                                      />
-                                    ))}
-                                  </div>
-                                  <label className="category-custom-color" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '4px', background: paletteDraftColor }} />
-                                    <input
-                                      type="color"
-                                      value={paletteDraftColor}
-                                      onChange={(event) => setPaletteDraftColor(event.target.value)}
-                                      style={{ display: 'none' }}
-                                    />
-                                    <strong style={{ fontSize: '0.85rem', cursor: 'pointer' }}>커스텀 색상 선택</strong>
-                                  </label>
-                                  <div className="category-palette-actions" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                                    <button type="button" className="secondary-button" style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }} onClick={() => setOpenPaletteKey(null)}>취소</button>
-                                    <button
-                                      type="button"
-                                      className="primary-button"
-                                      style={{ padding: '4px 8px', fontSize: '0.75rem', marginTop: 0 }}
-                                      onClick={() => {
-                                        handleCategoryColorChange('asset', category.id, paletteDraftColor);
-                                        setOpenPaletteKey(null);
-                                      }}
-                                    >
-                                      확인
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            <div className="category-row-main" style={{ flex: 1 }}>
-                              {isRenaming ? (
-                                <form
-                                  className="category-name-edit"
-                                  onSubmit={(event) => {
-                                    event.preventDefault();
-                                    handleSaveCategoryRename('asset', category.id);
-                                  }}
-                                >
-                                  <input
-                                    value={categoryNameDraft}
-                                    onChange={(event) => setCategoryNameDraft(event.target.value)}
-                                    autoFocus
-                                  />
-                                  <select
-                                    value={categoryAssetKindDraft}
-                                    onChange={(event) => setCategoryAssetKindDraft(event.target.value as 'asset' | 'liability')}
-                                  >
-                                    <option value="asset">자산 그룹</option>
-                                    <option value="liability">대출 그룹</option>
-                                  </select>
-                                  <button type="submit" className="category-row-action category-row-action-save">저장</button>
-                                  <button type="button" className="category-row-action category-row-action-muted" onClick={handleCancelCategoryRename}>취소</button>
-                                </form>
-                              ) : (
-                                <CategoryBadge categories={activeAssetCategories} idOrLabel={category.id} />
-                              )}
-                            </div>
-                            {!isRenaming && (
-                              <button
-                                type="button"
-                                className="row-action-button row-action-edit"
-                                aria-label="수정"
-                                onClick={() => handleStartCategoryRename('asset', category)}
-                              >
-                                <AppIcon name="edit" size={18} />
-                              </button>
-                            )}
-                            {!isRenaming && (
-                              <button
-                                type="button"
-                                className="row-action-button row-action-delete"
-                                aria-label="삭제"
-                                onClick={() => handleArchiveCategory('asset', category.id, category.label)}
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                          </CategoryActionRow>
-                        );
-                      })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              </article>
-
-              {/* 개별 자산 및 숨김 자산 관리 카드 */}
-              <article className="glass-panel managed-category-card managed-category-card-asset" style={{ width: '100%', padding: '16px' }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AppIcon name="asset" size={19} /> 개별 자산 및 숨김 자산 관리
-                  </span>
-                  <span className="category-header-actions">
-                    <b>활성 {activeAssets.length}개 / 숨김 {hiddenAssetsList.length}개</b>
-                  </span>
-                </h3>
-
-                {assets.length === 0 ? (
-                  <p className="empty-note">등록된 자산이 없습니다.</p>
-                ) : (
-                  <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
-                    {assets.map((asset) => {
-                      const isHidden = Boolean(hiddenAssets[asset.id]);
-                      const linkedCount = transactions.filter((t) => t.assetId === asset.id || t.toAssetId === asset.id).length;
-                      const currentBalance = getNetAssetBalance(asset);
-                      const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
-
-                      return (
-                        <div
-                          key={`manage-asset-${asset.id}`}
-                          className={`category-row settings-asset-row ${isHidden ? 'is-hidden-asset' : ''}`}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '8px 12px',
-                            border: '1px solid var(--border-card)',
-                            borderRadius: '8px',
-                            background: isHidden ? 'color-mix(in srgb, var(--bg-card) 60%, var(--bg-input))' : 'var(--bg-card)',
-                            opacity: isHidden ? 0.8 : 1,
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                            <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
-                            <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {formatAssetLabel(asset, allAssetCategories)}
-                            </strong>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 650, background: 'var(--bg-input)', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
-                              거래 {linkedCount}건
-                            </span>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: isLiability ? 'var(--color-expense)' : 'var(--text-primary)', marginLeft: 'auto', marginRight: '8px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                              {displayCurrency(currentBalance)}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
-                            {isHidden ? (
-                              <button
-                                type="button"
-                                className="primary-button"
-                                style={{ padding: '4px 10px', fontSize: '0.76rem', marginTop: 0, minHeight: '30px' }}
-                                onClick={() => handleToggleHideAsset(asset.id, false)}
-                              >
-                                복원
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="secondary-button"
-                                style={{ padding: '4px 10px', fontSize: '0.76rem', marginTop: 0, minHeight: '30px' }}
-                                onClick={() => handleToggleHideAsset(asset.id, true)}
-                              >
-                                숨기기
-                              </button>
-                            )}
-
-                            {linkedCount === 0 && (
-                              <button
-                                type="button"
-                                className="row-action-button row-action-delete"
-                                aria-label="영구 삭제"
-                                style={{ width: '28px', height: '28px', fontSize: '0.9rem' }}
-                                title="연결된 거래가 없어 영구 삭제할 수 있습니다."
-                                onClick={() => handlePermanentDeleteAsset(asset.id)}
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </article>
-            </div>
-
-            <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
                   
                   {/* 지출 카테고리 목록 */}
                   <article className="glass-panel managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ padding: '16px', marginBottom: '0px' }}>
