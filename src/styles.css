@@ -5320,3 +5320,42 @@ body.asset-handle-drag-active {
 .asset-row-summary .asset-balance-values {
   flex: 0 0 auto;
 }
+
+/* Settings Asset Management & Hidden Notice Bar */
+.settings-asset-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  background: var(--bg-card);
+  transition: all 0.15s ease;
+}
+
+.settings-asset-row.is-hidden-asset {
+  background: color-mix(in srgb, var(--bg-card) 60%, var(--bg-input));
+  opacity: 0.82;
+  border-style: dashed;
+}
+
+.hidden-assets-notice-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-card) 85%, var(--bg-input));
+  border: 1px dashed var(--border-card);
+  cursor: pointer;
+  margin-top: 14px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  font-weight: 650;
+  transition: all 0.2s ease;
+}
+
+.hidden-assets-notice-bar:hover {
+  background: var(--bg-input);
+  border-color: var(--primary);
+}

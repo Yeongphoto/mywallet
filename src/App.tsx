@@ -53,6 +53,7 @@ type CategoryLabelMap = Record<string, string>;
 type CategoryBudgetExcludedMap = Record<string, boolean>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
+type HiddenAssetMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
@@ -458,6 +459,7 @@ function loadStoredData() {
       categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
+      hiddenAssets: {} as HiddenAssetMap,
       recurringRules: [] as RecurringRule[],
       deletedRecurringTxs: [] as string[],
       updatedAt: 0
@@ -484,6 +486,7 @@ function loadStoredData() {
           categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
           categoryOrder: {} as CategoryOrderMap,
           hiddenCategories: {} as HiddenCategoryMap,
+          hiddenAssets: {} as HiddenAssetMap,
           recurringRules: [] as RecurringRule[],
           deletedRecurringTxs: [] as string[],
           updatedAt: 0
@@ -503,6 +506,7 @@ function loadStoredData() {
         categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
         categoryOrder: {} as CategoryOrderMap,
         hiddenCategories: {} as HiddenCategoryMap,
+        hiddenAssets: {} as HiddenAssetMap,
         recurringRules: [] as RecurringRule[],
         deletedRecurringTxs: [] as string[],
         updatedAt: 0
@@ -524,6 +528,7 @@ function loadStoredData() {
       categoryBudgetExcluded: parsed.categoryBudgetExcluded && typeof parsed.categoryBudgetExcluded === 'object' ? parsed.categoryBudgetExcluded as CategoryBudgetExcludedMap : {} as CategoryBudgetExcludedMap,
       categoryOrder: parsed.categoryOrder && typeof parsed.categoryOrder === 'object' ? parsed.categoryOrder as CategoryOrderMap : {} as CategoryOrderMap,
       hiddenCategories: parsed.hiddenCategories && typeof parsed.hiddenCategories === 'object' ? parsed.hiddenCategories as HiddenCategoryMap : {} as HiddenCategoryMap,
+      hiddenAssets: parsed.hiddenAssets && typeof parsed.hiddenAssets === 'object' ? parsed.hiddenAssets as HiddenAssetMap : {} as HiddenAssetMap,
       recurringRules: Array.isArray(parsed.recurringRules) ? parsed.recurringRules : [] as RecurringRule[],
       deletedRecurringTxs: Array.isArray(parsed.deletedRecurringTxs) ? parsed.deletedRecurringTxs : [] as string[],
       updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : 0
@@ -543,6 +548,7 @@ function loadStoredData() {
       categoryBudgetExcluded: {} as CategoryBudgetExcludedMap,
       categoryOrder: {} as CategoryOrderMap,
       hiddenCategories: {} as HiddenCategoryMap,
+      hiddenAssets: {} as HiddenAssetMap,
       recurringRules: [] as RecurringRule[],
       deletedRecurringTxs: [] as string[],
       updatedAt: 0
@@ -564,6 +570,7 @@ function saveLocalStorage(
   categoryBudgetExcluded: CategoryBudgetExcludedMap,
   categoryOrder: CategoryOrderMap,
   hiddenCategories: HiddenCategoryMap,
+  hiddenAssets: HiddenAssetMap,
   recurringRules: RecurringRule[],
   deletedRecurringTxs: string[],
   updatedAt: number
@@ -585,6 +592,7 @@ function saveLocalStorage(
         categoryBudgetExcluded,
         categoryOrder,
         hiddenCategories,
+        hiddenAssets,
         recurringRules, 
         deletedRecurringTxs,
         updatedAt
@@ -779,11 +787,19 @@ export default function App() {
   const [categoryBudgetExcluded, setCategoryBudgetExcluded] = useState<CategoryBudgetExcludedMap>(storedData.categoryBudgetExcluded || {});
   const [categoryOrder, setCategoryOrder] = useState<CategoryOrderMap>(storedData.categoryOrder || {});
   const [hiddenCategories, setHiddenCategories] = useState<HiddenCategoryMap>(storedData.hiddenCategories || {});
+  const [hiddenAssets, setHiddenAssets] = useState<HiddenAssetMap>(storedData.hiddenAssets || {});
    const [recurringRules, setRecurringRules] = useState<RecurringRule[]>(storedData.recurringRules || []);
   const [deletedRecurringTxs, setDeletedRecurringTxs] = useState<string[]>(storedData.deletedRecurringTxs || []);
   const [updatedAt, setUpdatedAt] = useState<number>(storedData.updatedAt || 0);
 
-  
+  const activeAssets = useMemo(() => {
+    return assets.filter((asset) => !hiddenAssets[asset.id]);
+  }, [assets, hiddenAssets]);
+
+  const hiddenAssetsList = useMemo(() => {
+    return assets.filter((asset) => Boolean(hiddenAssets[asset.id]));
+  }, [assets, hiddenAssets]);
+
   const allExpenseCategories = useMemo(
     () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryLabels, categoryOrder),
     [customExpenseCategories, categoryColors, categoryLabels, categoryOrder]
@@ -823,17 +839,17 @@ export default function App() {
     const knownGroups = allAssetCategories.map((category) => ({
       id: category.id,
       label: category.label,
-      assets: assets.filter((asset) => getAssetCategoryGroupId(asset) === category.id),
+      assets: activeAssets.filter((asset) => getAssetCategoryGroupId(asset) === category.id),
     })).filter((group) => group.assets.length > 0);
     const knownIds = new Set(knownGroups.map((group) => group.id));
     const unknownGroups = new Map<string, AssetItem[]>();
-    assets.forEach((asset) => {
+    activeAssets.forEach((asset) => {
       const groupId = getAssetCategoryGroupId(asset);
       if (knownIds.has(groupId)) return;
       unknownGroups.set(groupId, [...(unknownGroups.get(groupId) ?? []), asset]);
     });
     return [...knownGroups, ...Array.from(unknownGroups, ([id, groupedAssets]) => ({ id, label: id, assets: groupedAssets }))];
-  }, [assets, allAssetCategories]);
+  }, [activeAssets, allAssetCategories]);
   const assetCategoryGroups = useMemo(() => (
     ([
       { kind: 'asset' as const, label: '자산' },
@@ -1264,6 +1280,7 @@ export default function App() {
         categoryBudgetExcluded,
         categoryOrder,
         hiddenCategories,
+        hiddenAssets,
         recurringRules,
         deletedRecurringTxs,
         updatedAt
@@ -1285,6 +1302,7 @@ export default function App() {
       categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
+      hiddenAssets,
       recurringRules,
       deletedRecurringTxs,
       updatedAt
@@ -1311,6 +1329,7 @@ export default function App() {
       categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
+      hiddenAssets,
       recurringRules, 
       deletedRecurringTxs,
       newUpdatedAt
@@ -1552,6 +1571,7 @@ export default function App() {
             setCategoryBudgetExcluded(data.categoryBudgetExcluded || {});
             setCategoryOrder(data.categoryOrder || {});
             setHiddenCategories(data.hiddenCategories || {});
+            setHiddenAssets(data.hiddenAssets || {});
             setRecurringRules(data.recurringRules || []);
             setDeletedRecurringTxs(data.deletedRecurringTxs || []);
             setUpdatedAt(serverUpdatedAt);
@@ -1977,14 +1997,14 @@ export default function App() {
   }, [activeIncomeCategories, plans, monthlyIncomes]);
 
   const assetSummary = useMemo(() => {
-    return assets.reduce<Record<string, number>>((acc, item) => {
+    return activeAssets.reduce<Record<string, number>>((acc, item) => {
       acc[item.category] = (acc[item.category] ?? 0) + getNetAssetBalance(item);
       return acc;
     }, {});
-  }, [assets, getNetAssetBalance]);
+  }, [activeAssets, getNetAssetBalance]);
 
   const assetAllocation = useMemo(() => {
-    return assets
+    return activeAssets
       .map((asset) => {
         const category = allAssetCategories.find((item) => item.id === asset.category || item.label === asset.category);
         const value = getNetAssetBalance(asset);
@@ -2004,7 +2024,7 @@ export default function App() {
           - allAssetCategories.findIndex((category) => category.id === b.categoryId);
         return categoryOrder || a.label.localeCompare(b.label, 'ko');
       });
-  }, [assets, allAssetCategories, categoryLabels, getNetAssetBalance]);
+  }, [activeAssets, allAssetCategories, categoryLabels, getNetAssetBalance]);
 
   const assetCategoryAllocation = useMemo(() => {
     const grouped = new Map<string, { id: string; label: string; value: number; liability: boolean; color: string }>();
@@ -2320,15 +2340,71 @@ export default function App() {
     const linkedCount = linkedTxs.length;
 
     requestConfirm({
-      title: '자산 삭제',
-      message: `'${assetLabel}' 자산을 목록에서 삭제할까요?`,
+      title: '자산 숨김(보관)',
+      message: `'${assetLabel}' 자산을 목록에서 제외할까요?`,
       warningNote: linkedCount > 0
-        ? `이 자산에 연결된 거래가 ${linkedCount}건 있습니다. 자산을 삭제해도 과거 거래 내역은 유지되지만, 자산 잔액 집계에서 제외됩니다.`
-        : undefined,
-      confirmLabel: '삭제',
+        ? `이 자산에 연결된 거래가 ${linkedCount}건 있습니다. 숨김 보관 시 과거 거래 내역은 안전하게 유지되며, [설정 > 카테고리/자산]에서 언제든 다시 복원할 수 있습니다.`
+        : '자산 목록에서 숨겨지며, [설정 > 카테고리/자산]에서 언제든 복원하거나 영구 삭제할 수 있습니다.',
+      confirmLabel: '숨기기',
       tone: 'danger',
       onConfirm: () => {
-        void executeDeleteAsset(id);
+        setHiddenAssets((prev) => ({ ...prev, [id]: true }));
+        showNotice(`'${assetLabel}' 자산을 숨김 보관했습니다. [설정 > 카테고리]에서 언제든 복원할 수 있습니다.`, '자산 보관', 'success');
+      },
+    });
+  }
+
+  function handleToggleHideAsset(assetId: string, hide: boolean) {
+    const asset = assets.find((a) => a.id === assetId);
+    const assetLabel = asset ? formatAssetLabel(asset, allAssetCategories) : '자산';
+    if (hide) {
+      const linkedCount = transactions.filter((t) => t.assetId === assetId || t.toAssetId === assetId).length;
+      requestConfirm({
+        title: '자산 숨김(보관)',
+        message: `'${assetLabel}' 자산을 숨김 처리할까요?`,
+        warningNote: linkedCount > 0
+          ? `과거 거래 내역 ${linkedCount}건은 안전하게 보존되며, 자산 탭 목록에서만 숨겨집니다. 설정에서 언제든 복원할 수 있습니다.`
+          : '자산 탭 목록에서 숨겨지며, 설정에서 언제든 다시 복원할 수 있습니다.',
+        confirmLabel: '숨기기',
+        tone: 'danger',
+        onConfirm: () => {
+          setHiddenAssets((prev) => ({ ...prev, [assetId]: true }));
+          showNotice(`'${assetLabel}' 자산을 숨김 보관했습니다.`, '자산 숨김', 'success');
+        },
+      });
+    } else {
+      setHiddenAssets((prev) => {
+        const next = { ...prev };
+        delete next[assetId];
+        return next;
+      });
+      showNotice(`'${assetLabel}' 자산을 다시 자산 탭에 표시합니다.`, '자산 복원', 'success');
+    }
+  }
+
+  function handlePermanentDeleteAsset(assetId: string) {
+    const asset = assets.find((a) => a.id === assetId);
+    const assetLabel = asset ? formatAssetLabel(asset, allAssetCategories) : '자산';
+    const linkedCount = transactions.filter((t) => t.assetId === assetId || t.toAssetId === assetId).length;
+
+    if (linkedCount > 0) {
+      showNotice(`이 자산은 거래 내역 ${linkedCount}건이 연결되어 있어 영구 삭제할 수 없습니다. 대신 숨김 보관을 이용해 주세요.`, '영구 삭제 불가', 'warning');
+      return;
+    }
+
+    requestConfirm({
+      title: '자산 영구 삭제',
+      message: `'${assetLabel}' 자산을 완전히 삭제할까요?`,
+      warningNote: '이 자산은 연결된 거래가 없으므로 서버 데이터베이스에서 영구적으로 삭제됩니다.',
+      confirmLabel: '영구 삭제',
+      tone: 'danger',
+      onConfirm: () => {
+        setHiddenAssets((prev) => {
+          const next = { ...prev };
+          delete next[assetId];
+          return next;
+        });
+        void executeDeleteAsset(assetId);
       },
     });
   }
@@ -3413,6 +3489,7 @@ export default function App() {
       categoryBudgetExcluded,
       categoryOrder,
       hiddenCategories,
+      hiddenAssets,
       recurringRules,
       deletedRecurringTxs,
       updatedAt,
@@ -3462,6 +3539,7 @@ export default function App() {
           categoryBudgetExcluded: CategoryBudgetExcludedMap;
           categoryOrder: CategoryOrderMap;
           hiddenCategories: HiddenCategoryMap;
+          hiddenAssets: HiddenAssetMap;
           recurringRules: RecurringRule[];
           deletedRecurringTxs: string[];
         }> | null = null;
@@ -3564,6 +3642,7 @@ export default function App() {
               setCategoryBudgetExcluded(importedSettings?.categoryBudgetExcluded && typeof importedSettings.categoryBudgetExcluded === 'object' ? importedSettings.categoryBudgetExcluded : {});
               setCategoryOrder(importedSettings?.categoryOrder && typeof importedSettings.categoryOrder === 'object' ? importedSettings.categoryOrder : {});
               setHiddenCategories(importedSettings?.hiddenCategories && typeof importedSettings.hiddenCategories === 'object' ? importedSettings.hiddenCategories : {});
+              setHiddenAssets(importedSettings?.hiddenAssets && typeof importedSettings.hiddenAssets === 'object' ? importedSettings.hiddenAssets : {});
               setRecurringRules(Array.isArray(importedSettings?.recurringRules) ? importedSettings.recurringRules : []);
               setDeletedRecurringTxs(Array.isArray(importedSettings?.deletedRecurringTxs) ? importedSettings.deletedRecurringTxs : []);
               setPlans(newPlans);
@@ -5317,9 +5396,39 @@ export default function App() {
                         </div>
                       </section>
                     );
-                    })
+                  })
                 )}
                 </div>
+
+                {hiddenAssetsList.length > 0 && (
+                  <div 
+                    className="hidden-assets-notice-bar"
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setSettingsSection('category');
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      background: 'color-mix(in srgb, var(--bg-card) 85%, var(--bg-input))',
+                      border: '1px dashed var(--border-card)',
+                      cursor: 'pointer',
+                      marginTop: '14px',
+                      fontSize: '0.84rem',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 650,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span>🔒 숨김 보관된 자산이 <b>{hiddenAssetsList.length}개</b> 있습니다.</span>
+                    <span style={{ color: 'var(--primary)', fontWeight: 800 }}>설정에서 관리 및 복원 →</span>
+                  </div>
+                )}
               </div>
 
               {/* 자산 카테고리 설정 카드 (이식 완료) */}
@@ -5644,10 +5753,99 @@ export default function App() {
                     </section>
                   ))}
                 </div>
-                  </article>
+              </article>
 
-              {/* 하단바 가림 방지 공백 */}
-                </div>
+              {/* 개별 자산 및 숨김 자산 관리 카드 */}
+              <article className="glass-panel managed-category-card managed-category-card-asset" style={{ width: '100%', padding: '16px' }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AppIcon name="asset" size={19} /> 개별 자산 및 숨김 자산 관리
+                  </span>
+                  <span className="category-header-actions">
+                    <b>활성 {activeAssets.length}개 / 숨김 {hiddenAssetsList.length}개</b>
+                  </span>
+                </h3>
+
+                {assets.length === 0 ? (
+                  <p className="empty-note">등록된 자산이 없습니다.</p>
+                ) : (
+                  <div className="category-table" style={{ padding: '0', display: 'grid', gap: '6px' }}>
+                    {assets.map((asset) => {
+                      const isHidden = Boolean(hiddenAssets[asset.id]);
+                      const linkedCount = transactions.filter((t) => t.assetId === asset.id || t.toAssetId === asset.id).length;
+                      const currentBalance = getNetAssetBalance(asset);
+                      const isLiability = isLiabilityAsset(asset, allAssetCategories, categoryLabels) || currentBalance < 0;
+
+                      return (
+                        <div
+                          key={`manage-asset-${asset.id}`}
+                          className={`category-row settings-asset-row ${isHidden ? 'is-hidden-asset' : ''}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 12px',
+                            border: '1px solid var(--border-card)',
+                            borderRadius: '8px',
+                            background: isHidden ? 'color-mix(in srgb, var(--bg-card) 60%, var(--bg-input))' : 'var(--bg-card)',
+                            opacity: isHidden ? 0.8 : 1,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                            <CategoryBadge categories={allAssetCategories} idOrLabel={asset.category} />
+                            <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {formatAssetLabel(asset, allAssetCategories)}
+                            </strong>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 650, background: 'var(--bg-input)', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap' }}>
+                              거래 {linkedCount}건
+                            </span>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: isLiability ? 'var(--color-expense)' : 'var(--text-primary)', marginLeft: 'auto', marginRight: '8px', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                              {displayCurrency(currentBalance)}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+                            {isHidden ? (
+                              <button
+                                type="button"
+                                className="primary-button"
+                                style={{ padding: '4px 10px', fontSize: '0.76rem', marginTop: 0, minHeight: '30px' }}
+                                onClick={() => handleToggleHideAsset(asset.id, false)}
+                              >
+                                복원
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                style={{ padding: '4px 10px', fontSize: '0.76rem', marginTop: 0, minHeight: '30px' }}
+                                onClick={() => handleToggleHideAsset(asset.id, true)}
+                              >
+                                숨기기
+                              </button>
+                            )}
+
+                            {linkedCount === 0 && (
+                              <button
+                                type="button"
+                                className="row-action-button row-action-delete"
+                                aria-label="영구 삭제"
+                                style={{ width: '28px', height: '28px', fontSize: '0.9rem' }}
+                                title="연결된 거래가 없어 영구 삭제할 수 있습니다."
+                                onClick={() => handlePermanentDeleteAsset(asset.id)}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </article>
+            </div>
 
             <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
                   

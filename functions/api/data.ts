@@ -85,6 +85,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       categoryBudgetExcluded: settingsMap['categoryBudgetExcluded'] ? JSON.parse(settingsMap['categoryBudgetExcluded']) : {},
       categoryOrder: settingsMap['categoryOrder'] ? JSON.parse(settingsMap['categoryOrder']) : {},
       hiddenCategories: settingsMap['hiddenCategories'] ? JSON.parse(settingsMap['hiddenCategories']) : {},
+      hiddenAssets: settingsMap['hiddenAssets'] ? JSON.parse(settingsMap['hiddenAssets']) : {},
       recurringRules: (rcRules.results || []).map((r: any) => ({
         id: r.id,
         type: r.type,
