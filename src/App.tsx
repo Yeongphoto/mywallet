@@ -845,6 +845,17 @@ export default function App() {
     }))
   ), [activeAssetCategories, categoryLabels]);
   const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
+  const categorySortSessionRef = useRef<{
+    type: CategoryScope;
+    sourceId: string;
+    previewTargetKey: string | null;
+    previousOrder: CategoryOrderMap;
+    previousLabels: CategoryLabelMap;
+    nextOrder: CategoryOrderMap;
+    nextLabels: CategoryLabelMap;
+    labelPatch?: CategoryLabelMap;
+    hasPreview: boolean;
+  } | null>(null);
   const [editingCategory, setEditingCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
   const [categoryNameDraft, setCategoryNameDraft] = useState('');
   const [categoryAssetKindDraft, setCategoryAssetKindDraft] = useState<'asset' | 'liability'>('asset');
@@ -2874,74 +2885,91 @@ export default function App() {
     return categoryOrderSaveQueueRef.current;
   }
 
-  function moveCategory(type: CategoryScope, sourceId: string, targetId: string, categories: CategoryOption[]) {
-    if (sourceId === targetId) return;
-
-    const visibleIds = categories.map((category) => category.id);
-    const nextIds = visibleIds.filter((id) => id !== sourceId);
-    const targetIndex = nextIds.indexOf(targetId);
-    if (targetIndex < 0) return;
-    nextIds.splice(targetIndex, 0, sourceId);
-
-    const previousOrder = categoryOrder;
-    const nextOrder = { ...previousOrder, [type]: nextIds };
-    skipNextPersistenceRef.current = true;
-    setCategoryOrder(nextOrder);
-    void persistCategoryOrder(type, nextOrder, previousOrder);
-    setDragCategory(null);
+  function getOrderedCategoryIds(type: CategoryScope, order: CategoryOrderMap) {
+    const knownIds = (type === 'asset'
+      ? activeAssetCategories
+      : type === 'expense'
+        ? activeExpenseCategories
+        : activeIncomeCategories
+    ).map((category) => category.id);
+    const currentIds = (order[type] ?? knownIds).filter((categoryId) => knownIds.includes(categoryId));
+    return [...currentIds, ...knownIds.filter((categoryId) => !currentIds.includes(categoryId))];
   }
 
-  function handleCategoryDrop(event: DragEvent<HTMLDivElement>, type: CategoryScope, targetId: string, categories: CategoryOption[]) {
-    event.preventDefault();
-    if (!dragCategory || dragCategory.type !== type) return;
-    moveCategory(type, dragCategory.id, targetId, categories);
+  function beginCategorySort(type: CategoryScope, sourceId: string) {
+    if (categorySortSessionRef.current) return;
+    categorySortSessionRef.current = {
+      type,
+      sourceId,
+      previewTargetKey: null,
+      previousOrder: categoryOrder,
+      previousLabels: categoryLabels,
+      nextOrder: categoryOrder,
+      nextLabels: categoryLabels,
+      hasPreview: false,
+    };
+    setDragCategory({ type, id: sourceId });
   }
 
-  function moveAssetCategoryToGroup(id: string, group: 'asset' | 'liability', targetId?: string) {
-    const previousOrder = categoryOrder;
-    const previousLabels = categoryLabels;
-    const nextLabels = { ...previousLabels, [getAssetCategoryKindKey(id)]: group };
-    const knownIds = activeAssetCategories.map((category) => category.id);
-    const currentIds = (previousOrder.asset ?? knownIds).filter((categoryId) => knownIds.includes(categoryId));
-    const orderedIds = [...currentIds, ...knownIds.filter((categoryId) => !currentIds.includes(categoryId))];
-    const nextIds = orderedIds.filter((categoryId) => categoryId !== id);
-    const targetIndex = targetId ? nextIds.indexOf(targetId) : -1;
+  function previewCategorySort(type: CategoryScope, sourceId: string, targetId: string, targetAssetGroup?: 'asset' | 'liability') {
+    const session = categorySortSessionRef.current;
+    if (!session || session.type !== type || session.sourceId !== sourceId || sourceId === targetId) return;
+    const targetKey = `${targetAssetGroup || ''}:${targetId}`;
+    if (session.previewTargetKey === targetKey) return;
 
-    if (targetIndex >= 0) {
-      nextIds.splice(targetIndex, 0, id);
-    } else {
-      const groupIds = activeAssetCategories
-        .filter((category) => category.id !== id && (nextLabels[getAssetCategoryKindKey(category.id)] || category.kind || 'asset') === group)
-        .map((category) => category.id);
-      const lastGroupIndex = Math.max(...groupIds.map((categoryId) => nextIds.indexOf(categoryId)), -1);
-      nextIds.splice(lastGroupIndex + 1, 0, id);
+    const orderedIds = getOrderedCategoryIds(type, session.nextOrder);
+    const sourceIndex = orderedIds.indexOf(sourceId);
+    const targetIndex = orderedIds.indexOf(targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const nextIds = orderedIds.filter((id) => id !== sourceId);
+    nextIds.splice(nextIds.indexOf(targetId), 0, sourceId);
+    const nextOrder = { ...session.nextOrder, [type]: nextIds };
+    let nextLabels = session.nextLabels;
+    let labelPatch: CategoryLabelMap | undefined;
+    if (type === 'asset' && targetAssetGroup) {
+      const kindKey = getAssetCategoryKindKey(sourceId);
+      if ((nextLabels[kindKey] || 'asset') !== targetAssetGroup) {
+        nextLabels = { ...nextLabels, [kindKey]: targetAssetGroup };
+      }
+      if ((session.previousLabels[kindKey] || 'asset') !== (nextLabels[kindKey] || 'asset')) {
+        labelPatch = { [kindKey]: nextLabels[kindKey] };
+      }
     }
 
-    const nextOrder = { ...previousOrder, asset: nextIds };
+    session.previewTargetKey = targetKey;
+    session.nextOrder = nextOrder;
+    session.nextLabels = nextLabels;
+    session.labelPatch = labelPatch;
+    session.hasPreview = true;
     skipNextPersistenceRef.current = true;
-    setCategoryLabels(nextLabels);
     setCategoryOrder(nextOrder);
-    void persistCategoryOrder('asset', nextOrder, previousOrder, { [getAssetCategoryKindKey(id)]: group }, previousLabels);
+    if (nextLabels !== categoryLabels) setCategoryLabels(nextLabels);
+  }
+
+  function commitCategorySort() {
+    const session = categorySortSessionRef.current;
+    categorySortSessionRef.current = null;
     setDragCategory(null);
+    if (!session?.hasPreview) return;
+    void persistCategoryOrder(
+      session.type,
+      session.nextOrder,
+      session.previousOrder,
+      session.labelPatch,
+      session.previousLabels,
+    );
   }
 
-  function handleAssetCategoryDrop(event: DragEvent<HTMLElement>, targetGroup: 'asset' | 'liability', targetId?: string) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!dragCategory || dragCategory.type !== 'asset') return;
-    moveAssetCategoryToGroup(dragCategory.id, targetGroup, targetId);
+  function cancelCategorySort() {
+    const session = categorySortSessionRef.current;
+    categorySortSessionRef.current = null;
+    setDragCategory(null);
+    if (!session?.hasPreview) return;
+    skipNextPersistenceRef.current = true;
+    setCategoryOrder(session.previousOrder);
+    setCategoryLabels(session.previousLabels);
   }
-
-  useEffect(() => {
-    const handleTouchAssetCategoryDrop = (event: Event) => {
-      const detail = (event as CustomEvent<{ id?: string; group?: 'asset' | 'liability'; targetId?: string }>).detail;
-      if (!detail?.id || (detail.group !== 'asset' && detail.group !== 'liability')) return;
-      moveAssetCategoryToGroup(detail.id, detail.group, detail.targetId);
-    };
-
-    window.addEventListener('mywallet:asset-category-group-drop', handleTouchAssetCategoryDrop);
-    return () => window.removeEventListener('mywallet:asset-category-group-drop', handleTouchAssetCategoryDrop);
-  }, [activeAssetCategories, categoryLabels]);
 
   function handleReset() {
     requestConfirm({
@@ -5073,8 +5101,6 @@ export default function App() {
                       key={group.kind}
                       className="asset-category-group"
                       data-asset-category-kind={group.kind}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={(event) => handleAssetCategoryDrop(event, group.kind)}
                     >
                       <div className="asset-category-group-head">
                         <strong>{group.label}</strong>
@@ -5091,25 +5117,18 @@ export default function App() {
                           <CategoryActionRow
                             key={`asset-${category.id}`}
                             categoryId={category.id}
+                            scope="asset"
                             isEditing={isRenaming}
-                            onTouchDrop={(targetId, targetGroup) => moveAssetCategoryToGroup(category.id, targetGroup ?? group.kind, targetId)}
+                            onSortStart={() => beginCategorySort('asset', category.id)}
+                            onSortPreview={(targetId, targetGroup) => previewCategorySort('asset', category.id, targetId, targetGroup)}
+                            onSortCommit={commitCategorySort}
+                            onSortCancel={cancelCategorySort}
                           >
                           <div
                             data-category-id={category.id}
                             data-category-scope="asset"
                             data-asset-category-kind={group.kind}
-                            className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable={!isRenaming}
-                            onDragStart={(event) => {
-                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
-                                event.preventDefault();
-                                return;
-                              }
-                              setDragCategory({ type: 'asset', id: category.id });
-                            }}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => handleAssetCategoryDrop(event, group.kind, category.id)}
-                            onDragEnd={() => setDragCategory(null)}
+                            className={`category-row ${dragCategory?.type === 'asset' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
@@ -5225,7 +5244,7 @@ export default function App() {
               {/* 하단바 가림 방지 공백 */}
                 </div>
 
-            <div className="managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginTop: '0px' }}>
+            <div className="managed-category-grid settings-managed-category-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px', marginTop: '0px' }}>
                   
                   {/* 지출 카테고리 목록 */}
                   <article className="glass-panel managed-category-card managed-category-card-plan" data-category-scope="expense" style={{ padding: '16px', marginBottom: '0px' }}>
@@ -5261,24 +5280,17 @@ export default function App() {
                           <CategoryActionRow
                             key={`expense-${category.id}`}
                             categoryId={category.id}
+                            scope="expense"
                             isEditing={isRenaming}
-                            onTouchDrop={(targetId) => moveCategory('expense', category.id, targetId, activeExpenseCategories)}
+                            onSortStart={() => beginCategorySort('expense', category.id)}
+                            onSortPreview={(targetId) => previewCategorySort('expense', category.id, targetId)}
+                            onSortCommit={commitCategorySort}
+                            onSortCancel={cancelCategorySort}
                           >
                           <div
                             data-category-id={category.id}
                             data-category-scope="expense"
-                            className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable={!isRenaming}
-                            onDragStart={(event) => {
-                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
-                                event.preventDefault();
-                                return;
-                              }
-                              setDragCategory({ type: 'expense', id: category.id });
-                            }}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => handleCategoryDrop(event, 'expense', category.id, activeExpenseCategories)}
-                            onDragEnd={() => setDragCategory(null)}
+                            className={`category-row ${dragCategory?.type === 'expense' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
@@ -5436,24 +5448,17 @@ export default function App() {
                           <CategoryActionRow
                             key={`income-${category.id}`}
                             categoryId={category.id}
+                            scope="income"
                             isEditing={isRenaming}
-                            onTouchDrop={(targetId) => moveCategory('income', category.id, targetId, activeIncomeCategories)}
+                            onSortStart={() => beginCategorySort('income', category.id)}
+                            onSortPreview={(targetId) => previewCategorySort('income', category.id, targetId)}
+                            onSortCommit={commitCategorySort}
+                            onSortCancel={cancelCategorySort}
                           >
                           <div
                             data-category-id={category.id}
                             data-category-scope="income"
-                            className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'dragging' : ''}`}
-                            draggable={!isRenaming}
-                            onDragStart={(event) => {
-                              if (isRenaming || !(event.target as HTMLElement).closest('.category-drag-handle')) {
-                                event.preventDefault();
-                                return;
-                              }
-                              setDragCategory({ type: 'income', id: category.id });
-                            }}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => handleCategoryDrop(event, 'income', category.id, activeIncomeCategories)}
-                            onDragEnd={() => setDragCategory(null)}
+                            className={`category-row ${dragCategory?.type === 'income' && dragCategory.id === category.id ? 'category-handle-drag-source' : ''}`}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
                             <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
@@ -6450,15 +6455,23 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
 function CategoryActionRow({
   children,
   categoryId,
+  scope,
   isEditing,
-  onTouchDrop,
+  onSortStart,
+  onSortPreview,
+  onSortCommit,
+  onSortCancel,
 }: {
   children: ReactNode;
   categoryId: string;
+  scope: CategoryScope;
   isEditing: boolean;
-  onTouchDrop: (targetId: string, targetGroup?: 'asset' | 'liability') => void;
+  onSortStart: () => void;
+  onSortPreview: (targetId: string, targetGroup?: 'asset' | 'liability') => void;
+  onSortCommit: () => void;
+  onSortCancel: () => void;
 }) {
-  const touchSortRef = useRef<{
+  const categorySortRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
@@ -6467,31 +6480,38 @@ function CategoryActionRow({
     row: HTMLElement;
     ghost: HTMLElement | null;
     active: boolean;
-    target: HTMLElement | null;
+    previewTargetKey: string | null;
+    moveListener: ((event: PointerEvent) => void) | null;
+    releaseListener: ((event: PointerEvent) => void) | null;
   } | null>(null);
-  const clearTouchSort = () => {
-    const state = touchSortRef.current;
+  const clearCategorySort = () => {
+    const state = categorySortRef.current;
     if (!state) return;
-    state.row.classList.remove('touch-sort-source');
-    state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
+    if (state.moveListener) window.removeEventListener('pointermove', state.moveListener);
+    if (state.releaseListener) {
+      window.removeEventListener('pointerup', state.releaseListener);
+      window.removeEventListener('pointercancel', state.releaseListener);
+    }
     state.ghost?.remove();
-    document.body.classList.remove('touch-sort-active');
-    touchSortRef.current = null;
+    document.body.classList.remove('category-handle-drag-active');
+    categorySortRef.current = null;
   };
 
-  useEffect(() => () => clearTouchSort(), []);
+  useEffect(() => () => {
+    const wasActive = categorySortRef.current?.active;
+    clearCategorySort();
+    if (wasActive) onSortCancel();
+  }, []);
 
-  const startTouchSort = (front: HTMLDivElement, pointerId: number, row: HTMLElement) => {
-    const state = touchSortRef.current;
-    if (!state || state.pointerId !== pointerId || state.active) return;
-    const rect = row.getBoundingClientRect();
-    state.grabOffsetX = state.startX - rect.left;
-    state.grabOffsetY = state.startY - rect.top;
-    const ghost = row.cloneNode(true) as HTMLElement;
-    ghost.classList.remove('touch-sort-source');
+  const activateCategorySort = () => {
+    const state = categorySortRef.current;
+    if (!state || state.active) return;
+    const rect = state.row.getBoundingClientRect();
+    const ghost = state.row.cloneNode(true) as HTMLElement;
+    ghost.classList.remove('category-handle-drag-source');
     ghost.style.position = 'fixed';
-    ghost.style.left = `${rect.left}px`;
-    ghost.style.top = `${rect.top}px`;
+    ghost.style.left = `${state.startX - state.grabOffsetX}px`;
+    ghost.style.top = `${state.startY - state.grabOffsetY}px`;
     ghost.style.width = `${rect.width}px`;
     ghost.style.height = `${rect.height}px`;
     ghost.style.pointerEvents = 'none';
@@ -6500,42 +6520,42 @@ function CategoryActionRow({
     document.body.appendChild(ghost);
     state.ghost = ghost;
     state.active = true;
-    row.classList.add('touch-sort-source');
-    document.body.classList.add('touch-sort-active');
-    front.setPointerCapture(pointerId);
+    document.body.classList.add('category-handle-drag-active');
+    onSortStart();
   };
 
-  const moveTouchSort = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const state = touchSortRef.current;
-    if (!state || state.pointerId !== event.pointerId) return false;
+  const moveCategorySort = (clientX: number, clientY: number) => {
+    const state = categorySortRef.current;
+    if (!state) return;
     if (!state.active) {
-      const deltaX = event.clientX - state.startX;
-      const deltaY = event.clientY - state.startY;
-      if (Math.abs(deltaY) < 8 || Math.abs(deltaY) <= Math.abs(deltaX)) return true;
-      startTouchSort(event.currentTarget, event.pointerId, state.row);
+      if (Math.hypot(clientX - state.startX, clientY - state.startY) < 5) return;
+      activateCategorySort();
     }
-    event.preventDefault();
     if (state.ghost) {
-      state.ghost.style.left = `${event.clientX - state.grabOffsetX}px`;
-      state.ghost.style.top = `${event.clientY - state.grabOffsetY}px`;
+      state.ghost.style.left = `${clientX - state.grabOffsetX}px`;
+      state.ghost.style.top = `${clientY - state.grabOffsetY}px`;
     }
-    state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
-    const target = (document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null)?.closest<HTMLElement>('.category-action-row');
-    state.target = target && target.dataset.categoryId !== categoryId ? target : null;
-    state.target?.querySelector('.category-row')?.classList.add('touch-sort-target');
-    return true;
+    const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>('.category-action-row');
+    const targetRow = target?.querySelector<HTMLElement>('.category-row');
+    const targetId = target?.dataset.categoryId;
+    const targetScope = targetRow?.dataset.categoryScope as CategoryScope | undefined;
+    const targetGroup = targetRow?.dataset.assetCategoryKind;
+    if (!targetId || targetId === categoryId || targetScope !== scope) return;
+    const group = targetGroup === 'asset' || targetGroup === 'liability' ? targetGroup : undefined;
+    const targetKey = `${group || ''}:${targetId}`;
+    if (state.previewTargetKey === targetKey) return;
+    state.previewTargetKey = targetKey;
+    onSortPreview(targetId, group);
   };
 
-  const finishTouchSort = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const state = touchSortRef.current;
-    if (!state || state.pointerId !== event.pointerId) return false;
-    const target = state.target;
-    const targetId = target?.dataset.categoryId;
-    const targetGroup = target?.closest<HTMLElement>('.asset-category-group')?.dataset.assetCategoryKind;
+  const finishCategorySort = (cancelled: boolean) => {
+    const state = categorySortRef.current;
+    if (!state) return;
     const wasActive = state.active;
-    clearTouchSort();
-    if (wasActive && targetId) onTouchDrop(targetId, targetGroup === 'asset' || targetGroup === 'liability' ? targetGroup : undefined);
-    return true;
+    clearCategorySort();
+    if (!wasActive) return;
+    if (cancelled) onSortCancel();
+    else onSortCommit();
   };
 
   return (
@@ -6545,9 +6565,10 @@ function CategoryActionRow({
         onPointerDown={(event) => {
           const handle = (event.target as HTMLElement).closest('.category-drag-handle');
           const row = event.currentTarget.querySelector<HTMLElement>('.category-row');
-          if (event.pointerType === 'touch' && handle && row && !isEditing) {
+          if (handle && row && !isEditing) {
             event.preventDefault();
-            clearTouchSort();
+            event.stopPropagation();
+            clearCategorySort();
             const pending = {
               pointerId: event.pointerId,
               startX: event.clientX,
@@ -6557,21 +6578,26 @@ function CategoryActionRow({
               row,
               ghost: null as HTMLElement | null,
               active: false,
-              target: null as HTMLElement | null,
+              previewTargetKey: null as string | null,
+              moveListener: null as ((nativeEvent: PointerEvent) => void) | null,
+              releaseListener: null as ((nativeEvent: PointerEvent) => void) | null,
             };
-            event.currentTarget.setPointerCapture(event.pointerId);
-            touchSortRef.current = pending;
-            return;
+            const moveListener = (nativeEvent: PointerEvent) => {
+              if (nativeEvent.pointerId !== pending.pointerId) return;
+              nativeEvent.preventDefault();
+              moveCategorySort(nativeEvent.clientX, nativeEvent.clientY);
+            };
+            const releaseListener = (nativeEvent: PointerEvent) => {
+              if (nativeEvent.pointerId !== pending.pointerId) return;
+              finishCategorySort(nativeEvent.type === 'pointercancel');
+            };
+            pending.moveListener = moveListener;
+            pending.releaseListener = releaseListener;
+            categorySortRef.current = pending;
+            window.addEventListener('pointermove', moveListener, { passive: false });
+            window.addEventListener('pointerup', releaseListener);
+            window.addEventListener('pointercancel', releaseListener);
           }
-        }}
-        onPointerMove={(event) => {
-          moveTouchSort(event);
-        }}
-        onPointerUp={(event) => {
-          finishTouchSort(event);
-        }}
-        onPointerCancel={(event) => {
-          finishTouchSort(event);
         }}
       >
         {children}

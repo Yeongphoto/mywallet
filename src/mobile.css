@@ -84,18 +84,6 @@
   }
 }
 
-.category-action-row .category-row.touch-sort-source {
-  opacity: 0.42;
-}
-
-.category-action-row .category-row.touch-sort-target {
-  box-shadow: 0 -2px 0 var(--primary);
-}
-
-body.touch-sort-active {
-  user-select: none;
-}
-
 /* Wide screens use the same card-based ledger language as mobile and assets.
    Actions are persistent here, so horizontal swipe remains touch-only. */
 @media (min-width: 769px) {

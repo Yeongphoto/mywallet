@@ -1913,8 +1913,7 @@ textarea:focus {
   transition: border-color 0.16s ease, background 0.16s ease;
 }
 
-.asset-category-group:has(.dragging),
-.asset-category-group:has(.touch-sort-source) {
+.asset-category-group:has(.category-handle-drag-source) {
   border-color: rgba(var(--primary-rgb), 0.42);
   background: rgba(var(--primary-rgb), 0.05);
 }
@@ -1951,9 +1950,14 @@ textarea:focus {
   background: var(--bg-balance-light);
 }
 
-.category-row.dragging {
-  opacity: 0.55;
-  background: rgba(var(--primary-rgb), 0.08);
+.category-row.category-handle-drag-source {
+  border: 2px dashed var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface)) !important;
+  box-shadow: none !important;
+}
+
+.category-row.category-handle-drag-source > * {
+  visibility: hidden;
 }
 
 .category-drag-handle {
@@ -1964,6 +1968,10 @@ textarea:focus {
   line-height: 1;
   width: 18px;
   flex-shrink: 0;
+}
+
+body.category-handle-drag-active {
+  user-select: none;
 }
 
 .category-color-menu {
