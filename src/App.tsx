@@ -769,6 +769,8 @@ function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
   return (a.time || '').localeCompare(b.time || '');
 }
 
+const globalModalBackHandler = { current: null as (() => boolean) | null };
+
 export default function App() {
   const storedData = useMemo(() => loadStoredData(), []);
   
@@ -1061,43 +1063,43 @@ export default function App() {
   const assetHandleDragRef = useRef({ id: '', pointerId: -1, startX: 0, startY: 0, grabOffsetX: 0, grabOffsetY: 0, targetId: null as string | null, active: false, moved: false, justDragged: false, ghost: null as HTMLElement | null, sourceRow: null as HTMLElement | null, moveListener: null as ((event: PointerEvent) => void) | null, releaseListener: null as ((event: PointerEvent) => void) | null });
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
 
   useEffect(() => {
-    if (!isEntryModalOpen) return;
+    const isAnyModalOpen = isEntryModalOpen || Boolean(editingTransaction) || isCategoryModalOpen || isAssetModalOpen;
+    if (!isAnyModalOpen) return;
+
     const currentState = window.history.state || {};
-    window.history.pushState({ ...currentState, modal: 'entryModal' }, '');
+    window.history.pushState({ ...currentState, mywalletModal: true }, '');
 
     const handlePopState = () => {
-      setIsEntryModalOpen(false);
+      // 1. If an inner popup (amount keypad, category picker, asset picker) is open, close it first and keep modal open
+      if (globalModalBackHandler.current && globalModalBackHandler.current()) {
+        window.history.pushState({ ...window.history.state, mywalletModal: true }, '');
+        return;
+      }
+
+      // 2. Otherwise close the open modal
+      if (isEntryModalOpen) {
+        setIsEntryModalOpen(false);
+      } else if (editingTransaction) {
+        setEditingTransaction(null);
+      } else if (isCategoryModalOpen) {
+        setIsCategoryModalOpen(false);
+      } else if (isAssetModalOpen) {
+        setIsAssetModalOpen(false);
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.modal === 'entryModal') {
+      if (window.history.state?.mywalletModal) {
         window.history.back();
       }
     };
-  }, [isEntryModalOpen]);
-
-  useEffect(() => {
-    if (!editingTransaction) return;
-    const currentState = window.history.state || {};
-    window.history.pushState({ ...currentState, modal: 'editModal' }, '');
-
-    const handlePopState = () => {
-      setEditingTransaction(null);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.modal === 'editModal') {
-        window.history.back();
-      }
-    };
-  }, [editingTransaction]);
+  }, [isEntryModalOpen, editingTransaction, isCategoryModalOpen, isAssetModalOpen]);
 
   function scrollAppContent({ contentTop, documentTop }: { contentTop: number; documentTop: number }) {
     contentScrollRef.current?.scrollTo({ top: contentTop, behavior: 'auto' });
@@ -1126,7 +1128,6 @@ export default function App() {
     if (focused instanceof HTMLElement) focused.blur();
     setRegistrationMode(mode);
   }
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedCategoryColor, setSelectedCategoryColor] = useState<string>('#ef4444');
   const [categoryDraft, setCategoryDraft] = useState<{ type: CategoryScope; label: string; color: string }>({
     type: 'expense',
@@ -8091,20 +8092,16 @@ function AssetRegistrationForm({
   const memoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (activePopup === 'none') return;
-    const currentState = window.history.state || {};
-    window.history.pushState({ ...currentState, popup: activePopup }, '');
-
-    const handlePopState = () => {
-      setActivePopup('none');
-    };
-
-    window.addEventListener('popstate', handlePopState);
+    if (activePopup !== 'none') {
+      globalModalBackHandler.current = () => {
+        setActivePopup('none');
+        return true;
+      };
+    } else {
+      globalModalBackHandler.current = null;
+    }
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.popup === activePopup) {
-        window.history.back();
-      }
+      globalModalBackHandler.current = null;
     };
   }, [activePopup]);
 
@@ -8283,20 +8280,16 @@ function UnifiedEntryForm({
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (activePopup === 'none') return;
-    const currentState = window.history.state || {};
-    window.history.pushState({ ...currentState, popup: activePopup }, '');
-
-    const handlePopState = () => {
-      setActivePopup('none');
-    };
-
-    window.addEventListener('popstate', handlePopState);
+    if (activePopup !== 'none') {
+      globalModalBackHandler.current = () => {
+        setActivePopup('none');
+        return true;
+      };
+    } else {
+      globalModalBackHandler.current = null;
+    }
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.popup === activePopup) {
-        window.history.back();
-      }
+      globalModalBackHandler.current = null;
     };
   }, [activePopup]);
 
@@ -8824,20 +8817,16 @@ function TransactionEditForm({
   const titleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (activePopup === 'none') return;
-    const currentState = window.history.state || {};
-    window.history.pushState({ ...currentState, popup: activePopup }, '');
-
-    const handlePopState = () => {
-      setActivePopup('none');
-    };
-
-    window.addEventListener('popstate', handlePopState);
+    if (activePopup !== 'none') {
+      globalModalBackHandler.current = () => {
+        setActivePopup('none');
+        return true;
+      };
+    } else {
+      globalModalBackHandler.current = null;
+    }
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      if (window.history.state?.popup === activePopup) {
-        window.history.back();
-      }
+      globalModalBackHandler.current = null;
     };
   }, [activePopup]);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
