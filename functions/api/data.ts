@@ -522,39 +522,57 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const categoryId = String(body.categoryId || '');
       const assetIds = Array.isArray(body.assetIds) ? body.assetIds.map(String) : [];
       const expectedRevision = Number(body.expectedRevision);
-      if (!categoryId || !Number.isInteger(expectedRevision) || assetIds.length === 0 || new Set(assetIds).size !== assetIds.length) {
+      const operationId = body.operationId;
+      if (!isOperationId(operationId) || !categoryId || !Number.isInteger(expectedRevision) || assetIds.length === 0 || new Set(assetIds).size !== assetIds.length) {
         return new Response(JSON.stringify({ error: 'INVALID_ASSET_REORDER' }), { status: 400 });
+      }
+
+      const requestHash = await operationRequestHash(body);
+      const previous = await completedOperation(db, operationId);
+      if (previous && previous.request_hash !== requestHash) return apiError('OPERATION_ID_REUSED', 409);
+      if (previous?.status === 'success') {
+        const response = await operationSuccessResponse(db, previous, operationId);
+        if (response) return response;
       }
 
       const groupId = `asset-order:${categoryId}`;
       const currentRows = await db.prepare("SELECT * FROM assets WHERE category = ? ORDER BY sort_order IS NULL, sort_order, rowid").bind(categoryId).all();
       const currentIds = (currentRows.results || []).map((asset: any) => String(asset.id));
-      if (currentIds.length !== assetIds.length || currentIds.some((id) => !assetIds.includes(id))) {
-        const currentGroup = await db.prepare("SELECT revision FROM sync_groups WHERE id = ?").bind(groupId).first<{ revision: number }>();
-        return conflictResponse({ assets: (currentRows.results || []).map(assetRow), revision: Number(currentGroup?.revision) || 0 });
+      const currentGroup = await db.prepare("SELECT revision FROM sync_groups WHERE id = ?").bind(groupId).first<{ revision: number }>();
+      const currentRevision = Number(currentGroup?.revision) || 0;
+      if (currentIds.length !== assetIds.length || currentIds.some((id) => !assetIds.includes(id)) || currentRevision !== expectedRevision) {
+        return conflictResponse({ assets: (currentRows.results || []).map(assetRow), revision: currentRevision });
       }
 
-      const statements: D1PreparedStatement[] = assetIds.map((id, index) =>
+      const now = Date.now();
+      const currentById = new Map((currentRows.results || []).map((asset: any) => [String(asset.id), asset]));
+      const responsePayload = {
+        success: true,
+        assets: assetIds.map((id, index) => assetRow({ ...currentById.get(id), sort_order: index })),
+        revision: currentRevision + 1,
+      };
+      const statements: D1PreparedStatement[] = [
+        db.prepare("INSERT INTO operation_results (operation_id, entity_type, entity_id, status, response_json, request_hash, created_at) VALUES (?, 'asset_order', ?, 'pending', ?, ?, ?)")
+          .bind(operationId, categoryId, JSON.stringify(responsePayload), requestHash, now),
+        ...assetIds.map((id, index) =>
         db.prepare("UPDATE assets SET sort_order = ? WHERE id = ? AND category = ? AND EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?)")
           .bind(index, id, categoryId, groupId, expectedRevision)
-      );
-      statements.push(
+        ),
         db.prepare("UPDATE sync_groups SET revision = revision + 1 WHERE id = ? AND revision = ?")
-          .bind(groupId, expectedRevision)
-      );
+          .bind(groupId, expectedRevision),
+        db.prepare("UPDATE operation_results SET status = 'success' WHERE operation_id = ? AND EXISTS (SELECT 1 FROM sync_groups WHERE id = ? AND revision = ?)")
+          .bind(operationId, groupId, currentRevision + 1),
+        db.prepare("DELETE FROM operation_results WHERE operation_id = ? AND status = 'pending'").bind(operationId),
+      ];
       const results = await db.batch(statements);
-      const versionResult = results[results.length - 1];
+      const versionResult = results[assetIds.length + 1];
       if (!versionResult.meta.changes) {
+        const latestRows = await db.prepare("SELECT * FROM assets WHERE category = ? ORDER BY sort_order IS NULL, sort_order, rowid").bind(categoryId).all();
         const currentGroup = await db.prepare("SELECT revision FROM sync_groups WHERE id = ?").bind(groupId).first<{ revision: number }>();
-        return conflictResponse({ assets: (currentRows.results || []).map(assetRow), revision: Number(currentGroup?.revision) || 0 });
+        return conflictResponse({ assets: (latestRows.results || []).map(assetRow), revision: Number(currentGroup?.revision) || 0 });
       }
 
-      const ordered = await db.prepare("SELECT * FROM assets WHERE category = ? ORDER BY sort_order, rowid").bind(categoryId).all();
-      return new Response(JSON.stringify({
-        success: true,
-        assets: (ordered.results || []).map(assetRow),
-        revision: expectedRevision + 1,
-      }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ...responsePayload, operationId }), { headers: { 'Content-Type': 'application/json' } });
     }
 
     if (body.op === 'category.reorder') {

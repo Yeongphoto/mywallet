@@ -4600,14 +4600,15 @@ textarea:focus {
 
 .asset-row-swipe.is-dragging .asset-row { transition: none !important; }
 
-/* Handle sorting keeps the dragged row under the pointer while the list previews
-   the insertion point beneath it. */
+/* The source row becomes an empty slot while the other rows make room for it. */
 .asset-row.asset-handle-drag-source {
-  opacity: 0.42 !important;
+  border: 2px dashed var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface)) !important;
+  box-shadow: none !important;
 }
 
-.asset-row.asset-handle-drag-target {
-  box-shadow: 0 -3px 0 var(--primary) !important;
+.asset-row.asset-handle-drag-source > * {
+  visibility: hidden;
 }
 
 body.asset-handle-drag-active {
@@ -4815,13 +4816,21 @@ body.asset-handle-drag-active {
 }
 
 
-/* The drag handle has a 44px touch target: use flex so visible row content shares its vertical centre. */
+/* The handle uses the same reliable target on mouse and touch screens. */
 .asset-row-summary {
   display: flex;
   align-items: center;
   min-height: 44px;
 }
-.asset-row-summary .asset-drag-handle { flex: 0 0 15px; }
+.asset-row-summary .asset-drag-handle {
+  display: grid;
+  flex: 0 0 32px;
+  place-items: center;
+  width: 32px;
+  min-height: 44px;
+  margin-right: 0 !important;
+  touch-action: none;
+}
 .asset-row-summary .category-badge {
   display: inline-flex !important;
   flex: 0 0 72px;
