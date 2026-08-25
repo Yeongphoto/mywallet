@@ -873,6 +873,14 @@ export default function App() {
       })),
     ];
   }, [activeAssets, assetCategoryGroups, allAssetCategories, categoryLabels]);
+
+  const orderedActiveAssetCategories = useMemo(() => {
+    return assetCategoryGroups.flatMap((group) => group.categories);
+  }, [assetCategoryGroups]);
+
+  const orderedAssetsForPicker = useMemo(() => {
+    return assetGroups.flatMap((group) => group.assets);
+  }, [assetGroups]);
   const [dragCategory, setDragCategory] = useState<{ type: CategoryScope; id: string } | null>(null);
   const categorySortSessionRef = useRef<{
     type: CategoryScope;
@@ -6445,7 +6453,7 @@ export default function App() {
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
                 assetCategories={allAssetCategories}
-                assets={assets}
+                assets={orderedAssetsForPicker}
                 onStopRecurring={handleStopRecurringFromTx}
                 onNotify={showNotice}
               />
@@ -6908,7 +6916,7 @@ export default function App() {
             {registrationMode === 'asset' ? (
               <AssetRegistrationForm
                 editingAsset={editingAsset}
-                categories={activeAssetCategories}
+                categories={orderedActiveAssetCategories}
                 allCategories={allAssetCategories}
                 getOpeningBalance={getAssetOpeningBalance}
                 onCancel={() => setIsEntryModalOpen(false)}
@@ -6941,8 +6949,8 @@ export default function App() {
                 }}
                 expenseCategories={activeExpenseCategories}
                 incomeCategories={activeIncomeCategories}
-                assetCategories={activeAssetCategories}
-                assets={assets}
+                assetCategories={orderedActiveAssetCategories}
+                assets={orderedAssetsForPicker}
                 onAddRecurringRule={(r) => {
                   handleAddRecurringRule(r);
                   setIsEntryModalOpen(false);
