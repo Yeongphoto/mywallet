@@ -5183,128 +5183,122 @@ export default function App() {
             </div>
 
             {planView === 'budget' && (
-              <div className="asset-accordion-group" style={{ display: 'grid', gap: '12px' }}>
-                <div className="glass-panel" style={{ padding: '16px' }}>
-                  <h3 style={{ margin: '0 0 12px', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-card)', paddingBottom: '8px' }}>
-                    <AppIcon name="plan" size={19} /> 월간 계획 (수입/지출 예산)
-                  </h3>
-
-                  <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    {/* 지출 계획 */}
-                    <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🔴</span> 지출 예산 계획
-                      </h3>
-                      <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
-                            <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeExpenseCategories.map((c: CategoryOption) => {
-                            const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
-                            const value = plan ? plan.plannedAmount : 0;
-                            const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
-                            return (
-                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                                <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                  <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
-                                </td>
-                                <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                  <PlanAmountInput
-                                    value={value}
-                                    onChange={(amt) => {
-                                      setPlans((prev) =>
-                                        prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
-                                      );
-                                    }}
+              <div className="plans-workspace" style={{ display: 'grid', gap: '16px' }}>
+                <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
+                  {/* 지출 계획 */}
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-expense)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🔴</span> 지출 예산 계획
+                    </h3>
+                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 예산</th>
+                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeExpenseCategories.map((c: CategoryOption) => {
+                          const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
+                          const value = plan ? plan.plannedAmount : 0;
+                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('expense', c.id)];
+                          return (
+                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
+                              </td>
+                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
+                                    setPlans((prev) =>
+                                      prev.map((p) => (p.category === c.id && p.type === 'expense' ? { ...p, plannedAmount: amt } : p))
+                                    );
+                                  }}
+                                />
+                              </td>
+                              <td className="plan-inclusion-cell">
+                                <label className="plan-inclusion-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isIncluded}
+                                    onChange={(event) => setPlanCategoryIncluded('expense', c.id, event.target.checked)}
+                                    aria-label={`${c.label} 계획 합계 포함`}
                                   />
-                                </td>
-                                <td className="plan-inclusion-cell">
-                                  <label className="plan-inclusion-toggle">
-                                    <input
-                                      type="checkbox"
-                                      checked={isIncluded}
-                                      onChange={(event) => setPlanCategoryIncluded('expense', c.id, event.target.checked)}
-                                      aria-label={`${c.label} 계획 합계 포함`}
-                                    />
-                                    <span aria-hidden="true" />
-                                  </label>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* 수입 계획 */}
-                    <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🔵</span> 수입 목표 계획
-                      </h3>
-                      <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
-                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
-                            <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
-                            <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeIncomeCategories.map((c: CategoryOption) => {
-                            const plan = plans.find((p) => p.category === c.id && p.type === 'income');
-                            const value = plan ? plan.plannedAmount : 0;
-                            const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
-                            return (
-                              <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
-                                <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                  <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
-                                </td>
-                                <td style={{ padding: '10px 0', textAlign: 'right' }}>
-                                  <PlanAmountInput
-                                    value={value}
-                                    onChange={(amt) => {
-                                      setPlans((prev) =>
-                                        prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
-                                      );
-                                    }}
-                                  />
-                                </td>
-                                <td className="plan-inclusion-cell">
-                                  <label className="plan-inclusion-toggle">
-                                    <input
-                                      type="checkbox"
-                                      checked={isIncluded}
-                                      onChange={(event) => setPlanCategoryIncluded('income', c.id, event.target.checked)}
-                                      aria-label={`${c.label} 계획 합계 포함`}
-                                    />
-                                    <span aria-hidden="true" />
-                                  </label>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                  <span aria-hidden="true" />
+                                </label>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="plan-total-bar">
-                    <div className="plan-total-item plan-total-expense">
-                      <span>지출 예산 합계</span>
-                      <strong>{displayCurrency(plannedExpenseTotal)}</strong>
-                    </div>
-                    <div className="plan-total-item plan-total-income">
-                      <span>수입 목표 합계</span>
-                      <strong>{displayCurrency(plannedIncomeTotal)}</strong>
-                    </div>
-                    <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
-                      <span>계획 차액</span>
-                      <strong>{displayCurrency(plannedNetTotal)}</strong>
-                    </div>
+
+                  {/* 수입 계획 */}
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-income)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🔵</span> 수입 목표 계획
+                    </h3>
+                    <table className="plans-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-card)', textAlign: 'left' }}>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>카테고리</th>
+                          <th style={{ padding: '8px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>목표 금액</th>
+                          <th style={{ padding: '8px 0 8px 10px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'right' }}>합계</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeIncomeCategories.map((c: CategoryOption) => {
+                          const plan = plans.find((p) => p.category === c.id && p.type === 'income');
+                          const value = plan ? plan.plannedAmount : 0;
+                          const isIncluded = !categoryBudgetExcluded[getCategoryColorKey('income', c.id)];
+                          return (
+                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
+                              <td style={{ padding: '10px 0', fontWeight: 700 }}>
+                                <CategoryBadge categories={allIncomeCategories} idOrLabel={c.id} />
+                              </td>
+                              <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                                <PlanAmountInput
+                                  value={value}
+                                  onChange={(amt) => {
+                                    setPlans((prev) =>
+                                      prev.map((p) => (p.category === c.id && p.type === 'income' ? { ...p, plannedAmount: amt } : p))
+                                    );
+                                  }}
+                                />
+                              </td>
+                              <td className="plan-inclusion-cell">
+                                <label className="plan-inclusion-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isIncluded}
+                                    onChange={(event) => setPlanCategoryIncluded('income', c.id, event.target.checked)}
+                                    aria-label={`${c.label} 계획 합계 포함`}
+                                  />
+                                  <span aria-hidden="true" />
+                                </label>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="plan-total-bar">
+                  <div className="plan-total-item plan-total-expense">
+                    <span>지출 예산 합계</span>
+                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
+                  </div>
+                  <div className="plan-total-item plan-total-income">
+                    <span>수입 목표 합계</span>
+                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
+                  </div>
+                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
+                    <span>계획 차액</span>
+                    <strong>{displayCurrency(plannedNetTotal)}</strong>
                   </div>
                 </div>
               </div>
