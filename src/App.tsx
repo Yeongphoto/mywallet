@@ -8741,9 +8741,6 @@ function UnifiedEntryForm({
                         setForm((prev) => ({
                           ...prev,
                           title: item.title,
-                          ...(item.category && activeCategories.some((c) => c.id === item.category || c.label === item.category)
-                            ? { category: item.category }
-                            : {}),
                         }));
                         setIsTitleSuggestionsOpen(false);
                       }}
@@ -9202,9 +9199,6 @@ function TransactionEditForm({
                       e.preventDefault();
                       e.stopPropagation();
                       setTitle(item.title);
-                      if (item.category && categories.some((c) => c.id === item.category || c.label === item.category)) {
-                        setCategory(item.category);
-                      }
                       setIsTitleSuggestionsOpen(false);
                     }}
                   >
