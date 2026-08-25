@@ -5470,35 +5470,10 @@ export default function App() {
                         {activeExpenseCategories.map((c: CategoryOption) => {
                           const plan = plans.find((p) => p.category === c.id && p.type === 'expense');
                           const value = plan ? plan.plannedAmount : 0;
-                          const paletteKey = getCategoryColorKey('expense', c.id);
-                          const isBudgetExcluded = Boolean(categoryBudgetExcluded[paletteKey]);
-
                           return (
-                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)', opacity: isBudgetExcluded ? 0.6 : 1, transition: 'opacity 0.2s ease' }}>
+                            <tr key={c.id} style={{ borderBottom: '1px solid var(--border-card)' }}>
                               <td style={{ padding: '10px 0', fontWeight: 700 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                  <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
-                                  <label className="category-budget-toggle" title="체크 시 예산 합계에서 제외">
-                                    <input
-                                      type="checkbox"
-                                      checked={isBudgetExcluded}
-                                      onChange={(event) => {
-                                        const checked = event.target.checked;
-                                        setCategoryBudgetExcluded((prev) => {
-                                          const next = { ...prev };
-                                          if (checked) {
-                                            next[paletteKey] = true;
-                                          } else {
-                                            delete next[paletteKey];
-                                          }
-                                          return next;
-                                        });
-                                      }}
-                                    />
-                                    <span aria-hidden="true" />
-                                    <b>예산 제외</b>
-                                  </label>
-                                </div>
+                                <CategoryBadge categories={allExpenseCategories} idOrLabel={c.id} />
                               </td>
                               <td style={{ padding: '10px 0', textAlign: 'right' }}>
                                 <PlanAmountInput
@@ -5992,14 +5967,36 @@ export default function App() {
                               )}
                             </div>
                             {!isRenaming && (
-                              <button
-                                type="button"
+                              <>
+                                <label className="category-budget-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={isBudgetExcluded}
+                                    onChange={(event) => {
+                                      const checked = event.target.checked;
+                                      setCategoryBudgetExcluded((prev) => {
+                                        const next = { ...prev };
+                                        if (checked) {
+                                          next[paletteKey] = true;
+                                        } else {
+                                          delete next[paletteKey];
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                  <span aria-hidden="true" />
+                                  <b>예산</b>
+                                </label>
+                                <button
+                                  type="button"
                                 className="row-action-button row-action-edit"
                                 aria-label="수정"
                                 onClick={() => handleStartCategoryRename('expense', category)}
                               >
                                 <AppIcon name="edit" size={18} />
-                              </button>
+                                </button>
+                              </>
                             )}
                             {!isRenaming && (
                               <button
