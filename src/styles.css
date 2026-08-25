@@ -5360,211 +5360,104 @@ body.asset-handle-drag-active {
 }
 
 /* ==========================================================================
-   Modern Accounting Modal (Mobile Keypad & 4-Column Grid Drawer)
+   Picker Popup Overlay / Bottom Sheet (Keypad & 4-Column Grid)
    ========================================================================== */
 
-.modern-entry-form {
+.picker-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 10000;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: flex-end;
+  justify-content: center;
+  animation: pickerPopupFadeIn 0.15s ease-out;
+}
+
+@keyframes pickerPopupFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.picker-popup-sheet {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 20px 20px 0 0;
   width: 100%;
-}
-
-.modern-entry-fields {
+  max-width: 520px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 16px;
-  padding: 10px 12px;
+  gap: 10px;
+  animation: pickerPopupSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.modern-field-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 46px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border-card);
-  background: var(--bg-input);
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.16s ease;
+@media (min-width: 769px) {
+  .picker-popup-backdrop {
+    align-items: center;
+  }
+  .picker-popup-sheet {
+    border-radius: 20px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  }
 }
 
-.modern-field-row:hover {
-  border-color: var(--border-input);
-  background: color-mix(in srgb, var(--primary) 4%, var(--bg-input));
-}
-
-.modern-field-row.is-active {
-  background: var(--bg-card);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
-}
-
-.modern-field-row.is-active.expense {
-  border-color: var(--color-expense);
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-}
-
-.modern-field-row.is-active.income {
-  border-color: var(--color-income);
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
-}
-
-.modern-field-row.is-active.transfer {
-  border-color: var(--color-transfer);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
-}
-
-.modern-field-row.is-active.asset {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
-}
-
-.modern-field-label {
-  font-size: 0.88rem;
-  font-weight: 750;
-  color: var(--text-secondary);
-  min-width: 64px;
-  flex-shrink: 0;
-}
-
-.modern-field-value {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  flex: 1;
-  font-size: 0.96rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.modern-field-value.amount-display {
-  font-size: 1.25rem;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-}
-
-.modern-field-value.amount-display.expense {
-  color: var(--color-expense);
-}
-
-.modern-field-value.amount-display.income {
-  color: var(--color-income);
-}
-
-.modern-field-value.amount-display.transfer {
-  color: var(--color-transfer);
-}
-
-.modern-field-value.placeholder {
-  color: var(--text-secondary);
-  font-weight: 500;
-  opacity: 0.7;
-}
-
-.modern-field-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 0.96rem;
-  font-weight: 700;
-  text-align: right;
-  outline: none;
-  padding: 4px 0;
-  font-family: inherit;
-}
-
-.modern-field-input::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.6;
-}
-
-/* Bottom Drawer / Pad Container */
-.modern-pad-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 16px;
-  padding: 10px 12px 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  animation: modernPadSlideUp 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes modernPadSlideUp {
+@keyframes pickerPopupSlideUp {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(100%);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
-.modern-pad-header {
+.picker-popup-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 4px 6px;
+  padding: 0 2px 8px;
   border-bottom: 1px solid var(--border-card);
 }
 
-.modern-pad-title {
-  font-size: 0.88rem;
+.picker-popup-header strong {
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--text-primary);
 }
 
-.modern-pad-header-actions {
+.picker-popup-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.modern-pad-clear-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 2px 6px;
+.picker-popup-amount-preview {
+  font-size: 1.15rem;
+  font-weight: 850;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
-.modern-pad-clear-btn:hover {
-  color: var(--danger);
-}
-
-.modern-pad-close-btn {
+.picker-popup-close-btn {
   background: var(--bg-input);
   border: 1px solid var(--border-card);
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   line-height: 1;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.modern-pad-close-btn:hover {
+.picker-popup-close-btn:hover {
   background: var(--border-card);
   color: var(--text-primary);
 }
@@ -5580,12 +5473,12 @@ body.asset-handle-drag-active {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
+  min-height: 50px;
   border: 1px solid var(--border-card);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--bg-input);
   color: var(--text-primary);
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   font-weight: 800;
   cursor: pointer;
   user-select: none;
@@ -5599,7 +5492,7 @@ body.asset-handle-drag-active {
 }
 
 .keypad-btn.keypad-quick-btn {
-  font-size: 0.9rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--bg-card) 60%, var(--bg-input));
@@ -5611,7 +5504,7 @@ body.asset-handle-drag-active {
 }
 
 .keypad-btn.keypad-submit-btn {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 900;
   color: #ffffff;
   background: var(--primary);
@@ -5635,7 +5528,7 @@ body.asset-handle-drag-active {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  max-height: 240px;
+  max-height: 280px;
   overflow-y: auto;
   padding: 4px 2px;
 }
@@ -5645,10 +5538,10 @@ body.asset-handle-drag-active {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  min-height: 52px;
+  gap: 4px;
+  min-height: 56px;
   padding: 6px 4px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--border-card);
   background: var(--bg-input);
   color: var(--text-primary);
@@ -5674,7 +5567,7 @@ body.asset-handle-drag-active {
 }
 
 .picker-grid-icon {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5688,7 +5581,7 @@ body.asset-handle-drag-active {
 }
 
 .picker-grid-label {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 750;
   text-align: center;
   word-break: keep-all;
