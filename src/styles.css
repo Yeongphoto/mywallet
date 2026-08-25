@@ -5640,96 +5640,115 @@ body.asset-handle-drag-active {
   white-space: nowrap;
 }
 
-/* 실시간 거래 내용(제목) 히스토리 추천 - 일체형 결합 및 연속 활성 테두리 스타일 */
-.content-entry-field.has-suggestions-open {
-  border: 1px solid rgba(var(--primary-rgb), 0.85) !important;
-  background: rgba(255, 255, 255, 0.98) !important;
-  z-index: 50;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* 실시간 거래 내용(제목) - 진정한 일체형 확장 카드 아키텍처 */
+.content-entry-cell-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 46px;
+  grid-column: span 2;
 }
 
-[data-theme='dark'] .content-entry-field.has-suggestions-open {
-  border-color: color-mix(in srgb, var(--primary) 70%, rgba(255, 255, 255, 0.25)) !important;
-  background: rgba(30, 41, 59, 0.98) !important;
+.content-entry-cell-wrapper > .content-entry-field {
+  width: 100%;
+  height: 100%;
+  min-height: 46px;
 }
 
-.title-suggestions-dropdown {
+.content-entry-unified-expanded-card {
   position: absolute;
-  left: -1px;
-  right: -1px;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
   z-index: 100;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(var(--primary-rgb), 0.85);
+  border-radius: 16px;
   backdrop-filter: blur(20px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 모바일 및 세로가 좁은 화면: 위쪽으로 틈새 없이 한 몸으로 확장 결합 (연속 활성 테두리) */
+/* 모바일 및 세로가 좁은 화면: 아래 기준(bottom: 0)으로 위로 자연스럽게 확장 */
 @media (max-width: 767px), (max-height: 700px) {
-  .content-entry-field.has-suggestions-open {
-    border-top-color: transparent !important;
-    border-top-left-radius: 0 !important;
-    border-top-right-radius: 0 !important;
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 3px 0 0 rgba(var(--primary-rgb), 0.14) !important;
-  }
-  .title-suggestions-dropdown {
-    bottom: 100%;
+  .content-entry-unified-expanded-card {
+    bottom: 0;
     top: auto;
-    border-bottom: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    max-height: clamp(140px, 28vh, 210px);
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.1), -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 -3px 0 0 rgba(var(--primary-rgb), 0.14);
+    max-height: clamp(200px, 36vh, 280px);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.14), 0 -10px 28px rgba(15, 23, 42, 0.12);
   }
 }
 
-/* PC / 태블릿 등 화면 높이가 여유로운 환경: 아래쪽으로 틈새 없이 한 몸으로 확장 결합 (연속 활성 테두리) */
+/* PC / 태블릿 등 화면 높이가 여유로운 환경: 위 기준(top: 0)으로 아래로 자연스럽게 확장 */
 @media (min-width: 768px) and (min-height: 701px) {
-  .content-entry-field.has-suggestions-open {
-    border-bottom-color: transparent !important;
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 -3px 0 0 rgba(var(--primary-rgb), 0.14) !important;
-  }
-  .title-suggestions-dropdown {
-    top: 100%;
+  .content-entry-unified-expanded-card {
+    top: 0;
     bottom: auto;
-    border-top: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
-    max-height: 240px;
-    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1), -3px 0 0 0 rgba(var(--primary-rgb), 0.14), 3px 0 0 0 rgba(var(--primary-rgb), 0.14), 0 3px 0 0 rgba(var(--primary-rgb), 0.14);
+    flex-direction: column-reverse;
+    max-height: 300px;
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.14), 0 10px 28px rgba(15, 23, 42, 0.12);
+  }
+  .content-entry-unified-expanded-card .unified-input-row {
+    border-top: none;
+    border-bottom: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
   }
 }
 
-[data-theme='dark'] .title-suggestions-dropdown {
+[data-theme='dark'] .content-entry-unified-expanded-card {
   background: rgba(30, 41, 59, 0.98);
   border-color: color-mix(in srgb, var(--primary) 70%, rgba(255, 255, 255, 0.25));
 }
 
 @media (max-width: 767px), (max-height: 700px) {
-  [data-theme='dark'] .content-entry-field.has-suggestions-open {
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 3px 0 0 rgba(var(--primary-rgb), 0.25) !important;
-  }
-  [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35), -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 -3px 0 0 rgba(var(--primary-rgb), 0.25);
+  [data-theme='dark'] .content-entry-unified-expanded-card {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25), 0 -10px 28px rgba(0, 0, 0, 0.4);
   }
 }
 
 @media (min-width: 768px) and (min-height: 701px) {
-  [data-theme='dark'] .content-entry-field.has-suggestions-open {
-    box-shadow: -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 -3px 0 0 rgba(var(--primary-rgb), 0.25) !important;
+  [data-theme='dark'] .content-entry-unified-expanded-card {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.25), 0 10px 28px rgba(0, 0, 0, 0.4);
   }
-  [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), -3px 0 0 0 rgba(var(--primary-rgb), 0.25), 3px 0 0 0 rgba(var(--primary-rgb), 0.25), 0 3px 0 0 rgba(var(--primary-rgb), 0.25);
-  }
+}
+
+.title-suggestions-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.unified-input-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 5px 12px 6px;
+  box-sizing: border-box;
+  background: transparent;
+  border-top: 1px dashed color-mix(in srgb, var(--border-input) 65%, transparent);
+}
+
+.unified-input-row > input {
+  width: 100% !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-size: 1.05rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.unified-input-row > input::placeholder {
+  color: rgba(100, 116, 139, 0.62);
+  font-weight: 750;
 }
 
 .title-suggestions-header {
