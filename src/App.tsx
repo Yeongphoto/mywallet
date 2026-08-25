@@ -1059,10 +1059,45 @@ export default function App() {
   const assetSwipeGestureRef = useRef({ id: '', startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
   const [assetHandleDragVisual, setAssetHandleDragVisual] = useState<{ id: string | null; targetId: string | null }>({ id: null, targetId: null });
   const assetHandleDragRef = useRef({ id: '', pointerId: -1, startX: 0, startY: 0, grabOffsetX: 0, grabOffsetY: 0, targetId: null as string | null, active: false, moved: false, justDragged: false, ghost: null as HTMLElement | null, sourceRow: null as HTMLElement | null, moveListener: null as ((event: PointerEvent) => void) | null, releaseListener: null as ((event: PointerEvent) => void) | null });
-  const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
+
+  useEffect(() => {
+    if (!isEntryModalOpen) return;
+    const currentState = window.history.state || {};
+    window.history.pushState({ ...currentState, modal: 'entryModal' }, '');
+
+    const handlePopState = () => {
+      setIsEntryModalOpen(false);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.modal === 'entryModal') {
+        window.history.back();
+      }
+    };
+  }, [isEntryModalOpen]);
+
+  useEffect(() => {
+    if (!editingTransaction) return;
+    const currentState = window.history.state || {};
+    window.history.pushState({ ...currentState, modal: 'editModal' }, '');
+
+    const handlePopState = () => {
+      setEditingTransaction(null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.modal === 'editModal') {
+        window.history.back();
+      }
+    };
+  }, [editingTransaction]);
 
   function scrollAppContent({ contentTop, documentTop }: { contentTop: number; documentTop: number }) {
     contentScrollRef.current?.scrollTo({ top: contentTop, behavior: 'auto' });
@@ -7934,9 +7969,9 @@ function AmountNumberKeypad({
       <button type="button" className="keypad-btn" onClick={() => handleDigit('9')}>9</button>
       <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}>+1만</button>
 
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('00')}>00</button>
+      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('00')}>00</button>
       <button type="button" className="keypad-btn" onClick={() => handleDigit('0')}>0</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('000')}>000</button>
+      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('000')}>000</button>
       <button
         type="button"
         className={`keypad-btn keypad-submit-btn ${submitTone}`}
@@ -8055,6 +8090,24 @@ function AssetRegistrationForm({
   const amountRef = useRef<HTMLInputElement>(null);
   const memoRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (activePopup === 'none') return;
+    const currentState = window.history.state || {};
+    window.history.pushState({ ...currentState, popup: activePopup }, '');
+
+    const handlePopState = () => {
+      setActivePopup('none');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.popup === activePopup) {
+        window.history.back();
+      }
+    };
+  }, [activePopup]);
+
   const selectedCategory = categories.find((item) => item.id === category || item.label === category);
 
   return (
@@ -8144,7 +8197,7 @@ function AssetRegistrationForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>자산 분류 선택 (4분할)</strong>
+              <strong>자산 분류 선택</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <CategoryGridPicker
@@ -8166,7 +8219,7 @@ function AssetRegistrationForm({
             <div className="picker-popup-header">
               <strong>기초 잔액 입력</strong>
               <div className="picker-popup-header-right">
-                <span className="picker-popup-amount-preview">
+                <span className={`picker-popup-amount-preview ${amount?.startsWith('-') ? 'negative' : ''}`}>
                   {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
                 </span>
                 <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
@@ -8228,6 +8281,24 @@ function UnifiedEntryForm({
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (activePopup === 'none') return;
+    const currentState = window.history.state || {};
+    window.history.pushState({ ...currentState, popup: activePopup }, '');
+
+    const handlePopState = () => {
+      setActivePopup('none');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.popup === activePopup) {
+        window.history.back();
+      }
+    };
+  }, [activePopup]);
 
   const currentAssetCategories = propAssetCategories || assetCategories;
 
@@ -8612,7 +8683,7 @@ function UnifiedEntryForm({
             <div className="picker-popup-header">
               <strong>금액 입력</strong>
               <div className="picker-popup-header-right">
-                <span className="picker-popup-amount-preview">
+                <span className={`picker-popup-amount-preview ${form.amount?.startsWith('-') ? 'negative' : ''}`}>
                   {form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}
                 </span>
                 <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
@@ -8639,7 +8710,7 @@ function UnifiedEntryForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>분류 선택 (4분할)</strong>
+              <strong>분류 선택</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <CategoryGridPicker
@@ -8658,7 +8729,7 @@ function UnifiedEntryForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>{form.type === 'transfer' ? '출금 자산 선택 (4분할)' : '자산 선택 (4분할)'}</strong>
+              <strong>{form.type === 'transfer' ? '출금 자산 선택' : '자산 선택'}</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <AssetGridPicker
@@ -8683,7 +8754,7 @@ function UnifiedEntryForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>입금 자산 선택 (4분할)</strong>
+              <strong>입금 자산 선택</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <AssetGridPicker
@@ -8751,6 +8822,24 @@ function TransactionEditForm({
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (activePopup === 'none') return;
+    const currentState = window.history.state || {};
+    window.history.pushState({ ...currentState, popup: activePopup }, '');
+
+    const handlePopState = () => {
+      setActivePopup('none');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (window.history.state?.popup === activePopup) {
+        window.history.back();
+      }
+    };
+  }, [activePopup]);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
   const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);
   const paidInstallmentAmount = installmentTransactions
@@ -9058,7 +9147,7 @@ function TransactionEditForm({
             <div className="picker-popup-header">
               <strong>금액 수정</strong>
               <div className="picker-popup-header-right">
-                <span className="picker-popup-amount-preview">
+                <span className={`picker-popup-amount-preview ${amount?.startsWith('-') ? 'negative' : ''}`}>
                   {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
                 </span>
                 <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
@@ -9081,7 +9170,7 @@ function TransactionEditForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>분류 선택 (4분할)</strong>
+              <strong>분류 선택</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <CategoryGridPicker
@@ -9100,7 +9189,7 @@ function TransactionEditForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>{transaction.type === 'transfer' ? '출금 자산 선택 (4분할)' : '자산 선택 (4분할)'}</strong>
+              <strong>{transaction.type === 'transfer' ? '출금 자산 선택' : '자산 선택'}</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <AssetGridPicker
@@ -9120,7 +9209,7 @@ function TransactionEditForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>입금 자산 선택 (4분할)</strong>
+              <strong>입금 자산 선택</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <AssetGridPicker

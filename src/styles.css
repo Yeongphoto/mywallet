@@ -5457,10 +5457,21 @@ body.asset-handle-drag-active {
 }
 
 .picker-popup-amount-preview {
-  font-size: 1.15rem;
-  font-weight: 850;
-  color: var(--text-primary);
+  font-size: 1.28rem;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.picker-popup-amount-preview.negative {
+  color: var(--color-expense);
+  background: color-mix(in srgb, var(--color-expense) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-expense) 22%, transparent);
 }
 
 .picker-popup-close-btn {
@@ -5500,8 +5511,8 @@ body.asset-handle-drag-active {
   border-radius: 12px;
   background: var(--bg-input);
   color: var(--text-primary);
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 1.38rem;
+  font-weight: 850;
   cursor: pointer;
   user-select: none;
   transition: background 0.12s ease, transform 0.08s ease;
@@ -5513,16 +5524,30 @@ body.asset-handle-drag-active {
   background: color-mix(in srgb, var(--primary) 15%, var(--bg-input));
 }
 
-.keypad-btn.keypad-quick-btn {
+/* 00, 000, +1만, -, 백스페이스 버튼 살짝 회색처리로 구분 */
+.keypad-btn.keypad-quick-btn,
+.keypad-btn.keypad-alt-btn,
+.keypad-btn.keypad-action-btn {
   font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-card) 60%, var(--bg-input));
+  background: color-mix(in srgb, var(--bg-card) 55%, var(--bg-input));
+  border-color: color-mix(in srgb, var(--border-card) 85%, transparent);
 }
 
-.keypad-btn.keypad-action-btn {
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-card) 60%, var(--bg-input));
+.keypad-btn.keypad-quick-btn:active,
+.keypad-btn.keypad-alt-btn:active,
+.keypad-btn.keypad-action-btn:active {
+  background: color-mix(in srgb, var(--primary) 18%, var(--bg-input));
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .keypad-btn.keypad-quick-btn,
+[data-theme='dark'] .keypad-btn.keypad-alt-btn,
+[data-theme='dark'] .keypad-btn.keypad-action-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.09);
+  color: #94a3b8;
 }
 
 .keypad-btn.keypad-submit-btn {
