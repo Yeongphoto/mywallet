@@ -4373,7 +4373,7 @@ export default function App() {
               </div>
 
               {/* 연간 차트 영역 */}
-              <div style={{ width: '100%', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ width: '100%', position: 'relative', overflow: 'visible' }}>
                 <div style={{ width: '100%', position: 'relative' }}>
                   <svg width="100%" height="320" viewBox="0 0 560 320" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients */}
@@ -4582,7 +4582,7 @@ export default function App() {
                       style={{
                         position: 'absolute',
                         left: `calc(16% + ${(hoveredChartIndex / 11) * 68}%)`, /* 1월~12월 기둥 위치에 맞추어 좌우 슬라이딩 */
-                        top: '8px', /* 그래프 최상단 바로 위로 내려서 배치 */
+                        top: '-26px', /* 그래프 최상단 바로 위 여백에 배치 */
                         transform: 'translateX(-50%)',
                         width: 'auto',
                         minWidth: '175px',
