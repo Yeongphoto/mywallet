@@ -5639,150 +5639,192 @@ body.asset-handle-drag-active {
   white-space: nowrap;
 }
 
-/* 실시간 거래 내용(제목) 히스토리 추천 드롭박스 */
-.content-entry-wrapper {
+/* 실시간 거래 내용(제목) 히스토리 확장형 카드 & 칩 스타일 */
+.content-entry-expandable-card {
   position: relative;
-  width: 100%;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 46px;
+  padding: 5px 12px 6px !important;
+  border: 1px solid var(--border-input);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 6px 18px rgba(15, 23, 42, 0.035);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.title-suggestions-dropdown {
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1.5px solid color-mix(in srgb, var(--primary) 30%, var(--border-input));
-  border-radius: 16px;
-  backdrop-filter: blur(20px);
-  overflow: hidden;
+.modal-content .form-grid .content-entry-expandable-card {
+  grid-column: span 2;
+}
+
+.content-entry-expandable-card:focus-within,
+.content-entry-expandable-card.is-expanded {
+  border-color: rgba(var(--primary-rgb), 0.6);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12), 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.content-entry-expandable-card.is-expanded {
+  min-height: 130px;
+  max-height: 220px;
+  padding: 10px 12px 8px !important;
+  gap: 8px;
+}
+
+[data-theme='dark'] .content-entry-expandable-card {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .content-entry-expandable-card:focus-within,
+[data-theme='dark'] .content-entry-expandable-card.is-expanded {
+  border-color: color-mix(in srgb, var(--primary) 50%, rgba(255, 255, 255, 0.2));
+  background: rgba(30, 41, 59, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* 확장 영역: 상단 칩 목록 */
+.expandable-suggestions-section {
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  animation: fadeIn 0.18s ease;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-input) 60%, transparent);
+  padding-bottom: 8px;
 }
 
-/* 모바일 및 세로가 좁은 화면: 가상 키보드와 겹치지 않도록 입력창 위로 펼침 */
-@media (max-width: 767px), (max-height: 700px) {
-  .title-suggestions-dropdown {
-    bottom: calc(100% + 6px);
-    top: auto;
-    max-height: clamp(140px, 26vh, 200px);
-    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-}
-
-/* PC / 태블릿 등 화면 높이가 여유로운 환경: 자연스럽게 입력창 아래로 펼침 */
-@media (min-width: 768px) and (min-height: 701px) {
-  .title-suggestions-dropdown {
-    top: calc(100% + 6px);
-    bottom: auto;
-    max-height: 240px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-}
-
-[data-theme='dark'] .title-suggestions-dropdown {
-  background: rgba(30, 41, 59, 0.96);
-  border-color: color-mix(in srgb, var(--primary) 40%, rgba(255, 255, 255, 0.16));
-}
-
-@media (max-width: 767px), (max-height: 700px) {
-  [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.3);
-  }
-}
-
-@media (min-width: 768px) and (min-height: 701px) {
-  [data-theme='dark'] .title-suggestions-dropdown {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  }
-}
-
-.title-suggestions-header {
+.expandable-suggestions-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 14px 6px;
-  background: color-mix(in srgb, var(--bg-input) 65%, var(--bg-card));
-  border-bottom: 1px solid var(--border-input);
   font-size: 0.72rem;
   font-weight: 800;
   color: var(--text-secondary);
-  letter-spacing: 0;
+  padding: 0 2px;
 }
 
-[data-theme='dark'] .title-suggestions-header {
-  background: rgba(15, 23, 42, 0.55);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.title-suggestions-close-btn {
+.expandable-close-btn {
   background: transparent;
   border: none;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   line-height: 1;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 0 4px;
+  padding: 2px 4px;
   opacity: 0.7;
   transition: opacity 0.15s ease;
 }
 
-.title-suggestions-close-btn:hover {
+.expandable-close-btn:hover {
   opacity: 1;
 }
 
-.title-suggestions-list {
-  overflow-y: auto;
-  flex: 1;
+.expandable-chips-container {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 110px;
+  padding: 2px 0;
   -webkit-overflow-scrolling: touch;
 }
 
-.title-suggestion-item {
-  display: flex;
+.suggestion-chip-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 14px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-input) 45%, transparent);
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-  width: 100%;
-}
-
-.title-suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.title-suggestion-item:hover,
-.title-suggestion-item:active {
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-}
-
-.suggestion-title {
-  font-size: 0.9rem;
-  font-weight: 750;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg-input) 80%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--border-input) 75%, transparent);
   color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
   white-space: nowrap;
+  user-select: none;
+}
+
+.suggestion-chip-btn:hover,
+.suggestion-chip-btn:active {
+  background: color-mix(in srgb, var(--primary) 15%, var(--bg-input));
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.chip-text {
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1;
+  white-space: nowrap;
 }
 
-.suggestion-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--bg-input) 80%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--border-input) 60%, transparent);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  flex-shrink: 0;
+.chip-count {
+  font-size: 0.68rem;
+  font-weight: 800;
+  opacity: 0.65;
 }
+
+/* 입력 필드 행 */
+.expandable-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+}
+
+.expandable-input-row > input {
+  flex: 1;
+  width: 100% !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-size: 1.05rem !important;
+  font-weight: 850 !important;
+  line-height: 1.25;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.expandable-input-row > input::placeholder {
+  color: rgba(100, 116, 139, 0.62);
+  font-weight: 750;
+}
+
+.input-clear-btn {
+  background: color-mix(in srgb, var(--bg-input) 85%, var(--text-secondary));
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--bg-card);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.input-clear-btn:hover {
+  opacity: 1;
+}
+
 
 
