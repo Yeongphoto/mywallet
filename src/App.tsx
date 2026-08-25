@@ -6540,6 +6540,7 @@ export default function App() {
               <TransactionEditForm
                 key={editingTransaction.id}
                 transaction={editingTransaction}
+                transactions={transactions}
                 onSave={(updated) => handleUpdateTransaction(editingTransaction.id, updated)}
                 onSaveInstallment={handleUpdateInstallment}
                 installmentTransactions={editingTransaction.installmentGroupId
@@ -7036,6 +7037,7 @@ export default function App() {
                 <UnifiedEntryForm
                 key={registrationMode}
                 initialType={registrationMode}
+                transactions={transactions}
                 onAddTransaction={async (t) => {
                   const saved = await handleAddTransaction(t);
                   if (saved) setIsEntryModalOpen(false);
@@ -8249,6 +8251,7 @@ function UnifiedEntryForm({
   incomeCategories,
   assetCategories: propAssetCategories,
   assets = [],
+  transactions = [],
   onAddAsset,
   onAddRecurringRule,
   onNotify,
@@ -8264,6 +8267,7 @@ function UnifiedEntryForm({
   incomeCategories: CategoryOption[];
   assetCategories?: CategoryOption[];
   assets?: AssetItem[];
+  transactions?: Transaction[];
   onAddRecurringRule?: (r: RecurringRule) => void;
   onNotify?: (message: string, title?: string, type?: NoticeType) => void;
   onCancel?: () => void;
@@ -8272,6 +8276,7 @@ function UnifiedEntryForm({
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
   const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const installmentRef = useRef<HTMLButtonElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
@@ -8300,6 +8305,54 @@ function UnifiedEntryForm({
     if (form.type === 'income') return incomeCategories;
     return [{ id: 'transfer', label: '계좌 이체', color: '#8b5cf6' }];
   }, [form.type, expenseCategories, incomeCategories]);
+
+  const titleSuggestions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    const query = form.title.trim().toLowerCase();
+    const titleMap = new Map<string, { title: string; category?: string; count: number; latestDate: string }>();
+
+    for (let i = transactions.length - 1; i >= 0; i--) {
+      const t = transactions[i];
+      const tTitle = t.title?.trim();
+      if (!tTitle || tTitle === '계좌 이체') continue;
+      const existing = titleMap.get(tTitle);
+      if (!existing) {
+        titleMap.set(tTitle, {
+          title: tTitle,
+          category: t.category,
+          count: 1,
+          latestDate: t.date,
+        });
+      } else {
+        existing.count += 1;
+        if (t.date > existing.latestDate) {
+          existing.latestDate = t.date;
+          existing.category = t.category;
+        }
+      }
+    }
+
+    let list = Array.from(titleMap.values());
+    if (query) {
+      list = list.filter((item) => item.title.toLowerCase().includes(query));
+    } else if (form.category) {
+      const sameCat = list.filter((item) => item.category === form.category);
+      const otherCat = list.filter((item) => item.category !== form.category);
+      list = [...sameCat, ...otherCat];
+    }
+
+    list.sort((a, b) => {
+      if (query) {
+        const aStarts = a.title.toLowerCase().startsWith(query) ? 1 : 0;
+        const bStarts = b.title.toLowerCase().startsWith(query) ? 1 : 0;
+        if (aStarts !== bStarts) return bStarts - aStarts;
+      }
+      if (b.count !== a.count) return b.count - a.count;
+      return b.latestDate.localeCompare(a.latestDate);
+    });
+
+    return list.slice(0, 8);
+  }, [transactions, form.title, form.category]);
 
   function handleTypeChange(newType: EntryType) {
     const defaultCat = newType === 'transfer' ? 'transfer' : '';
@@ -8640,15 +8693,69 @@ function UnifiedEntryForm({
             </label>
           )}
 
-          <label className="content-entry-field compact-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
-            <input
-              type="text"
-              ref={titleRef}
-              placeholder="내용 (미입력 시 분류명)"
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-            />
-          </label>
+          <div className="content-entry-wrapper" style={{ gridColumn: 'span 2' }}>
+            <label className="content-entry-field compact-entry-field" aria-label="내용">
+              <input
+                type="text"
+                ref={titleRef}
+                placeholder="내용 (미입력 시 분류명)"
+                value={form.title}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, title: e.target.value }));
+                  setIsTitleSuggestionsOpen(true);
+                }}
+                onFocus={() => setIsTitleSuggestionsOpen(true)}
+                onBlur={() => {
+                  setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+                }}
+              />
+            </label>
+            {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+              <div className="title-suggestions-dropdown">
+                <div className="title-suggestions-header">
+                  <span>최근 / 자주 사용한 내역</span>
+                  <button
+                    type="button"
+                    className="title-suggestions-close-btn"
+                    tabIndex={-1}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setIsTitleSuggestionsOpen(false);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="title-suggestions-list">
+                  {titleSuggestions.map((item) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      className="title-suggestion-item"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setForm((prev) => ({
+                          ...prev,
+                          title: item.title,
+                          ...(item.category && activeCategories.some((c) => c.id === item.category || c.label === item.category)
+                            ? { category: item.category }
+                            : {}),
+                        }));
+                        setIsTitleSuggestionsOpen(false);
+                      }}
+                    >
+                      <span className="suggestion-title">{item.title}</span>
+                      {item.category && (
+                        <span className="suggestion-badge">
+                          {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           <label className="recurring-toggle" style={{ gridColumn: 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
             <input
@@ -8773,6 +8880,7 @@ function TransactionEditForm({
   onSave,
   onSaveInstallment,
   installmentTransactions = [],
+  transactions = [],
   onCancel,
   onAddRecurringRule,
   onUpdateRecurringRule,
@@ -8788,6 +8896,7 @@ function TransactionEditForm({
   onSave: (t: Transaction) => void | Promise<boolean>;
   onSaveInstallment?: (t: Transaction) => void;
   installmentTransactions?: Transaction[];
+  transactions?: Transaction[];
   onCancel: () => void;
   onAddRecurringRule?: (r: RecurringRule) => void;
   onUpdateRecurringRule?: (r: RecurringRule) => void;
@@ -8810,6 +8919,7 @@ function TransactionEditForm({
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
   const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
   const assetRef = useRef<HTMLButtonElement>(null);
@@ -8829,6 +8939,54 @@ function TransactionEditForm({
       globalModalBackHandler.current = null;
     };
   }, [activePopup]);
+
+  const titleSuggestions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    const query = title.trim().toLowerCase();
+    const titleMap = new Map<string, { title: string; category?: string; count: number; latestDate: string }>();
+
+    for (let i = transactions.length - 1; i >= 0; i--) {
+      const t = transactions[i];
+      const tTitle = t.title?.trim();
+      if (!tTitle || tTitle === '계좌 이체') continue;
+      const existing = titleMap.get(tTitle);
+      if (!existing) {
+        titleMap.set(tTitle, {
+          title: tTitle,
+          category: t.category,
+          count: 1,
+          latestDate: t.date,
+        });
+      } else {
+        existing.count += 1;
+        if (t.date > existing.latestDate) {
+          existing.latestDate = t.date;
+          existing.category = t.category;
+        }
+      }
+    }
+
+    let list = Array.from(titleMap.values());
+    if (query) {
+      list = list.filter((item) => item.title.toLowerCase().includes(query));
+    } else if (category) {
+      const sameCat = list.filter((item) => item.category === category);
+      const otherCat = list.filter((item) => item.category !== category);
+      list = [...sameCat, ...otherCat];
+    }
+
+    list.sort((a, b) => {
+      if (query) {
+        const aStarts = a.title.toLowerCase().startsWith(query) ? 1 : 0;
+        const bStarts = b.title.toLowerCase().startsWith(query) ? 1 : 0;
+        if (aStarts !== bStarts) return bStarts - aStarts;
+      }
+      if (b.count !== a.count) return b.count - a.count;
+      return b.latestDate.localeCompare(a.latestDate);
+    });
+
+    return list.slice(0, 8);
+  }, [transactions, title, category]);
   const isInstallment = Boolean(transaction.installmentGroupId && transaction.installmentIndex && transaction.installmentMonths && installmentTransactions.length > 1);
   const installmentTotal = installmentTransactions.reduce((sum, item) => sum + item.amount, 0);
   const paidInstallmentAmount = installmentTransactions
@@ -8994,9 +9152,66 @@ function TransactionEditForm({
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
-        <label className="compact-entry-field content-entry-field" style={{ gridColumn: 'span 2' }} aria-label="내용">
-          <input ref={titleRef} type="text" placeholder="내용 (미입력 시 분류명)" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </label>
+        <div className="content-entry-wrapper" style={{ gridColumn: 'span 2' }}>
+          <label className="compact-entry-field content-entry-field" aria-label="내용">
+            <input
+              ref={titleRef}
+              type="text"
+              placeholder="내용 (미입력 시 분류명)"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setIsTitleSuggestionsOpen(true);
+              }}
+              onFocus={() => setIsTitleSuggestionsOpen(true)}
+              onBlur={() => {
+                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+              }}
+            />
+          </label>
+          {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+            <div className="title-suggestions-dropdown">
+              <div className="title-suggestions-header">
+                <span>최근 / 자주 사용한 내역</span>
+                <button
+                  type="button"
+                  className="title-suggestions-close-btn"
+                  tabIndex={-1}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsTitleSuggestionsOpen(false);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="title-suggestions-list">
+                {titleSuggestions.map((item) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    className="title-suggestion-item"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setTitle(item.title);
+                      if (item.category && categories.some((c) => c.id === item.category || c.label === item.category)) {
+                        setCategory(item.category);
+                      }
+                      setIsTitleSuggestionsOpen(false);
+                    }}
+                  >
+                    <span className="suggestion-title">{item.title}</span>
+                    {item.category && (
+                      <span className="suggestion-badge">
+                        {categories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {isInstallment && (
           <div className="installment-edit-summary">
