@@ -879,9 +879,10 @@ export default function App() {
   const transactionSyncRunRef = useRef<Promise<SyncRunResult> | null>(null);
   const assetsRef = useRef<AssetItem[]>(assets);
   const assetOrderRevisionsRef = useRef<Record<string, number>>({});
+  const assetOrderSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const categoryOrderRevisionsRef = useRef<Record<string, number>>({});
   const categoryOrderSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[] } | null>(null);
+  const assetOrderBeforeDragRef = useRef<{ categoryId: string; assetIds: string[]; sourceId: string } | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [monthPickerYear, setMonthPickerYear] = useState(() => Number(getCurrentMonth().slice(0, 4)));
@@ -998,7 +999,8 @@ export default function App() {
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | null>(null);
   const [assetSwipe, setAssetSwipe] = useState<{ id: string | null; offset: number; dragging: boolean }>({ id: null, offset: 0, dragging: false });
   const assetSwipeGestureRef = useRef({ id: '', startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
-  const assetHandleDragRef = useRef({ id: '', startX: 0, startY: 0, active: false, moved: false, justDragged: false });
+  const [assetHandleDragVisual, setAssetHandleDragVisual] = useState<{ id: string | null; targetId: string | null }>({ id: null, targetId: null });
+  const assetHandleDragRef = useRef({ id: '', pointerId: -1, startX: 0, startY: 0, grabOffsetX: 0, grabOffsetY: 0, active: false, moved: false, justDragged: false, ghost: null as HTMLElement | null, releaseListener: null as ((event: PointerEvent) => void) | null });
   const [isLedgerFormOpen, setIsLedgerFormOpen] = useState(false);
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -2276,6 +2278,7 @@ export default function App() {
     const categoryId = getAssetCategoryGroupId(source);
     assetOrderBeforeDragRef.current = {
       categoryId,
+      sourceId: assetId,
       assetIds: assetsRef.current
         .filter((asset) => getAssetCategoryGroupId(asset) === categoryId)
         .map((asset) => asset.id),
@@ -2296,42 +2299,93 @@ export default function App() {
     });
   }
 
-  async function persistAssetOrder(categoryId: string) {
-    const orderedAssets = assetsRef.current.filter((asset) => getAssetCategoryGroupId(asset) === categoryId);
+  function applyAssetOrderResponse(
+    categoryId: string,
+    payload: { assets?: AssetItem[]; revision?: number },
+    fallbackRevision: number,
+  ) {
+    const returnedAssets = Array.isArray(payload.assets) ? payload.assets : [];
+    const savedById = new Map<string, AssetItem>(returnedAssets.map((asset) => [asset.id, asset]));
+    assetOrderRevisionsRef.current[categoryId] = Number(payload.revision) || fallbackRevision;
+    if (savedById.size === 0) return;
+
+    skipNextPersistenceRef.current = true;
+    setAssets((previous) => {
+      const updated = previous.map((asset) => savedById.get(asset.id) || asset);
+      const updatedById = new Map(updated.map((asset) => [asset.id, asset]));
+      const ordered = returnedAssets
+        .map((asset) => updatedById.get(asset.id) || asset)
+        .filter((asset) => getAssetCategoryGroupId(asset) === categoryId);
+      let index = 0;
+      const next = updated.map((asset) => (
+        getAssetCategoryGroupId(asset) === categoryId ? (ordered[index++] || asset) : asset
+      ));
+      assetsRef.current = next;
+      return next;
+    });
+  }
+
+  function persistAssetOrder(categoryId: string) {
     const beforeDrag = assetOrderBeforeDragRef.current;
+    assetOrderBeforeDragRef.current = null;
+    const orderedAssets = assetsRef.current.filter((asset) => getAssetCategoryGroupId(asset) === categoryId);
     if (orderedAssets.length < 2 || !beforeDrag || beforeDrag.categoryId !== categoryId) return;
     const assetIds = orderedAssets.map((asset) => asset.id);
     if (assetIds.every((id, index) => id === beforeDrag.assetIds[index])) return;
 
-    const expectedRevision = assetOrderRevisionsRef.current[categoryId] || 0;
-    setRemoteSync({ status: 'saving', message: '자산 순서를 저장 중' });
-    try {
+    const save = async () => {
+      const expectedRevision = assetOrderRevisionsRef.current[categoryId] || 0;
+      setRemoteSync({ status: 'saving', message: '자산 순서를 저장 중' });
+      try {
       const response = await saveAssetOrder(categoryId, assetIds, expectedRevision);
       const payload = await response.json();
       if (response.status === 409) {
-        restoreAssetOrder(categoryId, beforeDrag.assetIds);
-        setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '같은 카테고리의 순서가 다른 기기에서 변경됨' });
-        showNotice('다른 기기에서 같은 카테고리의 순서를 먼저 바꿨습니다. 최신 순서를 확인한 뒤 다시 정렬해 주세요.', '자산 순서 충돌', 'warning');
+        const latestAssets = Array.isArray(payload.assets) ? payload.assets as AssetItem[] : [];
+        const latestIds = latestAssets.map((asset) => asset.id);
+        const sourceIndex = assetIds.indexOf(beforeDrag.sourceId);
+        const sourceExists = latestIds.includes(beforeDrag.sourceId);
+
+        if (sourceIndex < 0 || !sourceExists) {
+          applyAssetOrderResponse(categoryId, payload, expectedRevision);
+          setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '자산 순서가 최신 상태로 갱신됨' });
+          showNotice('자산 목록이 변경되어 최신 순서를 불러왔습니다. 다시 정렬해 주세요.', '자산 순서 갱신', 'warning');
+          return;
+        }
+
+        const previousId = assetIds[sourceIndex - 1];
+        const nextId = assetIds[sourceIndex + 1];
+        const rebasedIds = latestIds.filter((id) => id !== beforeDrag.sourceId);
+        const previousIndex = previousId ? rebasedIds.indexOf(previousId) : -1;
+        const nextIndex = nextId ? rebasedIds.indexOf(nextId) : -1;
+        const insertIndex = previousIndex >= 0 ? previousIndex + 1 : nextIndex >= 0 ? nextIndex : rebasedIds.length;
+        rebasedIds.splice(insertIndex, 0, beforeDrag.sourceId);
+
+        const retryRevision = Number(payload.revision) || expectedRevision;
+        const retryResponse = await saveAssetOrder(categoryId, rebasedIds, retryRevision);
+        const retryPayload = await retryResponse.json();
+        if (!retryResponse.ok) {
+          applyAssetOrderResponse(categoryId, retryPayload, retryRevision);
+          setRemoteSync({ status: 'stale', checkedAt: Date.now(), message: '자산 순서를 최신 상태로 갱신함' });
+          showNotice('순서가 동시에 변경되어 최신 순서를 불러왔습니다. 다시 정렬해 주세요.', '자산 순서 갱신', 'warning');
+          return;
+        }
+
+        applyAssetOrderResponse(categoryId, retryPayload, retryRevision + 1);
+        setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '최신 순서에 반영해 저장 완료' });
         return;
       }
       if (!response.ok) throw new Error(payload.error || 'asset order save failed');
 
-      assetOrderRevisionsRef.current[categoryId] = Number(payload.revision) || expectedRevision + 1;
-      const savedById = new Map<string, AssetItem>((payload.assets || []).map((asset: AssetItem) => [asset.id, asset]));
-      skipNextPersistenceRef.current = true;
-      setAssets((previous) => {
-        const next = previous.map((asset) => savedById.get(asset.id) || asset);
-        assetsRef.current = next;
-        return next;
-      });
+      applyAssetOrderResponse(categoryId, payload, expectedRevision + 1);
       setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 순서 저장 완료' });
-    } catch {
+      } catch {
       restoreAssetOrder(categoryId, beforeDrag.assetIds);
       setRemoteSync({ status: 'error', checkedAt: Date.now(), message: '자산 순서를 저장하지 못함' });
       showNotice('순서를 저장하지 못해 이전 순서로 되돌렸습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '자산 순서 저장 실패', 'error');
-    } finally {
-      assetOrderBeforeDragRef.current = null;
-    }
+      }
+    };
+    assetOrderSaveQueueRef.current = assetOrderSaveQueueRef.current.then(save, save);
+    return assetOrderSaveQueueRef.current;
   }
 
   function handleAssetDragStart(e: React.DragEvent, index: number) {
@@ -2368,27 +2422,77 @@ export default function App() {
     if (categoryId) void persistAssetOrder(categoryId);
   }
 
+  function clearAssetHandleDragVisual() {
+    const releaseListener = assetHandleDragRef.current.releaseListener;
+    if (releaseListener) {
+      window.removeEventListener('pointerup', releaseListener);
+      window.removeEventListener('pointercancel', releaseListener);
+      assetHandleDragRef.current.releaseListener = null;
+    }
+    assetHandleDragRef.current.ghost?.remove();
+    assetHandleDragRef.current.ghost = null;
+    document.body.classList.remove('asset-handle-drag-active');
+    setAssetHandleDragVisual({ id: null, targetId: null });
+  }
+
   function startAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>, assetId: string) {
-    if (!window.matchMedia('(max-width: 768px)').matches) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     rememberAssetOrderBeforeDrag(assetId);
-    assetHandleDragRef.current = { id: assetId, startX: event.clientX, startY: event.clientY, active: true, moved: false, justDragged: false };
+    clearAssetHandleDragVisual();
+    assetHandleDragRef.current = { id: assetId, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, grabOffsetX: 0, grabOffsetY: 0, active: true, moved: false, justDragged: false, ghost: null, releaseListener: null };
+    const releaseListener = (nativeEvent: PointerEvent) => {
+      if (nativeEvent.pointerId !== assetHandleDragRef.current.pointerId) return;
+      completeAssetHandleDrag();
+    };
+    assetHandleDragRef.current.releaseListener = releaseListener;
+    window.addEventListener('pointerup', releaseListener);
+    window.addEventListener('pointercancel', releaseListener);
   }
 
   function moveAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>) {
     const gesture = assetHandleDragRef.current;
-    if (!gesture.active || !window.matchMedia('(max-width: 768px)').matches) return;
+    if (!gesture.active) return;
     const deltaX = event.clientX - gesture.startX;
     const deltaY = event.clientY - gesture.startY;
     if (!gesture.moved && (Math.abs(deltaY) < 8 || Math.abs(deltaY) <= Math.abs(deltaX))) return;
     event.preventDefault();
-    gesture.moved = true;
+    if (!gesture.moved) {
+      gesture.moved = true;
+      const sourceRow = event.currentTarget.closest<HTMLElement>('[data-asset-id]');
+      if (sourceRow) {
+        const rect = sourceRow.getBoundingClientRect();
+        const ghost = sourceRow.cloneNode(true) as HTMLElement;
+        gesture.grabOffsetX = event.clientX - rect.left;
+        gesture.grabOffsetY = event.clientY - rect.top;
+        ghost.style.position = 'fixed';
+        ghost.style.left = `${event.clientX - gesture.grabOffsetX}px`;
+        ghost.style.top = `${event.clientY - gesture.grabOffsetY}px`;
+        ghost.style.width = `${rect.width}px`;
+        ghost.style.height = `${rect.height}px`;
+        ghost.style.pointerEvents = 'none';
+        ghost.style.zIndex = '9999';
+        ghost.style.opacity = '0.96';
+        ghost.style.boxShadow = '0 14px 30px rgba(15, 23, 42, 0.24)';
+        document.body.appendChild(ghost);
+        gesture.ghost = ghost;
+      }
+      document.body.classList.add('asset-handle-drag-active');
+      setAssetHandleDragVisual({ id: gesture.id, targetId: null });
+    }
+    if (gesture.ghost) {
+      gesture.ghost.style.left = `${event.clientX - gesture.grabOffsetX}px`;
+      gesture.ghost.style.top = `${event.clientY - gesture.grabOffsetY}px`;
+    }
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-asset-id]');
     const targetId = target?.dataset.assetId;
     const targetCategoryId = target?.dataset.assetCategoryId;
-    if (!targetId || !targetCategoryId || targetId === gesture.id) return;
+    if (!targetId || !targetCategoryId || targetId === gesture.id) {
+      setAssetHandleDragVisual((previous) => previous.targetId === null ? previous : { ...previous, targetId: null });
+      return;
+    }
+    setAssetHandleDragVisual((previous) => previous.id === gesture.id && previous.targetId === targetId ? previous : { id: gesture.id, targetId });
     setAssets((currentAssets) => {
       const sourceIndex = currentAssets.findIndex((item) => item.id === gesture.id);
       const targetIndex = currentAssets.findIndex((item) => item.id === targetId);
@@ -2404,18 +2508,25 @@ export default function App() {
     });
   }
 
-  function finishAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>) {
+  function completeAssetHandleDrag() {
     const gesture = assetHandleDragRef.current;
     if (!gesture.active) return;
-    event.preventDefault();
-    event.stopPropagation();
+    const moved = gesture.moved;
     gesture.active = false;
-    gesture.justDragged = gesture.moved;
+    gesture.justDragged = moved;
+    clearAssetHandleDragVisual();
     const categoryId = assetOrderBeforeDragRef.current?.categoryId;
     setDraggedAssetIndex(null);
     setDragOverIndex(null);
-    if (gesture.moved && categoryId) void persistAssetOrder(categoryId);
+    if (moved && categoryId) void persistAssetOrder(categoryId);
     window.setTimeout(() => { assetHandleDragRef.current.justDragged = false; }, 0);
+  }
+
+  function finishAssetHandleTouchDrag(event: React.PointerEvent<HTMLSpanElement>) {
+    if (!assetHandleDragRef.current.active) return;
+    event.preventDefault();
+    event.stopPropagation();
+    completeAssetHandleDrag();
   }
 
   function handleAssetDrop(e: React.DragEvent) {
@@ -4701,8 +4812,8 @@ export default function App() {
                           <div
                           data-asset-id={asset.id}
                           data-asset-category-id={group.id}
-                          className="asset-row"
-                          draggable
+                          className={`asset-row ${assetHandleDragVisual.id === asset.id ? 'asset-handle-drag-source' : ''} ${assetHandleDragVisual.targetId === asset.id ? 'asset-handle-drag-target' : ''}`}
+                          draggable={false}
                           onDragStart={(e) => {
                             if (!(e.target as HTMLElement).closest('.asset-drag-handle')) {
                               e.preventDefault();
@@ -5025,13 +5136,10 @@ export default function App() {
                         const isRenaming = editingCategory?.type === 'asset' && editingCategory.id === category.id;
 
                         return (
-                          <CategorySwipeRow
+                          <CategoryActionRow
                             key={`asset-${category.id}`}
                             categoryId={category.id}
                             isEditing={isRenaming}
-                            isPaletteOpen={isOpen}
-                            onEdit={() => handleStartCategoryRename('asset', category)}
-                            onDelete={() => handleArchiveCategory('asset', category.id, category.label)}
                             onTouchDrop={(targetId, targetGroup) => moveAssetCategoryToGroup(category.id, targetGroup ?? group.kind, targetId)}
                           >
                           <div
@@ -5052,7 +5160,7 @@ export default function App() {
                             onDragEnd={() => setDragCategory(null)}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -5135,24 +5243,25 @@ export default function App() {
                             {!isRenaming && (
                               <button
                                 type="button"
-                                className="category-row-action category-row-action-edit"
+                                className="row-action-button row-action-edit"
+                                aria-label="수정"
                                 onClick={() => handleStartCategoryRename('asset', category)}
                               >
-                                수정
+                                <AppIcon name="edit" size={18} />
                               </button>
                             )}
                             {!isRenaming && (
                               <button
                                 type="button"
-                                className="category-row-action"
-                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                className="row-action-button row-action-delete"
+                                aria-label="삭제"
                                 onClick={() => handleArchiveCategory('asset', category.id, category.label)}
                               >
-                                삭제
+                                ×
                               </button>
                             )}
                           </div>
-                          </CategorySwipeRow>
+                          </CategoryActionRow>
                         );
                       })}
                       </div>
@@ -5197,13 +5306,10 @@ export default function App() {
                         const isBudgetExcluded = Boolean(categoryBudgetExcluded[paletteKey]);
 
                         return (
-                          <CategorySwipeRow
+                          <CategoryActionRow
                             key={`expense-${category.id}`}
                             categoryId={category.id}
                             isEditing={isRenaming}
-                            isPaletteOpen={isOpen}
-                            onEdit={() => handleStartCategoryRename('expense', category)}
-                            onDelete={() => handleArchiveCategory('expense', category.id, category.label)}
                             onTouchDrop={(targetId) => moveCategory('expense', category.id, targetId, activeExpenseCategories)}
                           >
                           <div
@@ -5223,7 +5329,7 @@ export default function App() {
                             onDragEnd={() => setDragCategory(null)}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -5320,25 +5426,26 @@ export default function App() {
                                 </label>
                                 <button
                                   type="button"
-                                  className="category-row-action category-row-action-edit"
-                                  onClick={() => handleStartCategoryRename('expense', category)}
-                                >
-                                  수정
+                                className="row-action-button row-action-edit"
+                                aria-label="수정"
+                                onClick={() => handleStartCategoryRename('expense', category)}
+                              >
+                                <AppIcon name="edit" size={18} />
                                 </button>
                               </>
                             )}
                             {!isRenaming && (
                               <button
                                 type="button"
-                                className="category-row-action"
-                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                className="row-action-button row-action-delete"
+                                aria-label="삭제"
                                 onClick={() => handleArchiveCategory('expense', category.id, category.label)}
                               >
-                                삭제
+                                ×
                               </button>
                             )}
                           </div>
-                          </CategorySwipeRow>
+                          </CategoryActionRow>
                         );
                       })}
                     </div>
@@ -5374,13 +5481,10 @@ export default function App() {
                         const isRenaming = editingCategory?.type === 'income' && editingCategory.id === category.id;
 
                         return (
-                          <CategorySwipeRow
+                          <CategoryActionRow
                             key={`income-${category.id}`}
                             categoryId={category.id}
                             isEditing={isRenaming}
-                            isPaletteOpen={isOpen}
-                            onEdit={() => handleStartCategoryRename('income', category)}
-                            onDelete={() => handleArchiveCategory('income', category.id, category.label)}
                             onTouchDrop={(targetId) => moveCategory('income', category.id, targetId, activeIncomeCategories)}
                           >
                           <div
@@ -5400,7 +5504,7 @@ export default function App() {
                             onDragEnd={() => setDragCategory(null)}
                             style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', border: '1px solid var(--border-card)', borderRadius: '8px', background: 'var(--bg-card)', transition: 'all 0.15s ease' }}
                           >
-                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '12px', color: 'var(--text-secondary)', userSelect: 'none' }}>⋮⋮</span>
+                            <span className="category-drag-handle" style={{ cursor: 'grab', marginRight: '4px', color: 'var(--text-primary)', opacity: 0.45, fontSize: '1.1rem', userSelect: 'none', touchAction: 'none' }}>⠿</span>
                             <div className="category-color-menu" style={{ position: 'relative', marginRight: '12px' }}>
                               <button
                                 type="button"
@@ -5476,24 +5580,25 @@ export default function App() {
                             {!isRenaming && (
                               <button
                                 type="button"
-                                className="category-row-action category-row-action-edit"
+                                className="row-action-button row-action-edit"
+                                aria-label="수정"
                                 onClick={() => handleStartCategoryRename('income', category)}
                               >
-                                수정
+                                <AppIcon name="edit" size={18} />
                               </button>
                             )}
                             {!isRenaming && (
                               <button
                                 type="button"
-                                className="category-row-action"
-                                style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)', cursor: 'pointer', fontSize: '0.85rem' }}
+                                className="row-action-button row-action-delete"
+                                aria-label="삭제"
                                 onClick={() => handleArchiveCategory('income', category.id, category.label)}
                               >
-                                삭제
+                                ×
                               </button>
                             )}
                           </div>
-                          </CategorySwipeRow>
+                          </CategoryActionRow>
                         );
                       })}
                     </div>
@@ -6390,45 +6495,31 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
   );
 }
 
-function CategorySwipeRow({
+function CategoryActionRow({
   children,
   categoryId,
   isEditing,
-  isPaletteOpen = false,
-  onEdit,
-  onDelete,
   onTouchDrop,
 }: {
   children: ReactNode;
   categoryId: string;
   isEditing: boolean;
-  isPaletteOpen?: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
   onTouchDrop: (targetId: string, targetGroup?: 'asset' | 'liability') => void;
 }) {
-  const actionWidth = 104;
-  const gestureRef = useRef({ startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
   const touchSortRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
-    timer: number | null;
+    grabOffsetX: number;
+    grabOffsetY: number;
     row: HTMLElement;
-    front: HTMLDivElement;
     ghost: HTMLElement | null;
     active: boolean;
     target: HTMLElement | null;
   } | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const clampOffset = (value: number) => Math.max(-actionWidth, Math.min(0, value));
-
   const clearTouchSort = () => {
     const state = touchSortRef.current;
     if (!state) return;
-    if (state.timer != null) window.clearTimeout(state.timer);
     state.row.classList.remove('touch-sort-source');
     state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
     state.ghost?.remove();
@@ -6438,24 +6529,12 @@ function CategorySwipeRow({
 
   useEffect(() => () => clearTouchSort(), []);
 
-  useEffect(() => {
-    if (isEditing) {
-      setIsOpen(false);
-      setOffset(0);
-    }
-  }, [isEditing]);
-
-  const canStartSwipe = (target: EventTarget | null, clientX: number, currentTarget: HTMLDivElement) => {
-    if (isEditing || !(target instanceof HTMLElement)) return false;
-    if (target.closest('button, input, select, label, .category-drag-handle, .category-palette-popover')) return false;
-    const rect = currentTarget.getBoundingClientRect();
-    return clientX >= rect.left + rect.width * (2 / 3);
-  };
-
   const startTouchSort = (front: HTMLDivElement, pointerId: number, row: HTMLElement) => {
     const state = touchSortRef.current;
     if (!state || state.pointerId !== pointerId || state.active) return;
     const rect = row.getBoundingClientRect();
+    state.grabOffsetX = state.startX - rect.left;
+    state.grabOffsetY = state.startY - rect.top;
     const ghost = row.cloneNode(true) as HTMLElement;
     ghost.classList.remove('touch-sort-source');
     ghost.style.position = 'fixed';
@@ -6467,7 +6546,6 @@ function CategorySwipeRow({
     ghost.style.zIndex = '9999';
     ghost.style.opacity = '0.94';
     document.body.appendChild(ghost);
-    state.timer = null;
     state.ghost = ghost;
     state.active = true;
     row.classList.add('touch-sort-source');
@@ -6479,17 +6557,18 @@ function CategorySwipeRow({
     const state = touchSortRef.current;
     if (!state || state.pointerId !== event.pointerId) return false;
     if (!state.active) {
-      if (Math.hypot(event.clientX - state.startX, event.clientY - state.startY) > 9) clearTouchSort();
-      return true;
+      const deltaX = event.clientX - state.startX;
+      const deltaY = event.clientY - state.startY;
+      if (Math.abs(deltaY) < 8 || Math.abs(deltaY) <= Math.abs(deltaX)) return true;
+      startTouchSort(event.currentTarget, event.pointerId, state.row);
     }
     event.preventDefault();
     if (state.ghost) {
-      const rect = state.row.getBoundingClientRect();
-      state.ghost.style.left = `${event.clientX - rect.width / 2}px`;
-      state.ghost.style.top = `${event.clientY - rect.height / 2}px`;
+      state.ghost.style.left = `${event.clientX - state.grabOffsetX}px`;
+      state.ghost.style.top = `${event.clientY - state.grabOffsetY}px`;
     }
     state.target?.querySelector('.category-row')?.classList.remove('touch-sort-target');
-    const target = (document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null)?.closest<HTMLElement>('.category-swipe-row');
+    const target = (document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null)?.closest<HTMLElement>('.category-action-row');
     state.target = target && target.dataset.categoryId !== categoryId ? target : null;
     state.target?.querySelector('.category-row')?.classList.add('touch-sort-target');
     return true;
@@ -6508,16 +6587,9 @@ function CategorySwipeRow({
   };
 
   return (
-    <div className={`category-swipe-row ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''} ${isPaletteOpen ? 'is-palette-open' : ''}`} data-category-id={categoryId}>
-      {!isEditing && <div className="category-swipe-actions">
-        <button type="button" className="row-action-button row-action-edit" aria-label="수정" onClick={onEdit}>
-          <AppIcon name="edit" size={18} />
-        </button>
-        <button type="button" className="row-action-button row-action-delete" aria-label="삭제" onClick={onDelete}>×</button>
-      </div>}
+    <div className={`category-action-row ${isEditing ? 'is-editing' : ''}`} data-category-id={categoryId}>
       <div
-        className="category-swipe-front"
-        style={{ transform: `translateX(${offset}px)` }}
+        className="category-action-front"
         onPointerDown={(event) => {
           const handle = (event.target as HTMLElement).closest('.category-drag-handle');
           const row = event.currentTarget.querySelector<HTMLElement>('.category-row');
@@ -6528,49 +6600,26 @@ function CategorySwipeRow({
               pointerId: event.pointerId,
               startX: event.clientX,
               startY: event.clientY,
-              timer: null as number | null,
+              grabOffsetX: 0,
+              grabOffsetY: 0,
               row,
-              front: event.currentTarget,
               ghost: null as HTMLElement | null,
               active: false,
               target: null as HTMLElement | null,
             };
-            const front = event.currentTarget;
-            const pointerId = event.pointerId;
-            pending.timer = window.setTimeout(() => startTouchSort(front, pointerId, row), 180);
+            event.currentTarget.setPointerCapture(event.pointerId);
             touchSortRef.current = pending;
             return;
           }
-          if (!canStartSwipe(event.target, event.clientX, event.currentTarget)) return;
-          gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
         }}
         onPointerMove={(event) => {
-          if (moveTouchSort(event)) return;
-          const deltaX = event.clientX - gestureRef.current.startX;
-          const deltaY = event.clientY - gestureRef.current.startY;
-          if (!gestureRef.current.isHorizontal) {
-            if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-            gestureRef.current.isHorizontal = true;
-            setIsDragging(true);
-            event.currentTarget.setPointerCapture(event.pointerId);
-          }
-          setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
+          moveTouchSort(event);
         }}
         onPointerUp={(event) => {
-          if (finishTouchSort(event)) return;
-          if (!gestureRef.current.isHorizontal) return;
-          const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
-          const nextOpen = nextOffset <= -(actionWidth / 2);
-          setIsOpen(nextOpen);
-          setOffset(nextOpen ? -actionWidth : 0);
-          gestureRef.current.isHorizontal = false;
-          setIsDragging(false);
+          finishTouchSort(event);
         }}
         onPointerCancel={(event) => {
-          if (finishTouchSort(event)) return;
-          setOffset(isOpen ? -actionWidth : 0);
-          gestureRef.current.isHorizontal = false;
-          setIsDragging(false);
+          finishTouchSort(event);
         }}
       >
         {children}

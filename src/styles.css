@@ -4600,6 +4600,20 @@ textarea:focus {
 
 .asset-row-swipe.is-dragging .asset-row { transition: none !important; }
 
+/* Handle sorting keeps the dragged row under the pointer while the list previews
+   the insertion point beneath it. */
+.asset-row.asset-handle-drag-source {
+  opacity: 0.42 !important;
+}
+
+.asset-row.asset-handle-drag-target {
+  box-shadow: 0 -3px 0 var(--primary) !important;
+}
+
+body.asset-handle-drag-active {
+  user-select: none;
+}
+
 .asset-swipe-region {
   display: inline-flex !important;
   align-items: center;
