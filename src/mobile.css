@@ -305,7 +305,7 @@
   }
 
   .calendar-view-container {
-    padding-bottom: 128px !important;
+    padding-bottom: 0 !important;
   }
 
   :root {
