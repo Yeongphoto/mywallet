@@ -5937,6 +5937,13 @@ html[data-style-theme="doodle"][data-theme="light"] {
   --bg-card: rgba(255, 253, 248, 0.94);
   --border-card: rgba(180, 160, 130, 0.28);
   --border-input: #e6dfd1;
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --primary-rgb: 217, 119, 6;
+  --primary-light: #f59e0b;
+  --primary-soft: rgba(217, 119, 6, 0.15);
+  --brand-highlight: #d97706;
+  --surface-inverse: #2c241d;
 }
 
 html[data-style-theme="doodle"][data-theme="light"] .app-header {
@@ -5960,6 +5967,13 @@ html[data-style-theme="doodle"][data-theme="dark"] {
   --bg-card: rgba(28, 25, 22, 0.88);
   --border-card: rgba(255, 255, 255, 0.12);
   --border-input: #383028;
+  --primary: #f59e0b;
+  --primary-hover: #fbbf24;
+  --primary-rgb: 245, 158, 11;
+  --primary-light: #fcd34d;
+  --primary-soft: rgba(245, 158, 11, 0.2);
+  --brand-highlight: #f59e0b;
+  --surface-inverse: #12100e;
 }
 
 html[data-style-theme="doodle"][data-theme="dark"] .app-header {
@@ -5974,6 +5988,69 @@ html[data-style-theme="doodle"][data-theme="dark"] .sidebar {
 html[data-style-theme="doodle"][data-theme="dark"] .fixed-bottom-bar {
   background: rgba(24, 21, 18, 0.96) !important;
   border-top: 1.5px solid #2e2822 !important;
+}
+
+/* Doodle Brand Logo Style */
+html[data-style-theme="doodle"] .mywallet-logo {
+  filter: drop-shadow(0 6px 14px rgba(217, 119, 6, 0.25));
+}
+
+html[data-style-theme="doodle"] .app-header .mywallet-logo {
+  background: var(--surface-inverse);
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+}
+
+/* Doodle Sidebar Active Nav & Action Button */
+html[data-style-theme="doodle"] .sidebar nav a.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important;
+}
+
+html[data-style-theme="doodle"] .desktop-registration-action > button {
+  background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
+  border: 1.5px solid rgba(253, 230, 138, 0.6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(217, 119, 6, 0.3) !important;
+}
+
+html[data-style-theme="doodle"] .desktop-registration-action > button:hover {
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-hover)) !important;
+  box-shadow: 0 12px 24px rgba(217, 119, 6, 0.4) !important;
+}
+
+/* Doodle Month Navigation in Header */
+html[data-style-theme="doodle"] .month-navigation {
+  border: 1.5px solid var(--border-card) !important;
+}
+
+html[data-style-theme="doodle"] .month-picker-wrap button:hover,
+html[data-style-theme="doodle"] .month-nav-button:hover {
+  color: var(--primary) !important;
+}
+
+/* Doodle Active States in Settings & Toggles */
+html[data-style-theme="doodle"] .theme-toggle button.active,
+html[data-style-theme="doodle"] .settings-segment button.active,
+html[data-style-theme="doodle"] .ledger-view-toggle button.active,
+html[data-style-theme="doodle"] .view-toggle-btn.active {
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.28) !important;
+}
+
+html[data-style-theme="doodle"] .header-settings-btn.active {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+/* Doodle Category / Asset Focus Ring */
+html[data-style-theme="doodle"] .picker-grid-btn.highlighted,
+html[data-style-theme="doodle"] .picker-grid-btn.selected {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary) !important;
 }
 
 
