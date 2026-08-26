@@ -583,97 +583,35 @@
     grid-auto-rows: 1fr !important;
   }
 
-  .content:has(.ledger-calendar-view) {
-    position: fixed !important;
-    top: var(--header-height) !important;
-    bottom: 78px !important;
-    bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
-    left: 0 !important;
-    right: 0 !important;
-    padding-top: 12px !important;
-    padding-bottom: 6px !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
+  .ledger-calendar-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
-  .content:has(.ledger-calendar-view) .ledger-workspace {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 1 auto !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    gap: 12px !important;
-    overflow: hidden !important;
+  .ledger-calendar-view .calendar-control {
+    margin-bottom: 0;
   }
 
-  .content:has(.ledger-calendar-view) .ledger-view-toggle {
-    flex: 0 0 auto !important;
-    flex-shrink: 0 !important;
+  .ledger-calendar-view .calendar-day-names-row {
+    margin-bottom: 2px;
+    gap: 4px;
   }
 
-  .content:has(.ledger-calendar-view) .ledger-month-summary {
-    flex: 0 0 auto !important;
-    flex-shrink: 0 !important;
+  .ledger-calendar-view .calendar-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-
-  .content:has(.ledger-calendar-view) .ledger-month-summary > div {
-    display: grid !important;
-    gap: 4px !important;
-    padding: 10px 8px !important;
-    text-align: center !important;
-  }
-
-  .content:has(.ledger-calendar-view) .ledger-month-summary strong {
-    font-size: 1.05rem !important;
-  }
-
-  .content:has(.ledger-calendar-view) .ledger-calendar-view {
-    display: flex !important;
-    flex-direction: column !important;
-    flex: 1 1 auto !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    gap: 6px !important;
-    overflow: hidden !important;
-  }
-
-  .content:has(.ledger-calendar-view) .calendar-control {
-    flex: 0 0 auto !important;
-    flex-shrink: 0 !important;
-    margin-bottom: 0 !important;
-  }
-
-  .content:has(.ledger-calendar-view) .calendar-day-names-row {
-    flex: 0 0 auto !important;
-    flex-shrink: 0 !important;
-    margin-bottom: 2px !important;
-    gap: 4px !important;
-  }
-
-  .content:has(.ledger-calendar-view) .calendar-grid {
-    display: grid !important;
-    flex: 1 1 auto !important;
-    height: 100% !important;
-    min-height: 0 !important;
     grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
     grid-auto-rows: minmax(0, 1fr) !important;
     gap: 3px !important;
-    overflow: hidden !important;
   }
 
-  .content:has(.ledger-calendar-view) .calendar-cell {
-    height: 100% !important;
-    min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    padding: 3px 2px !important;
+  .ledger-calendar-view .calendar-cell {
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3px 2px;
   }
 }
 

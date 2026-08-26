@@ -4896,48 +4896,31 @@ body.category-handle-drag-active {
     white-space: nowrap;
   }
 
-.content:has(.ledger-calendar-view) {
-  min-height: calc(100dvh - 84px);
+.ledger-calendar-view {
   display: flex;
   flex-direction: column;
-}
-
-.content:has(.ledger-calendar-view) .ledger-workspace {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  height: 100%;
-  min-height: 0;
-  gap: 12px;
-}
-
-.content:has(.ledger-calendar-view) .ledger-view-toggle,
-.content:has(.ledger-calendar-view) .ledger-month-summary {
-  flex: 0 0 auto;
-}
-
-.content:has(.ledger-calendar-view) .ledger-calendar-view {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  height: 100%;
-  min-height: 0;
   gap: 8px;
 }
 
-.content:has(.ledger-calendar-view) .calendar-control,
-.content:has(.ledger-calendar-view) .calendar-day-names-row {
-  flex: 0 0 auto;
+.ledger-calendar-view .calendar-day-names-row {
+  margin-bottom: 2px;
+  gap: 4px;
 }
 
-.content:has(.ledger-calendar-view) .calendar-grid {
+.ledger-calendar-view .calendar-grid {
   display: grid;
-  flex: 1 1 auto;
-  height: 100%;
-  min-height: 0;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-template-rows: repeat(6, minmax(0, 1fr));
-  gap: 6px;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.ledger-calendar-view .calendar-cell {
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 3px;
 }
 
   .ledger-calendar-view .calendar-value-badge {
