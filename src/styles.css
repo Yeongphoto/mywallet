@@ -5901,15 +5901,24 @@ html[data-style-theme="doodle"] .picker-grid-btn:active {
   transform: scale(0.96) rotate(0.5deg);
 }
 
-/* Doodle Inputs & Pickers */
-html[data-style-theme="doodle"] input[type="text"],
-html[data-style-theme="doodle"] input[type="date"],
-html[data-style-theme="doodle"] input[type="time"],
-html[data-style-theme="doodle"] input[type="number"],
-html[data-style-theme="doodle"] .instant-select-trigger,
-html[data-style-theme="doodle"] .compact-entry-field {
+/* Doodle Inputs & Entry Fields */
+html[data-style-theme="doodle"] .compact-entry-field,
+html[data-style-theme="doodle"] input[type="text"]:not(.compact-entry-field input),
+html[data-style-theme="doodle"] input[type="date"]:not(.compact-entry-field input),
+html[data-style-theme="doodle"] input[type="time"]:not(.compact-entry-field input),
+html[data-style-theme="doodle"] input[type="number"]:not(.compact-entry-field input) {
   border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
   border: 1.5px solid var(--border-input) !important;
+}
+
+html[data-style-theme="doodle"] .compact-entry-field input,
+html[data-style-theme="doodle"] .compact-entry-field select,
+html[data-style-theme="doodle"] .compact-entry-field .instant-select,
+html[data-style-theme="doodle"] .compact-entry-field .instant-select-trigger {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Doodle Badges & Chips */
