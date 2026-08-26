@@ -7982,7 +7982,7 @@ function AmountNumberKeypad({
   submitLabel?: string;
   submitTone?: 'expense' | 'income' | 'transfer' | 'primary';
 }) {
-  const handleDigit = (digit: string) => {
+  const handleDigit = useCallback((digit: string) => {
     const raw = String(value || '').trim();
     const isNegative = raw.startsWith('-');
     const digitsOnly = raw.replace(/[^\d]/g, '');
@@ -7993,9 +7993,9 @@ function AmountNumberKeypad({
       if (digitsOnly.length >= 12) return;
       onChange((isNegative ? '-' : '') + digitsOnly + digit);
     }
-  };
+  }, [value, onChange]);
 
-  const handleBackspace = () => {
+  const handleBackspace = useCallback(() => {
     const raw = String(value || '').trim();
     const isNegative = raw.startsWith('-');
     const digitsOnly = raw.replace(/[^\d]/g, '');
@@ -8004,22 +8004,51 @@ function AmountNumberKeypad({
     } else {
       onChange((isNegative ? '-' : '') + digitsOnly.slice(0, -1));
     }
-  };
+  }, [value, onChange]);
 
-  const handleToggleMinus = () => {
+  const handleToggleMinus = useCallback(() => {
     const raw = String(value || '').trim();
     if (raw.startsWith('-')) {
       onChange(raw.slice(1));
     } else if (raw && raw !== '0') {
       onChange('-' + raw);
     }
-  };
+  }, [value, onChange]);
 
-  const handleAddAmount = (add: number) => {
+  const handleAddAmount = useCallback((add: number) => {
     const current = parseAmount(value) || 0;
     const next = current + add;
     onChange(String(next));
-  };
+  }, [value, onChange]);
+
+  // Physical keyboard & Numpad support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        handleDigit(e.key);
+      } else if (e.code.startsWith('Numpad') && e.code.length === 7 && !isNaN(Number(e.code.slice(6)))) {
+        e.preventDefault();
+        handleDigit(e.code.slice(6));
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleBackspace();
+      } else if (e.key === '-' || e.code === 'NumpadSubtract') {
+        e.preventDefault();
+        handleToggleMinus();
+      } else if (e.key === 'Enter' || e.code === 'NumpadEnter') {
+        e.preventDefault();
+        onComplete?.();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleDigit, handleBackspace, handleToggleMinus, onComplete]);
 
   return (
     <div className="amount-keypad-grid">
@@ -8067,17 +8096,65 @@ function CategoryGridPicker({
   selectedId?: string;
   onSelect: (categoryId: string) => void;
 }) {
+  const initialIndex = useMemo(() => {
+    const idx = categories.findIndex((c) => c.id === selectedId || c.label === selectedId);
+    return idx >= 0 ? idx : 0;
+  }, [categories, selectedId]);
+
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(initialIndex);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const btn = containerRef.current.children[highlightedIndex] as HTMLElement;
+    if (btn && typeof btn.scrollIntoView === 'function') {
+      btn.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (categories.length === 0) return;
+      const numCols = 4;
+      const total = categories.length;
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1 < total ? prev + 1 : prev));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 >= 0 ? prev - 1 : prev));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + numCols < total ? prev + numCols : prev));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - numCols >= 0 ? prev - numCols : prev));
+      } else if (e.key === 'Enter' || e.code === 'NumpadEnter' || e.key === ' ') {
+        e.preventDefault();
+        if (categories[highlightedIndex]) {
+          onSelect(categories[highlightedIndex].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [categories, highlightedIndex, onSelect]);
+
   return (
-    <div className="picker-grid-4col">
-      {categories.map((cat) => {
+    <div className="picker-grid-4col" ref={containerRef}>
+      {categories.map((cat, idx) => {
         const icon = getCategoryIconOrEmoji(cat);
         const isSelected = selectedId === cat.id || selectedId === cat.label;
+        const isHighlighted = highlightedIndex === idx;
         return (
           <button
             key={cat.id}
             type="button"
-            className={`picker-grid-btn ${isSelected ? 'selected' : ''}`}
+            className={`picker-grid-btn ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
             onClick={() => onSelect(cat.id)}
+            onMouseEnter={() => setHighlightedIndex(idx)}
           >
             <span className="picker-grid-icon">
               {icon ? (
@@ -8113,19 +8190,67 @@ function AssetGridPicker({
     );
   }
 
+  const initialIndex = useMemo(() => {
+    const idx = assets.findIndex((a) => a.id === selectedId);
+    return idx >= 0 ? idx : 0;
+  }, [assets, selectedId]);
+
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(initialIndex);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const btn = containerRef.current.children[highlightedIndex] as HTMLElement;
+    if (btn && typeof btn.scrollIntoView === 'function') {
+      btn.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightedIndex]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (assets.length === 0) return;
+      const numCols = 4;
+      const total = assets.length;
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1 < total ? prev + 1 : prev));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 >= 0 ? prev - 1 : prev));
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + numCols < total ? prev + numCols : prev));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - numCols >= 0 ? prev - numCols : prev));
+      } else if (e.key === 'Enter' || e.code === 'NumpadEnter' || e.key === ' ') {
+        e.preventDefault();
+        if (assets[highlightedIndex]) {
+          onSelect(assets[highlightedIndex].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [assets, highlightedIndex, onSelect]);
+
   return (
-    <div className="picker-grid-4col">
-      {assets.map((asset) => {
+    <div className="picker-grid-4col" ref={containerRef}>
+      {assets.map((asset, idx) => {
         const cat = categories.find((c) => c.id === asset.category || c.label === asset.category);
         const icon = getAssetIconOrEmoji(asset, cat);
         const isSelected = selectedId === asset.id;
+        const isHighlighted = highlightedIndex === idx;
         const assetName = formatAssetLabel(asset, categories);
         return (
           <button
             key={asset.id}
             type="button"
-            className={`picker-grid-btn ${isSelected ? 'selected' : ''}`}
+            className={`picker-grid-btn ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
             onClick={() => onSelect(asset.id)}
+            onMouseEnter={() => setHighlightedIndex(idx)}
           >
             <span className="picker-grid-icon">
               {icon ? (
@@ -8347,7 +8472,7 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
-  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('amount');
   const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const installmentRef = useRef<HTMLButtonElement>(null);
@@ -8355,6 +8480,23 @@ function UnifiedEntryForm({
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      if (activePopup !== 'none') return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if ((e.key >= '0' && e.key <= '9') || (e.code.startsWith('Numpad') && e.code.length === 7 && !isNaN(Number(e.code.slice(6))))) {
+        const digit = e.code.startsWith('Numpad') ? e.code.slice(6) : e.key;
+        e.preventDefault();
+        setForm((prev) => ({ ...prev, amount: digit }));
+        setActivePopup('amount');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, [activePopup]);
 
   useEffect(() => {
     if (activePopup !== 'none') {
@@ -8778,6 +8920,11 @@ function UnifiedEntryForm({
               onChange={(e) => {
                 setForm((prev) => ({ ...prev, title: e.target.value }));
                 setIsTitleSuggestionsOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
               }}
               onFocus={() => setIsTitleSuggestionsOpen(true)}
               onBlur={() => {
@@ -9234,6 +9381,11 @@ function TransactionEditForm({
               setTitle(e.target.value);
               setIsTitleSuggestionsOpen(true);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
             onFocus={() => setIsTitleSuggestionsOpen(true)}
             onBlur={() => {
               setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
@@ -9449,7 +9601,7 @@ function TransactionEditForm({
               selectedId={category}
               onSelect={(catId) => {
                 setCategory(catId);
-                setActivePopup('none');
+                setActivePopup('asset');
               }}
             />
           </div>
@@ -9469,7 +9621,12 @@ function TransactionEditForm({
               selectedId={assetId}
               onSelect={(aId) => {
                 setAssetId(aId);
-                setActivePopup('none');
+                if (transaction.type === 'transfer') {
+                  setActivePopup('toAsset');
+                } else {
+                  setActivePopup('none');
+                  setTimeout(() => titleRef.current?.focus(), 50);
+                }
               }}
             />
           </div>
@@ -9490,6 +9647,7 @@ function TransactionEditForm({
               onSelect={(toId) => {
                 setToAssetId(toId);
                 setActivePopup('none');
+                setTimeout(() => titleRef.current?.focus(), 50);
               }}
             />
           </div>

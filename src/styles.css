@@ -5625,6 +5625,19 @@ body.asset-handle-drag-active {
   box-shadow: 0 0 0 1px var(--primary);
 }
 
+.picker-grid-btn.highlighted {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, var(--bg-input));
+  box-shadow: 0 0 0 2px var(--primary);
+  transform: translateY(-1px);
+}
+
+.picker-grid-btn.selected.highlighted {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 24%, var(--bg-input));
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
 .picker-grid-icon {
   font-size: 1.25rem;
   display: flex;
