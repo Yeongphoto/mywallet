@@ -1699,14 +1699,6 @@ export default function App() {
             if (Array.isArray(data.plans)) {
               setPlans(data.plans);
             }
-            if (fetchedTxs.length > 0) {
-              const completedTransactions = fetchedTxs.filter((transaction: Transaction) => transaction.date <= getToday());
-              const referenceTransactions = completedTransactions.length > 0 ? completedTransactions : fetchedTxs;
-              const latestDate = referenceTransactions.reduce((latest: string, t: Transaction) => (t.date > latest ? t.date : latest), referenceTransactions[0].date);
-              if (latestDate && latestDate.length >= 7) {
-                setSelectedMonth(latestDate.slice(0, 7));
-              }
-            }
             setRemoteSync({
               status: 'synced',
               localUpdatedAt: serverUpdatedAt,
