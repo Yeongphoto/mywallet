@@ -58,6 +58,7 @@ type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
+type StyleThemePreference = 'default' | 'doodle';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 const SYNC_OVERLAY_MIN_DURATION = 2000;
@@ -465,6 +466,10 @@ function normalizeThemePreference(value: unknown): ThemePreference {
   return value === 'system' || value === 'light' || value === 'dark' ? value : 'light';
 }
 
+function normalizeStyleThemePreference(value: unknown): StyleThemePreference {
+  return value === 'doodle' ? 'doodle' : 'default';
+}
+
 function getSystemTheme(): 'light' | 'dark' {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
@@ -476,6 +481,7 @@ function loadStoredData() {
       assets: [] as AssetItem[], 
       budget: 1000000, 
       theme: 'light' as const, 
+      styleTheme: 'default' as const,
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
       customIncomeCategories: [] as CategoryOption[],
@@ -503,6 +509,7 @@ function loadStoredData() {
           assets: Array.isArray(parsed.assets) ? parsed.assets : [],
           budget: 1000000,
           theme: 'light' as const,
+          styleTheme: 'default' as const,
           plans: [] as CategoryPlan[],
           customExpenseCategories: [] as CategoryOption[],
           customIncomeCategories: [] as CategoryOption[],
@@ -523,6 +530,7 @@ function loadStoredData() {
         assets: [] as AssetItem[], 
         budget: 1000000, 
         theme: 'light' as const, 
+        styleTheme: 'default' as const,
         plans: [] as CategoryPlan[],
         customExpenseCategories: [] as CategoryOption[],
         customIncomeCategories: [] as CategoryOption[],
@@ -545,6 +553,7 @@ function loadStoredData() {
       assets: Array.isArray(parsed.assets) ? parsed.assets : [],
       budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
       theme: normalizeThemePreference(parsed.theme),
+      styleTheme: normalizeStyleThemePreference(parsed.styleTheme),
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
       customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
@@ -565,6 +574,7 @@ function loadStoredData() {
       assets: [] as AssetItem[], 
       budget: 1000000, 
       theme: 'light' as const, 
+      styleTheme: 'default' as const,
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
       customIncomeCategories: [] as CategoryOption[],
@@ -587,6 +597,7 @@ function saveLocalStorage(
   assets: AssetItem[], 
   budget: number, 
   theme: ThemePreference,
+  styleTheme: StyleThemePreference,
   plans: CategoryPlan[],
   customExpenseCategories: CategoryOption[],
   customIncomeCategories: CategoryOption[],
@@ -609,6 +620,7 @@ function saveLocalStorage(
         assets, 
         budget, 
         theme, 
+        styleTheme,
         plans, 
         customExpenseCategories, 
         customIncomeCategories, 
@@ -806,6 +818,7 @@ export default function App() {
   const [cardSettlements, setCardSettlements] = useState<CardSettlement[]>([]);
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<ThemePreference>(storedData.theme);
+  const [styleTheme, setStyleTheme] = useState<StyleThemePreference>(storedData.styleTheme || 'default');
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme);
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
@@ -1355,6 +1368,7 @@ export default function App() {
         assets,
         budget,
         theme,
+        styleTheme,
         plans,
         customExpenseCategories,
         customIncomeCategories,
@@ -1377,6 +1391,7 @@ export default function App() {
       assets,
       budget,
       theme,
+      styleTheme,
       plans,
       customExpenseCategories,
       customIncomeCategories,
@@ -1403,7 +1418,8 @@ export default function App() {
       transactions, 
       assets, 
       budget, 
-      theme, 
+      theme,
+      styleTheme,
       plans, 
       customExpenseCategories, 
       customIncomeCategories, 
@@ -1579,10 +1595,11 @@ export default function App() {
   useEffect(() => {
     const resolvedTheme = theme === 'system' ? systemTheme : theme;
     document.documentElement.setAttribute('data-theme', resolvedTheme);
+    document.documentElement.setAttribute('data-style-theme', styleTheme);
     document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
-  }, [theme, systemTheme]);
+  }, [theme, systemTheme, styleTheme]);
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
@@ -5781,8 +5798,13 @@ export default function App() {
             {settingsSection === 'app' && (
               <div className="settings-stack">
                 <div className="settings-row theme-settings-row">
-                  <strong>화면 테마</strong>
-                  <div className="theme-toggle" role="group" aria-label="화면 테마">
+                  <div>
+                    <strong>화면 모드</strong>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      다크 모드 또는 라이트 모드를 설정합니다.
+                    </div>
+                  </div>
+                  <div className="theme-toggle" role="group" aria-label="화면 모드">
                     <button type="button" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
                       시스템 설정
                     </button>
@@ -5791,6 +5813,31 @@ export default function App() {
                     </button>
                     <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
                       다크
+                    </button>
+                  </div>
+                </div>
+
+                <div className="settings-row theme-settings-row">
+                  <div>
+                    <strong>디자인 테마</strong>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      손그림 감성의 귀여운 두들(Doodle) 스타일을 켜고 끌 수 있습니다.
+                    </div>
+                  </div>
+                  <div className="theme-toggle" role="group" aria-label="디자인 테마">
+                    <button
+                      type="button"
+                      className={styleTheme === 'default' ? 'active' : ''}
+                      onClick={() => setStyleTheme('default')}
+                    >
+                      ✨ 모던 (기본)
+                    </button>
+                    <button
+                      type="button"
+                      className={styleTheme === 'doodle' ? 'active' : ''}
+                      onClick={() => setStyleTheme('doodle')}
+                    >
+                      ✏️ 두들 (Doodle)
                     </button>
                   </div>
                 </div>

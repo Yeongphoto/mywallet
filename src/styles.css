@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Delius+Swash+Caps&family=Gowun+Dodum&display=swap');
+
 :root {
   color-scheme: only light;
   /* Light Theme Variables */
@@ -5811,6 +5813,133 @@ body.asset-handle-drag-active {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ==================== Doodle (두들) Theme Styles ==================== */
+html[data-style-theme="doodle"],
+html[data-style-theme="doodle"] body,
+html[data-style-theme="doodle"] #root {
+  font-family: 'Gowun Dodum', 'Gaegu', 'Delius Swash Caps', -apple-system, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+html[data-style-theme="doodle"] input,
+html[data-style-theme="doodle"] button,
+html[data-style-theme="doodle"] select,
+html[data-style-theme="doodle"] textarea {
+  font-family: 'Gowun Dodum', 'Gaegu', -apple-system, sans-serif;
+}
+
+/* Doodle Card & Panel Styles */
+html[data-style-theme="doodle"] .glass-panel,
+html[data-style-theme="doodle"] .summary-hero-card,
+html[data-style-theme="doodle"] .settlement-summary-card,
+html[data-style-theme="doodle"] .stat-card,
+html[data-style-theme="doodle"] .managed-category-card,
+html[data-style-theme="doodle"] .calendar-board,
+html[data-style-theme="doodle"] .modal-content,
+html[data-style-theme="doodle"] .entry-form,
+html[data-style-theme="doodle"] .settings-data-card,
+html[data-style-theme="doodle"] .settlement-category-drawer,
+html[data-style-theme="doodle"] .picker-popup-sheet {
+  border-radius: 20px 8px 22px 10px / 10px 22px 8px 20px !important;
+  border: 2px solid var(--border-card) !important;
+  box-shadow: 2px 3px 0px rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .glass-panel,
+html[data-style-theme="doodle"][data-theme="dark"] .summary-hero-card,
+html[data-style-theme="doodle"][data-theme="dark"] .settlement-summary-card,
+html[data-style-theme="doodle"][data-theme="dark"] .stat-card,
+html[data-style-theme="doodle"][data-theme="dark"] .managed-category-card,
+html[data-style-theme="doodle"][data-theme="dark"] .calendar-board,
+html[data-style-theme="doodle"][data-theme="dark"] .modal-content,
+html[data-style-theme="doodle"][data-theme="dark"] .entry-form,
+html[data-style-theme="doodle"][data-theme="dark"] .settings-data-card,
+html[data-style-theme="doodle"][data-theme="dark"] .settlement-category-drawer,
+html[data-style-theme="doodle"][data-theme="dark"] .picker-popup-sheet {
+  box-shadow: 2px 3px 0px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Doodle Buttons */
+html[data-style-theme="doodle"] .primary-button,
+html[data-style-theme="doodle"] .secondary-button,
+html[data-style-theme="doodle"] .danger-button,
+html[data-style-theme="doodle"] .type-toggle-btn,
+html[data-style-theme="doodle"] .theme-toggle button,
+html[data-style-theme="doodle"] .settings-segment button,
+html[data-style-theme="doodle"] .month-nav-button,
+html[data-style-theme="doodle"] .view-toggle-btn,
+html[data-style-theme="doodle"] .fixed-bottom-bar-btn,
+html[data-style-theme="doodle"] .keypad-btn,
+html[data-style-theme="doodle"] .picker-grid-btn {
+  border-radius: 14px 6px 16px 8px / 8px 16px 6px 14px !important;
+  border: 1.5px solid currentColor !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+
+html[data-style-theme="doodle"] .primary-button:hover,
+html[data-style-theme="doodle"] .secondary-button:hover,
+html[data-style-theme="doodle"] .danger-button:hover,
+html[data-style-theme="doodle"] .type-toggle-btn:hover,
+html[data-style-theme="doodle"] .month-nav-button:hover,
+html[data-style-theme="doodle"] .picker-grid-btn:hover {
+  transform: translateY(-1px) rotate(-0.5deg) scale(1.01);
+}
+
+html[data-style-theme="doodle"] .primary-button:active,
+html[data-style-theme="doodle"] .secondary-button:active,
+html[data-style-theme="doodle"] .danger-button:active,
+html[data-style-theme="doodle"] .picker-grid-btn:active {
+  transform: scale(0.96) rotate(0.5deg);
+}
+
+/* Doodle Inputs & Pickers */
+html[data-style-theme="doodle"] input[type="text"],
+html[data-style-theme="doodle"] input[type="date"],
+html[data-style-theme="doodle"] input[type="time"],
+html[data-style-theme="doodle"] input[type="number"],
+html[data-style-theme="doodle"] .instant-select-trigger,
+html[data-style-theme="doodle"] .compact-entry-field {
+  border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
+  border: 1.5px solid var(--border-input) !important;
+}
+
+/* Doodle Badges & Chips */
+html[data-style-theme="doodle"] .badge,
+html[data-style-theme="doodle"] .flow-chip,
+html[data-style-theme="doodle"] .suggestion-badge,
+html[data-style-theme="doodle"] .settlement-badge,
+html[data-style-theme="doodle"] .category-count-badge {
+  border-radius: 12px 4px 14px 6px / 6px 14px 4px 12px !important;
+  border: 1.2px solid currentColor !important;
+}
+
+/* Headings Doodle Accent */
+html[data-style-theme="doodle"] h1,
+html[data-style-theme="doodle"] h2,
+html[data-style-theme="doodle"] h3,
+html[data-style-theme="doodle"] .section-title strong,
+html[data-style-theme="doodle"] .summary-hero-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Subtle Warm Notebook Background for Light Doodle Mode */
+html[data-style-theme="doodle"][data-theme="light"] {
+  --bg-app: #fcf9f2;
+  --bg-card: rgba(255, 253, 248, 0.94);
+  --border-card: rgba(180, 160, 130, 0.28);
+  --border-input: #e6dfd1;
+}
+
+/* Soft Chalkboard Background for Dark Doodle Mode */
+html[data-style-theme="doodle"][data-theme="dark"] {
+  --bg-app: #121620;
+  --bg-card: rgba(23, 30, 42, 0.85);
+  --border-card: rgba(255, 255, 255, 0.12);
+  --border-input: #2d3748;
+}
+
 
 
 
