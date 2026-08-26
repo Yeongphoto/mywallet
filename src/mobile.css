@@ -320,7 +320,7 @@
     --fab-bar-border: rgba(255, 255, 255, 0.16);
     --safe-top: max(calc(env(safe-area-inset-top, 0px) - 10px), 0px);
     --header-height: calc(72px + var(--safe-top));
-    --footer-height: calc(78px + env(safe-area-inset-bottom, 0px));
+    --footer-height: calc(var(--mobile-nav-height, 92px) + env(safe-area-inset-bottom, 0px));
   }
   
   .sidebar nav {
