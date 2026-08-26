@@ -5927,17 +5927,47 @@ html[data-style-theme="doodle"] .summary-hero-title {
 /* Subtle Warm Notebook Background for Light Doodle Mode */
 html[data-style-theme="doodle"][data-theme="light"] {
   --bg-app: #fcf9f2;
+  --bg-sidebar: #2c241d;
   --bg-card: rgba(255, 253, 248, 0.94);
   --border-card: rgba(180, 160, 130, 0.28);
   --border-input: #e6dfd1;
 }
 
+html[data-style-theme="doodle"][data-theme="light"] .app-header {
+  background-color: #fcf9f2;
+  border-bottom: 1.5px solid #e8e0d2;
+}
+
+html[data-style-theme="doodle"][data-theme="light"] .sidebar {
+  background: #2c241d;
+}
+
+html[data-style-theme="doodle"][data-theme="light"] .fixed-bottom-bar {
+  background: rgba(252, 249, 242, 0.96) !important;
+  border-top: 1.5px solid #e8e0d2 !important;
+}
+
 /* Soft Chalkboard Background for Dark Doodle Mode */
 html[data-style-theme="doodle"][data-theme="dark"] {
-  --bg-app: #121620;
-  --bg-card: rgba(23, 30, 42, 0.85);
+  --bg-app: #181512;
+  --bg-sidebar: #12100e;
+  --bg-card: rgba(28, 25, 22, 0.88);
   --border-card: rgba(255, 255, 255, 0.12);
-  --border-input: #2d3748;
+  --border-input: #383028;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .app-header {
+  background-color: #181512;
+  border-bottom: 1.5px solid #2e2822;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .sidebar {
+  background: #12100e;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .fixed-bottom-bar {
+  background: rgba(24, 21, 18, 0.96) !important;
+  border-top: 1.5px solid #2e2822 !important;
 }
 
 
