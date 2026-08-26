@@ -5831,6 +5831,7 @@ html[data-style-theme="doodle"] textarea {
 
 /* Doodle Card & Panel Styles */
 html[data-style-theme="doodle"] .glass-panel,
+html[data-style-theme="doodle"] .summary-card,
 html[data-style-theme="doodle"] .summary-hero-card,
 html[data-style-theme="doodle"] .settlement-stat-grid,
 html[data-style-theme="doodle"] .stat-card,
@@ -5853,6 +5854,7 @@ html[data-style-theme="doodle"] .settlement-summary-card {
 }
 
 html[data-style-theme="doodle"][data-theme="dark"] .glass-panel,
+html[data-style-theme="doodle"][data-theme="dark"] .summary-card,
 html[data-style-theme="doodle"][data-theme="dark"] .summary-hero-card,
 html[data-style-theme="doodle"][data-theme="dark"] .settlement-stat-grid,
 html[data-style-theme="doodle"][data-theme="dark"] .stat-card,
@@ -6013,8 +6015,10 @@ html[data-style-theme="doodle"] .app-header .mywallet-logo {
   box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2);
 }
 
-/* Doodle Header Settings Button */
-html[data-style-theme="doodle"] .header-settings-btn {
+/* Doodle Header Action Buttons: Settings, Privacy, Sync */
+html[data-style-theme="doodle"] .header-settings-btn,
+html[data-style-theme="doodle"] .privacy-toggle,
+html[data-style-theme="doodle"] .sync-mini-indicator {
   background: var(--bg-input) !important;
   border: 1.5px solid var(--border-card) !important;
   color: var(--text-primary) !important;
@@ -6023,33 +6027,44 @@ html[data-style-theme="doodle"] .header-settings-btn {
   width: 42px !important;
   height: 42px !important;
   min-height: 42px !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 
 html[data-style-theme="doodle"] .header-settings-btn svg,
-html[data-style-theme="doodle"] .header-settings-btn span {
+html[data-style-theme="doodle"] .header-settings-btn span,
+html[data-style-theme="doodle"] .privacy-toggle svg,
+html[data-style-theme="doodle"] .privacy-toggle span,
+html[data-style-theme="doodle"] .privacy-toggle .app-icon {
   color: var(--text-primary) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-html[data-style-theme="doodle"] .header-settings-btn:hover {
+html[data-style-theme="doodle"] .header-settings-btn:hover,
+html[data-style-theme="doodle"] .privacy-toggle:hover,
+html[data-style-theme="doodle"] .sync-mini-indicator:hover {
   border-color: var(--primary) !important;
   color: var(--primary) !important;
-  transform: scale(1.05) rotate(-3deg);
+  transform: scale(1.05) rotate(-2deg);
 }
 
-html[data-style-theme="doodle"] .header-settings-btn.active {
+html[data-style-theme="doodle"] .header-settings-btn.active,
+html[data-style-theme="doodle"] .privacy-toggle.active {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
   box-shadow: 0 3px 10px rgba(234, 179, 8, 0.35) !important;
 }
 
 html[data-style-theme="doodle"] .header-settings-btn.active svg,
-html[data-style-theme="doodle"] .header-settings-btn.active span {
+html[data-style-theme="doodle"] .header-settings-btn.active span,
+html[data-style-theme="doodle"] .privacy-toggle.active svg,
+html[data-style-theme="doodle"] .privacy-toggle.active span,
+html[data-style-theme="doodle"] .privacy-toggle.active .app-icon {
   color: #1e1903 !important;
 }
 

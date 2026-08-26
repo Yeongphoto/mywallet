@@ -1663,7 +1663,7 @@ export default function App() {
             assetOrderRevisionsRef.current = data.assetOrderRevisions || {};
             categoryOrderRevisionsRef.current = data.categoryOrderRevisions || {};
             setBudget(data.budget ?? 1000000);
-            setTheme(normalizeThemePreference(data.theme));
+            // Note: theme and styleTheme are device-specific local preferences stored in localStorage.
             setCustomExpenseCategories(data.customExpenseCategories || []);
             setCustomIncomeCategories(data.customIncomeCategories || []);
             setCustomAssetCategories(data.customAssetCategories || []);
