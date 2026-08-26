@@ -4896,15 +4896,39 @@ body.category-handle-drag-active {
     white-space: nowrap;
   }
 
-.ledger-workspace:has(.ledger-calendar-view) {
-    height: calc(100dvh - 140px);
-    grid-template-rows: auto auto minmax(0, 1fr);
-  }
+.content:has(.ledger-calendar-view) {
+  min-height: calc(100dvh - 84px);
+  display: flex;
+  flex-direction: column;
+}
 
-  .ledger-calendar-view {
-    height: 100%;
-    min-height: 0;
-  }
+.ledger-workspace:has(.ledger-calendar-view) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  gap: 12px;
+}
+
+.ledger-calendar-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  gap: 8px;
+}
+
+.ledger-calendar-view .calendar-grid {
+  display: grid;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
 
   .ledger-calendar-view .calendar-value-badge {
     align-self: flex-end;

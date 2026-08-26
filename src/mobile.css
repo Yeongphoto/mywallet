@@ -583,19 +583,63 @@
     grid-auto-rows: 1fr !important;
   }
 
+  .content:has(.ledger-calendar-view) {
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 8px !important;
+    overflow: hidden !important;
+  }
+
   .ledger-workspace:has(.ledger-calendar-view) {
-    min-height: 0;
-    overflow: hidden;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 8px !important;
+    overflow: hidden !important;
   }
 
   .ledger-calendar-view {
-    gap: 8px;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 6px !important;
+    overflow: hidden !important;
+  }
+
+  .ledger-calendar-view .calendar-control {
+    flex: 0 0 auto !important;
+    margin-bottom: 0 !important;
+  }
+
+  .ledger-calendar-view .calendar-day-names-row {
+    flex: 0 0 auto !important;
+    margin-bottom: 2px !important;
+    gap: 4px !important;
   }
 
   .ledger-calendar-view .calendar-grid {
-    height: auto !important;
+    display: grid !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
     min-height: 0 !important;
-    grid-template-rows: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .ledger-calendar-view .calendar-cell {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 3px 2px !important;
   }
 }
 
