@@ -6131,15 +6131,7 @@ html[data-style-theme="doodle"] .picker-grid-btn.selected {
 }
 
 /* ==================== Doodle Charts Styling ==================== */
-/* 1. Asset Distribution Pie Chart (자산 분배 현황 원형 그래프) */
-html[data-style-theme="doodle"] .asset-distribution-panel svg circle {
-  fill: var(--bg-input) !important;
-  opacity: 0.6 !important;
-  stroke: var(--border-card) !important;
-  stroke-dasharray: 4 3 !important;
-  stroke-width: 1.8px !important;
-}
-
+/* 1. Asset Distribution Donut Chart (자산 분배 현황 도넛 그래프) */
 html[data-style-theme="doodle"] .asset-distribution-panel svg path {
   stroke: var(--bg-app) !important;
   stroke-width: 2.5px !important;
@@ -6151,8 +6143,7 @@ html[data-style-theme="doodle"][data-theme="dark"] .asset-distribution-panel svg
 }
 
 html[data-style-theme="doodle"] .asset-distribution-panel svg polyline {
-  stroke-width: 1.8px !important;
-  stroke-dasharray: 2 1 !important;
+  stroke-width: 1.6px !important;
 }
 
 html[data-style-theme="doodle"] .asset-distribution-panel svg text {

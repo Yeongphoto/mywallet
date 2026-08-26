@@ -4194,28 +4194,28 @@ export default function App() {
                       filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
-                    {/* Background Circle */}
-                    <circle cx="190" cy="130" r="98" fill="#1e293b" opacity="0.4" />
+                    {/* Background Circle / Donut Hole Background */}
+                    <circle cx="190" cy="135" r="96" fill="var(--bg-input)" opacity="0.3" />
 
                     {assetFlowSegments.length === 0 ? (
-                      <text x="190" y="135" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
+                      <text x="190" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
                         자산 데이터가 없습니다.
                       </text>
                     ) : (
                       (() => {
-                        const R = 98;
+                        const R_outer = 96;
+                        const R_inner = 64;
                         const CX = 190;
-                        const CY = 130;
-                        let accumulatedAngle = -90; // 12시 방향부터 채워나가기 시작
+                        const CY = 135;
+                        let accumulatedAngle = -90; // 12시 방향부터 시작
 
-                        // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(4.2%) 적용
-                        const minPercent = 4.2;
+                        // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(5%) 적용
+                        const minPercent = 5.0;
                         let tempSegments = assetFlowSegments.map(s => {
                           const actualPercent = assetDistributionTotal > 0 ? (s.value / assetDistributionTotal) * 100 : 0;
                           return {
                             ...s,
                             actualPercent,
-                            // 비율이 있고 minPercent보다 작으면 minPercent로 임시 보정
                             renderPercent: (actualPercent > 0 && actualPercent < minPercent) ? minPercent : actualPercent
                           };
                         });
@@ -4227,118 +4227,110 @@ export default function App() {
                           renderPercent: totalRenderSum > 0 ? (item.renderPercent / totalRenderSum) * 100 : 0
                         }));
 
-                        // 작은 세그먼트들만 걸러서 지그재그 인덱스 매칭 (보정된 renderPercent 기준)
-                        const smallSegments = normalizedSegments.filter(s => s.actualPercent < 12);
+                        const smallSegments = normalizedSegments.filter(s => s.actualPercent < 15);
 
-                        return normalizedSegments.map((segment) => {
-                          // 파이 조각 렌더링과 위치 각도는 보정 비율(renderPercent) 적용
-                          const angle = (segment.renderPercent / 100) * 360;
-                          
-                          const startAngle = accumulatedAngle;
-                          const endAngle = accumulatedAngle + angle;
-                          accumulatedAngle = endAngle;
+                        return (
+                          <g>
+                            {/* 도넛 조각 렌더링 */}
+                            {normalizedSegments.map((segment) => {
+                              const angle = (segment.renderPercent / 100) * 360;
+                              const startAngle = accumulatedAngle;
+                              const endAngle = accumulatedAngle + angle;
+                              accumulatedAngle = endAngle;
 
-                          // 삼각함수로 조각 호의 외곽 좌표 계산
-                          const x1 = CX + R * Math.cos((startAngle * Math.PI) / 180);
-                          const y1 = CY + R * Math.sin((startAngle * Math.PI) / 180);
-                          const x2 = CX + R * Math.cos((endAngle * Math.PI) / 180);
-                          const y2 = CY + R * Math.sin((endAngle * Math.PI) / 180);
+                              // 외곽 호 및 내곽 호 좌표 계산 (도넛 링)
+                              const x1o = CX + R_outer * Math.cos((startAngle * Math.PI) / 180);
+                              const y1o = CY + R_outer * Math.sin((startAngle * Math.PI) / 180);
+                              const x2o = CX + R_outer * Math.cos((endAngle * Math.PI) / 180);
+                              const y2o = CY + R_outer * Math.sin((endAngle * Math.PI) / 180);
 
-                          const largeArcFlag = angle > 180 ? 1 : 0;
-                          const pathData = `M ${CX} ${CY} L ${x1} ${y1} A ${R} ${R} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                              const x2i = CX + R_inner * Math.cos((endAngle * Math.PI) / 180);
+                              const y2i = CY + R_inner * Math.sin((endAngle * Math.PI) / 180);
+                              const x1i = CX + R_inner * Math.cos((startAngle * Math.PI) / 180);
+                              const y1i = CY + R_inner * Math.sin((startAngle * Math.PI) / 180);
 
-                          // 텍스트 라벨 & 지시선 각도 좌표 계산 (가운데 각도 구하기)
-                          const midAngle = startAngle + angle / 2;
-                          const rad = (midAngle * Math.PI) / 180;
-                          const isLarge = segment.actualPercent >= 12; // 실제 비율 기준으로 내외부 판정
+                              const largeArcFlag = angle > 180 ? 1 : 0;
+                              const pathData = `M ${x1o} ${y1o} A ${R_outer} ${R_outer} 0 ${largeArcFlag} 1 ${x2o} ${y2o} L ${x2i} ${y2i} A ${R_inner} ${R_inner} 0 ${largeArcFlag} 0 ${x1i} ${y1i} Z`;
 
-                          // 내부 텍스트 좌표
-                          const txInternal = CX + R * 0.62 * Math.cos(rad);
-                          const tyInternal = CY + R * 0.62 * Math.sin(rad);
+                              // 텍스트 라벨 & 지시선 각도 좌표 계산 (가운데 각도 구하기)
+                              const midAngle = startAngle + angle / 2;
+                              const rad = (midAngle * Math.PI) / 180;
 
-                          // 작은 조각 지그재그 오프셋 계산 (인접 겹침 완벽 소멸 솔루션)
-                          const smallIndex = smallSegments.findIndex(s => s.id === segment.id);
-                          // 3단계 지그재그 배율: smallIndex에 따라 1.18, 1.34, 1.50로 지선 길이 엇갈림 분산
-                          const lineScale = 1.18 + (smallIndex !== -1 ? (smallIndex % 3) * 0.16 : 0);
-                          const horizontalLength = 12 + (smallIndex !== -1 ? (smallIndex % 3) * 6 : 0); // 수평선 길이도 12, 18, 24px로 엇갈림
+                              // 지그재그 오프셋 계산 (인접 겹침 방지)
+                              const smallIndex = smallSegments.findIndex(s => s.id === segment.id);
+                              const lineScale = 1.15 + (smallIndex !== -1 ? (smallIndex % 3) * 0.14 : 0);
+                              const horizontalLength = 12 + (smallIndex !== -1 ? (smallIndex % 3) * 6 : 0);
 
-                          // 외부 텍스트 및 꺾은선 지시선 좌표
-                          const lxStart = CX + R * 0.95 * Math.cos(rad);
-                          const lyStart = CY + R * 0.95 * Math.sin(rad);
-                          
-                          const lxMid = CX + R * lineScale * Math.cos(rad);
-                          const lyMid = CY + R * lineScale * Math.sin(rad);
-                          
-                          const isRightSide = Math.cos(rad) >= 0;
-                          const lxEnd = lxMid + (isRightSide ? horizontalLength : -horizontalLength);
-                          const lyEnd = lyMid;
-                          
-                          const txExternal = lxEnd + (isRightSide ? 6 : -6);
-                          const tyExternal = lyEnd;
+                              const lxStart = CX + R_outer * 0.98 * Math.cos(rad);
+                              const lyStart = CY + R_outer * 0.98 * Math.sin(rad);
+                              
+                              const lxMid = CX + R_outer * lineScale * Math.cos(rad);
+                              const lyMid = CY + R_outer * lineScale * Math.sin(rad);
+                              
+                              const isRightSide = Math.cos(rad) >= 0;
+                              const lxEnd = lxMid + (isRightSide ? horizontalLength : -horizontalLength);
+                              const lyEnd = lyMid;
+                              
+                              const txExternal = lxEnd + (isRightSide ? 5 : -5);
+                              const tyExternal = lyEnd;
 
-                          return (
-                            <g key={segment.id}>
-                              {/* 1. 파이 조각 단면 */}
-                              <path 
-                                d={pathData} 
-                                fill={segment.color}
-                                stroke="var(--bg-card)"
-                                strokeWidth="1.5"
-                                style={{ transition: 'all 0.3s ease' }}
-                              />
-
-                              {/* 2. 자막 라벨 텍스트 */}
-                              {isLarge ? (
-                                <text
-                                  x={txInternal}
-                                  y={tyInternal}
-                                  textAnchor="middle"
-                                  fill="#ffffff"
-                                  fontSize="11"
-                                  fontWeight="900"
-                                  style={{ pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.65)' }}
-                                >
-                                  <tspan x={txInternal} dy="-4" textAnchor="middle">{segment.label}</tspan>
-                                  <tspan x={txInternal} dy="12" fontSize="9.5" fontWeight="bold" textAnchor="middle" opacity="0.9">({segment.actualPercent.toFixed(1)}%)</tspan>
-                                </text>
-                              ) : (
-                                <g>
-                                  {/* 지시선 (꺾은선) */}
-                                  <polyline
-                                    points={`${lxStart},${lyStart} ${lxMid},${lyMid} ${lxEnd},${lyEnd}`}
-                                    fill="none"
-                                    stroke={segment.color}
-                                    strokeWidth="1.2"
-                                    opacity="0.85"
+                              return (
+                                <g key={segment.id}>
+                                  {/* 1. 도넛 링 세그먼트 */}
+                                  <path 
+                                    d={pathData} 
+                                    fill={segment.color}
+                                    stroke="var(--bg-card)"
+                                    strokeWidth="2.5"
+                                    style={{ transition: 'all 0.3s ease' }}
                                   />
-                                  <circle cx={lxStart} cy={lyStart} r="2" fill={segment.color} />
 
-                                  {/* 외부 텍스트 */}
-                                  <text
-                                    x={txExternal}
-                                    y={tyExternal - 3}
-                                    textAnchor={isRightSide ? "start" : "end"}
-                                    fill="var(--text-primary)"
-                                    fontSize="11"
-                                    fontWeight="900"
-                                  >
-                                    {segment.label}
-                                  </text>
-                                  <text
-                                    x={txExternal}
-                                    y={tyExternal + 8}
-                                    textAnchor={isRightSide ? "start" : "end"}
-                                    fill="var(--primary)"
-                                    fontSize="10"
-                                    fontWeight="bold"
-                                  >
-                                    ({segment.actualPercent.toFixed(1)}%)
-                                  </text>
+                                  {/* 2. 지시선 & 라벨 */}
+                                  <g>
+                                    <polyline
+                                      points={`${lxStart},${lyStart} ${lxMid},${lyMid} ${lxEnd},${lyEnd}`}
+                                      fill="none"
+                                      stroke={segment.color}
+                                      strokeWidth="1.5"
+                                      opacity="0.8"
+                                    />
+                                    <circle cx={lxStart} cy={lyStart} r="2.2" fill={segment.color} />
+
+                                    <text
+                                      x={txExternal}
+                                      y={tyExternal - 3}
+                                      textAnchor={isRightSide ? "start" : "end"}
+                                      fill="var(--text-primary)"
+                                      fontSize="11"
+                                      fontWeight="800"
+                                    >
+                                      {segment.label}
+                                    </text>
+                                    <text
+                                      x={txExternal}
+                                      y={tyExternal + 8}
+                                      textAnchor={isRightSide ? "start" : "end"}
+                                      fill="var(--text-secondary)"
+                                      fontSize="9.5"
+                                      fontWeight="700"
+                                    >
+                                      ({segment.actualPercent.toFixed(1)}%)
+                                    </text>
+                                  </g>
                                 </g>
-                              )}
-                            </g>
-                          );
-                        });
+                              );
+                            })}
+
+                            {/* 도넛 중심부 요약 정보 */}
+                            <circle cx={CX} cy={CY} r={R_inner - 1} fill="var(--bg-card)" />
+                            <text x={CX} y={CY - 8} textAnchor="middle" fill="var(--text-secondary)" fontSize="10.5" fontWeight="700" opacity="0.85">
+                              총 자산
+                            </text>
+                            <text x={CX} y={CY + 11} textAnchor="middle" fill="var(--text-primary)" fontSize="13.5" fontWeight="900">
+                              {displayCurrency(assetDistributionTotal)}
+                            </text>
+                          </g>
+                        );
                       })()
                     )}
                   </svg>
@@ -4451,24 +4443,6 @@ export default function App() {
                         <stop offset="0%" stopColor="#34d399" />
                         <stop offset="100%" stopColor="#10b981" />
                       </linearGradient>
-
-                      {/* Tetris Stacked Block Patterns for Doodle Theme */}
-                      <pattern id="tetris-pattern-income" width="10" height="8" patternUnits="userSpaceOnUse">
-                        <rect x="0.5" y="0.5" width="9" height="6.5" rx="1.5" fill="#22c55e" stroke="#15803d" strokeWidth="0.7" />
-                        <rect x="1.5" y="1.2" width="7" height="1.8" rx="0.6" fill="#86efac" opacity="0.6" />
-                      </pattern>
-                      <pattern id="tetris-pattern-expense" width="10" height="8" patternUnits="userSpaceOnUse">
-                        <rect x="0.5" y="0.5" width="9" height="6.5" rx="1.5" fill="#f43f5e" stroke="#be123c" strokeWidth="0.7" />
-                        <rect x="1.5" y="1.2" width="7" height="1.8" rx="0.6" fill="#fca5a5" opacity="0.6" />
-                      </pattern>
-                      <pattern id="tetris-pattern-income-wide" width="18" height="8" patternUnits="userSpaceOnUse">
-                        <rect x="0.5" y="0.5" width="17" height="6.5" rx="1.5" fill="#22c55e" stroke="#15803d" strokeWidth="0.7" />
-                        <rect x="1.5" y="1.2" width="15" height="1.8" rx="0.6" fill="#86efac" opacity="0.6" />
-                      </pattern>
-                      <pattern id="tetris-pattern-expense-wide" width="18" height="8" patternUnits="userSpaceOnUse">
-                        <rect x="0.5" y="0.5" width="17" height="6.5" rx="1.5" fill="#f43f5e" stroke="#be123c" strokeWidth="0.7" />
-                        <rect x="1.5" y="1.2" width="15" height="1.8" rx="0.6" fill="#fca5a5" opacity="0.6" />
-                      </pattern>
                     </defs>
 
                     {/* Y축 그리드 라인 & 라벨 */}
@@ -4601,13 +4575,9 @@ export default function App() {
                                     y={260 - incHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
-                                    rx={styleTheme === 'doodle' ? '2' : '3'}
-                                    ry={styleTheme === 'doodle' ? '2' : '3'}
-                                    fill={
-                                      styleTheme === 'doodle'
-                                        ? (chartFilter === 'both' ? 'url(#tetris-pattern-income)' : 'url(#tetris-pattern-income-wide)')
-                                        : 'url(#chart-income-grad)'
-                                    }
+                                    rx="3"
+                                    ry="3"
+                                    fill="url(#chart-income-grad)"
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
@@ -4620,13 +4590,9 @@ export default function App() {
                                     y={260 - expHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
-                                    rx={styleTheme === 'doodle' ? '2' : '3'}
-                                    ry={styleTheme === 'doodle' ? '2' : '3'}
-                                    fill={
-                                      styleTheme === 'doodle'
-                                        ? (chartFilter === 'both' ? 'url(#tetris-pattern-expense)' : 'url(#tetris-pattern-expense-wide)')
-                                        : 'url(#chart-expense-grad)'
-                                    }
+                                    rx="3"
+                                    ry="3"
+                                    fill="url(#chart-expense-grad)"
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
