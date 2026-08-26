@@ -4188,6 +4188,13 @@ body.category-handle-drag-active {
   filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.15));
 }
 
+.app-loading-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 .app-loading-orbit-track,
 .app-loading-orbit {
   position: absolute;
@@ -4231,6 +4238,13 @@ body.category-handle-drag-active {
 .app-sync-overlay .app-loading-logo {
   width: 66px;
   height: 66px;
+}
+
+.app-sync-overlay .app-loading-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 @keyframes loadingOrbit {

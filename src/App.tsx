@@ -3916,7 +3916,7 @@ export default function App() {
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
             <div className="app-loading-logo">
-              <MyWalletLogo style={{ width: '100%', height: '100%' }} />
+              <img src="/logo.png" alt="MyWallet 로고" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
           </div>
           <div className="app-loading-copy">
@@ -3933,7 +3933,7 @@ export default function App() {
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" />
             <div className="app-loading-logo">
-              <MyWalletLogo style={{ width: '100%', height: '100%' }} />
+              <img src="/logo.png" alt="MyWallet 로고" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
           </div>
         </div>
