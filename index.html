@@ -14,6 +14,25 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <title>MyWallet</title>
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('mywallet:theme');
+          var savedStyleTheme = localStorage.getItem('mywallet:styleTheme');
+          if (!savedTheme) {
+            var v2 = localStorage.getItem('mywallet:v2');
+            if (v2) {
+              var parsed = JSON.parse(v2);
+              savedTheme = parsed.theme;
+              savedStyleTheme = parsed.styleTheme;
+            }
+          }
+          var theme = savedTheme === 'dark' ? 'dark' : (savedTheme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 'light');
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.setAttribute('data-style-theme', savedStyleTheme === 'doodle' ? 'doodle' : 'default');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root">

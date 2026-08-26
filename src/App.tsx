@@ -32,6 +32,8 @@ const assetCategories: CategoryOption[] = [
 ];
 
 const STORAGE_KEY = 'mywallet:v2';
+const THEME_STORAGE_KEY = 'mywallet:theme';
+const STYLE_THEME_STORAGE_KEY = 'mywallet:styleTheme';
 const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
 const PENDING_TRANSACTION_OPERATIONS_KEY = 'mywallet:v2:pendingTransactionOperations';
 const SYNC_CURSOR_KEY = 'mywallet:v2:syncCursor';
@@ -498,6 +500,15 @@ function loadStoredData() {
     };
   }
 
+  let localTheme: ThemePreference | null = null;
+  let localStyleTheme: StyleThemePreference | null = null;
+  try {
+    const rawTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (rawTheme) localTheme = normalizeThemePreference(rawTheme);
+    const rawStyleTheme = window.localStorage.getItem(STYLE_THEME_STORAGE_KEY);
+    if (rawStyleTheme) localStyleTheme = normalizeStyleThemePreference(rawStyleTheme);
+  } catch {}
+
   try {
     const rawData = window.localStorage.getItem(STORAGE_KEY);
     if (!rawData) {
@@ -508,8 +519,8 @@ function loadStoredData() {
           transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
           assets: Array.isArray(parsed.assets) ? parsed.assets : [],
           budget: 1000000,
-          theme: 'light' as const,
-          styleTheme: 'default' as const,
+          theme: localTheme || 'light',
+          styleTheme: localStyleTheme || 'default',
           plans: [] as CategoryPlan[],
           customExpenseCategories: [] as CategoryOption[],
           customIncomeCategories: [] as CategoryOption[],
@@ -529,8 +540,8 @@ function loadStoredData() {
         transactions: [] as Transaction[], 
         assets: [] as AssetItem[], 
         budget: 1000000, 
-        theme: 'light' as const, 
-        styleTheme: 'default' as const,
+        theme: localTheme || 'light', 
+        styleTheme: localStyleTheme || 'default',
         plans: [] as CategoryPlan[],
         customExpenseCategories: [] as CategoryOption[],
         customIncomeCategories: [] as CategoryOption[],
@@ -552,8 +563,8 @@ function loadStoredData() {
       transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
       assets: Array.isArray(parsed.assets) ? parsed.assets : [],
       budget: typeof parsed.budget === 'number' ? parsed.budget : 1000000,
-      theme: normalizeThemePreference(parsed.theme),
-      styleTheme: normalizeStyleThemePreference(parsed.styleTheme),
+      theme: localTheme || normalizeThemePreference(parsed.theme),
+      styleTheme: localStyleTheme || normalizeStyleThemePreference(parsed.styleTheme),
       plans: Array.isArray(parsed.plans) ? parsed.plans : [],
       customExpenseCategories: Array.isArray(parsed.customExpenseCategories) ? parsed.customExpenseCategories : [] as CategoryOption[],
       customIncomeCategories: Array.isArray(parsed.customIncomeCategories) ? parsed.customIncomeCategories : [] as CategoryOption[],
@@ -573,8 +584,8 @@ function loadStoredData() {
       transactions: [] as Transaction[], 
       assets: [] as AssetItem[], 
       budget: 1000000, 
-      theme: 'light' as const, 
-      styleTheme: 'default' as const,
+      theme: localTheme || 'light', 
+      styleTheme: localStyleTheme || 'default',
       plans: [] as CategoryPlan[],
       customExpenseCategories: [] as CategoryOption[],
       customIncomeCategories: [] as CategoryOption[],
@@ -613,6 +624,8 @@ function saveLocalStorage(
   updatedAt: number
 ) {
   try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
     window.localStorage.setItem(
       STORAGE_KEY, 
       JSON.stringify({ 
@@ -1599,6 +1612,11 @@ export default function App() {
     document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+      window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+    } catch {}
   }, [theme, systemTheme, styleTheme]);
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
