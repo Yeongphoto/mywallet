@@ -584,13 +584,22 @@
   }
 
   .content:has(.ledger-calendar-view) {
+    position: fixed !important;
+    top: var(--header-height) !important;
+    bottom: 78px !important;
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding-top: 10px !important;
+    padding-bottom: 4px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    padding-bottom: 8px !important;
-    overflow: hidden !important;
   }
 
-  .ledger-workspace:has(.ledger-calendar-view) {
+  .content:has(.ledger-calendar-view) .ledger-workspace {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
@@ -600,28 +609,36 @@
     overflow: hidden !important;
   }
 
-  .ledger-calendar-view {
+  .content:has(.ledger-calendar-view) .ledger-view-toggle {
+    flex: 0 0 auto !important;
+  }
+
+  .content:has(.ledger-calendar-view) .ledger-month-summary {
+    flex: 0 0 auto !important;
+  }
+
+  .content:has(.ledger-calendar-view) .ledger-calendar-view {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
     height: 100% !important;
     min-height: 0 !important;
-    gap: 6px !important;
+    gap: 4px !important;
     overflow: hidden !important;
   }
 
-  .ledger-calendar-view .calendar-control {
+  .content:has(.ledger-calendar-view) .calendar-control {
     flex: 0 0 auto !important;
     margin-bottom: 0 !important;
   }
 
-  .ledger-calendar-view .calendar-day-names-row {
+  .content:has(.ledger-calendar-view) .calendar-day-names-row {
     flex: 0 0 auto !important;
-    margin-bottom: 2px !important;
+    margin-bottom: 0 !important;
     gap: 4px !important;
   }
 
-  .ledger-calendar-view .calendar-grid {
+  .content:has(.ledger-calendar-view) .calendar-grid {
     display: grid !important;
     flex: 1 1 auto !important;
     height: 100% !important;
@@ -629,11 +646,11 @@
     grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
     grid-auto-rows: minmax(0, 1fr) !important;
-    gap: 4px !important;
+    gap: 3px !important;
     overflow: hidden !important;
   }
 
-  .ledger-calendar-view .calendar-cell {
+  .content:has(.ledger-calendar-view) .calendar-cell {
     height: 100% !important;
     min-height: 0 !important;
     display: flex !important;

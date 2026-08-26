@@ -4902,7 +4902,7 @@ body.category-handle-drag-active {
   flex-direction: column;
 }
 
-.ledger-workspace:has(.ledger-calendar-view) {
+.content:has(.ledger-calendar-view) .ledger-workspace {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -4911,7 +4911,12 @@ body.category-handle-drag-active {
   gap: 12px;
 }
 
-.ledger-calendar-view {
+.content:has(.ledger-calendar-view) .ledger-view-toggle,
+.content:has(.ledger-calendar-view) .ledger-month-summary {
+  flex: 0 0 auto;
+}
+
+.content:has(.ledger-calendar-view) .ledger-calendar-view {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -4920,7 +4925,12 @@ body.category-handle-drag-active {
   gap: 8px;
 }
 
-.ledger-calendar-view .calendar-grid {
+.content:has(.ledger-calendar-view) .calendar-control,
+.content:has(.ledger-calendar-view) .calendar-day-names-row {
+  flex: 0 0 auto;
+}
+
+.content:has(.ledger-calendar-view) .calendar-grid {
   display: grid;
   flex: 1 1 auto;
   height: 100%;
