@@ -5338,9 +5338,7 @@ export default function App() {
                     </div>
                     <div className="settlement-stat-item">
                       <span>계획 차액</span>
-                      <strong className={plannedNetTotal >= 0 ? 'settlement-remain-positive' : 'settlement-remain-negative'}>
-                        {displayCurrency(plannedNetTotal)}
-                      </strong>
+                      <strong>{displayCurrency(plannedNetTotal)}</strong>
                     </div>
                   </div>
                 </div>

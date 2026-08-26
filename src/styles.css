@@ -4436,6 +4436,16 @@ body.category-handle-drag-active {
   white-space: nowrap;
 }
 
+.settlement-stat-item strong.expense,
+.settlement-stat-item .expense {
+  color: var(--color-expense);
+}
+
+.settlement-stat-item strong.income,
+.settlement-stat-item .income {
+  color: var(--color-income);
+}
+
 .settlement-stat-item .settlement-remain-positive {
   color: var(--primary);
 }
