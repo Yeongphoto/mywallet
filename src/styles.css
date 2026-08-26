@@ -5037,12 +5037,14 @@ body.category-handle-drag-active {
   display: inline-flex;
   align-items: center;
   align-self: center;
-  gap: 8px;
-  margin: 8px 0 2px;
+  gap: 7px;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 0.84rem;
   font-weight: 800;
   cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
 }
 
 .asset-distribution-header {
@@ -5058,21 +5060,57 @@ body.category-handle-drag-active {
   margin: 0;
 }
 
-.yearly-asset-current {
-  flex-basis: 100%;
-  color: var(--color-asset);
-  font-size: 0.8rem;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
+.asset-detail-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.asset-detail-toggle input {
-  width: 17px;
-  height: 17px;
-  margin: 0;
-  accent-color: var(--primary);
+.asset-detail-toggle-switch {
+  width: 26px;
+  height: 16px;
+  position: relative;
+  border-radius: 999px;
+  background: var(--border-input);
+  transition: background 0.16s ease;
+  flex-shrink: 0;
+}
+
+.asset-detail-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.asset-detail-toggle input:checked + .asset-detail-toggle-switch {
+  background: rgba(var(--primary-rgb), 0.25);
+}
+
+.asset-detail-toggle input:checked + .asset-detail-toggle-switch::after {
+  transform: translateX(10px);
+  background: var(--primary);
+}
+
+/* In Doodle Theme */
+html[data-style-theme="doodle"] .asset-detail-toggle-switch {
+  border: 1.5px solid var(--border-card) !important;
+  background: var(--bg-app) !important;
+}
+
+html[data-style-theme="doodle"] .asset-detail-toggle input:checked + .asset-detail-toggle-switch {
+  background: rgba(234, 179, 8, 0.3) !important;
+  border-color: #1e1903 !important;
+}
+
+html[data-style-theme="doodle"] .asset-detail-toggle input:checked + .asset-detail-toggle-switch::after {
+  background: var(--primary) !important;
+  border: 1px solid #1e1903 !important;
 }
 
 

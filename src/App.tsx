@@ -4173,8 +4173,13 @@ export default function App() {
               <div className="panel-header asset-distribution-header">
                 <h2 className="panel-title-kor">자산 분배 현황</h2>
                 <label className="asset-detail-toggle">
-                  <input type="checkbox" checked={showAssetDetails} onChange={(event) => setShowAssetDetails(event.target.checked)} />
-                  <span>세부 자산</span>
+                  <span className="asset-detail-toggle-label">세부 자산</span>
+                  <input
+                    type="checkbox"
+                    checked={showAssetDetails}
+                    onChange={(event) => setShowAssetDetails(event.target.checked)}
+                  />
+                  <span className="asset-detail-toggle-switch" aria-hidden="true" />
                 </label>
               </div>
 
