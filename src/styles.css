@@ -4999,7 +4999,7 @@ body.category-handle-drag-active {
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 993px) {
   .content {
     padding: 88px 32px 20px;
     min-height: 100vh;
