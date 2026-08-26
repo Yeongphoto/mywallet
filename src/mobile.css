@@ -320,7 +320,7 @@
     --fab-bar-border: rgba(255, 255, 255, 0.16);
     --safe-top: max(calc(env(safe-area-inset-top, 0px) - 10px), 0px);
     --header-height: calc(72px + var(--safe-top));
-    --footer-height: calc(98px + env(safe-area-inset-bottom, 0px));
+    --footer-height: calc(78px + env(safe-area-inset-bottom, 0px));
   }
   
   .sidebar nav {
@@ -407,7 +407,7 @@
     left: 0 !important;
     right: 0 !important;
     padding-top: 12px !important;
-    padding-bottom: 24px !important;
+    padding-bottom: 8px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
     overflow-y: auto;
@@ -575,31 +575,51 @@
     font-size: 0.85rem !important;
   }
 
-  /* 모바일 캘린더 높이 전체 반응형 꽉 채움 보정 */
-  .calendar-grid {
-    height: 100% !important; /* height 계산식을 지우고 Flex 상속 */
-    flex: 1 !important;
-    min-height: 380px !important;
-    grid-auto-rows: 1fr !important;
+  .ledger-workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    flex: 1;
+    gap: 14px;
+  }
+
+  .ledger-view-toggle {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+  }
+
+  .ledger-month-summary {
+    flex: 0 0 auto;
+    flex-shrink: 0;
   }
 
   .ledger-calendar-view {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    gap: 6px;
   }
 
   .ledger-calendar-view .calendar-control {
+    flex: 0 0 auto;
+    flex-shrink: 0;
     margin-bottom: 0;
   }
 
   .ledger-calendar-view .calendar-day-names-row {
+    flex: 0 0 auto;
+    flex-shrink: 0;
     margin-bottom: 2px;
     gap: 4px;
   }
 
   .ledger-calendar-view .calendar-grid {
     display: grid !important;
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    min-height: 0 !important;
     grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     grid-template-rows: repeat(6, minmax(0, 1fr)) !important;
     grid-auto-rows: minmax(0, 1fr) !important;
@@ -607,7 +627,8 @@
   }
 
   .ledger-calendar-view .calendar-cell {
-    min-height: 48px;
+    height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
