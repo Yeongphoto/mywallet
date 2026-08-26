@@ -5079,6 +5079,27 @@ body.category-handle-drag-active {
     font-weight: 700 !important;
     padding: 2px 4px !important;
   }
+
+  .summary-visual-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+  }
+
+  .summary-visual-grid > .glass-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 100% !important;
+    min-height: 380px !important;
+  }
+
+  .annual-chart-panel svg {
+    height: 100% !important;
+    max-height: 310px !important;
+    width: 100% !important;
+  }
 }
 
 

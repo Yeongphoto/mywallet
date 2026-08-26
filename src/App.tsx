@@ -4338,27 +4338,28 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '16px 10px 10px 10px', overflow: 'visible', zIndex: 10 }}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <h2 className="panel-title-kor">연간 그래프</h2>
+            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '16px 12px 12px 12px', overflow: 'visible', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', marginBottom: '12px', minWidth: 0 }}>
+                <div style={{ flexShrink: 0 }}>
+                  <h2 className="panel-title-kor" style={{ margin: 0, whiteSpace: 'nowrap' }}>연간 그래프</h2>
                 </div>
                 
                 {/* 필터 칩 선택기 */}
-                <div style={{ display: 'flex', gap: '6px', background: 'var(--bg-input)', padding: '3px 4px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
+                <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)', flexShrink: 0 }}>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('both')}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
+                      padding: '5px 9px',
+                      fontSize: '0.75rem',
                       fontWeight: 800,
-                      borderRadius: '8px',
+                      borderRadius: '7px',
                       border: 'none',
                       background: chartFilter === 'both' ? 'var(--bg-app)' : 'transparent',
                       color: chartFilter === 'both' ? 'var(--text-primary)' : 'var(--text-secondary)',
                       boxShadow: chartFilter === 'both' ? 'var(--shadow-sm)' : 'none',
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -4368,15 +4369,16 @@ export default function App() {
                     type="button" 
                     onClick={() => setChartFilter('income')}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
+                      padding: '5px 9px',
+                      fontSize: '0.75rem',
                       fontWeight: 800,
-                      borderRadius: '8px',
+                      borderRadius: '7px',
                       border: 'none',
                       background: chartFilter === 'income' ? 'var(--bg-app)' : 'transparent',
                       color: chartFilter === 'income' ? 'var(--color-income)' : 'var(--text-secondary)',
                       boxShadow: chartFilter === 'income' ? 'var(--shadow-sm)' : 'none',
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -4386,15 +4388,16 @@ export default function App() {
                     type="button" 
                     onClick={() => setChartFilter('expense')}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
+                      padding: '5px 9px',
+                      fontSize: '0.75rem',
                       fontWeight: 800,
-                      borderRadius: '8px',
+                      borderRadius: '7px',
                       border: 'none',
                       background: chartFilter === 'expense' ? 'var(--bg-app)' : 'transparent',
                       color: chartFilter === 'expense' ? 'var(--color-expense)' : 'var(--text-secondary)',
                       boxShadow: chartFilter === 'expense' ? 'var(--shadow-sm)' : 'none',
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -4404,15 +4407,16 @@ export default function App() {
                     type="button" 
                     onClick={() => setChartFilter('asset')}
                     style={{
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
+                      padding: '5px 9px',
+                      fontSize: '0.75rem',
                       fontWeight: 800,
-                      borderRadius: '8px',
+                      borderRadius: '7px',
                       border: 'none',
                       background: chartFilter === 'asset' ? 'var(--bg-app)' : 'transparent',
                       color: chartFilter === 'asset' ? 'var(--color-asset)' : 'var(--text-secondary)',
                       boxShadow: chartFilter === 'asset' ? 'var(--shadow-sm)' : 'none',
                       cursor: 'pointer',
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.2s'
                     }}
                   >
@@ -4420,12 +4424,12 @@ export default function App() {
                   </button>
                 </div>
                 {chartFilter === 'asset' && latestTrackedAsset && latestTrackedAsset.asset !== null && (
-                  <span className="yearly-asset-current">현재 순자산 {displayCurrency(latestTrackedAsset.asset)}</span>
+                  <span className="yearly-asset-current" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>순자산 {displayCurrency(latestTrackedAsset.asset)}</span>
                 )}
               </div>
 
               {/* 연간 차트 영역 */}
-              <div style={{ width: '100%', position: 'relative', overflow: 'visible' }}>
+              <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', position: 'relative', overflow: 'visible' }}>
                 <div style={{ width: '100%', position: 'relative' }}>
                   <svg width="100%" height="auto" viewBox="0 0 560 300" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients & Tetris Block Patterns */}
