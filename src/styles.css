@@ -5832,7 +5832,7 @@ html[data-style-theme="doodle"] textarea {
 /* Doodle Card & Panel Styles */
 html[data-style-theme="doodle"] .glass-panel,
 html[data-style-theme="doodle"] .summary-hero-card,
-html[data-style-theme="doodle"] .settlement-summary-card,
+html[data-style-theme="doodle"] .settlement-stat-grid,
 html[data-style-theme="doodle"] .stat-card,
 html[data-style-theme="doodle"] .managed-category-card,
 html[data-style-theme="doodle"] .calendar-board,
@@ -5846,9 +5846,15 @@ html[data-style-theme="doodle"] .picker-popup-sheet {
   box-shadow: 2px 3px 0px rgba(0, 0, 0, 0.08) !important;
 }
 
+html[data-style-theme="doodle"] .settlement-summary-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 html[data-style-theme="doodle"][data-theme="dark"] .glass-panel,
 html[data-style-theme="doodle"][data-theme="dark"] .summary-hero-card,
-html[data-style-theme="doodle"][data-theme="dark"] .settlement-summary-card,
+html[data-style-theme="doodle"][data-theme="dark"] .settlement-stat-grid,
 html[data-style-theme="doodle"][data-theme="dark"] .stat-card,
 html[data-style-theme="doodle"][data-theme="dark"] .managed-category-card,
 html[data-style-theme="doodle"][data-theme="dark"] .calendar-board,
