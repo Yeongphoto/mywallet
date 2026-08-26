@@ -271,12 +271,20 @@ button:active {
   margin-bottom: 36px;
 }
 
+.mywallet-logo-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
 .mywallet-logo {
   width: 38px;
   height: 38px;
   flex: 0 0 auto;
   display: block;
   overflow: visible;
+  object-fit: contain;
   filter: drop-shadow(0 10px 20px rgba(2, 132, 199, 0.22));
 }
 
@@ -442,7 +450,7 @@ button:active {
   align-items: center;
 }
 
-.app-header .mywallet-logo {
+.app-header .mywallet-logo-frame {
   width: 32px;
   height: 32px;
   box-sizing: border-box;
@@ -451,6 +459,12 @@ button:active {
   border: 1px solid #fff;
   background: var(--surface-inverse);
   box-shadow: 0 8px 18px rgba(2, 132, 199, 0.18);
+}
+
+.app-header .mywallet-logo-frame .mywallet-logo {
+  width: 100%;
+  height: 100%;
+  filter: none;
 }
 
 .app-header .brand-text strong {
@@ -6053,14 +6067,15 @@ html[data-style-theme="doodle"] .brand-wordmark span:last-child {
   color: var(--brand-highlight) !important;
 }
 
-html[data-style-theme="doodle"] .mywallet-logo {
-  filter: drop-shadow(0 6px 14px rgba(234, 179, 8, 0.25));
+html[data-style-theme="doodle"] .app-header .mywallet-logo-frame {
+  background: var(--primary) !important;
+  border: 2px solid #2c241d !important;
+  border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
+  box-shadow: 1px 2px 0px rgba(0, 0, 0, 0.15) !important;
 }
 
-html[data-style-theme="doodle"] .app-header .mywallet-logo {
-  background: var(--surface-inverse);
-  border: 1.5px solid var(--primary);
-  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2);
+html[data-style-theme="doodle"] .app-header .mywallet-logo-frame .mywallet-logo {
+  filter: brightness(0) !important;
 }
 
 /* Doodle Header Action Buttons: Settings, Privacy, Sync */

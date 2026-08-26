@@ -118,15 +118,13 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
 
 function MyWalletLogo({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <img 
-      src="/logo.png" 
-      alt="MyWallet 로고" 
-      className={`mywallet-logo ${className}`} 
-      style={{ 
-        objectFit: 'contain',
-        ...style 
-      }} 
-    />
+    <span className={`mywallet-logo-frame ${className}`} style={style}>
+      <img 
+        src="/logo.png" 
+        alt="MyWallet 로고" 
+        className="mywallet-logo" 
+      />
+    </span>
   );
 }
 
