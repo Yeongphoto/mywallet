@@ -115,14 +115,53 @@ html[data-theme='light'] textarea {
   color: var(--text-primary);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.15s ease;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+[role='button'],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none;
+}
+
+a:focus,
+button:focus,
+[role='button']:focus {
+  outline: none;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevent accidental text selection / highlight boxes on mobile UI components */
+.sidebar,
+.app-header,
+.brand,
+.theme-toggle,
+.settings-segment,
+.ledger-view-toggle,
+.month-navigation,
+.summary-card,
+.compact-entry-field,
+.picker-grid-btn {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 button,
 [role='button'] {
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation;
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.15s ease, transform 0.1s ease;
 }
