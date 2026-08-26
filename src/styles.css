@@ -5937,12 +5937,12 @@ html[data-style-theme="doodle"][data-theme="light"] {
   --bg-card: rgba(255, 253, 248, 0.94);
   --border-card: rgba(180, 160, 130, 0.28);
   --border-input: #e6dfd1;
-  --primary: #d97706;
-  --primary-hover: #b45309;
-  --primary-rgb: 217, 119, 6;
-  --primary-light: #f59e0b;
-  --primary-soft: rgba(217, 119, 6, 0.15);
-  --brand-highlight: #d97706;
+  --primary: #eab308;
+  --primary-hover: #ca8a04;
+  --primary-rgb: 234, 179, 8;
+  --primary-light: #facc15;
+  --primary-soft: rgba(234, 179, 8, 0.18);
+  --brand-highlight: #eab308;
   --surface-inverse: #2c241d;
 }
 
@@ -5967,12 +5967,12 @@ html[data-style-theme="doodle"][data-theme="dark"] {
   --bg-card: rgba(28, 25, 22, 0.88);
   --border-card: rgba(255, 255, 255, 0.12);
   --border-input: #383028;
-  --primary: #f59e0b;
-  --primary-hover: #fbbf24;
-  --primary-rgb: 245, 158, 11;
-  --primary-light: #fcd34d;
-  --primary-soft: rgba(245, 158, 11, 0.2);
-  --brand-highlight: #f59e0b;
+  --primary: #facc15;
+  --primary-hover: #fde047;
+  --primary-rgb: 250, 204, 21;
+  --primary-light: #fef08a;
+  --primary-soft: rgba(250, 204, 21, 0.22);
+  --brand-highlight: #facc15;
   --surface-inverse: #12100e;
 }
 
@@ -5990,34 +5990,92 @@ html[data-style-theme="doodle"][data-theme="dark"] .fixed-bottom-bar {
   border-top: 1.5px solid #2e2822 !important;
 }
 
-/* Doodle Brand Logo Style */
+/* Doodle Brand Wordmark & Logo */
+html[data-style-theme="doodle"] .brand-wordmark span:first-child {
+  color: #ffffff !important;
+}
+
+html[data-style-theme="doodle"] .app-header .brand-wordmark span:first-child {
+  color: var(--text-primary) !important;
+}
+
+html[data-style-theme="doodle"] .brand-wordmark span:last-child {
+  color: var(--brand-highlight) !important;
+}
+
 html[data-style-theme="doodle"] .mywallet-logo {
-  filter: drop-shadow(0 6px 14px rgba(217, 119, 6, 0.25));
+  filter: drop-shadow(0 6px 14px rgba(234, 179, 8, 0.25));
 }
 
 html[data-style-theme="doodle"] .app-header .mywallet-logo {
   background: var(--surface-inverse);
   border: 1.5px solid var(--primary);
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2);
+}
+
+/* Doodle Header Settings Button */
+html[data-style-theme="doodle"] .header-settings-btn {
+  background: var(--bg-input) !important;
+  border: 1.5px solid var(--border-card) !important;
+  color: var(--text-primary) !important;
+  border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
+  box-shadow: 1px 2px 0px rgba(0, 0, 0, 0.08) !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html[data-style-theme="doodle"] .header-settings-btn svg,
+html[data-style-theme="doodle"] .header-settings-btn span {
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html[data-style-theme="doodle"] .header-settings-btn:hover {
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  transform: scale(1.05) rotate(-3deg);
+}
+
+html[data-style-theme="doodle"] .header-settings-btn.active {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.35) !important;
+}
+
+html[data-style-theme="doodle"] .header-settings-btn.active svg,
+html[data-style-theme="doodle"] .header-settings-btn.active span {
+  color: #1e1903 !important;
 }
 
 /* Doodle Sidebar Active Nav & Action Button */
 html[data-style-theme="doodle"] .sidebar nav a.active {
   background: var(--primary) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important;
+  color: #1e1903 !important;
+  font-weight: 850 !important;
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.35) !important;
+}
+
+html[data-style-theme="doodle"] .sidebar nav a.active .app-icon {
+  color: #1e1903 !important;
 }
 
 html[data-style-theme="doodle"] .desktop-registration-action > button {
   background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
-  border: 1.5px solid rgba(253, 230, 138, 0.6) !important;
-  color: #ffffff !important;
-  box-shadow: 0 8px 18px rgba(217, 119, 6, 0.3) !important;
+  border: 1.5px solid #fef08a !important;
+  color: #1e1903 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 18px rgba(234, 179, 8, 0.35) !important;
 }
 
 html[data-style-theme="doodle"] .desktop-registration-action > button:hover {
   background: linear-gradient(135deg, var(--primary-light), var(--primary-hover)) !important;
-  box-shadow: 0 12px 24px rgba(217, 119, 6, 0.4) !important;
+  box-shadow: 0 12px 24px rgba(234, 179, 8, 0.45) !important;
 }
 
 /* Doodle Month Navigation in Header */
@@ -6036,14 +6094,9 @@ html[data-style-theme="doodle"] .settings-segment button.active,
 html[data-style-theme="doodle"] .ledger-view-toggle button.active,
 html[data-style-theme="doodle"] .view-toggle-btn.active {
   background: var(--primary) !important;
-  color: #fff !important;
-  box-shadow: 0 3px 10px rgba(217, 119, 6, 0.28) !important;
-}
-
-html[data-style-theme="doodle"] .header-settings-btn.active {
-  background: var(--primary-soft) !important;
-  color: var(--primary) !important;
-  border-color: var(--primary) !important;
+  color: #1e1903 !important;
+  font-weight: 850 !important;
+  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.3) !important;
 }
 
 /* Doodle Category / Asset Focus Ring */
