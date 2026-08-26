@@ -5320,6 +5320,31 @@ export default function App() {
 
             {planView === 'budget' && (
               <div className="plans-workspace" style={{ display: 'grid', gap: '16px' }}>
+                {/* 상단 요약 카드 (결산 탭과 동일한 3행 1열 구조 및 위치) */}
+                <div className="settlement-summary-card">
+                  <div className="settlement-summary-top">
+                    <h3 className="settlement-summary-title">
+                      <AppIcon name="plan" size={19} /> {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월 예산 계획
+                    </h3>
+                  </div>
+                  <div className="settlement-stat-grid">
+                    <div className="settlement-stat-item">
+                      <span>지출 예산 합계</span>
+                      <strong className="expense">{displayCurrency(plannedExpenseTotal)}</strong>
+                    </div>
+                    <div className="settlement-stat-item">
+                      <span>수입 목표 합계</span>
+                      <strong className="income">{displayCurrency(plannedIncomeTotal)}</strong>
+                    </div>
+                    <div className="settlement-stat-item">
+                      <span>계획 차액</span>
+                      <strong className={plannedNetTotal >= 0 ? 'settlement-remain-positive' : 'settlement-remain-negative'}>
+                        {displayCurrency(plannedNetTotal)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="plans-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
                   {/* 지출 계획 */}
                   <div>
@@ -5413,20 +5438,6 @@ export default function App() {
                         })}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-                <div className="plan-total-bar">
-                  <div className="plan-total-item plan-total-expense">
-                    <span>지출 예산 합계</span>
-                    <strong>{displayCurrency(plannedExpenseTotal)}</strong>
-                  </div>
-                  <div className="plan-total-item plan-total-income">
-                    <span>수입 목표 합계</span>
-                    <strong>{displayCurrency(plannedIncomeTotal)}</strong>
-                  </div>
-                  <div className={`plan-total-item ${plannedNetTotal >= 0 ? 'plan-total-income' : 'plan-total-expense'}`}>
-                    <span>계획 차액</span>
-                    <strong>{displayCurrency(plannedNetTotal)}</strong>
                   </div>
                 </div>
               </div>

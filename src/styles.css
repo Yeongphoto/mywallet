@@ -4360,6 +4360,7 @@ body.category-handle-drag-active {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+  min-height: 38px;
 }
 
 .settlement-summary-title {
