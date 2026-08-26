@@ -4108,7 +4108,7 @@ body.category-handle-drag-active {
   padding-top: 9px !important;
 }
 
-/* App loading screen */
+/* App loading screen - Neutral Monochrome Common Style */
 .app-loading-screen {
   position: fixed;
   inset: 0;
@@ -4117,7 +4117,7 @@ body.category-handle-drag-active {
   place-content: center;
   justify-items: center;
   gap: 22px;
-  background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+  background: radial-gradient(circle at center, #18181b 0%, #09090b 100%);
 }
 
 .app-loading-mark {
@@ -4131,7 +4131,7 @@ body.category-handle-drag-active {
 .app-loading-logo {
   width: 90px;
   height: 90px;
-  filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.2));
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.15));
 }
 
 .app-loading-orbit-track,
@@ -4142,11 +4142,11 @@ body.category-handle-drag-active {
 }
 
 .app-loading-orbit-track {
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.12);
 }
 
 .app-loading-orbit {
-  background: conic-gradient(from -65deg, transparent 0deg 38deg, #22d3ee 74deg, #0b8ec7 126deg, transparent 164deg 360deg);
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #ffffff 74deg, #a1a1aa 126deg, transparent 164deg 360deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
   animation: loadingOrbit 1.2s linear infinite;
@@ -4166,7 +4166,7 @@ body.category-handle-drag-active {
   z-index: 99998;
   display: grid;
   place-items: center;
-  background: rgba(3, 7, 18, 0.56);
+  background: rgba(9, 9, 11, 0.7);
 }
 
 .app-sync-overlay .app-loading-mark {

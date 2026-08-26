@@ -3932,7 +3932,7 @@ export default function App() {
           <div className="app-loading-copy">
             <h1>
               <span style={{ color: '#ffffff' }}>My</span>
-              <span style={{ color: 'var(--primary)' }}>Wallet</span>
+              <span style={{ color: '#e4e4e7', marginLeft: '2px' }}>Wallet</span>
             </h1>
           </div>
         </div>
