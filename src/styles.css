@@ -2218,12 +2218,13 @@ body.category-handle-drag-active {
 .plan-inclusion-toggle span::after {
   content: '';
   position: absolute;
-  top: 3px;
+  top: 50%;
   left: 3px;
   width: 10px;
   height: 10px;
   border-radius: 999px;
   background: var(--text-secondary);
+  transform: translateY(-50%);
   transition: transform 0.16s ease, background 0.16s ease;
 }
 
@@ -2232,7 +2233,7 @@ body.category-handle-drag-active {
 }
 
 .plan-inclusion-toggle input:checked + span::after {
-  transform: translateX(10px);
+  transform: translate(10px, -50%);
   background: var(--primary);
 }
 
@@ -5067,25 +5068,28 @@ body.category-handle-drag-active {
 }
 
 .asset-detail-toggle-switch {
-  width: 26px;
+  width: 28px;
   height: 16px;
   position: relative;
   border-radius: 999px;
   background: var(--border-input);
   transition: background 0.16s ease;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .asset-detail-toggle-switch::after {
   content: '';
   position: absolute;
-  top: 3px;
+  top: 50%;
   left: 3px;
   width: 10px;
   height: 10px;
   border-radius: 999px;
   background: var(--text-secondary);
+  transform: translateY(-50%);
   transition: transform 0.16s ease, background 0.16s ease;
+  box-sizing: border-box;
 }
 
 .asset-detail-toggle input:checked + .asset-detail-toggle-switch {
@@ -5093,7 +5097,7 @@ body.category-handle-drag-active {
 }
 
 .asset-detail-toggle input:checked + .asset-detail-toggle-switch::after {
-  transform: translateX(10px);
+  transform: translate(12px, -50%);
   background: var(--primary);
 }
 
@@ -5110,7 +5114,8 @@ html[data-style-theme="doodle"] .asset-detail-toggle input:checked + .asset-deta
 
 html[data-style-theme="doodle"] .asset-detail-toggle input:checked + .asset-detail-toggle-switch::after {
   background: var(--primary) !important;
-  border: 1px solid #1e1903 !important;
+  border: none !important;
+  transform: translate(10.5px, -50%) !important;
 }
 
 
