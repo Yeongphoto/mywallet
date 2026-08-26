@@ -4437,7 +4437,7 @@ export default function App() {
               <div style={{ width: '100%', position: 'relative', overflow: 'visible' }}>
                 <div style={{ width: '100%', position: 'relative' }}>
                   <svg width="100%" height="320" viewBox="0 0 560 320" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
-                    {/* SVG Definition for Gradients */}
+                    {/* SVG Definition for Gradients & Tetris Block Patterns */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#34d399" />
@@ -4451,6 +4451,24 @@ export default function App() {
                         <stop offset="0%" stopColor="#34d399" />
                         <stop offset="100%" stopColor="#10b981" />
                       </linearGradient>
+
+                      {/* Tetris Stacked Block Patterns for Doodle Theme */}
+                      <pattern id="tetris-pattern-income" width="10" height="8" patternUnits="userSpaceOnUse">
+                        <rect x="0.5" y="0.5" width="9" height="6.5" rx="1.5" fill="#22c55e" stroke="#15803d" strokeWidth="0.7" />
+                        <rect x="1.5" y="1.2" width="7" height="1.8" rx="0.6" fill="#86efac" opacity="0.6" />
+                      </pattern>
+                      <pattern id="tetris-pattern-expense" width="10" height="8" patternUnits="userSpaceOnUse">
+                        <rect x="0.5" y="0.5" width="9" height="6.5" rx="1.5" fill="#f43f5e" stroke="#be123c" strokeWidth="0.7" />
+                        <rect x="1.5" y="1.2" width="7" height="1.8" rx="0.6" fill="#fca5a5" opacity="0.6" />
+                      </pattern>
+                      <pattern id="tetris-pattern-income-wide" width="18" height="8" patternUnits="userSpaceOnUse">
+                        <rect x="0.5" y="0.5" width="17" height="6.5" rx="1.5" fill="#22c55e" stroke="#15803d" strokeWidth="0.7" />
+                        <rect x="1.5" y="1.2" width="15" height="1.8" rx="0.6" fill="#86efac" opacity="0.6" />
+                      </pattern>
+                      <pattern id="tetris-pattern-expense-wide" width="18" height="8" patternUnits="userSpaceOnUse">
+                        <rect x="0.5" y="0.5" width="17" height="6.5" rx="1.5" fill="#f43f5e" stroke="#be123c" strokeWidth="0.7" />
+                        <rect x="1.5" y="1.2" width="15" height="1.8" rx="0.6" fill="#fca5a5" opacity="0.6" />
+                      </pattern>
                     </defs>
 
                     {/* Y축 그리드 라인 & 라벨 */}
@@ -4583,9 +4601,13 @@ export default function App() {
                                     y={260 - incHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
-                                    rx="3"
-                                    ry="3"
-                                    fill="url(#chart-income-grad)"
+                                    rx={styleTheme === 'doodle' ? '2' : '3'}
+                                    ry={styleTheme === 'doodle' ? '2' : '3'}
+                                    fill={
+                                      styleTheme === 'doodle'
+                                        ? (chartFilter === 'both' ? 'url(#tetris-pattern-income)' : 'url(#tetris-pattern-income-wide)')
+                                        : 'url(#chart-income-grad)'
+                                    }
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
@@ -4598,9 +4620,13 @@ export default function App() {
                                     y={260 - expHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
-                                    rx="3"
-                                    ry="3"
-                                    fill="url(#chart-expense-grad)"
+                                    rx={styleTheme === 'doodle' ? '2' : '3'}
+                                    ry={styleTheme === 'doodle' ? '2' : '3'}
+                                    fill={
+                                      styleTheme === 'doodle'
+                                        ? (chartFilter === 'both' ? 'url(#tetris-pattern-expense)' : 'url(#tetris-pattern-expense-wide)')
+                                        : 'url(#chart-expense-grad)'
+                                    }
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
