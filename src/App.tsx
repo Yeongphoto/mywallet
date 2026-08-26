@@ -4165,8 +4165,8 @@ export default function App() {
 
             {/* 자산 분배 현황 원형 그래프 패널 */}
             <div className="summary-visual-grid">
-            <section className="glass-panel asset-distribution-panel" style={{ display: 'flex', flexDirection: 'column', gap: '0', padding: '14px 16px' }}>
-              <div className="panel-header asset-distribution-header">
+            <section className="glass-panel asset-distribution-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0', padding: '16px 16px 12px', height: '100%', boxSizing: 'border-box' }}>
+              <div className="panel-header asset-distribution-header" style={{ marginBottom: '8px' }}>
                 <h2 className="panel-title-kor">자산 분배 현황</h2>
                 <label className="asset-detail-toggle">
                   <span className="asset-detail-toggle-label">세부 자산</span>
@@ -4179,25 +4179,25 @@ export default function App() {
                 </label>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0', padding: '12px 0 0' }}>
-                {/* 파이 원형 그래프 (2배 이상 확대 & 여백 완전 밀착) */}
-                <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 auto', gap: '0', padding: '8px 0 0', width: '100%' }}>
+                {/* 파이 원형 그래프 (중앙보다 살짝 아래 위치 고정) */}
+                <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 'auto', marginBottom: '0' }}>
                   <svg 
                     width="100%" 
                     height="auto" 
-                    viewBox="0 0 380 276" 
+                    viewBox="0 0 380 286" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
-                      aspectRatio: '380 / 276',
+                      aspectRatio: '380 / 286',
                       filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
                     {/* Background Circle / Donut Hole Background */}
-                    <circle cx="190" cy="135" r="96" fill="var(--bg-input)" opacity="0.3" />
+                    <circle cx="190" cy="144" r="96" fill="var(--bg-input)" opacity="0.3" />
 
                     {assetFlowSegments.length === 0 ? (
-                      <text x="190" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
+                      <text x="190" y="149" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
                         자산 데이터가 없습니다.
                       </text>
                     ) : (
@@ -4205,7 +4205,7 @@ export default function App() {
                         const R_outer = 96;
                         const R_inner = 64;
                         const CX = 190;
-                        const CY = 135;
+                        const CY = 144;
                         let accumulatedAngle = -90; // 12시 방향부터 시작
 
                         // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(5%) 적용
