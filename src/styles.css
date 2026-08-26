@@ -6068,6 +6068,9 @@ html[data-style-theme="doodle"] .brand-wordmark span:last-child {
 }
 
 html[data-style-theme="doodle"] .app-header .mywallet-logo-frame {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 3px !important;
   background: var(--primary) !important;
   border: 2px solid #2c241d !important;
   border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
@@ -6075,7 +6078,39 @@ html[data-style-theme="doodle"] .app-header .mywallet-logo-frame {
 }
 
 html[data-style-theme="doodle"] .app-header .mywallet-logo-frame .mywallet-logo {
+  width: 100% !important;
+  height: 100% !important;
+  transform: scale(1.12) !important;
   filter: brightness(0) !important;
+}
+
+/* Doodle Month Navigation in Header */
+html[data-style-theme="doodle"] .month-navigation,
+html[data-style-theme="doodle"] .app-header .month-navigation {
+  background: var(--bg-input) !important;
+  border: 2px solid var(--border-card) !important;
+  border-radius: 14px 6px 16px 8px / 8px 16px 6px 14px !important;
+  box-shadow: 1px 2px 0px rgba(0, 0, 0, 0.08) !important;
+  padding: 0 4px !important;
+  gap: 2px !important;
+}
+
+html[data-style-theme="doodle"] .month-picker-wrap,
+html[data-style-theme="doodle"] .app-header .month-picker-wrap,
+html[data-style-theme="doodle"] .month-nav-button,
+html[data-style-theme="doodle"] .app-header .month-nav-button,
+html[data-style-theme="doodle"] .month-picker-display {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--primary) !important;
+}
+
+html[data-style-theme="doodle"] .month-nav-button:hover,
+html[data-style-theme="doodle"] .month-picker-display:hover {
+  background: rgba(234, 179, 8, 0.12) !important;
+  border-radius: 8px !important;
+  transform: scale(1.05) !important;
 }
 
 /* Doodle Header Action Buttons: Settings, Privacy, Sync */
