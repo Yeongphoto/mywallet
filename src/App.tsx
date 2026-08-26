@@ -4166,7 +4166,7 @@ export default function App() {
             {/* 자산 분배 현황 원형 그래프 패널 */}
             <div className="summary-visual-grid">
             <section className="glass-panel asset-distribution-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0', padding: '16px 16px 12px', height: '100%', boxSizing: 'border-box' }}>
-              <div className="panel-header asset-distribution-header" style={{ marginBottom: '8px' }}>
+              <div className="panel-header asset-distribution-header" style={{ marginBottom: '4px' }}>
                 <h2 className="panel-title-kor">자산 분배 현황</h2>
                 <label className="asset-detail-toggle">
                   <span className="asset-detail-toggle-label">세부 자산</span>
@@ -4179,25 +4179,25 @@ export default function App() {
                 </label>
               </div>
 
-              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 auto', gap: '0', padding: '8px 0 0', width: '100%' }}>
-                {/* 파이 원형 그래프 (중앙보다 살짝 아래 위치 고정) */}
+              <div className="asset-donut-layout" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', flex: '1 1 auto', gap: '0', padding: '0', width: '100%', minHeight: 0 }}>
+                {/* 파이 원형 그래프 (중앙보다 확연히 아래 위치에 고정) */}
                 <div style={{ position: 'relative', width: '100%', maxWidth: '440px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 'auto', marginBottom: '0' }}>
                   <svg 
                     width="100%" 
                     height="auto" 
-                    viewBox="0 0 380 286" 
+                    viewBox="0 0 380 340" 
                     style={{ 
                       display: 'block', 
                       overflow: 'visible',
-                      aspectRatio: '380 / 286',
+                      aspectRatio: '380 / 340',
                       filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
                     {/* Background Circle / Donut Hole Background */}
-                    <circle cx="190" cy="144" r="96" fill="var(--bg-input)" opacity="0.3" />
+                    <circle cx="190" cy="185" r="96" fill="var(--bg-input)" opacity="0.3" />
 
                     {assetFlowSegments.length === 0 ? (
-                      <text x="190" y="149" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
+                      <text x="190" y="190" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
                         자산 데이터가 없습니다.
                       </text>
                     ) : (
@@ -4205,7 +4205,7 @@ export default function App() {
                         const R_outer = 96;
                         const R_inner = 64;
                         const CX = 190;
-                        const CY = 144;
+                        const CY = 185;
                         let accumulatedAngle = -90; // 12시 방향부터 시작
 
                         // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(5%) 적용
@@ -4338,8 +4338,8 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '16px 12px 12px 12px', overflow: 'visible', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', marginBottom: '12px', minWidth: 0 }}>
+            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '16px 12px 10px 12px', overflow: 'visible', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', marginBottom: '8px', minWidth: 0 }}>
                 <div style={{ flexShrink: 0 }}>
                   <h2 className="panel-title-kor" style={{ margin: 0, whiteSpace: 'nowrap' }}>연간 그래프</h2>
                 </div>
@@ -4429,9 +4429,9 @@ export default function App() {
               </div>
 
               {/* 연간 차트 영역 */}
-              <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', position: 'relative', overflow: 'visible' }}>
+              <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', position: 'relative', overflow: 'visible', minHeight: 0 }}>
                 <div style={{ width: '100%', position: 'relative' }}>
-                  <svg width="100%" height="auto" viewBox="0 0 560 300" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
+                  <svg width="100%" height="auto" viewBox="0 0 560 342" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
                     {/* SVG Definition for Gradients & Tetris Block Patterns */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
@@ -4475,12 +4475,12 @@ export default function App() {
                       const chartMaxY = isAssetChart
                         ? Math.ceil((assetMaximum + stepSize * 0.5) / stepSize) * stepSize
                         : Math.ceil(standardMaximum / stepSize) * stepSize;
-                      const scale = 240 / Math.max(chartMaxY - chartMinY, stepSize);
+                      const scale = 285 / Math.max(chartMaxY - chartMinY, stepSize);
                       const gridValues = [];
                       for (let value = chartMinY; value <= chartMaxY; value += stepSize) {
                         gridValues.push(value);
                       }
-                      const chartY = (value: number) => 265 - (value - chartMinY) * scale;
+                      const chartY = (value: number) => 310 - (value - chartMinY) * scale;
                       const chartX = (index: number) => 48 + index * (482 / 12) + (482 / 24);
                       const formatAxisValue = (value: number) => {
                         const sign = value < 0 ? '-' : '';
@@ -4567,7 +4567,7 @@ export default function App() {
                                   x={xCenter - (482 / 24)} 
                                   y="15" 
                                   width={482 / 12} 
-                                  height="255"
+                                  height="300"
                                   fill="transparent"
                                 />
 
@@ -4575,7 +4575,7 @@ export default function App() {
                                 {showIncome && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter - 12 : xCenter - 9}
-                                    y={265 - incHeight}
+                                    y={310 - incHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
@@ -4590,7 +4590,7 @@ export default function App() {
                                 {showExpense && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
-                                    y={265 - expHeight}
+                                    y={310 - expHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
@@ -4616,7 +4616,7 @@ export default function App() {
                                 {/* X축 월 이름 라벨 */}
                                 <text
                                   x={xCenter}
-                                  y="286"
+                                  y="330"
                                   textAnchor="middle"
                                   fontSize="11"
                                   fontWeight="bold"
