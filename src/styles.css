@@ -5091,18 +5091,18 @@ body.category-handle-drag-active {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    height: 100% !important;
-    min-height: 380px !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   .annual-chart-panel svg,
   .asset-distribution-panel svg {
-    height: 100% !important;
+    height: auto !important;
     max-height: 360px !important;
     width: 100% !important;
   }
 
-  @media (max-width: 1260px) {
+  @media (max-width: 1200px) {
     .summary-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: 12px !important;
@@ -5113,6 +5113,11 @@ body.category-handle-drag-active {
     }
     .summary-card strong {
       font-size: 1.3rem !important;
+    }
+
+    .summary-visual-grid {
+      grid-template-columns: 1fr !important;
+      gap: 14px !important;
     }
   }
 }
