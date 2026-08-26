@@ -6130,6 +6130,60 @@ html[data-style-theme="doodle"] .picker-grid-btn.selected {
   box-shadow: 0 0 0 2px var(--primary) !important;
 }
 
+/* ==================== Doodle Charts Styling ==================== */
+/* 1. Asset Distribution Pie Chart (자산 분배 현황 원형 그래프) */
+html[data-style-theme="doodle"] .asset-distribution-panel svg circle {
+  fill: var(--bg-input) !important;
+  opacity: 0.6 !important;
+  stroke: var(--border-card) !important;
+  stroke-dasharray: 4 3 !important;
+  stroke-width: 1.8px !important;
+}
+
+html[data-style-theme="doodle"] .asset-distribution-panel svg path {
+  stroke: var(--bg-app) !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(1px 2px 0px rgba(0, 0, 0, 0.08)) !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .asset-distribution-panel svg path {
+  filter: drop-shadow(1px 2px 0px rgba(0, 0, 0, 0.35)) !important;
+}
+
+html[data-style-theme="doodle"] .asset-distribution-panel svg polyline {
+  stroke-width: 1.8px !important;
+  stroke-dasharray: 2 1 !important;
+}
+
+html[data-style-theme="doodle"] .asset-distribution-panel svg text {
+  font-family: 'Gowun Dodum', 'Gaegu', sans-serif !important;
+}
+
+/* 2. Annual Graph (연간 그래프) */
+html[data-style-theme="doodle"] .annual-chart-panel svg rect {
+  rx: 5px !important;
+  ry: 5px !important;
+  stroke: var(--bg-app) !important;
+  stroke-width: 1.5px !important;
+}
+
+html[data-style-theme="doodle"] .annual-chart-panel svg line {
+  stroke: var(--border-card) !important;
+  stroke-dasharray: 5 4 !important;
+  opacity: 0.7 !important;
+}
+
+html[data-style-theme="doodle"] .annual-chart-panel svg text {
+  font-family: 'Gowun Dodum', 'Gaegu', sans-serif !important;
+}
+
+html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
+  stroke-width: 3px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+
 
 
 
