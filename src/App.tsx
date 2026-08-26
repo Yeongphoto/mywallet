@@ -282,12 +282,38 @@ function formatNumberInput(value: number) {
   return value > 0 ? numberFormatter.format(value) : '';
 }
 
+function formatSignedNumberInput(value: string | number): string {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return '';
+    if (value === 0) return '0';
+    return numberFormatter.format(value);
+  }
+  const str = String(value ?? '').trim();
+  if (!str) return '';
+  if (str === '-') return '-';
+  const isNeg = str.startsWith('-');
+  const digits = str.replace(/[^\d]/g, '');
+  if (!digits) return isNeg ? '-' : '';
+  const num = Number(digits);
+  return isNeg ? `-${numberFormatter.format(num)}` : numberFormatter.format(num);
+}
+
 function parseAmount(value: string) {
   return Number(value.replace(/,/g, '').trim());
 }
 
 function parseNumberInput(value: string) {
   return Number(value.replace(/[^\d]/g, '')) || 0;
+}
+
+function parseSignedNumberInput(value: string): number {
+  const str = String(value ?? '').trim();
+  if (!str || str === '-') return 0;
+  const isNeg = str.startsWith('-');
+  const digits = str.replace(/[^\d]/g, '');
+  if (!digits) return 0;
+  const num = Number(digits);
+  return isNeg ? -num : num;
 }
 
 function getCategoryLabel(categories: CategoryOption[], idOrLabel: string) {
@@ -4961,17 +4987,36 @@ export default function App() {
                   {hasCardSchedule && <div className="asset-card-schedule-summary">사용 기간 {selectedAsset.cardCycleStartDay}일 ~ 다음 달 {selectedAsset.cardCycleEndDay}일 · 결제일(다음 달) {selectedAsset.cardPaymentDay}일 · 결제 계좌 {paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '미선택'}</div>}
                   <form className="asset-balance-adjust-form" onSubmit={(e) => {
                     e.preventDefault();
-                    const nextBalance = Number(assetBalanceDraft);
+                    const nextBalance = parseSignedNumberInput(assetBalanceDraft);
+                    if (!Number.isFinite(nextBalance)) { showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
                     const difference = nextBalance - currentBalance;
-                    if (!Number.isFinite(nextBalance) || nextBalance < 0) { showNotice('0원 이상의 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
                     if (!difference) return;
                     const direction = difference > 0 ? '수입(+)' : '지출(-)';
                     if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
                       handleAssetBalanceAdjustment(selectedAsset, nextBalance);
+                      setAssetBalanceDraft(String(nextBalance));
                     }
                   }}>
                     <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
-                    <div><input id="asset-balance-draft" type="text" inputMode="numeric" value={assetBalanceDraft ? formatNumberInput(parseNumberInput(assetBalanceDraft)) : ''} onChange={(e) => setAssetBalanceDraft(e.target.value.replace(/[^\d]/g, ''))} /><button type="submit" className="primary-button">차액 기록</button></div>
+                    <div>
+                      <input
+                        id="asset-balance-draft"
+                        type="text"
+                        inputMode="text"
+                        placeholder="0"
+                        value={formatSignedNumberInput(assetBalanceDraft)}
+                        onChange={(e) => {
+                          const raw = e.target.value.trim();
+                          if (!raw) { setAssetBalanceDraft(''); return; }
+                          if (raw === '-') { setAssetBalanceDraft('-'); return; }
+                          const isNeg = raw.startsWith('-');
+                          const digits = raw.replace(/[^\d]/g, '');
+                          if (!digits) { setAssetBalanceDraft(isNeg ? '-' : ''); return; }
+                          setAssetBalanceDraft(isNeg ? `-${digits}` : digits);
+                        }}
+                      />
+                      <button type="submit" className="primary-button">차액 기록</button>
+                    </div>
                     <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
                   </form>
                   </div>
@@ -6582,18 +6627,37 @@ export default function App() {
                 </div>
                 <form className="asset-balance-adjust-form" onSubmit={(e) => {
                   e.preventDefault();
-                  const nextBalance = Number(assetBalanceDraft);
+                  const nextBalance = parseSignedNumberInput(assetBalanceDraft);
+                  if (!Number.isFinite(nextBalance)) { showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
                   const difference = nextBalance - currentBalance;
-                  if (!Number.isFinite(nextBalance) || nextBalance < 0) { showNotice('0원 이상의 금액을 입력해 주세요.', '입력 확인', 'warning'); return; }
                   if (!difference) { setSelectedAsset(null); return; }
                   const direction = difference > 0 ? '수입(+)' : '지출(-)';
                   if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
                     handleAssetBalanceAdjustment(selectedAsset!, nextBalance);
+                    setAssetBalanceDraft(String(nextBalance));
                     setSelectedAsset(null);
                   }
                 }}>
                   <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
-                  <div><input id="asset-balance-draft" type="text" inputMode="numeric" value={assetBalanceDraft ? formatNumberInput(parseNumberInput(assetBalanceDraft)) : ''} onChange={(e) => setAssetBalanceDraft(e.target.value.replace(/[^\d]/g, ''))} /><button type="submit" className="primary-button">차액 기록</button></div>
+                  <div>
+                    <input
+                      id="asset-balance-draft"
+                      type="text"
+                      inputMode="text"
+                      placeholder="0"
+                      value={formatSignedNumberInput(assetBalanceDraft)}
+                      onChange={(e) => {
+                        const raw = e.target.value.trim();
+                        if (!raw) { setAssetBalanceDraft(''); return; }
+                        if (raw === '-') { setAssetBalanceDraft('-'); return; }
+                        const isNeg = raw.startsWith('-');
+                        const digits = raw.replace(/[^\d]/g, '');
+                        if (!digits) { setAssetBalanceDraft(isNeg ? '-' : ''); return; }
+                        setAssetBalanceDraft(isNeg ? `-${digits}` : digits);
+                      }}
+                    />
+                    <button type="submit" className="primary-button">차액 기록</button>
+                  </div>
                   <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
                 </form>
                 <div className="asset-history-list">
