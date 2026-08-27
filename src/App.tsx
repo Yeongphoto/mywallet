@@ -2053,6 +2053,14 @@ function saveAssetMutation(payload: Record<string, unknown>) {
   });
 }
 
+function saveRecurringMutation(payload: Record<string, unknown>) {
+  return fetch('/api/data', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 function formatSyncTime(value?: number) {
   if (!value) return '-';
   return new Intl.DateTimeFormat('ko-KR', {
@@ -3486,7 +3494,10 @@ export default function App() {
     const current = transactions.find((transaction) => transaction.id === id);
     if (!current) return false;
     if (id.startsWith('rec_')) {
+      skipNextPersistenceRef.current = true;
       setDeletedRecurringTxs((prev) => [...prev, id]);
+      setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+      saveRecurringMutation({ op: 'recurring_tx.delete', id }).catch(console.error);
       return true;
     }
     try {
@@ -3527,23 +3538,30 @@ export default function App() {
   }
 
   function handleAddRecurringRule(rule: RecurringRule) {
+    skipNextPersistenceRef.current = true;
     setRecurringRules((prev) => [...prev, rule]);
+    saveRecurringMutation({ op: 'recurring_rule.create', rule }).catch(console.error);
   }
 
   function handleUpdateRecurringRule(updated: RecurringRule) {
+    skipNextPersistenceRef.current = true;
     setRecurringRules((prev) =>
       prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r))
     );
+    saveRecurringMutation({ op: 'recurring_rule.update', rule: updated }).catch(console.error);
   }
 
   function handleStopRecurringRule(id: string) {
+    const targetRule = recurringRules.find((r) => r.id === id);
+    if (!targetRule) return;
+    const targetEndMonth = selectedMonth < targetRule.startMonth ? targetRule.startMonth : selectedMonth;
+    skipNextPersistenceRef.current = true;
     setRecurringRules((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        const targetEndMonth = selectedMonth < r.startMonth ? r.startMonth : selectedMonth;
-        return { ...r, endMonth: targetEndMonth };
-      })
+      prev.map((r) => (r.id === id ? { ...r, endMonth: targetEndMonth } : r))
     );
+    // Remove any auto-generated transactions beyond targetEndMonth
+    setTransactions((prev) => prev.filter((t) => !t.id.startsWith(`rec_${id}_`) || t.date.slice(0, 7) <= targetEndMonth));
+    saveRecurringMutation({ op: 'recurring_rule.stop', id, endMonth: targetEndMonth }).catch(console.error);
     showNotice('다음 달부터 반복 기록이 중단됩니다.', '정기 기록 중지', 'success');
   }
 
@@ -3557,14 +3575,20 @@ export default function App() {
       ruleId = txIdOrRuleId.substring(4, lastUnderscoreIndex);
       txMonth = txIdOrRuleId.substring(lastUnderscoreIndex + 1); // "YYYY-MM"
     }
-    
+
+    const targetRule = recurringRules.find((r) => r.id === ruleId);
+    const targetEndMonth = targetRule && txMonth < targetRule.startMonth ? targetRule.startMonth : txMonth;
+
+    skipNextPersistenceRef.current = true;
     setRecurringRules((prev) =>
       prev.map((r) => {
         if (r.id !== ruleId) return r;
-        const targetEndMonth = txMonth < r.startMonth ? r.startMonth : txMonth;
         return { ...r, endMonth: targetEndMonth };
       })
     );
+    // Remove any auto-generated transactions beyond targetEndMonth
+    setTransactions((prev) => prev.filter((t) => !t.id.startsWith(`rec_${ruleId}_`) || t.date.slice(0, 7) <= targetEndMonth));
+    saveRecurringMutation({ op: 'recurring_rule.stop', id: ruleId, endMonth: targetEndMonth }).catch(console.error);
     showNotice(`${txMonth}월까지 유지되고 다음 달부터 중단됩니다.`, '정기 기록 중지', 'success');
   }
 
@@ -3581,7 +3605,9 @@ export default function App() {
       confirmLabel: '목록에서 삭제',
       tone: 'danger',
       onConfirm: () => {
+        skipNextPersistenceRef.current = true;
         setRecurringRules((prev) => prev.filter((r) => r.id !== id));
+        saveRecurringMutation({ op: 'recurring_rule.delete', id }).catch(console.error);
         showNotice('정기 기록 규칙이 관리 목록에서 삭제되었습니다.', '삭제 완료', 'success');
       },
     });
@@ -9581,7 +9607,7 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
-  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('amount');
+  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
   const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const installmentRef = useRef<HTMLButtonElement>(null);

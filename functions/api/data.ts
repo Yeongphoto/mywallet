@@ -694,6 +694,122 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       });
     }
 
+    if (body.op === 'recurring_rule.create' || body.op === 'recurring_rule.upsert') {
+      const rule = body.rule;
+      if (!rule?.id || !rule.type || !rule.title || !rule.category || !rule.startMonth) {
+        return apiError('VALIDATION_ERROR', 422);
+      }
+      await db.prepare(
+        "INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET type = excluded.type, day = excluded.day, amount = excluded.amount, title = excluded.title, category = excluded.category, asset_id = excluded.asset_id, to_asset_id = excluded.to_asset_id, startMonth = excluded.startMonth, endMonth = excluded.endMonth"
+      ).bind(
+        String(rule.id),
+        String(rule.type),
+        Number(rule.day) || 1,
+        Number(rule.amount) || 0,
+        String(rule.title),
+        String(rule.category),
+        rule.assetId ? String(rule.assetId) : null,
+        rule.toAssetId ? String(rule.toAssetId) : null,
+        String(rule.startMonth),
+        rule.endMonth ? String(rule.endMonth) : null
+      ).run();
+
+      return new Response(JSON.stringify({ success: true, rule }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'recurring_rule.update') {
+      const rule = body.rule;
+      if (!rule?.id) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare(
+        "UPDATE recurring_rules SET type = ?, day = ?, amount = ?, title = ?, category = ?, asset_id = ?, to_asset_id = ?, startMonth = ?, endMonth = ? WHERE id = ?"
+      ).bind(
+        String(rule.type),
+        Number(rule.day) || 1,
+        Number(rule.amount) || 0,
+        String(rule.title),
+        String(rule.category),
+        rule.assetId ? String(rule.assetId) : null,
+        rule.toAssetId ? String(rule.toAssetId) : null,
+        String(rule.startMonth),
+        rule.endMonth ? String(rule.endMonth) : null,
+        String(rule.id)
+      ).run();
+
+      return new Response(JSON.stringify({ success: true, rule }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'recurring_rule.stop') {
+      const id = String(body.id || '');
+      const endMonth = String(body.endMonth || '');
+      if (!id || !endMonth) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare("UPDATE recurring_rules SET endMonth = ? WHERE id = ?").bind(endMonth, id).run();
+
+      return new Response(JSON.stringify({ success: true, id, endMonth }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'recurring_rule.delete') {
+      const id = String(body.id || '');
+      if (!id) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare("DELETE FROM recurring_rules WHERE id = ?").bind(id).run();
+
+      return new Response(JSON.stringify({ success: true, id }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'recurring_tx.delete') {
+      const id = String(body.id || '');
+      if (!id) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare("INSERT OR IGNORE INTO deleted_recurring_txs (id) VALUES (?)").bind(id).run();
+
+      return new Response(JSON.stringify({ success: true, id }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'recurring_rules.sync') {
+      const rules = Array.isArray(body.recurringRules) ? body.recurringRules : [];
+      const deletedTxs = Array.isArray(body.deletedRecurringTxs) ? body.deletedRecurringTxs : [];
+
+      const statements: D1PreparedStatement[] = [
+        db.prepare("DELETE FROM recurring_rules"),
+        ...rules.map((r: any) =>
+          db.prepare("INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .bind(
+              String(r.id),
+              String(r.type),
+              Number(r.day) || 1,
+              Number(r.amount) || 0,
+              String(r.title),
+              String(r.category),
+              r.assetId ? String(r.assetId) : null,
+              r.toAssetId ? String(r.toAssetId) : null,
+              String(r.startMonth),
+              r.endMonth ? String(r.endMonth) : null
+            )
+        ),
+        db.prepare("DELETE FROM deleted_recurring_txs"),
+        ...deletedTxs.map((id: any) =>
+          db.prepare("INSERT INTO deleted_recurring_txs (id) VALUES (?)").bind(String(id))
+        ),
+      ];
+      await db.batch(statements);
+
+      return new Response(JSON.stringify({ success: true, rulesCount: rules.length, deletedCount: deletedTxs.length }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'UNKNOWN_OPERATION' }), { status: 400 });
   } catch (err: any) {
     const isConstraintError = /constraint failed/i.test(String(err?.message || ''));
