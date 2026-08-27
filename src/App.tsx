@@ -1119,6 +1119,7 @@ function AssetHistoryPage({
   allAssetCategories,
   categoryLabels,
   todayStr,
+  selectedMonth,
   formatMoney,
   returnToAssetList,
   onEdit,
@@ -1138,6 +1139,7 @@ function AssetHistoryPage({
   allAssetCategories: CategoryOption[];
   categoryLabels: Record<string, string>;
   todayStr: string;
+  selectedMonth: string;
   formatMoney: (amount: number) => string;
   returnToAssetList: () => void;
   onEdit: (t: Transaction) => void;
@@ -1163,6 +1165,68 @@ function AssetHistoryPage({
   useEffect(() => {
     setAssetBalanceDraft(String(currentBalance));
   }, [currentBalance]);
+
+  // Asset cycle date range (default: 1일 ~ 말일, or configured cycle days with month end auto-clamping)
+  const { startDate: periodStartDate, endDate: periodEndDate } = useMemo(() => {
+    const startDay = currentAsset.cardCycleStartDay;
+    const endDay = currentAsset.cardCycleEndDay;
+
+    const clampDate = (ym: string, d: number) => {
+      const [y, m] = ym.split('-').map(Number);
+      const lastDayOfMonth = new Date(y, m, 0).getDate();
+      const safeDay = Math.min(Math.max(1, d), lastDayOfMonth);
+      return `${ym}-${String(safeDay).padStart(2, '0')}`;
+    };
+
+    if (startDay != null && endDay != null) {
+      const crossesMonth = startDay > endDay;
+      if (crossesMonth) {
+        const prevMonth = shiftYearMonth(selectedMonth, -1);
+        return {
+          startDate: clampDate(prevMonth, startDay),
+          endDate: clampDate(selectedMonth, endDay)
+        };
+      } else {
+        return {
+          startDate: clampDate(selectedMonth, startDay),
+          endDate: clampDate(selectedMonth, endDay)
+        };
+      }
+    }
+
+    // Default: 1일 ~ 말일 of selectedMonth (31일 등은 해당 월 마지막 일자로 자동 반응)
+    return {
+      startDate: clampDate(selectedMonth, 1),
+      endDate: clampDate(selectedMonth, 31)
+    };
+  }, [currentAsset.cardCycleStartDay, currentAsset.cardCycleEndDay, selectedMonth]);
+
+  const periodIncomeTotal = useMemo(() => {
+    return transactions
+      .filter(
+        (t) =>
+          t.date >= periodStartDate &&
+          t.date <= periodEndDate &&
+          t.assetId === currentAsset.id &&
+          t.type === 'income' &&
+          !isOpeningBalanceCategory(t.category)
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions, periodStartDate, periodEndDate, currentAsset.id]);
+
+  const periodExpenseTotal = useMemo(() => {
+    return transactions
+      .filter(
+        (t) =>
+          t.date >= periodStartDate &&
+          t.date <= periodEndDate &&
+          t.assetId === currentAsset.id &&
+          t.type === 'expense'
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions, periodStartDate, periodEndDate, currentAsset.id]);
+
+  const periodBalance = periodIncomeTotal - periodExpenseTotal;
 
   const hasCardSchedule =
     currentAsset.cardCycleStartDay != null &&
@@ -1231,6 +1295,22 @@ function AssetHistoryPage({
       <div className="asset-history-page-body">
         {/* Left: Overview & Card Bills */}
         <div className="asset-history-overview">
+          {/* 수입 / 지출 / 합계 요약 바 */}
+          <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
+            <div>
+              <span>수입</span>
+              <strong className="income">{formatMoney(periodIncomeTotal)}</strong>
+            </div>
+            <div>
+              <span>지출</span>
+              <strong className="expense">{formatMoney(periodExpenseTotal)}</strong>
+            </div>
+            <div>
+              <span>합계</span>
+              <strong>{formatMoney(periodBalance)}</strong>
+            </div>
+          </div>
+
           <div className="asset-history-current">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>현재 자산</span>
@@ -6170,6 +6250,7 @@ export default function App() {
               allAssetCategories={allAssetCategories}
               categoryLabels={categoryLabels}
               todayStr={todayStr}
+              selectedMonth={selectedMonth}
               formatMoney={displayCurrency}
               returnToAssetList={returnToAssetList}
               onEdit={(t) => {
