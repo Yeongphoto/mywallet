@@ -1150,7 +1150,6 @@ function AssetHistoryPage({
   showNotice: (message: string, title?: string, type?: NoticeType) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [showAllCardPayments, setShowAllCardPayments] = useState(false);
   const [isAssetSettingsOpen, setIsAssetSettingsOpen] = useState(false);
@@ -1189,19 +1188,10 @@ function AssetHistoryPage({
 
   const filteredList = useMemo(() => {
     return allAssetTransactions.filter((t) => {
-      // Type filter
-      if (filterType === 'expense') {
-        const isExpense = t.type === 'expense' || (t.type === 'transfer' && t.assetId === currentAsset.id);
-        if (!isExpense) return false;
-      } else if (filterType === 'income') {
-        const isIncome = t.type === 'income' || (t.type === 'transfer' && t.toAssetId === currentAsset.id);
-        if (!isIncome) return false;
-      } else if (filterType === 'transfer') {
+      // Category / Type filter (matching Ledger tab)
+      if (filterCategory === 'transfer') {
         if (t.type !== 'transfer') return false;
-      }
-
-      // Category filter
-      if (filterCategory !== 'all') {
+      } else if (filterCategory !== 'all') {
         if (t.category !== filterCategory) return false;
       }
 
@@ -1220,26 +1210,7 @@ function AssetHistoryPage({
 
       return true;
     });
-  }, [allAssetTransactions, filterType, filterCategory, searchTerm, currentAsset.id, allExpenseCategories, allIncomeCategories]);
-
-  // Combine categories relevant to this asset for the dropdown
-  const relevantCategories = useMemo(() => {
-    const set = new Set<string>();
-    allAssetTransactions.forEach((t) => {
-      if (t.category && !isOpeningBalanceCategory(t.category)) set.add(t.category);
-    });
-    const result: Array<{ id: string; label: string }> = [];
-    set.forEach((catId) => {
-      const option =
-        allExpenseCategories.find((c) => c.id === catId || c.label === catId) ||
-        allIncomeCategories.find((c) => c.id === catId || c.label === catId);
-      result.push({
-        id: catId,
-        label: option?.label || catId,
-      });
-    });
-    return result;
-  }, [allAssetTransactions, allExpenseCategories, allIncomeCategories]);
+  }, [allAssetTransactions, filterCategory, searchTerm, allExpenseCategories, allIncomeCategories]);
 
   return (
     <section className="asset-history-page" aria-label="자산 상세 이력">
@@ -1387,32 +1358,34 @@ function AssetHistoryPage({
           <div className="ledger-filters" style={{ margin: '4px 0 8px' }}>
             <input
               type="text"
-              placeholder="내역 검색..."
+              placeholder="제목 또는 카테고리 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)}>
-              <option value="all">모든 거래 구분</option>
-              <option value="expense">지출만 (-)</option>
-              <option value="income">수입만 (+)</option>
-              <option value="transfer">이체만 (↔)</option>
-            </select>
-            {relevantCategories.length > 0 && (
-              <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                <option value="all">모든 카테고리</option>
-                {relevantCategories.map((c) => (
+            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+              <option value="all">모든 내역</option>
+              <option value="transfer">이체 내역 🟣</option>
+              <optgroup label="지출 카테고리">
+                {allExpenseCategories.map((c: CategoryOption) => (
                   <option key={c.id} value={c.id}>
                     {c.label}
                   </option>
                 ))}
-              </select>
-            )}
+              </optgroup>
+              <optgroup label="수입 카테고리">
+                {allIncomeCategories.map((c: CategoryOption) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
           </div>
 
           {filteredList.length === 0 ? (
             <div className="glass-panel" style={{ textAlign: 'center', padding: '36px 16px', borderRadius: '14px' }}>
               <p style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                {searchTerm || filterType !== 'all' || filterCategory !== 'all'
+                {searchTerm || filterCategory !== 'all'
                   ? '검색 조건에 맞는 내역이 없습니다.'
                   : '등록된 변동 내역이 없습니다.'}
               </p>
