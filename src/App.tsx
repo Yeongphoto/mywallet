@@ -56,7 +56,7 @@ type CategoryBudgetExcludedMap = Record<string, boolean>;
 type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type HiddenAssetMap = Record<string, boolean>;
-type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings';
+type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'expense-list' | 'income-list';
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
@@ -368,7 +368,7 @@ function getCategoryColorKey(type: CategoryScope, id: string) {
 
 function getTabFromHash(): AppTab {
   const hash = window.location.hash.replace('#', '');
-  const tabs: AppTab[] = ['summary', 'asset', 'plan', 'calendar', 'ledger', 'settings'];
+  const tabs: AppTab[] = ['summary', 'asset', 'plan', 'calendar', 'ledger', 'settings', 'expense-list', 'income-list'];
   return tabs.includes(hash as AppTab) ? hash as AppTab : 'summary';
 }
 
@@ -432,6 +432,237 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
     >
       {label}
     </span>
+  );
+}
+
+function MonthlyTransactionSubpage({
+  type,
+  selectedMonth,
+  transactions,
+  assets,
+  allCategories,
+  formatMoney,
+  onBack,
+  onEdit,
+  onDelete,
+  onAdd
+}: {
+  type: 'expense' | 'income';
+  selectedMonth: string;
+  transactions: Transaction[];
+  assets: AssetItem[];
+  allCategories: CategoryOption[];
+  formatMoney: (val: number) => string;
+  onBack: () => void;
+  onEdit: (t: Transaction) => void;
+  onDelete: (id: string) => void;
+  onAdd: () => void;
+}) {
+  const isIncome = type === 'income';
+  const monthTitle = `${selectedMonth.slice(0, 4)}년 ${parseInt(selectedMonth.slice(5, 7), 10)}월`;
+  
+  // Filter for this month and type
+  const filtered = useMemo(() => {
+    return transactions
+      .filter((t) => t.date.startsWith(selectedMonth) && t.type === type)
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
+  }, [transactions, selectedMonth, type]);
+
+  // Statistics
+  const totalAmount = useMemo(() => filtered.reduce((sum, t) => sum + t.amount, 0), [filtered]);
+  const totalCount = filtered.length;
+
+  // Active days count and daily average
+  const uniqueDatesCount = useMemo(() => new Set(filtered.map(t => t.date)).size, [filtered]);
+  const dailyAverage = uniqueDatesCount > 0 ? Math.round(totalAmount / uniqueDatesCount) : 0;
+
+  // Top category
+  const topCategoryInfo = useMemo(() => {
+    const catMap = new Map<string, number>();
+    filtered.forEach(t => {
+      catMap.set(t.category, (catMap.get(t.category) || 0) + t.amount);
+    });
+    let maxCat = '';
+    let maxAmt = 0;
+    catMap.forEach((amt, cat) => {
+      if (amt > maxAmt) {
+        maxAmt = amt;
+        maxCat = cat;
+      }
+    });
+    const label = allCategories.find(c => c.id === maxCat || c.label === maxCat)?.label || maxCat;
+    return maxAmt > 0 ? { label, amount: maxAmt } : null;
+  }, [filtered, allCategories]);
+
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+  return (
+    <section className="transaction-subpage-container">
+      {/* 1. Subpage Header Bar */}
+      <div className="subpage-header-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button type="button" className="subpage-back-btn" onClick={onBack} aria-label="차트 화면으로 뒤로가기">
+            <AppIcon name="chevronLeft" size={18} />
+            <span>차트로 돌아가기</span>
+          </button>
+          <div className="subpage-title-group">
+            <h2>{isIncome ? '🔵 이번 달 수입 내역' : '🔴 이번 달 지출 내역'}</h2>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              ({monthTitle})
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onAdd}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            border: 'none',
+            background: isIncome ? 'var(--color-income)' : 'var(--color-expense)',
+            color: '#ffffff',
+            fontWeight: 800,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <AppIcon name="plus" size={16} />
+          <span>{isIncome ? '수입 등록' : '지출 등록'}</span>
+        </button>
+      </div>
+
+      {/* 2. Key Metrics Banner */}
+      <div className="subpage-metrics-grid">
+        <div className="subpage-metric-card">
+          <span>총 건수</span>
+          <strong>{totalCount}건</strong>
+        </div>
+        <div className="subpage-metric-card">
+          <span>총 합계</span>
+          <strong style={{ color: isIncome ? 'var(--color-income)' : 'var(--color-expense)' }}>
+            {formatMoney(totalAmount)}
+          </strong>
+        </div>
+        <div className="subpage-metric-card">
+          <span>기록일 평균</span>
+          <strong>{formatMoney(dailyAverage)}</strong>
+        </div>
+        {topCategoryInfo && (
+          <div className="subpage-metric-card">
+            <span>최다 카테고리</span>
+            <strong style={{ fontSize: '1.05rem' }}>
+              {topCategoryInfo.label} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>({formatMoney(topCategoryInfo.amount)})</span>
+            </strong>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Transaction List */}
+      <div className="subpage-list-container">
+        {filtered.length === 0 ? (
+          <div className="glass-panel" style={{ textAlign: 'center', padding: '48px 20px', borderRadius: '16px' }}>
+            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+              {monthTitle}에 등록된 {isIncome ? '수입' : '지출'} 내역이 없습니다.
+            </p>
+            <button
+              type="button"
+              onClick={onAdd}
+              style={{
+                marginTop: '16px',
+                padding: '8px 18px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'var(--primary)',
+                color: 'var(--primary-contrast)',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              새로운 {isIncome ? '수입' : '지출'} 등록하기
+            </button>
+          </div>
+        ) : (
+          filtered.map((t) => {
+            const dateObj = new Date(t.date + 'T00:00:00');
+            const dayOfWeek = dayNames[dateObj.getDay()];
+            const assetName = t.assetId ? assets.find((a) => a.id === t.assetId)?.name : null;
+
+            return (
+              <div
+                key={t.id}
+                className="calendar-detail-card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  padding: '16px 18px',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-card)',
+                  background: isIncome ? 'rgba(59, 130, 246, 0.03)' : 'rgba(239, 68, 68, 0.03)',
+                  position: 'relative'
+                }}
+              >
+                {/* 상단 행: 날짜, 카테고리 배지, 수정/삭제 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      {t.date} ({dayOfWeek})
+                    </span>
+                    <CategoryBadge categories={allCategories} idOrLabel={t.category} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="edit-btn"
+                      style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px' }}
+                      onClick={() => onEdit(t)}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      className="delete-btn-sm"
+                      style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px' }}
+                      onClick={() => onDelete(t.id)}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+
+                {/* 중단/하단 행: 타이틀, 자산 정보, 금액 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <strong style={{ fontSize: '1.02rem', color: 'var(--text-primary)' }}>
+                      {t.title}
+                      {t.recurringRuleId && (
+                        <span title="정기 반복 결제" style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '0.88rem' }}>🔄</span>
+                      )}
+                    </strong>
+                    {assetName && (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        💳 {assetName}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: isIncome ? 'var(--color-income)' : 'var(--color-expense)', fontVariantNumeric: 'tabular-nums' }}>
+                      {isIncome ? '+' : '-'}{formatMoney(t.amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1118,11 +1349,10 @@ export default function App() {
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [chartSummaryModalType, setChartSummaryModalType] = useState<'expense' | 'income' | null>(null);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
 
   useEffect(() => {
-    const isAnyModalOpen = isEntryModalOpen || Boolean(editingTransaction) || isCategoryModalOpen || isAssetModalOpen || Boolean(chartSummaryModalType);
+    const isAnyModalOpen = isEntryModalOpen || Boolean(editingTransaction) || isCategoryModalOpen || isAssetModalOpen;
     if (!isAnyModalOpen) return;
 
     const currentState = window.history.state || {};
@@ -1136,9 +1366,7 @@ export default function App() {
       }
 
       // 2. Otherwise close the open modal
-      if (chartSummaryModalType) {
-        setChartSummaryModalType(null);
-      } else if (isEntryModalOpen) {
+      if (isEntryModalOpen) {
         setIsEntryModalOpen(false);
       } else if (editingTransaction) {
         setEditingTransaction(null);
@@ -1156,7 +1384,7 @@ export default function App() {
         window.history.back();
       }
     };
-  }, [isEntryModalOpen, editingTransaction, isCategoryModalOpen, isAssetModalOpen, chartSummaryModalType]);
+  }, [isEntryModalOpen, editingTransaction, isCategoryModalOpen, isAssetModalOpen]);
 
   function scrollAppContent({ contentTop, documentTop }: { contentTop: number; documentTop: number }) {
     contentScrollRef.current?.scrollTo({ top: contentTop, behavior: 'auto' });
@@ -4143,15 +4371,18 @@ export default function App() {
             <section className="summary-grid" aria-label="월간 요약">
               <article 
                 className="summary-card expense clickable-summary-card"
-                onClick={() => setChartSummaryModalType('expense')}
+                onClick={() => {
+                  window.location.hash = 'expense-list';
+                  setActiveTab('expense-list');
+                }}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartSummaryModalType('expense'); } }}
-                title="클릭하여 이번 달 지출 목록 자세히 보기"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.hash = 'expense-list'; setActiveTab('expense-list'); } }}
+                title="클릭하여 이번 달 지출 목록 페이지로 이동"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span>이번 달 총 지출</span>
-                  <span className="summary-card-arrow" aria-hidden="true" title="지출 목록 자세히 보기">
+                  <span className="summary-card-arrow" aria-hidden="true" title="지출 목록 페이지 이동">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                   </span>
                 </div>
@@ -4160,15 +4391,18 @@ export default function App() {
               </article>
               <article 
                 className="summary-card income clickable-summary-card"
-                onClick={() => setChartSummaryModalType('income')}
+                onClick={() => {
+                  window.location.hash = 'income-list';
+                  setActiveTab('income-list');
+                }}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartSummaryModalType('income'); } }}
-                title="클릭하여 이번 달 수입 목록 자세히 보기"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.hash = 'income-list'; setActiveTab('income-list'); } }}
+                title="클릭하여 이번 달 수입 목록 페이지로 이동"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <span>이번 달 총 수입</span>
-                  <span className="summary-card-arrow" aria-hidden="true" title="수입 목록 자세히 보기">
+                  <span className="summary-card-arrow" aria-hidden="true" title="수입 목록 페이지 이동">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                   </span>
                 </div>
@@ -6553,134 +6787,77 @@ export default function App() {
             )}
           </section>
         )}
+
+        {activeTab === 'expense-list' && (
+          <MonthlyTransactionSubpage
+            type="expense"
+            selectedMonth={selectedMonth}
+            transactions={transactions}
+            assets={assets}
+            allCategories={allExpenseCategories}
+            formatMoney={displayCurrency}
+            onBack={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.hash = 'summary';
+                setActiveTab('summary');
+              }
+            }}
+            onEdit={(t) => {
+              openAmountEntry(() => {
+                setEditingTransaction(t);
+              });
+            }}
+            onDelete={(id) => {
+              handleDeleteTransaction(id);
+            }}
+            onAdd={() => {
+              openAmountEntry(() => {
+                setRegistrationMode('expense');
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              });
+            }}
+          />
+        )}
+
+        {activeTab === 'income-list' && (
+          <MonthlyTransactionSubpage
+            type="income"
+            selectedMonth={selectedMonth}
+            transactions={transactions}
+            assets={assets}
+            allCategories={allIncomeCategories}
+            formatMoney={displayCurrency}
+            onBack={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.hash = 'summary';
+                setActiveTab('summary');
+              }
+            }}
+            onEdit={(t) => {
+              openAmountEntry(() => {
+                setEditingTransaction(t);
+              });
+            }}
+            onDelete={(id) => {
+              handleDeleteTransaction(id);
+            }}
+            onAdd={() => {
+              openAmountEntry(() => {
+                setRegistrationMode('income');
+                setIsEntryModalOpen(true);
+                setModalTab('add');
+              });
+            }}
+          />
+        )}
       </section>
 
 
-
-      {/* Chart Tab Month Expense/Income Detail Modal */}
-      {chartSummaryModalType && (
-        <div className="modal-backdrop" onClick={() => setChartSummaryModalType(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%' }}>
-            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.25rem' }}>{chartSummaryModalType === 'expense' ? '🔴' : '🔵'}</span>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
-                    {selectedMonth.slice(0, 4)}년 {parseInt(selectedMonth.slice(5, 7), 10)}월 {chartSummaryModalType === 'expense' ? '지출 목록' : '수입 목록'}
-                  </h3>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 600 }}>
-                    총 {transactions.filter((t) => t.date.startsWith(selectedMonth) && t.type === chartSummaryModalType).length}건 · 합계 {displayCurrency(chartSummaryModalType === 'expense' ? expenseTotal : incomeTotal)}
-                  </div>
-                </div>
-              </div>
-              <button type="button" className="close-btn" onClick={() => setChartSummaryModalType(null)} aria-label="닫기">
-                &times;
-              </button>
-            </div>
-            
-            <div className="modal-body" style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
-              {(() => {
-                const filtered = transactions
-                  .filter((t) => t.date.startsWith(selectedMonth) && t.type === chartSummaryModalType)
-                  .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
-
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-secondary)' }}>
-                      <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-                        {selectedMonth.slice(0, 4)}년 {parseInt(selectedMonth.slice(5, 7), 10)}월에 등록된 {chartSummaryModalType === 'expense' ? '지출' : '수입'} 내역이 없습니다.
-                      </p>
-                    </div>
-                  );
-                }
-
-                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-
-                return (
-                  <div style={{ display: 'grid', gap: '10px' }}>
-                    {filtered.map((t) => {
-                      const isIncome = t.type === 'income';
-                      const dateObj = new Date(t.date + 'T00:00:00');
-                      const dayOfWeek = dayNames[dateObj.getDay()];
-                      const assetName = t.assetId ? assets.find((a) => a.id === t.assetId)?.name : null;
-
-                      return (
-                        <div
-                          key={t.id}
-                          className="calendar-detail-card"
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                            padding: '14px 16px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-card)',
-                            background: isIncome ? 'rgba(59, 130, 246, 0.03)' : 'rgba(239, 68, 68, 0.03)',
-                            position: 'relative'
-                          }}
-                        >
-                          {/* 상단 행: 날짜, 카테고리 배지, 수정/삭제 버튼 */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                                {t.date} ({dayOfWeek})
-                              </span>
-                              <CategoryBadge categories={isIncome ? allIncomeCategories : allExpenseCategories} idOrLabel={t.category} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button
-                                type="button"
-                                className="edit-btn"
-                                style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
-                                onClick={() => openAmountEntry(() => {
-                                  setEditingTransaction(t);
-                                  setChartSummaryModalType(null);
-                                })}
-                              >
-                                수정
-                              </button>
-                              <button
-                                type="button"
-                                className="delete-btn-sm"
-                                style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
-                                onClick={() => handleDeleteTransaction(t.id)}
-                              >
-                                삭제
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* 중단/하단 행: 타이틀, 자산 정보, 금액 */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)' }}>
-                                {t.title}
-                                {t.recurringRuleId && (
-                                  <span title="정기 반복 결제" style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '0.85rem' }}>🔄</span>
-                                )}
-                              </strong>
-                              {assetName && (
-                                <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                                  💳 {assetName}
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: isIncome ? 'var(--color-income)' : 'var(--color-expense)', fontVariantNumeric: 'tabular-nums' }}>
-                                {isIncome ? '+' : '-'}{displayCurrency(t.amount)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Date Detail View Modal (Calendar Cell Clicked) */}
       {selectedDayData && (
