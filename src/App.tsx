@@ -1347,9 +1347,15 @@ function AssetHistoryPage({
               }}
             >
               <small style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>기초 금액 {formatMoney(openingBalance)}</small>
-              {hasCardSchedule && (
+              {currentAsset.cardCycleStartDay != null && currentAsset.cardCycleEndDay != null ? (
                 <small style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700 }}>
-                  {currentAsset.cardCycleStartDay}일~{currentAsset.cardCycleEndDay}일 · {currentAsset.cardPaymentDay}일 · {paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '미선택'}
+                  {currentAsset.cardCycleStartDay}일~{currentAsset.cardCycleEndDay}일
+                  {currentAsset.cardPaymentDay != null ? ` · ${currentAsset.cardPaymentDay}일` : ''}
+                  {currentAsset.cardPaymentAssetId != null ? ` · ${paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '미선택'}` : ''}
+                </small>
+              ) : (
+                <small style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700 }}>
+                  1일~말일
                 </small>
               )}
             </div>
