@@ -6630,17 +6630,22 @@ html[data-style-theme="doodle"] .asset-distribution-panel svg text {
 }
 
 /* 2. Annual Graph (연간 그래프) */
-html[data-style-theme="doodle"] .annual-chart-panel svg rect {
-  rx: 5px !important;
-  ry: 5px !important;
-  stroke: var(--bg-app) !important;
-  stroke-width: 1.5px !important;
+html[data-style-theme="doodle"] .annual-chart-panel svg rect:not([fill="transparent"]) {
+  rx: 1.5px !important;
+  ry: 1.5px !important;
+  stroke: var(--bg-card) !important;
+  stroke-width: 1px !important;
+  filter: url(#annual-paper-texture) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08)) !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .annual-chart-panel svg rect:not([fill="transparent"]) {
+  filter: url(#annual-paper-texture) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)) !important;
 }
 
 html[data-style-theme="doodle"] .annual-chart-panel svg line {
   stroke: var(--border-card) !important;
-  stroke-dasharray: 5 4 !important;
-  opacity: 0.7 !important;
+  stroke-dasharray: 4 4 !important;
+  opacity: 0.8 !important;
 }
 
 html[data-style-theme="doodle"] .annual-chart-panel svg text {

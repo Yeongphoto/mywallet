@@ -5749,6 +5749,21 @@ export default function App() {
                         <stop offset="0%" stopColor="#34d399" />
                         <stop offset="100%" stopColor="#10b981" />
                       </linearGradient>
+
+                      {/* 연간 차트 막대 종이 질감 노멀맵 라이팅 필터 */}
+                      <filter id="annual-paper-texture" x="-10%" y="-10%" width="120%" height="120%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.06" numOctaves="4" result="noise" />
+                        <feDiffuseLighting in="noise" lightingColor="#ffffff" surfaceScale="2" result="light">
+                          <feDistantLight azimuth="45" elevation="55" />
+                        </feDiffuseLighting>
+                        <feComponentTransfer in="light" result="softLight">
+                          <feFuncR type="linear" slope="0.75" intercept="0.25" />
+                          <feFuncG type="linear" slope="0.75" intercept="0.25" />
+                          <feFuncB type="linear" slope="0.75" intercept="0.25" />
+                        </feComponentTransfer>
+                        <feBlend mode="multiply" in="SourceGraphic" in2="softLight" result="blend" />
+                        <feComposite in="blend" in2="SourceAlpha" operator="in" />
+                      </filter>
                     </defs>
 
                     {/* Y축 그리드 라인 & 라벨 */}
@@ -5874,30 +5889,30 @@ export default function App() {
                                   fill="transparent"
                                 />
 
-                                {/* 수입 막대 */}
+                                {/* 수입 막대 (직사각형 종이 블록) */}
                                 {showIncome && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter - 12 : xCenter - 9}
+                                    x={chartFilter === 'both' ? xCenter - 13 : xCenter - 10}
                                     y={312 - incHeight}
-                                    width={chartFilter === 'both' ? '10' : '18'}
+                                    width={chartFilter === 'both' ? '11' : '20'}
                                     height={Math.max(incHeight, 2)}
-                                    rx="3"
-                                    ry="3"
+                                    rx="1.5"
+                                    ry="1.5"
                                     fill="url(#chart-income-grad)"
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
                                   />
                                 )}
 
-                                {/* 지출 막대 */}
+                                {/* 지출 막대 (직사각형 종이 블록) */}
                                 {showExpense && (
                                   <rect
-                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
+                                    x={chartFilter === 'both' ? xCenter + 2 : xCenter - 10}
                                     y={312 - expHeight}
-                                    width={chartFilter === 'both' ? '10' : '18'}
+                                    width={chartFilter === 'both' ? '11' : '20'}
                                     height={Math.max(expHeight, 2)}
-                                    rx="3"
-                                    ry="3"
+                                    rx="1.5"
+                                    ry="1.5"
                                     fill="url(#chart-expense-grad)"
                                     opacity={hoveredChartIndex === null || hoveredChartIndex === idx ? 1 : 0.45}
                                     style={{ transition: 'all 0.2s ease-in-out' }}
