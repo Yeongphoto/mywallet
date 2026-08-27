@@ -1122,12 +1122,6 @@ textarea:focus {
   border: 1px solid var(--glass-border);
   border-radius: 14px;
   box-shadow: var(--shadow-md);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
 }
 
 .summary-card::before {
