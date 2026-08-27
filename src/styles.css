@@ -6623,7 +6623,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
 
 .subpage-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -6645,9 +6645,25 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
 }
 
 .subpage-metric-card strong {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--text-primary);
+  word-break: keep-all;
+}
+
+@media (max-width: 992px) {
+  .subpage-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .subpage-metric-card {
+    padding: 12px 14px;
+  }
+
+  .subpage-metric-card strong {
+    font-size: 1.12rem;
+  }
 }
 
 .subpage-list-container {
