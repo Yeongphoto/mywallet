@@ -4430,8 +4430,8 @@ export default function App() {
 
               {/* 연간 차트 영역 */}
               <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', position: 'relative', overflow: 'visible', minHeight: 0 }}>
-                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 560 340" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible', width: '100%', height: '100%' }}>
+                <div style={{ width: '100%', height: '100%', position: 'relative', flex: '1 1 auto' }}>
+                  <svg width="100%" height="100%" viewBox="0 0 560 340" preserveAspectRatio="none" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible', width: '100%', height: '100%' }}>
                     {/* SVG Definition for Gradients & Tetris Block Patterns */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
