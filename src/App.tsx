@@ -453,12 +453,260 @@ function isOpeningBalanceTransaction(transaction: Transaction) {
   );
 }
 
+function MobileLedgerSwipeItem({
+  transaction,
+  typeClass,
+  category,
+  title,
+  detail,
+  formatMoney,
+  isOpen,
+  onOpenChange,
+  onEdit,
+  onDelete,
+}: {
+  transaction: Transaction;
+  typeClass: string;
+  category: string;
+  title: string;
+  detail: string;
+  formatMoney: (amount: number) => string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const actionWidth = 104;
+  const gestureRef = useRef({ startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
+  const [offset, setOffset] = useState(isOpen ? -actionWidth : 0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    setOffset(isOpen ? -actionWidth : 0);
+  }, [isOpen]);
+
+  const clampOffset = (value: number) => Math.max(-actionWidth, Math.min(0, value));
+
+  return (
+    <div className={`mobile-ledger-swipe ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''}`}>
+      <div className="mobile-ledger-swipe-actions" aria-hidden={!isOpen}>
+        <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" tabIndex={isOpen ? 0 : -1} onClick={onEdit}>
+          <AppIcon name="edit" size={18} />
+        </button>
+        <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" tabIndex={isOpen ? 0 : -1} onClick={onDelete}>×</button>
+      </div>
+      <article
+        className={`mobile-ledger-item ${typeClass}`}
+        style={{ transform: `translateX(${offset}px)` }}
+      >
+        <span className="mobile-ledger-category">{category}</span>
+        <div className="mobile-ledger-copy">
+          <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
+        </div>
+        <strong
+          className="mobile-ledger-amount mobile-ledger-swipe-region"
+          onPointerDown={(event) => {
+            gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
+          }}
+          onPointerMove={(event) => {
+            const deltaX = event.clientX - gestureRef.current.startX;
+            const deltaY = event.clientY - gestureRef.current.startY;
+            if (!gestureRef.current.isHorizontal) {
+              if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+              gestureRef.current.isHorizontal = true;
+              setIsDragging(true);
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }
+            setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
+          }}
+          onPointerUp={(event) => {
+            if (!gestureRef.current.isHorizontal) return;
+            const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
+            onOpenChange(nextOffset <= -(actionWidth / 2));
+            gestureRef.current.isHorizontal = false;
+            setIsDragging(false);
+          }}
+          onPointerCancel={() => {
+            onOpenChange(offset <= -(actionWidth / 2));
+            gestureRef.current.isHorizontal = false;
+            setIsDragging(false);
+          }}
+        >
+          {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
+        </strong>
+        <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
+        <div className="mobile-ledger-desktop-actions">
+          <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" onClick={onEdit}>
+            <AppIcon name="edit" size={18} />
+          </button>
+          <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" onClick={onDelete}>×</button>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+type CardPaymentPeriod = { periodStart: string; periodEnd: string; dueDate: string; amount: number };
+
+function shiftYearMonth(yearMonth: string, delta: number) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const date = new Date(year, month - 1 + delta, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function cardPaymentPeriods(asset: AssetItem, transactions: Transaction[]): CardPaymentPeriod[] {
+  const startDay = asset.cardCycleStartDay;
+  const endDay = asset.cardCycleEndDay;
+  const paymentDay = asset.cardPaymentDay;
+  if (!startDay || !endDay || !paymentDay || !asset.cardPaymentAssetId) return [];
+  const grouped = new Map<string, CardPaymentPeriod>();
+  transactions.filter((transaction) => transaction.assetId === asset.id && !transaction.cardSettlementId && !isOpeningBalanceCategory(transaction.category) && (transaction.type === 'expense' || transaction.type === 'income')).forEach((transaction) => {
+    const yearMonth = transaction.date.slice(0, 7);
+    const day = Number(transaction.date.slice(8, 10));
+    const crossesMonth = startDay > endDay;
+    if (!crossesMonth && (day < startDay || day > endDay)) return;
+    const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
+    const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
+    const periodStart = `${startMonth}-${String(startDay).padStart(2, '0')}`;
+    const periodEnd = `${endMonth}-${String(endDay).padStart(2, '0')}`;
+    const dueDate = `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
+    const key = `${periodStart}:${periodEnd}`;
+    const current = grouped.get(key) ?? { periodStart, periodEnd, dueDate, amount: 0 };
+    current.amount += transaction.type === 'expense' ? transaction.amount : -transaction.amount;
+    grouped.set(key, current);
+  });
+  return Array.from(grouped.values()).filter((period) => period.amount > 0).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
+}
+
+function cardPaymentDueDateForToday(asset: AssetItem, today: string) {
+  const startDay = asset.cardCycleStartDay;
+  const endDay = asset.cardCycleEndDay;
+  const paymentDay = asset.cardPaymentDay;
+  if (!startDay || !endDay || !paymentDay) return null;
+  const yearMonth = today.slice(0, 7);
+  const day = Number(today.slice(8, 10));
+  const crossesMonth = startDay > endDay;
+  if (!crossesMonth && (day < startDay || day > endDay)) return null;
+  const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
+  const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
+  return `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
+}
+
+// Transaction List Table sub-component
+function MobileLedgerTimeline({
+  items,
+  expenseCategories,
+  incomeCategories,
+  assetCategories,
+  assets,
+  formatMoney,
+  onEdit,
+  onDelete,
+}: {
+  items: Transaction[];
+  expenseCategories: CategoryOption[];
+  incomeCategories: CategoryOption[];
+  assetCategories: CategoryOption[];
+  assets: AssetItem[];
+  formatMoney: (amount: number) => string;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
+  const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
+  const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
+    const currentGroup = result[result.length - 1];
+    if (!currentGroup || currentGroup.date !== transaction.date) {
+      result.push({ date: transaction.date, items: [transaction] });
+    } else {
+      currentGroup.items.push(transaction);
+    }
+    return result;
+  }, []);
+
+  const getAssetName = (id: string | null | undefined) => {
+    const asset = assets.find((item) => item.id === id);
+    return asset ? formatAssetLabel(asset, assetCategories) : '';
+  };
+  const getCategoryName = (transaction: Transaction) => {
+    if (transaction.type === 'transfer') return '이체';
+    const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
+    return categories.find((category) => category.id === transaction.category)?.label || transaction.category || '기타';
+  };
+  const getDetail = (transaction: Transaction) => {
+    if (transaction.type === 'transfer') {
+      const from = getAssetName(transaction.assetId) || '출금 계좌';
+      const to = getAssetName(transaction.toAssetId) || '입금 계좌';
+      return `${transaction.time || ''} ${from} → ${to}`.trim();
+    }
+    return [transaction.time, getAssetName(transaction.assetId)].filter(Boolean).join(' · ');
+  };
+
+  return (
+    <div className="mobile-ledger-timeline" aria-label="모바일 거래 장부">
+      {groups.length === 0 ? (
+        <p className="mobile-ledger-empty">등록된 내역이 없습니다.</p>
+      ) : groups.map((group) => {
+        const date = new Date(`${group.date}T00:00:00`);
+        const income = group.items.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+        const expense = group.items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+        return (
+          <section className="mobile-ledger-day" key={group.date}>
+            <header className="mobile-ledger-day-header">
+              <div className="mobile-ledger-date-card">
+                <strong>{Number(date.getMonth() + 1)}월 {Number(group.date.slice(8, 10))}일</strong>
+                <span>{weekdayLabels[date.getDay()]}요일</span>
+              </div>
+              <div className="mobile-ledger-day-totals">
+                {income > 0 && <span className="income">+{formatMoney(income)}</span>}
+                {expense > 0 && <span className="expense">-{formatMoney(expense)}</span>}
+              </div>
+            </header>
+            <div className="mobile-ledger-day-list">
+              {group.items.map((transaction) => {
+                const typeClass = transaction.type === 'transfer' ? 'transfer' : transaction.type;
+                const title = transaction.title || getCategoryName(transaction);
+                const detail = getDetail(transaction);
+                return (
+                  <MobileLedgerSwipeItem
+                    key={transaction.id}
+                    transaction={transaction}
+                    typeClass={typeClass}
+                    category={getCategoryName(transaction)}
+                    title={title}
+                    detail={detail}
+                    formatMoney={formatMoney}
+                    isOpen={openSwipeId === transaction.id}
+                    onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)}
+                    onEdit={() => {
+                      setOpenSwipeId(null);
+                      onEdit(transaction);
+                    }}
+                    onDelete={() => {
+                      setOpenSwipeId(null);
+                      onDelete(transaction.id);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function MonthlyTransactionSubpage({
   type,
   selectedMonth,
   transactions,
   assets,
   allCategories,
+  allExpenseCategories,
+  allIncomeCategories,
+  allAssetCategories,
   formatMoney,
   onBack,
   onEdit,
@@ -470,6 +718,9 @@ function MonthlyTransactionSubpage({
   transactions: Transaction[];
   assets: AssetItem[];
   allCategories: CategoryOption[];
+  allExpenseCategories: CategoryOption[];
+  allIncomeCategories: CategoryOption[];
+  allAssetCategories: CategoryOption[];
   formatMoney: (val: number) => string;
   onBack: () => void;
   onEdit: (t: Transaction) => void;
@@ -478,9 +729,12 @@ function MonthlyTransactionSubpage({
 }) {
   const isIncome = type === 'income';
   const monthTitle = `${selectedMonth.slice(0, 4)}년 ${parseInt(selectedMonth.slice(5, 7), 10)}월`;
-  
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
   // Filter for this month and type (exclude opening balance from income)
-  const filtered = useMemo(() => {
+  const allMonthlyTransactions = useMemo(() => {
     return transactions
       .filter((t) => {
         if (!t.date.startsWith(selectedMonth) || t.type !== type) return false;
@@ -490,18 +744,38 @@ function MonthlyTransactionSubpage({
       .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
   }, [transactions, selectedMonth, type]);
 
+  // Filtered by user search and category filter
+  const filteredList = useMemo(() => {
+    return allMonthlyTransactions.filter((t) => {
+      const catLabel = allCategories.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
+      if (filterCategory !== 'all' && t.category !== filterCategory && catLabel !== filterCategory) {
+        return false;
+      }
+      if (searchTerm.trim()) {
+        const query = searchTerm.trim().toLowerCase();
+        const matchesTitle = (t.title || '').toLowerCase().includes(query);
+        const matchesCategory = (catLabel || '').toLowerCase().includes(query);
+        const assetName = t.assetId ? (assets.find((a) => a.id === t.assetId)?.name || '').toLowerCase() : '';
+        if (!matchesTitle && !matchesCategory && !assetName.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allMonthlyTransactions, filterCategory, searchTerm, allCategories, assets]);
+
   // Statistics
-  const totalAmount = useMemo(() => filtered.reduce((sum, t) => sum + t.amount, 0), [filtered]);
-  const totalCount = filtered.length;
+  const totalAmount = useMemo(() => allMonthlyTransactions.reduce((sum, t) => sum + t.amount, 0), [allMonthlyTransactions]);
+  const totalCount = allMonthlyTransactions.length;
 
   // Active days count and daily average
-  const uniqueDatesCount = useMemo(() => new Set(filtered.map(t => t.date)).size, [filtered]);
+  const uniqueDatesCount = useMemo(() => new Set(allMonthlyTransactions.map(t => t.date)).size, [allMonthlyTransactions]);
   const dailyAverage = uniqueDatesCount > 0 ? Math.round(totalAmount / uniqueDatesCount) : 0;
 
   // Top category
   const topCategoryInfo = useMemo(() => {
     const catMap = new Map<string, number>();
-    filtered.forEach(t => {
+    allMonthlyTransactions.forEach(t => {
       catMap.set(t.category, (catMap.get(t.category) || 0) + t.amount);
     });
     let maxCat = '';
@@ -514,7 +788,7 @@ function MonthlyTransactionSubpage({
     });
     const label = allCategories.find(c => c.id === maxCat || c.label === maxCat)?.label || maxCat;
     return maxAmt > 0 ? { label, amount: maxAmt } : null;
-  }, [filtered, allCategories]);
+  }, [allMonthlyTransactions, allCategories]);
 
   // 3-Month Trend
   const prevMonth1 = useMemo(() => getPreviousMonth(selectedMonth), [selectedMonth]);
@@ -632,8 +906,6 @@ function MonthlyTransactionSubpage({
       }
     }
   }, [type, diff, percent, formatMoney]);
-
-  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
     <section className="transaction-subpage-container">
@@ -771,103 +1043,61 @@ function MonthlyTransactionSubpage({
         )}
       </div>
 
-      {/* 4. Transaction List */}
+      {/* 4. Filters (Search & Category) */}
+      <div className="ledger-filters" style={{ margin: '6px 0 0' }}>
+        <input
+          type="text"
+          placeholder={`${isIncome ? '수입' : '지출'} 제목, 카테고리, 계좌 검색...`}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+          <option value="all">모든 {isIncome ? '수입' : '지출'} 카테고리</option>
+          {allCategories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* 5. Daily Grouped Transaction Timeline */}
       <div className="subpage-list-container">
-        {filtered.length === 0 ? (
+        {filteredList.length === 0 ? (
           <div className="glass-panel" style={{ textAlign: 'center', padding: '48px 20px', borderRadius: '16px' }}>
             <p style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              {monthTitle}에 등록된 {isIncome ? '수입' : '지출'} 내역이 없습니다.
+              {searchTerm || filterCategory !== 'all' ? '검색 조건에 맞는 내역이 없습니다.' : `${monthTitle}에 등록된 ${isIncome ? '수입' : '지출'} 내역이 없습니다.`}
             </p>
-            <button
-              type="button"
-              onClick={onAdd}
-              style={{
-                marginTop: '16px',
-                padding: '8px 18px',
-                borderRadius: '10px',
-                border: 'none',
-                background: 'var(--primary)',
-                color: 'var(--primary-contrast)',
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              새로운 {isIncome ? '수입' : '지출'} 등록하기
-            </button>
-          </div>
-        ) : (
-          filtered.map((t) => {
-            const dateObj = new Date(t.date + 'T00:00:00');
-            const dayOfWeek = dayNames[dateObj.getDay()];
-            const assetName = t.assetId ? assets.find((a) => a.id === t.assetId)?.name : null;
-
-            return (
-              <div
-                key={t.id}
-                className="calendar-detail-card"
+            {!searchTerm && filterCategory === 'all' && (
+              <button
+                type="button"
+                onClick={onAdd}
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                  padding: '16px 18px',
-                  borderRadius: '14px',
-                  border: '1px solid var(--border-card)',
-                  background: isIncome ? 'rgba(59, 130, 246, 0.03)' : 'rgba(239, 68, 68, 0.03)',
-                  position: 'relative'
+                  marginTop: '16px',
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'var(--primary)',
+                  color: 'var(--primary-contrast)',
+                  fontWeight: 700,
+                  cursor: 'pointer'
                 }}
               >
-                {/* 상단 행: 날짜, 카테고리 배지, 수정/삭제 버튼 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                      {t.date} ({dayOfWeek})
-                    </span>
-                    <CategoryBadge categories={allCategories} idOrLabel={t.category} />
-                  </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      type="button"
-                      className="edit-btn"
-                      style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px' }}
-                      onClick={() => onEdit(t)}
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      className="delete-btn-sm"
-                      style={{ padding: '3px 10px', fontSize: '0.78rem', height: '26px' }}
-                      onClick={() => onDelete(t.id)}
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-
-                {/* 중단/하단 행: 타이틀, 자산 정보, 금액 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <strong style={{ fontSize: '1.02rem', color: 'var(--text-primary)' }}>
-                      {t.title}
-                      {t.recurringRuleId && (
-                        <span title="정기 반복 결제" style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '0.88rem' }}>🔄</span>
-                      )}
-                    </strong>
-                    {assetName && (
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        💳 {assetName}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: isIncome ? 'var(--color-income)' : 'var(--color-expense)', fontVariantNumeric: 'tabular-nums' }}>
-                      {isIncome ? '+' : '-'}{formatMoney(t.amount)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })
+                새로운 {isIncome ? '수입' : '지출'} 등록하기
+              </button>
+            )}
+          </div>
+        ) : (
+          <MobileLedgerTimeline
+            items={filteredList}
+            expenseCategories={allExpenseCategories}
+            incomeCategories={allIncomeCategories}
+            assetCategories={allAssetCategories}
+            assets={assets}
+            formatMoney={formatMoney}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         )}
       </div>
     </section>
@@ -6993,6 +7223,9 @@ export default function App() {
             transactions={transactions}
             assets={assets}
             allCategories={allExpenseCategories}
+            allExpenseCategories={allExpenseCategories}
+            allIncomeCategories={allIncomeCategories}
+            allAssetCategories={allAssetCategories}
             formatMoney={displayCurrency}
             onBack={() => {
               if (window.history.length > 1) {
@@ -7027,6 +7260,9 @@ export default function App() {
             transactions={transactions}
             assets={assets}
             allCategories={allIncomeCategories}
+            allExpenseCategories={allExpenseCategories}
+            allIncomeCategories={allIncomeCategories}
+            allAssetCategories={allAssetCategories}
             formatMoney={displayCurrency}
             onBack={() => {
               if (window.history.length > 1) {
@@ -8082,251 +8318,6 @@ function CategoryActionRow({
       >
         {children}
       </div>
-    </div>
-  );
-}
-
-function MobileLedgerSwipeItem({
-  transaction,
-  typeClass,
-  category,
-  title,
-  detail,
-  formatMoney,
-  isOpen,
-  onOpenChange,
-  onEdit,
-  onDelete,
-}: {
-  transaction: Transaction;
-  typeClass: string;
-  category: string;
-  title: string;
-  detail: string;
-  formatMoney: (amount: number) => string;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const actionWidth = 104;
-  const gestureRef = useRef({ startX: 0, startY: 0, baseOffset: 0, isHorizontal: false });
-  const [offset, setOffset] = useState(isOpen ? -actionWidth : 0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  useEffect(() => {
-    setOffset(isOpen ? -actionWidth : 0);
-  }, [isOpen]);
-
-  const clampOffset = (value: number) => Math.max(-actionWidth, Math.min(0, value));
-
-  return (
-    <div className={`mobile-ledger-swipe ${isOpen ? 'is-open' : ''} ${isDragging ? 'is-dragging' : ''}`}>
-      <div className="mobile-ledger-swipe-actions" aria-hidden={!isOpen}>
-        <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" tabIndex={isOpen ? 0 : -1} onClick={onEdit}>
-          <AppIcon name="edit" size={18} />
-        </button>
-        <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" tabIndex={isOpen ? 0 : -1} onClick={onDelete}>×</button>
-      </div>
-      <article
-        className={`mobile-ledger-item ${typeClass}`}
-        style={{ transform: `translateX(${offset}px)` }}
-      >
-        <span className="mobile-ledger-category">{category}</span>
-        <div className="mobile-ledger-copy">
-          <strong>{title}{transaction.recurringRuleId && <span className="ledger-recurring-badge">정기</span>}</strong>
-        </div>
-        <strong
-          className="mobile-ledger-amount mobile-ledger-swipe-region"
-          onPointerDown={(event) => {
-            gestureRef.current = { startX: event.clientX, startY: event.clientY, baseOffset: offset, isHorizontal: false };
-          }}
-          onPointerMove={(event) => {
-            const deltaX = event.clientX - gestureRef.current.startX;
-            const deltaY = event.clientY - gestureRef.current.startY;
-            if (!gestureRef.current.isHorizontal) {
-              if (Math.abs(deltaX) < 8 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
-              gestureRef.current.isHorizontal = true;
-              setIsDragging(true);
-              event.currentTarget.setPointerCapture(event.pointerId);
-            }
-            setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
-          }}
-          onPointerUp={(event) => {
-            if (!gestureRef.current.isHorizontal) return;
-            const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
-            onOpenChange(nextOffset <= -(actionWidth / 2));
-            gestureRef.current.isHorizontal = false;
-            setIsDragging(false);
-          }}
-          onPointerCancel={() => {
-            onOpenChange(offset <= -(actionWidth / 2));
-            gestureRef.current.isHorizontal = false;
-            setIsDragging(false);
-          }}
-        >
-          {transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''}{formatMoney(transaction.amount)}
-        </strong>
-        <div className="mobile-ledger-meta">{detail && <small>{detail}</small>}</div>
-        <div className="mobile-ledger-desktop-actions">
-          <button type="button" className="mobile-ledger-swipe-edit row-action-button row-action-edit" aria-label="수정" onClick={onEdit}>
-            <AppIcon name="edit" size={18} />
-          </button>
-          <button type="button" className="mobile-ledger-swipe-delete row-action-button row-action-delete" aria-label="삭제" onClick={onDelete}>×</button>
-        </div>
-      </article>
-    </div>
-  );
-}
-
-type CardPaymentPeriod = { periodStart: string; periodEnd: string; dueDate: string; amount: number };
-
-function shiftYearMonth(yearMonth: string, delta: number) {
-  const [year, month] = yearMonth.split('-').map(Number);
-  const date = new Date(year, month - 1 + delta, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function cardPaymentPeriods(asset: AssetItem, transactions: Transaction[]): CardPaymentPeriod[] {
-  const startDay = asset.cardCycleStartDay;
-  const endDay = asset.cardCycleEndDay;
-  const paymentDay = asset.cardPaymentDay;
-  if (!startDay || !endDay || !paymentDay || !asset.cardPaymentAssetId) return [];
-  const grouped = new Map<string, CardPaymentPeriod>();
-  transactions.filter((transaction) => transaction.assetId === asset.id && !transaction.cardSettlementId && !isOpeningBalanceCategory(transaction.category) && (transaction.type === 'expense' || transaction.type === 'income')).forEach((transaction) => {
-    const yearMonth = transaction.date.slice(0, 7);
-    const day = Number(transaction.date.slice(8, 10));
-    const crossesMonth = startDay > endDay;
-    if (!crossesMonth && (day < startDay || day > endDay)) return;
-    const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
-    const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
-    const periodStart = `${startMonth}-${String(startDay).padStart(2, '0')}`;
-    const periodEnd = `${endMonth}-${String(endDay).padStart(2, '0')}`;
-    const dueDate = `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
-    const key = `${periodStart}:${periodEnd}`;
-    const current = grouped.get(key) ?? { periodStart, periodEnd, dueDate, amount: 0 };
-    current.amount += transaction.type === 'expense' ? transaction.amount : -transaction.amount;
-    grouped.set(key, current);
-  });
-  return Array.from(grouped.values()).filter((period) => period.amount > 0).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
-}
-
-function cardPaymentDueDateForToday(asset: AssetItem, today: string) {
-  const startDay = asset.cardCycleStartDay;
-  const endDay = asset.cardCycleEndDay;
-  const paymentDay = asset.cardPaymentDay;
-  if (!startDay || !endDay || !paymentDay) return null;
-  const yearMonth = today.slice(0, 7);
-  const day = Number(today.slice(8, 10));
-  const crossesMonth = startDay > endDay;
-  if (!crossesMonth && (day < startDay || day > endDay)) return null;
-  const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
-  const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
-  return `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
-}
-
-// Transaction List Table sub-component
-function MobileLedgerTimeline({
-  items,
-  expenseCategories,
-  incomeCategories,
-  assetCategories,
-  assets,
-  formatMoney,
-  onEdit,
-  onDelete,
-}: {
-  items: Transaction[];
-  expenseCategories: CategoryOption[];
-  incomeCategories: CategoryOption[];
-  assetCategories: CategoryOption[];
-  assets: AssetItem[];
-  formatMoney: (amount: number) => string;
-  onEdit: (transaction: Transaction) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
-  const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
-  const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
-  const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
-    const currentGroup = result[result.length - 1];
-    if (!currentGroup || currentGroup.date !== transaction.date) {
-      result.push({ date: transaction.date, items: [transaction] });
-    } else {
-      currentGroup.items.push(transaction);
-    }
-    return result;
-  }, []);
-
-  const getAssetName = (id: string | null | undefined) => {
-    const asset = assets.find((item) => item.id === id);
-    return asset ? formatAssetLabel(asset, assetCategories) : '';
-  };
-  const getCategoryName = (transaction: Transaction) => {
-    if (transaction.type === 'transfer') return '이체';
-    const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
-    return categories.find((category) => category.id === transaction.category)?.label || transaction.category || '기타';
-  };
-  const getDetail = (transaction: Transaction) => {
-    if (transaction.type === 'transfer') {
-      const from = getAssetName(transaction.assetId) || '출금 계좌';
-      const to = getAssetName(transaction.toAssetId) || '입금 계좌';
-      return `${transaction.time || ''} ${from} → ${to}`.trim();
-    }
-    return [transaction.time, getAssetName(transaction.assetId)].filter(Boolean).join(' · ');
-  };
-
-  return (
-    <div className="mobile-ledger-timeline" aria-label="모바일 거래 장부">
-      {groups.length === 0 ? (
-        <p className="mobile-ledger-empty">등록된 내역이 없습니다.</p>
-      ) : groups.map((group) => {
-        const date = new Date(`${group.date}T00:00:00`);
-        const income = group.items.filter((item) => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
-        const expense = group.items.filter((item) => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
-        return (
-          <section className="mobile-ledger-day" key={group.date}>
-            <header className="mobile-ledger-day-header">
-              <div className="mobile-ledger-date-card">
-                <strong>{Number(date.getMonth() + 1)}월 {Number(group.date.slice(8, 10))}일</strong>
-                <span>{weekdayLabels[date.getDay()]}요일</span>
-              </div>
-              <div className="mobile-ledger-day-totals">
-                {income > 0 && <span className="income">+{formatMoney(income)}</span>}
-                {expense > 0 && <span className="expense">-{formatMoney(expense)}</span>}
-              </div>
-            </header>
-            <div className="mobile-ledger-day-list">
-              {group.items.map((transaction) => {
-                const typeClass = transaction.type === 'transfer' ? 'transfer' : transaction.type;
-                const title = transaction.title || getCategoryName(transaction);
-                const detail = getDetail(transaction);
-                return (
-                  <MobileLedgerSwipeItem
-                    key={transaction.id}
-                    transaction={transaction}
-                    typeClass={typeClass}
-                    category={getCategoryName(transaction)}
-                    title={title}
-                    detail={detail}
-                    formatMoney={formatMoney}
-                    isOpen={openSwipeId === transaction.id}
-                    onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)}
-                    onEdit={() => {
-                      setOpenSwipeId(null);
-                      onEdit(transaction);
-                    }}
-                    onDelete={() => {
-                      setOpenSwipeId(null);
-                      onDelete(transaction.id);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
     </div>
   );
 }
