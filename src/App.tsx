@@ -1231,13 +1231,13 @@ function AssetHistoryPage({
       <div className="asset-history-page-body">
         {/* Left: Overview & Card Bills */}
         <div className="asset-history-overview">
-          <div className="asset-history-current" style={{ display: 'grid', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="asset-history-current">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>현재 자산</span>
               <CategoryBadge categories={allAssetCategories} idOrLabel={currentAsset.category} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
               <strong>{formatMoney(currentBalance)}</strong>
               <button
                 type="button"
@@ -1253,7 +1253,19 @@ function AssetHistoryPage({
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', borderTop: '1px solid color-mix(in srgb, var(--color-asset) 15%, var(--border-card))', paddingTop: '6px', marginTop: '2px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px',
+                width: '100%',
+                borderTop: '1px solid color-mix(in srgb, var(--color-asset) 20%, var(--border-card))',
+                paddingTop: '8px',
+                marginTop: '2px'
+              }}
+            >
               <small style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>기초 금액 {formatMoney(openingBalance)}</small>
               {hasCardSchedule && (
                 <small style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700 }}>

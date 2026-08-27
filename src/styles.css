@@ -5174,12 +5174,25 @@ body.category-handle-drag-active {
 .asset-list-category-summary > strong { color: var(--text-primary); font-size: 0.86rem; }
 .asset-history-modal { width: min(100% - 28px, 560px); }
 .asset-history-body { display: grid; flex: 1; min-height: 0; gap: 16px; padding: 4px 24px 24px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.asset-history-current { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card)); }
-.asset-history-current > div, .asset-history-item > div { display: grid; gap: 4px; min-width: 0; }
+.asset-history-current {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card));
+  box-sizing: border-box;
+}
+.asset-history-current > div {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.asset-history-item > div { display: grid; gap: 4px; min-width: 0; }
 .asset-history-current span, .asset-history-current small, .asset-balance-adjust-form > p, .asset-history-item span { color: var(--text-secondary); font-size: .82rem; }
-.asset-history-current small { display: block; margin-top: 5px; }
+.asset-history-current small { display: block; margin-top: 0; }
 .asset-balance-values { justify-self: end; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 1rem; line-height: 1.15; }
-.asset-history-current strong { display: block; font-size: clamp(1.35rem, 5vw, 1.8rem); }
+.asset-history-current strong { display: block; font-size: clamp(1.35rem, 5vw, 1.8rem); line-height: 1.2; }
 .asset-balance-edit-button {
   display: inline-flex;
   align-items: center;
