@@ -1330,10 +1330,6 @@
 }
 
 @media (min-width: 540px) and (min-aspect-ratio: 3 / 4) {
-  .plans-container {
-    grid-template-columns: 1fr 1fr !important;
-  }
-
   .modal-backdrop:has(.entry-modal) {
     padding: 24px !important;
   }
@@ -1390,26 +1386,6 @@
   .modal-content.entry-modal.asset-entry-modal .asset-entry-actions {
     grid-row: 5 !important;
     grid-column: 1 !important;
-  }
-
-  .summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
-
-  .summary-visual-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .summary-category-columns {
-    display: grid;
-  }
-
-  .summary-category-mobile {
-    display: none;
-  }
-
-  .summary-category-select {
-    display: none;
   }
 }
 

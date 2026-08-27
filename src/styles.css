@@ -5276,11 +5276,20 @@ body.category-handle-drag-active {
 .asset-settings-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 24px 24px; }
 .asset-settings-actions > button { min-height: 44px; margin: 0; }
 
-@media (min-width: 993px), (min-width: 540px) and (min-aspect-ratio: 3 / 4) and (max-width: 992px) {
-  .asset-history-page { max-width: 1040px; margin: 0 auto; }
-  .asset-history-page-body { grid-template-columns: 310px 1fr; gap: 24px; align-items: start; }
-  .asset-history-overview { grid-column: 1; }
-  .asset-history-list { grid-column: 2; grid-row: 1; align-self: start; min-width: 0; }
+/* PC (>= 993px): 2-Column Split Layout utilizing wide screens generously */
+@media (min-width: 993px) {
+  .asset-history-page { max-width: 1240px; margin: 0 auto; width: 100%; }
+  .asset-history-page-body { grid-template-columns: 340px 1fr; gap: 28px; align-items: start; width: 100%; }
+  .asset-history-overview { grid-column: 1; width: 100%; }
+  .asset-history-list { grid-column: 2; grid-row: 1; align-self: start; min-width: 0; width: 100%; }
+}
+
+/* Mobile ~ Fold ~ Tablet (<= 992px): Always 1-Column stack so tables/cards never get crushed */
+@media (max-width: 992px) {
+  .asset-history-page { max-width: 100%; margin: 0; width: 100%; }
+  .asset-history-page-body { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+  .asset-history-overview { width: 100%; }
+  .asset-history-list { width: 100%; min-width: 0; }
 }
 
 @media (max-width: 539px), (max-aspect-ratio: 2 / 3) {
@@ -6616,7 +6625,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 960px;
+  max-width: 1240px;
   margin: 0 auto;
   width: 100%;
   padding-bottom: 90px;
