@@ -923,29 +923,6 @@ function MonthlyTransactionSubpage({
             </span>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={onAdd}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 16px',
-            borderRadius: '10px',
-            border: 'none',
-            background: isIncome ? 'var(--color-income)' : 'var(--color-expense)',
-            color: '#ffffff',
-            fontWeight: 800,
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm)',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <AppIcon name="plus" size={16} />
-          <span>{isIncome ? '수입 등록' : '지출 등록'}</span>
-        </button>
       </div>
 
       {/* 2. 3-Month Trend & Piggy Witty Reaction Card */}
