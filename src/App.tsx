@@ -57,7 +57,7 @@ type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type HiddenAssetMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'expense-list' | 'income-list';
-type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff';
+type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
 type StyleThemePreference = 'default' | 'doodle';
@@ -105,6 +105,7 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
     chevronRight: ['M9 18l6-6-6-6'],
     eye: ['M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
     eyeOff: ['M3 3l18 18', 'M10.6 10.6A3 3 0 0 0 13.4 13.4', 'M9.9 4.2A10.8 10.8 0 0 1 12 4c6.5 0 10 8 10 8a17.8 17.8 0 0 1-3.2 4.4', 'M6.6 6.6C3.6 8.4 2 12 2 12s3.5 8 10 8a10.7 10.7 0 0 0 4.1-.8'],
+    refresh: ['M23 4v6h-6', 'M1 20v-6h6', 'M3.51 9a9 9 0 0 1 14.85-3.36L23 10', 'M20.49 15a9 9 0 0 1-14.85 3.36L1 14'],
   };
 
   return (
@@ -5282,7 +5283,7 @@ export default function App() {
             title={!isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
             aria-label="서버 동기화 상태 확인"
           >
-            <span aria-hidden="true" />
+            <AppIcon name="refresh" size={18} />
           </button>
           <button
             type="button"

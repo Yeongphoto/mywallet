@@ -785,61 +785,50 @@ button:active {
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border: none !important;
-  border-radius: 999px;
-  background: transparent !important;
-  box-shadow: none !important;
   white-space: nowrap;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .sync-mini-indicator:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
-  border-radius: 999px;
 }
 
-.sync-mini-indicator span {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
+.sync-mini-indicator .app-icon,
+.sync-mini-indicator svg {
   display: block;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s ease, color 0.2s ease;
 }
 
-.sync-mini-indicator.synced span {
-  background: radial-gradient(circle at 30% 30%, #a7f3d0 0%, #10b981 60%, #064e3b 100%) !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.6) !important;
+/* State-based arrow colors */
+.sync-mini-indicator.synced {
+  color: var(--color-asset, #10b981) !important;
 }
 
-.sync-mini-indicator.pending span,
-.sync-mini-indicator.saving span,
-.sync-mini-indicator.checking span {
-  background: radial-gradient(circle at 30% 30%, #bae6fd 0%, #0ea5e9 60%, #0c4a6e 100%) !important;
-  box-shadow: 0 0 12px rgba(14, 165, 233, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.6) !important;
-  animation: pulseGlow 1.5s infinite ease-in-out;
+.sync-mini-indicator.pending,
+.sync-mini-indicator.saving,
+.sync-mini-indicator.checking {
+  color: #0ea5e9 !important;
 }
 
-.sync-mini-indicator.stale span {
-  background: radial-gradient(circle at 30% 30%, #fef3c7 0%, #f59e0b 60%, #78350f 100%) !important;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.6) !important;
+.sync-mini-indicator.pending svg,
+.sync-mini-indicator.saving svg,
+.sync-mini-indicator.checking svg {
+  animation: spinSync 1s linear infinite;
 }
 
-.sync-mini-indicator.error span,
-.sync-mini-indicator.offline span {
-  background: radial-gradient(circle at 30% 30%, #fee2e2 0%, #ef4444 60%, #7f1d1d 100%) !important;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.75), inset 0 1px 1.5px rgba(255, 255, 255, 0.6) !important;
+.sync-mini-indicator.stale {
+  color: #f59e0b !important;
 }
 
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.6; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.1); }
+.sync-mini-indicator.error,
+.sync-mini-indicator.offline {
+  color: #ef4444 !important;
 }
 
-.sync-mini-indicator.offline,
-.sync-mini-indicator.error {
-  color: var(--color-expense);
-  border-color: rgba(239, 68, 68, 0.24);
+@keyframes spinSync {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .privacy-toggle {
@@ -6476,6 +6465,32 @@ html[data-style-theme="doodle"] .privacy-toggle.active {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
   box-shadow: 0 3px 10px rgba(234, 179, 8, 0.35) !important;
+}
+
+html[data-style-theme="doodle"] .sync-mini-indicator.synced,
+html[data-style-theme="doodle"] .sync-mini-indicator.synced svg {
+  color: var(--color-asset, #10b981) !important;
+}
+
+html[data-style-theme="doodle"] .sync-mini-indicator.stale,
+html[data-style-theme="doodle"] .sync-mini-indicator.stale svg {
+  color: #f59e0b !important;
+}
+
+html[data-style-theme="doodle"] .sync-mini-indicator.error,
+html[data-style-theme="doodle"] .sync-mini-indicator.error svg,
+html[data-style-theme="doodle"] .sync-mini-indicator.offline,
+html[data-style-theme="doodle"] .sync-mini-indicator.offline svg {
+  color: #ef4444 !important;
+}
+
+html[data-style-theme="doodle"] .sync-mini-indicator.saving,
+html[data-style-theme="doodle"] .sync-mini-indicator.saving svg,
+html[data-style-theme="doodle"] .sync-mini-indicator.pending,
+html[data-style-theme="doodle"] .sync-mini-indicator.pending svg,
+html[data-style-theme="doodle"] .sync-mini-indicator.checking,
+html[data-style-theme="doodle"] .sync-mini-indicator.checking svg {
+  color: #0ea5e9 !important;
 }
 
 html[data-style-theme="doodle"] .header-settings-btn.active svg,
