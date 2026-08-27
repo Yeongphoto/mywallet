@@ -4338,8 +4338,8 @@ export default function App() {
             </section>
 
             {/* 연간 수입/지출 분석 그래프 패널 */}
-            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '16px 12px 10px 12px', overflow: 'visible', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
-              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', marginBottom: '8px', minWidth: 0 }}>
+            <section className="glass-panel annual-chart-panel" style={{ position: 'relative', padding: '14px 12px 10px 12px', overflow: 'visible', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', height: '100%', boxSizing: 'border-box' }}>
+              <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '8px', marginBottom: '4px', minWidth: 0 }}>
                 <div style={{ flexShrink: 0 }}>
                   <h2 className="panel-title-kor" style={{ margin: 0, whiteSpace: 'nowrap' }}>연간 그래프</h2>
                 </div>
@@ -4429,9 +4429,9 @@ export default function App() {
               </div>
 
               {/* 연간 차트 영역 */}
-              <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', position: 'relative', overflow: 'visible', minHeight: 0 }}>
-                <div style={{ width: '100%', position: 'relative' }}>
-                  <svg width="100%" height="auto" viewBox="0 0 560 342" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible' }}>
+              <div style={{ width: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column', justifyContent: 'stretch', position: 'relative', overflow: 'visible', minHeight: 0 }}>
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <svg width="100%" height="100%" viewBox="0 0 560 340" onClick={() => setHoveredChartIndex(null)} style={{ display: 'block', overflow: 'visible', width: '100%', height: '100%' }}>
                     {/* SVG Definition for Gradients & Tetris Block Patterns */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
@@ -4475,12 +4475,12 @@ export default function App() {
                       const chartMaxY = isAssetChart
                         ? Math.ceil((assetMaximum + stepSize * 0.5) / stepSize) * stepSize
                         : Math.ceil(standardMaximum / stepSize) * stepSize;
-                      const scale = 285 / Math.max(chartMaxY - chartMinY, stepSize);
+                      const scale = 300 / Math.max(chartMaxY - chartMinY, stepSize);
                       const gridValues = [];
                       for (let value = chartMinY; value <= chartMaxY; value += stepSize) {
                         gridValues.push(value);
                       }
-                      const chartY = (value: number) => 310 - (value - chartMinY) * scale;
+                      const chartY = (value: number) => 312 - (value - chartMinY) * scale;
                       const chartX = (index: number) => 48 + index * (482 / 12) + (482 / 24);
                       const formatAxisValue = (value: number) => {
                         const sign = value < 0 ? '-' : '';
@@ -4565,9 +4565,9 @@ export default function App() {
                                 {/* 백그라운드 마우스 감지 보이지 않는 바 */}
                                 <rect 
                                   x={xCenter - (482 / 24)} 
-                                  y="15" 
+                                  y="10" 
                                   width={482 / 12} 
-                                  height="300"
+                                  height="305"
                                   fill="transparent"
                                 />
 
@@ -4575,7 +4575,7 @@ export default function App() {
                                 {showIncome && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter - 12 : xCenter - 9}
-                                    y={310 - incHeight}
+                                    y={312 - incHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(incHeight, 2)}
                                     rx="3"
@@ -4590,7 +4590,7 @@ export default function App() {
                                 {showExpense && (
                                   <rect
                                     x={chartFilter === 'both' ? xCenter + 2 : xCenter - 9}
-                                    y={310 - expHeight}
+                                    y={312 - expHeight}
                                     width={chartFilter === 'both' ? '10' : '18'}
                                     height={Math.max(expHeight, 2)}
                                     rx="3"
