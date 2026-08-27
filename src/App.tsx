@@ -1175,11 +1175,11 @@ function AssetHistoryPage({
   );
   const pendingCardPayments = cardPaymentPeriods(currentAsset, transactions);
   const currentPaymentDueDate = cardPaymentDueDateForToday(currentAsset, todayStr);
-  const visibleCardPayments =
-    showAllCardPayments || !currentPaymentDueDate
-      ? pendingCardPayments
-      : pendingCardPayments.filter((period) => period.dueDate <= currentPaymentDueDate);
-  const hiddenCardPaymentCount = pendingCardPayments.length - visibleCardPayments.length;
+  const INITIAL_CARD_PAYMENT_COUNT = 3;
+  const hasMoreCardPayments = pendingCardPayments.length > INITIAL_CARD_PAYMENT_COUNT;
+  const visibleCardPayments = showAllCardPayments
+    ? pendingCardPayments
+    : pendingCardPayments.slice(0, INITIAL_CARD_PAYMENT_COUNT);
 
   const allAssetTransactions = useMemo(() => {
     return transactions
@@ -1285,14 +1285,15 @@ function AssetHistoryPage({
                   )}
                 </div>
               ))}
-              {!showAllCardPayments && hiddenCardPaymentCount > 0 && (
-                <button type="button" className="asset-card-payment-toggle" onClick={() => setShowAllCardPayments(true)}>
-                  결제 금액 전체 보기 · {hiddenCardPaymentCount}건
-                </button>
-              )}
-              {showAllCardPayments && hiddenCardPaymentCount > 0 && (
-                <button type="button" className="asset-card-payment-toggle" onClick={() => setShowAllCardPayments(false)}>
-                  결제 금액 간단히 보기
+              {hasMoreCardPayments && (
+                <button
+                  type="button"
+                  className="asset-card-payment-toggle"
+                  onClick={() => setShowAllCardPayments((prev) => !prev)}
+                >
+                  {showAllCardPayments
+                    ? '결제 금액 접기 ▲'
+                    : `결제 금액 전체 보기 · ${pendingCardPayments.length}건 ▼`}
                 </button>
               )}
             </section>

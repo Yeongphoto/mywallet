@@ -5230,9 +5230,28 @@ body.category-handle-drag-active {
 .asset-card-payment-row span { color: var(--text-secondary); font-size: .82rem; font-weight: 750; }
 .asset-card-payment-row strong { color: var(--text-primary); font-size: 1rem; font-variant-numeric: tabular-nums; }
 .asset-card-payment-row .primary-button { min-width: 64px; min-height: 40px; margin: 0; }
-.asset-card-payment-future { min-width: 64px; color: var(--text-secondary); font-size: .8rem; font-weight: 800; text-align: center; }
-.asset-card-payment-toggle { min-height: 36px; border: 0; background: transparent; color: var(--color-asset); font-size: .84rem; font-weight: 850; text-align: center; }
-.card-settled-tag { display: inline-flex; align-items: center; margin-left: 7px; padding: 2px 6px; border-radius: 999px; background: color-mix(in srgb, var(--text-secondary) 12%, transparent); color: var(--text-secondary); font-size: .68rem; font-style: normal; font-weight: 800; vertical-align: 1px; }
+.asset-card-payment-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px dashed color-mix(in srgb, var(--color-asset) 35%, var(--border-card));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-asset) 6%, var(--bg-card));
+  color: var(--color-asset);
+  font-size: .84rem;
+  font-weight: 850;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.asset-card-payment-toggle:hover {
+  background: color-mix(in srgb, var(--color-asset) 14%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--color-asset) 60%, var(--border-card));
+}
 .asset-settings-backdrop { z-index: 100; }
 .asset-settings-modal { width: min(100% - 32px, 460px); }
 .asset-settings-fields { display: grid; gap: 12px; padding: 4px 24px 20px; }
