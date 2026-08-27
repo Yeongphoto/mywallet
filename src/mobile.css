@@ -1270,7 +1270,8 @@
     color: var(--text-secondary);
     font-size: 0.8rem;
     font-weight: 800;
-    overflow-wrap: anywhere;
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   .mobile-ledger-copy {
@@ -1280,13 +1281,11 @@
 
   .mobile-ledger-copy strong {
     display: block;
-    overflow-wrap: anywhere;
-  }
-
-  .mobile-ledger-copy strong {
     color: var(--text-primary);
     font-size: 0.98rem;
     line-height: 1.3;
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   .mobile-ledger-meta {
@@ -1299,7 +1298,8 @@
     display: block;
     color: var(--text-secondary);
     font-size: 0.78rem;
-    overflow-wrap: anywhere;
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   .mobile-ledger-amount {
