@@ -6656,6 +6656,176 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   gap: 10px;
 }
 
+/* 3-Month Trend & Piggy Comment Card */
+.trend-overview-card {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-md);
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .trend-overview-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+}
+
+.trend-chart-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trend-box-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.trend-bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 12px;
+  height: 120px;
+  padding-top: 18px;
+  padding-bottom: 6px;
+}
+
+.trend-bar-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 6px;
+}
+
+.trend-bar-pill {
+  width: 100%;
+  max-width: 44px;
+  border-radius: 8px 8px 4px 4px;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+.trend-bar-amount {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.trend-bar-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.trend-bar-column.current .trend-bar-label {
+  color: var(--primary);
+  font-weight: 850;
+}
+
+.trend-bar-column.current .trend-bar-amount {
+  color: var(--text-primary);
+  font-weight: 850;
+}
+
+.trend-piggy-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  position: relative;
+}
+
+.trend-piggy-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 15%, var(--bg-card));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--border-card);
+}
+
+.trend-bubble-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.trend-bubble-title {
+  font-size: 0.95rem;
+  font-weight: 850;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.trend-bubble-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.trend-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 750;
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.trend-badge-pill.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.trend-badge-pill.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.trend-badge-pill.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.trend-badge-pill.neutral {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--text-secondary);
+}
+
 
 
 

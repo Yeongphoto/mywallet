@@ -494,6 +494,111 @@ function MonthlyTransactionSubpage({
     return maxAmt > 0 ? { label, amount: maxAmt } : null;
   }, [filtered, allCategories]);
 
+  // 3-Month Trend
+  const prevMonth1 = useMemo(() => getPreviousMonth(selectedMonth), [selectedMonth]);
+  const prevMonth2 = useMemo(() => getPreviousMonth(prevMonth1), [prevMonth1]);
+
+  const month0Name = `${parseInt(selectedMonth.slice(5, 7), 10)}월`;
+  const month1Name = `${parseInt(prevMonth1.slice(5, 7), 10)}월`;
+  const month2Name = `${parseInt(prevMonth2.slice(5, 7), 10)}월`;
+
+  const amount0 = totalAmount;
+  const amount1 = useMemo(() => {
+    return transactions.filter(t => t.date.startsWith(prevMonth1) && t.type === type).reduce((s, t) => s + t.amount, 0);
+  }, [transactions, prevMonth1, type]);
+  const amount2 = useMemo(() => {
+    return transactions.filter(t => t.date.startsWith(prevMonth2) && t.type === type).reduce((s, t) => s + t.amount, 0);
+  }, [transactions, prevMonth2, type]);
+
+  const diff = amount0 - amount1;
+  const percent = amount1 > 0 ? ((amount0 - amount1) / amount1) * 100 : (amount0 > 0 ? 100 : 0);
+  const max3MonthAmount = Math.max(amount0, amount1, amount2, 10000);
+
+  const wittyFeedback = useMemo(() => {
+    const chickenCount = Math.max(1, Math.round(Math.abs(diff) / 20000));
+    const coffeeCount = Math.max(1, Math.round(Math.abs(diff) / 5000));
+    const diffAbs = Math.abs(diff);
+
+    if (type === 'expense') {
+      if (diff < -150000) {
+        return {
+          pigFace: '😎',
+          title: `지출 다이어트 대성공! 치킨 ${chickenCount}마리 세이브 🍗`,
+          desc: `지난달보다 ${formatMoney(diffAbs)}이나 덜 썼어요! 저금통이 아주 흐뭇해하고 있어요.`,
+          badgeClass: 'success',
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 절약 📉)`
+        };
+      } else if (diff < -30000) {
+        return {
+          pigFace: '🥰',
+          title: `알뜰살뜰 절약 중! 커피 ${coffeeCount}잔 아꼈어요 ☕`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 덜 썼어요. 기분 좋은 절약 페이스를 유지 중이에요!`,
+          badgeClass: 'success',
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 절약 📉)`
+        };
+      } else if (diff <= 30000) {
+        return {
+          pigFace: '😊',
+          title: `안정적인 지출 페이스! 칭찬해요 👏`,
+          desc: `지난달과 거의 비슷한 수준(${formatMoney(diffAbs)} 차이)으로 계획적인 소비를 이어가고 있어요.`,
+          badgeClass: 'neutral',
+          badgeText: diff === 0 ? '지난달과 동일한 지출 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}% 변동)`
+        };
+      } else if (diff <= 150000) {
+        return {
+          pigFace: '😮',
+          title: `지출이 살짝 늘었어요! 커피 ${coffeeCount}잔 분량 ☕`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 더 나갔어요. 남은 기간 조금만 힘을 빼볼까요?`,
+          badgeClass: 'warning',
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+        };
+      } else {
+        return {
+          pigFace: '😵‍💫',
+          title: `이번 달 조금 달렸네요! 치킨 ${chickenCount}마리 추가 🍗`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 더 지출되었어요. 필요했던 지출인지 장부에서 점검해 보세요!`,
+          badgeClass: 'danger',
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+        };
+      }
+    } else {
+      // Income
+      if (diff > 200000) {
+        return {
+          pigFace: '🥳',
+          title: `지갑이 빵빵해졌어요! 보너스 파티 💰`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 더 많이 들어왔어요! 멋진 성과예요.`,
+          badgeClass: 'success',
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 🚀)`
+        };
+      } else if (diff > 30000) {
+        return {
+          pigFace: '😄',
+          title: `수입 상승 기류! 기분 좋은 흐름 ✨`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 증가했어요. 탄탄하게 자산을 불려나가고 있어요!`,
+          badgeClass: 'success',
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+        };
+      } else if (diff >= -30000) {
+        return {
+          pigFace: '😊',
+          title: `안정적이고 꾸준한 수입 흐름 🧘`,
+          desc: `지난달과 일관된 수입 페이스를 유지하고 있어요. 든든한 기반이에요.`,
+          badgeClass: 'neutral',
+          badgeText: diff === 0 ? '지난달과 동일한 수입 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}% 변동)`
+        };
+      } else {
+        return {
+          pigFace: '🥺',
+          title: `다음 달엔 더 큰 수입이 올 거예요! 파이팅 🍀`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 적지만, 다음 달의 도약을 응원할게요!`,
+          badgeClass: 'warning',
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 감소 📉)`
+        };
+      }
+    }
+  }, [type, diff, percent, formatMoney]);
+
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
@@ -537,7 +642,76 @@ function MonthlyTransactionSubpage({
         </button>
       </div>
 
-      {/* 2. Key Metrics Banner */}
+      {/* 2. 3-Month Trend & Piggy Witty Reaction Card */}
+      <div className="trend-overview-card">
+        {/* Left: 3-Month Mini Bar Chart */}
+        <div className="trend-chart-box">
+          <div className="trend-box-title">
+            <span>최근 3개월 {isIncome ? '수입' : '지출'} 추이</span>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+              {month2Name} ~ {month0Name}
+            </span>
+          </div>
+
+          <div className="trend-bars-container">
+            {/* Month 2 (2 months ago) */}
+            <div className="trend-bar-column">
+              <span className="trend-bar-amount">{formatMoney(amount2).replace('₩', '')}</span>
+              <div 
+                className="trend-bar-pill" 
+                style={{ 
+                  height: `${Math.max(12, Math.round((amount2 / max3MonthAmount) * 72))}px`,
+                  background: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)'
+                }} 
+              />
+              <span className="trend-bar-label">{month2Name}</span>
+            </div>
+
+            {/* Month 1 (previous month) */}
+            <div className="trend-bar-column">
+              <span className="trend-bar-amount">{formatMoney(amount1).replace('₩', '')}</span>
+              <div 
+                className="trend-bar-pill" 
+                style={{ 
+                  height: `${Math.max(12, Math.round((amount1 / max3MonthAmount) * 72))}px`,
+                  background: 'color-mix(in srgb, var(--text-secondary) 50%, transparent)'
+                }} 
+              />
+              <span className="trend-bar-label">{month1Name}</span>
+            </div>
+
+            {/* Month 0 (current month) */}
+            <div className="trend-bar-column current">
+              <span className="trend-bar-amount">{formatMoney(amount0).replace('₩', '')}</span>
+              <div 
+                className="trend-bar-pill" 
+                style={{ 
+                  height: `${Math.max(12, Math.round((amount0 / max3MonthAmount) * 72))}px`,
+                  background: isIncome ? 'var(--color-income)' : 'var(--color-expense)',
+                  boxShadow: isIncome ? '0 4px 12px rgba(59, 130, 246, 0.35)' : '0 4px 12px rgba(239, 68, 68, 0.35)'
+                }} 
+              />
+              <span className="trend-bar-label">{month0Name} (이번 달)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Piggy Avatar & Comic Speech Balloon */}
+        <div className="trend-piggy-box">
+          <div className="trend-piggy-avatar" role="img" aria-label="돼지 저금통 캐릭터">
+            {wittyFeedback.pigFace}
+          </div>
+          <div className="trend-bubble-content">
+            <div className="trend-bubble-title">{wittyFeedback.title}</div>
+            <p className="trend-bubble-desc">{wittyFeedback.desc}</p>
+            <span className={`trend-badge-pill ${wittyFeedback.badgeClass}`}>
+              {wittyFeedback.badgeText}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Key Metrics Banner */}
       <div className="subpage-metrics-grid">
         <div className="subpage-metric-card">
           <span>총 건수</span>
@@ -563,7 +737,7 @@ function MonthlyTransactionSubpage({
         )}
       </div>
 
-      {/* 3. Transaction List */}
+      {/* 4. Transaction List */}
       <div className="subpage-list-container">
         {filtered.length === 0 ? (
           <div className="glass-panel" style={{ textAlign: 'center', padding: '48px 20px', borderRadius: '16px' }}>
