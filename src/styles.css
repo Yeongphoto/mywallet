@@ -5180,6 +5180,24 @@ body.category-handle-drag-active {
 .asset-history-current small { display: block; margin-top: 5px; }
 .asset-balance-values { justify-self: end; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 1rem; line-height: 1.15; }
 .asset-history-current strong { display: block; font-size: clamp(1.35rem, 5vw, 1.8rem); }
+.asset-balance-edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--color-asset) 40%, var(--border-card));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-asset) 15%, var(--bg-card));
+  color: var(--color-asset);
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.asset-balance-edit-button:hover {
+  background: color-mix(in srgb, var(--color-asset) 25%, var(--bg-card));
+}
 .asset-balance-adjust-form { display: grid; gap: 8px; overflow: visible !important; }
 .asset-balance-adjust-form > label, .asset-history-list h4 { font-weight: 800; }
 .asset-balance-adjust-form > div { display: flex; gap: 8px; }

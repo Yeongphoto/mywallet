@@ -1153,6 +1153,7 @@ function AssetHistoryPage({
   const [filterCategory, setFilterCategory] = useState('all');
   const [showAllCardPayments, setShowAllCardPayments] = useState(false);
   const [isAssetSettingsOpen, setIsAssetSettingsOpen] = useState(false);
+  const [isAdjustBalanceModalOpen, setIsAdjustBalanceModalOpen] = useState(false);
 
   const currentAsset = assets.find((a) => a.id === asset.id) ?? asset;
   const openingBalance = getAssetOpeningBalance(currentAsset);
@@ -1228,12 +1229,26 @@ function AssetHistoryPage({
       </header>
 
       <div className="asset-history-page-body">
-        {/* Left: Overview & Balance Adjust & Card Bills */}
+        {/* Left: Overview & Card Bills */}
         <div className="asset-history-overview">
           <div className="asset-history-current">
             <div>
               <span>현재 자산</span>
-              <strong>{formatMoney(currentBalance)}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <strong>{formatMoney(currentBalance)}</strong>
+                <button
+                  type="button"
+                  className="asset-balance-edit-button"
+                  title="현재 잔액 수정"
+                  onClick={() => {
+                    setAssetBalanceDraft(String(currentBalance));
+                    setIsAdjustBalanceModalOpen(true);
+                  }}
+                >
+                  <AppIcon name="edit" size={13} />
+                  <span>수정</span>
+                </button>
+              </div>
               <small>기초 금액 {formatMoney(openingBalance)}</small>
             </div>
             <CategoryBadge categories={allAssetCategories} idOrLabel={currentAsset.category} />
@@ -1289,62 +1304,6 @@ function AssetHistoryPage({
               {currentAsset.cardPaymentDay}일 · 결제 계좌 {paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '미선택'}
             </div>
           )}
-
-          <form
-            className="asset-balance-adjust-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const nextBalance = parseSignedNumberInput(assetBalanceDraft);
-              if (!Number.isFinite(nextBalance)) {
-                showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
-                return;
-              }
-              const difference = nextBalance - currentBalance;
-              if (!difference) return;
-              const direction = difference > 0 ? '수입(+)' : '지출(-)';
-              if (
-                window.confirm(
-                  '차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?'
-                )
-              ) {
-                handleAssetBalanceAdjustment(currentAsset, nextBalance);
-                setAssetBalanceDraft(String(nextBalance));
-              }
-            }}
-          >
-            <label htmlFor="asset-balance-draft">현재 잔액 수정</label>
-            <div>
-              <input
-                id="asset-balance-draft"
-                type="text"
-                inputMode="text"
-                placeholder="0"
-                value={formatSignedNumberInput(assetBalanceDraft)}
-                onChange={(e) => {
-                  const raw = e.target.value.trim();
-                  if (!raw) {
-                    setAssetBalanceDraft('');
-                    return;
-                  }
-                  if (raw === '-') {
-                    setAssetBalanceDraft('-');
-                    return;
-                  }
-                  const isNeg = raw.startsWith('-');
-                  const digits = raw.replace(/[^\d]/g, '');
-                  if (!digits) {
-                    setAssetBalanceDraft(isNeg ? '-' : '');
-                    return;
-                  }
-                  setAssetBalanceDraft(isNeg ? `-${digits}` : digits);
-                }}
-              />
-              <button type="submit" className="primary-button">
-                차액 기록
-              </button>
-            </div>
-            <p>저장 전 차액을 수입 또는 지출 거래로 기록할지 확인합니다.</p>
-          </form>
         </div>
 
         {/* Right: History List with Search & Filters & Daily Timeline */}
@@ -1405,6 +1364,130 @@ function AssetHistoryPage({
           )}
         </div>
       </div>
+
+      {isAdjustBalanceModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsAdjustBalanceModalOpen(false)}>
+          <div className="modal-content" style={{ width: 'min(100% - 32px, 420px)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AppIcon name="edit" size={18} />
+                <span>현재 잔액 수정</span>
+              </h3>
+              <button type="button" className="close-btn" onClick={() => setIsAdjustBalanceModalOpen(false)}>
+                ×
+              </button>
+            </div>
+            <form
+              style={{ display: 'grid', gap: '16px', padding: '16px 24px 24px' }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                const nextBalance = parseSignedNumberInput(assetBalanceDraft);
+                if (!Number.isFinite(nextBalance)) {
+                  showNotice('올바른 금액을 입력해 주세요.', '입력 확인', 'warning');
+                  return;
+                }
+                const difference = nextBalance - currentBalance;
+                if (!difference) {
+                  setIsAdjustBalanceModalOpen(false);
+                  return;
+                }
+                const direction = difference > 0 ? '수입(+)' : '지출(-)';
+                if (
+                  window.confirm(
+                    '차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?'
+                  )
+                ) {
+                  handleAssetBalanceAdjustment(currentAsset, nextBalance);
+                  setIsAdjustBalanceModalOpen(false);
+                }
+              }}
+            >
+              <div style={{ display: 'grid', gap: '4px', padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-input)', border: '1px solid var(--border-card)' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>현재 장부상 잔액</span>
+                <strong style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>{formatMoney(currentBalance)}</strong>
+              </div>
+
+              <div style={{ display: 'grid', gap: '6px' }}>
+                <label htmlFor="modal-asset-balance-input" style={{ fontSize: '0.88rem', fontWeight: 800 }}>
+                  수정할 실제 잔액
+                </label>
+                <input
+                  id="modal-asset-balance-input"
+                  type="text"
+                  inputMode="text"
+                  placeholder="0"
+                  autoFocus
+                  value={formatSignedNumberInput(assetBalanceDraft)}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    if (!raw) {
+                      setAssetBalanceDraft('');
+                      return;
+                    }
+                    if (raw === '-') {
+                      setAssetBalanceDraft('-');
+                      return;
+                    }
+                    const isNeg = raw.startsWith('-');
+                    const digits = raw.replace(/[^\d]/g, '');
+                    if (!digits) {
+                      setAssetBalanceDraft(isNeg ? '-' : '');
+                      return;
+                    }
+                    setAssetBalanceDraft(isNeg ? `-${digits}` : digits);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '1.15rem',
+                    fontWeight: 800,
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-input)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
+
+              {(() => {
+                const nextBal = parseSignedNumberInput(assetBalanceDraft);
+                if (Number.isFinite(nextBal) && nextBal !== currentBalance) {
+                  const diff = nextBal - currentBalance;
+                  const isPlus = diff > 0;
+                  return (
+                    <div style={{ fontSize: '0.84rem', color: isPlus ? 'var(--color-income)' : 'var(--color-expense)', fontWeight: 800 }}>
+                      차액: {isPlus ? '+' : '-'}{formatMoney(Math.abs(diff))} ({isPlus ? '수입' : '지출'} 거래로 장부에 자동 기록됩니다)
+                    </div>
+                  );
+                }
+                return (
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    저장 시 기존 잔액과의 차액이 수입 또는 지출 거래로 장부에 기록됩니다.
+                  </p>
+                );
+              })()}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  style={{ margin: 0, minHeight: '44px' }}
+                  onClick={() => setIsAdjustBalanceModalOpen(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="primary-button"
+                  style={{ margin: 0, minHeight: '44px' }}
+                >
+                  차액 기록
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {isAssetSettingsOpen && (
         <div className="modal-backdrop asset-settings-backdrop" onClick={() => setIsAssetSettingsOpen(false)}>
