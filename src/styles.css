@@ -802,7 +802,7 @@ button:active {
 
 /* State-based arrow colors */
 .sync-mini-indicator.synced {
-  color: var(--color-asset, #10b981) !important;
+  color: var(--text-primary) !important;
 }
 
 .sync-mini-indicator.pending,
@@ -6469,7 +6469,7 @@ html[data-style-theme="doodle"] .privacy-toggle.active {
 
 html[data-style-theme="doodle"] .sync-mini-indicator.synced,
 html[data-style-theme="doodle"] .sync-mini-indicator.synced svg {
-  color: var(--color-asset, #10b981) !important;
+  color: var(--text-primary) !important;
 }
 
 html[data-style-theme="doodle"] .sync-mini-indicator.stale,
