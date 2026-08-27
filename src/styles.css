@@ -6600,17 +6600,29 @@ html[data-style-theme="doodle"] .picker-grid-btn.selected {
 /* ==================== Doodle Charts Styling ==================== */
 /* 1. Asset Distribution Donut Chart (자산 분배 현황 도넛 그래프) */
 html[data-style-theme="doodle"] .asset-distribution-panel svg path {
-  stroke: var(--bg-app) !important;
+  stroke: var(--bg-card) !important;
   stroke-width: 2.5px !important;
-  filter: drop-shadow(1px 2px 0px rgba(0, 0, 0, 0.08)) !important;
+  filter: url(#donut-paper-texture) !important;
+  stroke-linejoin: round !important;
+  stroke-linecap: round !important;
 }
 
-html[data-style-theme="doodle"][data-theme="dark"] .asset-distribution-panel svg path {
-  filter: drop-shadow(1px 2px 0px rgba(0, 0, 0, 0.35)) !important;
+html[data-style-theme="doodle"] .asset-distribution-panel svg circle {
+  filter: url(#donut-center-texture) !important;
+}
+
+html[data-style-theme="doodle"] .asset-distribution-panel svg {
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.12)) !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .asset-distribution-panel svg {
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.45)) !important;
 }
 
 html[data-style-theme="doodle"] .asset-distribution-panel svg polyline {
-  stroke-width: 1.6px !important;
+  stroke-width: 1.8px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 html[data-style-theme="doodle"] .asset-distribution-panel svg text {

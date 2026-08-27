@@ -5469,6 +5469,33 @@ export default function App() {
                       filter: 'drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22))'
                     }}
                   >
+                    <defs>
+                      {/* 종이 질감 / 캔버스 노멀맵 라이팅 필터 (Paper Texture Normal Map) */}
+                      <filter id="donut-paper-texture" x="-10%" y="-10%" width="120%" height="120%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.045 0.045" numOctaves="4" result="noise" />
+                        <feDiffuseLighting in="noise" lightingColor="#ffffff" surfaceScale="2.2" result="light">
+                          <feDistantLight azimuth="45" elevation="55" />
+                        </feDiffuseLighting>
+                        <feComponentTransfer in="light" result="softLight">
+                          <feFuncR type="linear" slope="0.75" intercept="0.25" />
+                          <feFuncG type="linear" slope="0.75" intercept="0.25" />
+                          <feFuncB type="linear" slope="0.75" intercept="0.25" />
+                        </feComponentTransfer>
+                        <feBlend mode="multiply" in="SourceGraphic" in2="softLight" result="blend" />
+                        <feComposite in="blend" in2="SourceAlpha" operator="in" />
+                      </filter>
+
+                      {/* 중심 링 소프트 종이 텍스처 */}
+                      <filter id="donut-center-texture" x="-10%" y="-10%" width="120%" height="120%">
+                        <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="3" result="noise" />
+                        <feDiffuseLighting in="noise" lightingColor="#ffffff" surfaceScale="1.2" result="light">
+                          <feDistantLight azimuth="60" elevation="60" />
+                        </feDiffuseLighting>
+                        <feBlend mode="multiply" in="SourceGraphic" in2="light" result="blend" />
+                        <feComposite in="blend" in2="SourceAlpha" operator="in" />
+                      </filter>
+                    </defs>
+
                     {/* Background Circle / Donut Hole Background */}
                     <circle cx="190" cy="185" r="96" fill="var(--bg-input)" opacity="0.3" />
 
