@@ -435,6 +435,24 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
   );
 }
 
+function isOpeningBalanceCategory(category?: string) {
+  if (!category) return false;
+  return (
+    category === OPENING_BALANCE_CATEGORY ||
+    category.startsWith('opening-balance') ||
+    category === '기초잔액' ||
+    category === '기초 잔액'
+  );
+}
+
+function isOpeningBalanceTransaction(transaction: Transaction) {
+  return (
+    isOpeningBalanceCategory(transaction.category) ||
+    transaction.title === '기초 잔액' ||
+    transaction.title === '기초잔액'
+  );
+}
+
 function MonthlyTransactionSubpage({
   type,
   selectedMonth,
@@ -461,10 +479,14 @@ function MonthlyTransactionSubpage({
   const isIncome = type === 'income';
   const monthTitle = `${selectedMonth.slice(0, 4)}년 ${parseInt(selectedMonth.slice(5, 7), 10)}월`;
   
-  // Filter for this month and type
+  // Filter for this month and type (exclude opening balance from income)
   const filtered = useMemo(() => {
     return transactions
-      .filter((t) => t.date.startsWith(selectedMonth) && t.type === type)
+      .filter((t) => {
+        if (!t.date.startsWith(selectedMonth) || t.type !== type) return false;
+        if (type === 'income' && isOpeningBalanceTransaction(t)) return false;
+        return true;
+      })
       .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
   }, [transactions, selectedMonth, type]);
 
@@ -504,10 +526,22 @@ function MonthlyTransactionSubpage({
 
   const amount0 = totalAmount;
   const amount1 = useMemo(() => {
-    return transactions.filter(t => t.date.startsWith(prevMonth1) && t.type === type).reduce((s, t) => s + t.amount, 0);
+    return transactions
+      .filter((t) => {
+        if (!t.date.startsWith(prevMonth1) || t.type !== type) return false;
+        if (type === 'income' && isOpeningBalanceTransaction(t)) return false;
+        return true;
+      })
+      .reduce((s, t) => s + t.amount, 0);
   }, [transactions, prevMonth1, type]);
   const amount2 = useMemo(() => {
-    return transactions.filter(t => t.date.startsWith(prevMonth2) && t.type === type).reduce((s, t) => s + t.amount, 0);
+    return transactions
+      .filter((t) => {
+        if (!t.date.startsWith(prevMonth2) || t.type !== type) return false;
+        if (type === 'income' && isOpeningBalanceTransaction(t)) return false;
+        return true;
+      })
+      .reduce((s, t) => s + t.amount, 0);
   }, [transactions, prevMonth2, type]);
 
   const diff = amount0 - amount1;
@@ -1278,7 +1312,7 @@ export default function App() {
     [allExpenseCategories, hiddenCategories]
   );
   const activeIncomeCategories = useMemo(
-    () => allIncomeCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'income', category.id)),
+    () => allIncomeCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'income', category.id) && !isOpeningBalanceCategory(category.id) && !isOpeningBalanceCategory(category.label)),
     [allIncomeCategories, hiddenCategories]
   );
   const activeAssetCategories = useMemo(
@@ -2737,16 +2771,7 @@ export default function App() {
   }
 
   async function handleAddAsset(asset: AssetItem) {
-    const openingTransaction: Transaction | null = asset.amount > 0 ? {
-      id: createId(),
-      type: 'income',
-      date: todayStr,
-      time: new Date().toTimeString().slice(0, 5),
-      amount: asset.amount,
-      title: '기초 잔액',
-      category: openingBalanceCategoryId,
-      assetId: asset.id,
-    } : null;
+    const openingTransaction: Transaction | null = null;
     setRemoteSync({ status: 'saving', message: '자산을 저장 중' });
     try {
       const response = await saveAssetMutation({ op: 'asset.create', asset, openingTransaction });
@@ -2758,7 +2783,6 @@ export default function App() {
         assetsRef.current = next;
         return next;
       });
-      if (payload.transaction) setTransactions((previous) => [payload.transaction as Transaction, ...previous]);
       setRemoteSync({ status: 'synced', checkedAt: Date.now(), message: '자산 저장 완료' });
       return true;
     } catch {
@@ -8199,10 +8223,6 @@ function cardPaymentDueDateForToday(asset: AssetItem, today: string) {
   const startMonth = crossesMonth && day < startDay ? shiftYearMonth(yearMonth, -1) : yearMonth;
   const endMonth = crossesMonth ? shiftYearMonth(startMonth, 1) : startMonth;
   return `${shiftYearMonth(endMonth, 1)}-${String(paymentDay).padStart(2, '0')}`;
-}
-
-function isOpeningBalanceCategory(category: string) {
-  return category === OPENING_BALANCE_CATEGORY || category.startsWith('opening-balance');
 }
 
 // Transaction List Table sub-component
