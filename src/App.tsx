@@ -575,7 +575,7 @@ function cardPaymentPeriods(asset: AssetItem, transactions: Transaction[]): Card
     current.amount += transaction.type === 'expense' ? transaction.amount : -transaction.amount;
     grouped.set(key, current);
   });
-  return Array.from(grouped.values()).filter((period) => period.amount > 0).sort((a, b) => b.dueDate.localeCompare(a.dueDate));
+  return Array.from(grouped.values()).filter((period) => period.amount > 0).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 function cardPaymentDueDateForToday(asset: AssetItem, today: string) {
