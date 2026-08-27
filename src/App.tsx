@@ -1118,10 +1118,11 @@ export default function App() {
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [chartSummaryModalType, setChartSummaryModalType] = useState<'expense' | 'income' | null>(null);
   const [registrationMode, setRegistrationMode] = useState<EntryType | 'asset'>('expense');
 
   useEffect(() => {
-    const isAnyModalOpen = isEntryModalOpen || Boolean(editingTransaction) || isCategoryModalOpen || isAssetModalOpen;
+    const isAnyModalOpen = isEntryModalOpen || Boolean(editingTransaction) || isCategoryModalOpen || isAssetModalOpen || Boolean(chartSummaryModalType);
     if (!isAnyModalOpen) return;
 
     const currentState = window.history.state || {};
@@ -1135,7 +1136,9 @@ export default function App() {
       }
 
       // 2. Otherwise close the open modal
-      if (isEntryModalOpen) {
+      if (chartSummaryModalType) {
+        setChartSummaryModalType(null);
+      } else if (isEntryModalOpen) {
         setIsEntryModalOpen(false);
       } else if (editingTransaction) {
         setEditingTransaction(null);
@@ -1153,7 +1156,7 @@ export default function App() {
         window.history.back();
       }
     };
-  }, [isEntryModalOpen, editingTransaction, isCategoryModalOpen, isAssetModalOpen]);
+  }, [isEntryModalOpen, editingTransaction, isCategoryModalOpen, isAssetModalOpen, chartSummaryModalType]);
 
   function scrollAppContent({ contentTop, documentTop }: { contentTop: number; documentTop: number }) {
     contentScrollRef.current?.scrollTo({ top: contentTop, behavior: 'auto' });
@@ -4138,13 +4141,37 @@ export default function App() {
         {activeTab === 'summary' && (
           <>
             <section className="summary-grid" aria-label="월간 요약">
-              <article className="summary-card expense">
-                <span>이번 달 총 지출</span>
+              <article 
+                className="summary-card expense clickable-summary-card"
+                onClick={() => setChartSummaryModalType('expense')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartSummaryModalType('expense'); } }}
+                title="클릭하여 이번 달 지출 목록 자세히 보기"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span>이번 달 총 지출</span>
+                  <span className="summary-card-arrow" aria-hidden="true" title="지출 목록 자세히 보기">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </div>
                 <strong>{displayCurrency(expenseTotal)}</strong>
                 <small>합리적인 소비를 위한 예산 대비 관리</small>
               </article>
-              <article className="summary-card income">
-                <span>이번 달 총 수입</span>
+              <article 
+                className="summary-card income clickable-summary-card"
+                onClick={() => setChartSummaryModalType('income')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChartSummaryModalType('income'); } }}
+                title="클릭하여 이번 달 수입 목록 자세히 보기"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span>이번 달 총 수입</span>
+                  <span className="summary-card-arrow" aria-hidden="true" title="수입 목록 자세히 보기">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </div>
                 <strong>{displayCurrency(incomeTotal)}</strong>
                 <small>월별 부가 소득 및 급여 포함</small>
               </article>
@@ -6529,6 +6556,131 @@ export default function App() {
       </section>
 
 
+
+      {/* Chart Tab Month Expense/Income Detail Modal */}
+      {chartSummaryModalType && (
+        <div className="modal-backdrop" onClick={() => setChartSummaryModalType(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px', width: '92%' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-card)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.25rem' }}>{chartSummaryModalType === 'expense' ? '🔴' : '🔵'}</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+                    {selectedMonth.slice(0, 4)}년 {parseInt(selectedMonth.slice(5, 7), 10)}월 {chartSummaryModalType === 'expense' ? '지출 목록' : '수입 목록'}
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 600 }}>
+                    총 {transactions.filter((t) => t.date.startsWith(selectedMonth) && t.type === chartSummaryModalType).length}건 · 합계 {displayCurrency(chartSummaryModalType === 'expense' ? expenseTotal : incomeTotal)}
+                  </div>
+                </div>
+              </div>
+              <button type="button" className="close-btn" onClick={() => setChartSummaryModalType(null)} aria-label="닫기">
+                &times;
+              </button>
+            </div>
+            
+            <div className="modal-body" style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {(() => {
+                const filtered = transactions
+                  .filter((t) => t.date.startsWith(selectedMonth) && t.type === chartSummaryModalType)
+                  .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-secondary)' }}>
+                      <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                        {selectedMonth.slice(0, 4)}년 {parseInt(selectedMonth.slice(5, 7), 10)}월에 등록된 {chartSummaryModalType === 'expense' ? '지출' : '수입'} 내역이 없습니다.
+                      </p>
+                    </div>
+                  );
+                }
+
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+                return (
+                  <div style={{ display: 'grid', gap: '10px' }}>
+                    {filtered.map((t) => {
+                      const isIncome = t.type === 'income';
+                      const dateObj = new Date(t.date + 'T00:00:00');
+                      const dayOfWeek = dayNames[dateObj.getDay()];
+                      const assetName = t.assetId ? assets.find((a) => a.id === t.assetId)?.name : null;
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="calendar-detail-card"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            padding: '14px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border-card)',
+                            background: isIncome ? 'rgba(59, 130, 246, 0.03)' : 'rgba(239, 68, 68, 0.03)',
+                            position: 'relative'
+                          }}
+                        >
+                          {/* 상단 행: 날짜, 카테고리 배지, 수정/삭제 버튼 */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                                {t.date} ({dayOfWeek})
+                              </span>
+                              <CategoryBadge categories={isIncome ? allIncomeCategories : allExpenseCategories} idOrLabel={t.category} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                type="button"
+                                className="edit-btn"
+                                style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
+                                onClick={() => openAmountEntry(() => {
+                                  setEditingTransaction(t);
+                                  setChartSummaryModalType(null);
+                                })}
+                              >
+                                수정
+                              </button>
+                              <button
+                                type="button"
+                                className="delete-btn-sm"
+                                style={{ padding: '2px 8px', fontSize: '0.75rem', height: '24px' }}
+                                onClick={() => handleDeleteTransaction(t.id)}
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 중단/하단 행: 타이틀, 자산 정보, 금액 */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <strong style={{ fontSize: '0.98rem', color: 'var(--text-primary)' }}>
+                                {t.title}
+                                {t.recurringRuleId && (
+                                  <span title="정기 반복 결제" style={{ marginLeft: '4px', color: 'var(--primary)', fontSize: '0.85rem' }}>🔄</span>
+                                )}
+                              </strong>
+                              {assetName && (
+                                <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                                  💳 {assetName}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: isIncome ? 'var(--color-income)' : 'var(--color-expense)', fontVariantNumeric: 'tabular-nums' }}>
+                                {isIncome ? '+' : '-'}{displayCurrency(t.amount)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Date Detail View Modal (Calendar Cell Clicked) */}
       {selectedDayData && (
