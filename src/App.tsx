@@ -3490,25 +3490,39 @@ export default function App() {
     }
   }
 
-  async function handleDeleteTransaction(id: string) {
+  function handleDeleteTransaction(id: string) {
     const current = transactions.find((transaction) => transaction.id === id);
     if (!current) return false;
-    if (id.startsWith('rec_')) {
-      skipNextPersistenceRef.current = true;
-      setDeletedRecurringTxs((prev) => [...prev, id]);
-      setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-      saveRecurringMutation({ op: 'recurring_tx.delete', id }).catch(console.error);
-      return true;
-    }
-    try {
-      await saveTransactionOperation({ op: 'transaction.delete', transactionId: id, expectedRevision: current.revision ?? 1 });
-      skipNextPersistenceRef.current = true;
-      setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-      return true;
-    } catch (error) {
-      showNotice('거래를 삭제하지 못했습니다. 최신 내용을 확인한 뒤 다시 시도해 주세요.', '거래 삭제 실패', 'error');
-      return false;
-    }
+
+    const titleText = current.title ? `‘${current.title}’` : '선택한 거래';
+    const amountText = displayCurrency(current.amount);
+
+    requestConfirm({
+      title: '거래 내역 삭제',
+      message: `${titleText} (${amountText}) 내역을 삭제할까요?\n삭제된 내역은 장부 및 자산 잔액에 즉시 반영됩니다.`,
+      confirmLabel: '삭제',
+      cancelLabel: '취소',
+      tone: 'danger',
+      onConfirm: async () => {
+        if (id.startsWith('rec_')) {
+          skipNextPersistenceRef.current = true;
+          setDeletedRecurringTxs((prev) => [...prev, id]);
+          setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+          saveRecurringMutation({ op: 'recurring_tx.delete', id }).catch(console.error);
+          showNotice('거래가 삭제되었습니다.', '삭제 완료', 'success');
+          return;
+        }
+        try {
+          await saveTransactionOperation({ op: 'transaction.delete', transactionId: id, expectedRevision: current.revision ?? 1 });
+          skipNextPersistenceRef.current = true;
+          setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+          showNotice('거래가 삭제되었습니다.', '삭제 완료', 'success');
+        } catch (error) {
+          showNotice('거래를 삭제하지 못했습니다. 최신 내용을 확인한 뒤 다시 시도해 주세요.', '거래 삭제 실패', 'error');
+        }
+      },
+    });
+    return true;
   }
 
   async function handleUpdateTransaction(oldId: string, updated: Transaction) {
