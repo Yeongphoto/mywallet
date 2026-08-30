@@ -3769,7 +3769,7 @@ body.category-handle-drag-active {
   left: 50%;
   bottom: calc(76px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  z-index: 220;
+  z-index: 30000;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -3781,7 +3781,7 @@ body.category-handle-drag-active {
   background: var(--bg-card);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.08);
   animation: toastSlideUp 0.22s ease-out;
 }
 
@@ -3831,7 +3831,7 @@ body.category-handle-drag-active {
 .confirm-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 250;
+  z-index: 25000;
   display: grid;
   place-items: center;
   padding: 20px;
