@@ -3467,7 +3467,11 @@ body.category-handle-drag-active {
 }
 
 .modal-content .form-grid .amount-entry-field > input {
-  padding-right: 1.7em !important;
+  padding-right: 2em !important;
+}
+
+.modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) > input {
+  padding-right: 100px !important;
 }
 
 .modal-content .form-grid .amount-entry-field .currency-suffix {
@@ -3479,6 +3483,44 @@ body.category-handle-drag-active {
   font-size: 0.92rem;
   font-weight: 800;
   pointer-events: none;
+}
+
+.modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) .currency-suffix {
+  right: 88px;
+}
+
+.amount-inline-mode-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 850;
+  border: 1px solid var(--border-input);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.amount-inline-mode-btn:hover {
+  background: var(--bg-balance-light);
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
+.amount-inline-mode-btn.active {
+  background: color-mix(in srgb, var(--primary) 14%, var(--bg-card));
+  color: var(--primary);
+  border-color: rgba(var(--primary-rgb), 0.4);
 }
 
 .transaction-edit-form .amount-entry-field .currency-suffix {
@@ -5924,6 +5966,48 @@ body.asset-handle-drag-active {
   background: rgba(255, 255, 255, 0.07);
   border-color: rgba(255, 255, 255, 0.09);
   color: #94a3b8;
+}
+
+.keypad-btn.keypad-mode-btn {
+  font-size: 0.85rem !important;
+  font-weight: 900 !important;
+  color: var(--primary) !important;
+  background: color-mix(in srgb, var(--primary) 12%, var(--bg-input)) !important;
+  border-color: rgba(var(--primary-rgb), 0.28) !important;
+  letter-spacing: -0.02em;
+}
+
+.mini-segmented-control-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.mini-segmented-control {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.mini-segment-btn {
+  padding: 5px 20px;
+  font-size: 0.88rem;
+  font-weight: 850;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mini-segment-btn.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
 }
 
 .keypad-btn.keypad-submit-btn {

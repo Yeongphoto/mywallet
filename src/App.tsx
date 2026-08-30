@@ -9124,12 +9124,16 @@ function AmountNumberKeypad({
   onComplete,
   submitLabel = '완료',
   submitTone = 'primary',
+  quickActionLabel,
+  onQuickAction,
 }: {
   value: string;
   onChange: (nextValue: string) => void;
   onComplete?: () => void;
   submitLabel?: string;
   submitTone?: 'expense' | 'income' | 'transfer' | 'primary';
+  quickActionLabel?: string;
+  onQuickAction?: () => void;
 }) {
   const handleDigit = useCallback((digit: string) => {
     const raw = String(value || '').trim();
@@ -9220,7 +9224,17 @@ function AmountNumberKeypad({
       <button type="button" className="keypad-btn" onClick={() => handleDigit('7')}>7</button>
       <button type="button" className="keypad-btn" onClick={() => handleDigit('8')}>8</button>
       <button type="button" className="keypad-btn" onClick={() => handleDigit('9')}>9</button>
-      <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}>+1만</button>
+      {quickActionLabel && onQuickAction ? (
+        <button
+          type="button"
+          className="keypad-btn keypad-quick-btn keypad-mode-btn"
+          onClick={onQuickAction}
+        >
+          {quickActionLabel}
+        </button>
+      ) : (
+        <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}>+1만</button>
+      )}
 
       <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('00')}>00</button>
       <button type="button" className="keypad-btn" onClick={() => handleDigit('0')}>0</button>
@@ -9232,6 +9246,108 @@ function AmountNumberKeypad({
       >
         {submitLabel}
       </button>
+    </div>
+  );
+}
+
+function RecurringInstallmentPicker({
+  type,
+  currentTab,
+  onTabChange,
+  isRecurring,
+  installmentMonths,
+  onSelectRecurring,
+  onSelectInstallment,
+}: {
+  type: EntryType;
+  currentTab: 'recurring' | 'installment';
+  onTabChange: (tab: 'recurring' | 'installment') => void;
+  isRecurring: boolean;
+  installmentMonths: number;
+  onSelectRecurring: (interval: number | string) => void;
+  onSelectInstallment: (months: number) => void;
+}) {
+  const recurringOptions = [
+    { label: '1개월', value: 1 },
+    { label: '2개월', value: 2 },
+    { label: '3개월', value: 3 },
+    { label: '4개월', value: 4 },
+    { label: '1주일', value: '1w' },
+    { label: '2주일', value: '2w' },
+    { label: '3주일', value: '3w' },
+    { label: '4주일', value: '4w' },
+    { label: '1일', value: '1d' },
+    { label: '2일', value: '2d' },
+    { label: '3일', value: '3d' },
+    { label: '4일', value: '4d' },
+  ];
+
+  const installmentOptions = [
+    { label: '일시불', value: 1 },
+    ...Array.from({ length: 23 }, (_, i) => ({
+      label: `${i + 2}개월`,
+      value: i + 2,
+    })),
+  ];
+
+  const showInstallment = type === 'expense' && currentTab === 'installment';
+
+  return (
+    <div className="recurring-installment-picker">
+      {type === 'expense' && (
+        <div className="mini-segmented-control-wrap">
+          <div className="mini-segmented-control">
+            <button
+              type="button"
+              className={`mini-segment-btn ${currentTab === 'installment' ? 'active' : ''}`}
+              onClick={() => onTabChange('installment')}
+            >
+              할부
+            </button>
+            <button
+              type="button"
+              className={`mini-segment-btn ${currentTab === 'recurring' ? 'active' : ''}`}
+              onClick={() => onTabChange('recurring')}
+            >
+              정기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showInstallment ? (
+        <div className="picker-grid-4col installment-picker-grid">
+          {installmentOptions.map((opt) => {
+            const isSelected = !isRecurring && installmentMonths === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                className={`picker-grid-btn ${isSelected ? 'selected' : ''}`}
+                onClick={() => onSelectInstallment(opt.value)}
+              >
+                <span className="picker-grid-btn-label" style={{ fontWeight: 800 }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="picker-grid-4col recurring-picker-grid">
+          {recurringOptions.map((opt) => {
+            const isSelected = isRecurring;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                className={`picker-grid-btn ${isSelected && opt.value === 1 ? 'selected' : ''}`}
+                onClick={() => onSelectRecurring(opt.value)}
+              >
+                <span className="picker-grid-btn-label" style={{ fontWeight: 800 }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -9621,10 +9737,10 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
-  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [activePopup, setActivePopup] = useState<'amount' | 'recurringInstallment' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [recurringInstallmentTab, setRecurringInstallmentTab] = useState<'recurring' | 'installment'>('installment');
   const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
-  const installmentRef = useRef<HTMLButtonElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
@@ -9911,7 +10027,7 @@ function UnifiedEntryForm({
           <label
             className="compact-entry-field amount-entry-field"
             aria-label="금액"
-            style={form.type !== 'expense' ? { gridColumn: 'span 2' } : undefined}
+            style={{ gridColumn: 'span 2' }}
             onClick={() => setActivePopup('amount')}
           >
             <input
@@ -9929,29 +10045,33 @@ function UnifiedEntryForm({
               }}
             />
             <span className="currency-suffix" aria-hidden="true">원</span>
-          </label>
-
-          {form.type === 'expense' && (
-            <label className="installment-select compact-entry-field" aria-label="할부">
-              <InstantSelect
-                ariaLabel="할부"
-                value={installmentMonths}
-                placeholder="일시불"
-                options={Array.from({ length: 24 }, (_, index) => index + 1).map((months) => ({
-                  value: months,
-                  label: months === 1 ? '일시불' : `${months}개월`,
-                }))}
-                onChange={(value) => {
-                  const months = Number(value);
-                  setInstallmentMonths(months);
-                  if (months > 1) setIsRecurring(false);
+            {form.type === 'expense' && (
+              <button
+                type="button"
+                className={`amount-inline-mode-btn ${installmentMonths > 1 || isRecurring ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRecurringInstallmentTab(installmentMonths > 1 ? 'installment' : isRecurring ? 'recurring' : 'installment');
+                  setActivePopup('recurringInstallment');
                 }}
-                triggerRef={installmentRef}
-                onSelectNext={() => setActivePopup('category')}
-              />
-              {installmentMonths > 1 && <small>총액을 {installmentMonths}개월로 나누어 매월 무이자로 등록합니다.</small>}
-            </label>
-          )}
+              >
+                {installmentMonths > 1 ? `${installmentMonths}개월` : isRecurring ? '정기' : '정기/할부'}
+              </button>
+            )}
+            {form.type === 'income' && (
+              <button
+                type="button"
+                className={`amount-inline-mode-btn ${isRecurring ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRecurringInstallmentTab('recurring');
+                  setActivePopup('recurringInstallment');
+                }}
+              >
+                {isRecurring ? '정기' : '정기'}
+              </button>
+            )}
+          </label>
 
           {form.type !== 'transfer' && (
             <label
@@ -10165,6 +10285,47 @@ function UnifiedEntryForm({
               }}
               submitLabel={form.type === 'transfer' ? '자산 선택 →' : '분류 선택 →'}
               submitTone={formColorClass}
+              quickActionLabel={form.type === 'expense' ? '정기/할부' : form.type === 'income' ? '정기' : undefined}
+              onQuickAction={() => {
+                setRecurringInstallmentTab(form.type === 'expense' ? (installmentMonths > 1 ? 'installment' : isRecurring ? 'recurring' : 'installment') : 'recurring');
+                setActivePopup('recurringInstallment');
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {activePopup === 'recurringInstallment' && (
+        <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
+          <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="picker-popup-header">
+              <strong>{form.type === 'income' ? '정기 기록 선택' : recurringInstallmentTab === 'installment' ? '할부 개월 선택' : '정기 주기 선택'}</strong>
+              <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
+            </div>
+            <RecurringInstallmentPicker
+              type={form.type}
+              currentTab={recurringInstallmentTab}
+              onTabChange={setRecurringInstallmentTab}
+              isRecurring={isRecurring}
+              installmentMonths={installmentMonths}
+              onSelectRecurring={(_interval) => {
+                setIsRecurring(true);
+                setInstallmentMonths(1);
+                if (form.type !== 'transfer') {
+                  setActivePopup('category');
+                } else {
+                  setActivePopup('asset');
+                }
+              }}
+              onSelectInstallment={(months) => {
+                setInstallmentMonths(months);
+                setIsRecurring(false);
+                if (form.type !== 'transfer') {
+                  setActivePopup('category');
+                } else {
+                  setActivePopup('asset');
+                }
+              }}
             />
           </div>
         </div>
