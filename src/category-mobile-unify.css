@@ -29,7 +29,7 @@
 
   .managed-category-card .category-row {
     display: grid !important;
-    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
     gap: 6px !important;
     align-items: center !important;
     min-height: 58px !important;
@@ -38,6 +38,10 @@
     background: transparent !important;
     box-sizing: border-box !important;
     overflow: visible !important;
+  }
+
+  .managed-category-card .category-row:has(.category-budget-toggle) {
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
   }
 
   .managed-category-card .category-row.dragging {
@@ -163,21 +167,23 @@
     left: -46px !important;
     z-index: 80 !important;
   }
-
-  .managed-category-card:not([data-category-scope="expense"]) .category-row {
-    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
-  }
 }
 
 @media (max-width: 992px) {
   .content:has(.plans-container) .managed-category-card .category-table .category-row,
   .content:has(.asset-accordion-group) .managed-category-card .category-table .category-row,
+  .content .managed-category-card .category-table .category-row,
   .content .managed-category-card .category-row {
-    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
     gap: 6px !important;
     min-height: 58px !important;
     padding: 8px 10px !important;
     border-radius: 0 !important;
+  }
+
+  .content:has(.plans-container) .managed-category-card .category-table .category-row:has(.category-budget-toggle),
+  .content .managed-category-card .category-row:has(.category-budget-toggle) {
+    grid-template-columns: 28px 42px minmax(64px, 1fr) 62px 40px 38px !important;
   }
 
   .content:has(.plans-container) .managed-category-card .category-table .category-drag-handle,
@@ -229,10 +235,6 @@
     font-size: 0.72rem !important;
   }
 
-  .content .managed-category-card:not([data-category-scope="expense"]) .category-row {
-    grid-template-columns: 28px 42px minmax(64px, 1fr) 40px 38px !important;
-  }
-
   .content .managed-category-card[data-category-scope="asset"] .category-row:has(.category-name-edit) {
     grid-template-columns: 28px 42px minmax(0, 1fr) !important;
   }
@@ -244,9 +246,13 @@
 
 @media (max-width: 420px) {
   .managed-category-card .category-row {
-    grid-template-columns: 22px 34px minmax(52px, 1fr) 30px 36px 34px !important;
+    grid-template-columns: 22px 34px minmax(52px, 1fr) 36px 34px !important;
     gap: 5px !important;
     padding: 8px 8px !important;
+  }
+
+  .managed-category-card .category-row:has(.category-budget-toggle) {
+    grid-template-columns: 22px 34px minmax(52px, 1fr) 30px 36px 34px !important;
   }
 
   .managed-category-card .category-color-menu {
@@ -270,9 +276,5 @@
     width: 34px !important;
     padding: 0 5px !important;
     font-size: 0.68rem !important;
-  }
-
-  .managed-category-card:not([data-category-scope="expense"]) .category-row {
-    grid-template-columns: 22px 34px minmax(52px, 1fr) 36px 34px !important;
   }
 }
