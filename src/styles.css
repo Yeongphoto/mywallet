@@ -6176,6 +6176,27 @@ body.asset-handle-drag-active {
   box-shadow: none !important;
 }
 
+.title-suggestions-panel {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: clamp(140px, 30vh, 260px);
+  margin: 6px 0 8px;
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--primary-rgb), 0.5);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='dark'] .title-suggestions-panel {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: color-mix(in srgb, var(--primary) 60%, rgba(255, 255, 255, 0.2));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
 .title-suggestions-dropdown {
   position: absolute;
   left: -1px;

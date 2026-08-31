@@ -10200,52 +10200,52 @@ function UnifiedEntryForm({
                 setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
               }}
             />
-            {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
-                <div className="title-suggestions-header">
-                  <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
-                  <button
-                    type="button"
-                    className="title-suggestions-close-btn"
-                    tabIndex={-1}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setIsTitleSuggestionsOpen(false);
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="title-suggestions-list">
-                  {titleSuggestions.map((item) => (
-                    <button
-                      key={item.title}
-                      type="button"
-                      className="title-suggestion-item"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setForm((prev) => ({
-                          ...prev,
-                          title: item.title,
-                          category: prev.category ? prev.category : (item.category || prev.category)
-                        }));
-                        setIsTitleSuggestionsOpen(false);
-                      }}
-                    >
-                      <span className="suggestion-title">{item.title}</span>
-                      {item.category && (
-                        <span className="suggestion-badge">
-                          {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </label>
-
         </div>
+
+        {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+          <div className="title-suggestions-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="title-suggestions-header">
+              <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
+              <button
+                type="button"
+                className="title-suggestions-close-btn"
+                tabIndex={-1}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setIsTitleSuggestionsOpen(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="title-suggestions-list">
+              {titleSuggestions.map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  className="title-suggestion-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setForm((prev) => ({
+                      ...prev,
+                      title: item.title,
+                      category: prev.category ? prev.category : (item.category || prev.category)
+                    }));
+                    setIsTitleSuggestionsOpen(false);
+                  }}
+                >
+                  <span className="suggestion-title">{item.title}</span>
+                  {item.category && (
+                    <span className="suggestion-badge">
+                      {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="entry-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
