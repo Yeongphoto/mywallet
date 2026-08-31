@@ -10279,6 +10279,7 @@ function UnifiedEntryForm({
                           category: prev.category ? prev.category : (item.category || prev.category)
                         }));
                         setIsTitleSuggestionsOpen(false);
+                        titleRef.current?.blur();
                       }}
                     >
                       <HighlightedSuggestionTitle title={item.title} query={form.title} />
@@ -10801,6 +10802,7 @@ function TransactionEditForm({
                       e.preventDefault();
                       setTitle(item.title);
                       setIsTitleSuggestionsOpen(false);
+                      titleRef.current?.blur();
                     }}
                   >
                     <HighlightedSuggestionTitle title={item.title} query={title} />
