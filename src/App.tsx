@@ -436,23 +436,47 @@ function CategoryBadge({ categories, idOrLabel }: { categories: CategoryOption[]
   );
 }
 
-function isOpeningBalanceCategory(category?: string) {
+function isOpeningBalanceCategory(category?: string | null) {
   if (!category) return false;
+  const normalized = category.trim().toLowerCase().replace(/\s+/g, '');
   return (
-    category === OPENING_BALANCE_CATEGORY ||
-    category.startsWith('opening-balance') ||
-    category === '기초잔액' ||
-    category === '기초 잔액'
+    normalized === '기초잔액' ||
+    normalized === '기초금액' ||
+    normalized === '초기잔액' ||
+    normalized === '초기금액' ||
+    normalized === '이월잔액' ||
+    normalized === '이월금액' ||
+    normalized === '이월' ||
+    normalized.startsWith('opening-balance') ||
+    normalized.startsWith('opening_balance') ||
+    normalized.startsWith('openingbalance') ||
+    normalized.startsWith('opening') ||
+    category === OPENING_BALANCE_CATEGORY
   );
 }
 
-function isOpeningBalanceTransaction(transaction: Transaction) {
+function isOpeningBalanceTx(transaction: Transaction) {
+  if (!transaction) return false;
+  if (isOpeningBalanceCategory(transaction.category)) return true;
+  const title = (transaction.title || '').trim().toLowerCase().replace(/\s+/g, '');
   return (
-    isOpeningBalanceCategory(transaction.category) ||
-    transaction.title === '기초 잔액' ||
-    transaction.title === '기초잔액'
+    title === '기초잔액' ||
+    title === '기초금액' ||
+    title === '초기잔액' ||
+    title === '초기금액' ||
+    title === '이월잔액' ||
+    title === '이월금액' ||
+    title === '이월' ||
+    title.startsWith('opening-balance') ||
+    title.startsWith('opening_balance') ||
+    title.startsWith('openingbalance') ||
+    title.startsWith('opening') ||
+    title === '자산초기화' ||
+    title === '초기자산'
   );
 }
+
+const isOpeningBalanceTransaction = isOpeningBalanceTx;
 
 function MobileLedgerSwipeItem({
   transaction,
@@ -2140,13 +2164,8 @@ export default function App() {
     [],
   );
   const isOpeningBalanceTransaction = useCallback(
-    (transaction: Transaction) => (
-      isOpeningBalanceCategory(transaction.category) ||
-      transaction.category === openingBalanceCategoryId ||
-      transaction.title === '기초 잔액' ||
-      transaction.title === '기초잔액'
-    ),
-    [openingBalanceCategoryId],
+    (transaction: Transaction) => isOpeningBalanceTx(transaction),
+    [],
   );
   function getAssetCategoryGroupId(asset: AssetItem) {
     return allAssetCategories.find((category) => category.id === asset.category || category.label === asset.category)?.id ?? asset.category;
