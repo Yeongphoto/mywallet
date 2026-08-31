@@ -2113,7 +2113,10 @@ export default function App() {
     [customExpenseCategories, categoryColors, categoryLabels, categoryOrder]
   );
   const allIncomeCategories = useMemo(
-    () => applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryLabels, categoryOrder),
+    () =>
+      applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryLabels, categoryOrder).filter(
+        (category) => !isOpeningBalanceCategory(category.id) && !isOpeningBalanceCategory(category.label)
+      ),
     [customIncomeCategories, categoryColors, categoryLabels, categoryOrder]
   );
   const allAssetCategories = useMemo(
@@ -2125,7 +2128,7 @@ export default function App() {
     [allExpenseCategories, hiddenCategories]
   );
   const activeIncomeCategories = useMemo(
-    () => allIncomeCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'income', category.id) && !isOpeningBalanceCategory(category.id) && !isOpeningBalanceCategory(category.label)),
+    () => allIncomeCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'income', category.id)),
     [allIncomeCategories, hiddenCategories]
   );
   const activeAssetCategories = useMemo(
@@ -2133,11 +2136,16 @@ export default function App() {
     [allAssetCategories, hiddenCategories]
   );
   const openingBalanceCategoryId = useMemo(
-    () => allIncomeCategories.find((category) => category.label === OPENING_BALANCE_CATEGORY)?.id ?? OPENING_BALANCE_CATEGORY,
-    [allIncomeCategories],
+    () => OPENING_BALANCE_CATEGORY,
+    [],
   );
   const isOpeningBalanceTransaction = useCallback(
-    (transaction: Transaction) => transaction.category === OPENING_BALANCE_CATEGORY || transaction.category === openingBalanceCategoryId,
+    (transaction: Transaction) => (
+      isOpeningBalanceCategory(transaction.category) ||
+      transaction.category === openingBalanceCategoryId ||
+      transaction.title === '기초 잔액' ||
+      transaction.title === '기초잔액'
+    ),
     [openingBalanceCategoryId],
   );
   function getAssetCategoryGroupId(asset: AssetItem) {
@@ -4717,14 +4725,14 @@ export default function App() {
       if (!acc[t.date]) {
         acc[t.date] = { income: 0, expense: 0 };
       }
-      if (t.type === 'income') {
+      if (t.type === 'income' && !isOpeningBalanceTransaction(t)) {
         acc[t.date].income += t.amount;
       } else if (t.type === 'expense') {
         acc[t.date].expense += t.amount;
       }
       return acc;
     }, {});
-  }, [transactions]);
+  }, [transactions, isOpeningBalanceTransaction]);
 
   function handleCalendarPrev() {
     if (calendarMonth === 0) {

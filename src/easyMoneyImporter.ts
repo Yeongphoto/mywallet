@@ -188,7 +188,13 @@ export function importEasyMoneyCsv(text: string, today = new Date()) : EasyMoney
   });
 
   const sourceExpenseCategories = [...new Set(transactions.filter((transaction) => transaction.type === 'expense').map((transaction) => transaction.category))];
-  const sourceIncomeCategories = [...new Set(transactions.filter((transaction) => transaction.type === 'income').map((transaction) => transaction.category))];
+  const sourceIncomeCategories = [
+    ...new Set(
+      transactions
+        .filter((transaction) => transaction.type === 'income' && transaction.category !== '기초잔액' && transaction.category !== '기초 잔액' && !transaction.category?.startsWith('opening-balance'))
+        .map((transaction) => transaction.category)
+    )
+  ];
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   return {
     transactions,
