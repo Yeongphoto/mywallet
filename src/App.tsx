@@ -10224,7 +10224,11 @@ function UnifiedEntryForm({
                       className="title-suggestion-item"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        setForm((prev) => ({ ...prev, title: item.title }));
+                        setForm((prev) => ({
+                          ...prev,
+                          title: item.title,
+                          category: prev.category ? prev.category : (item.category || prev.category)
+                        }));
                         setIsTitleSuggestionsOpen(false);
                       }}
                     >

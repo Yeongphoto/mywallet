@@ -1340,42 +1340,46 @@
   }
 
   .entry-modal {
-    --entry-field-height: 78px;
-    --registration-field-gap: 10px;
+    --entry-field-height: 48px;
+    --registration-field-gap: 8px;
   }
 
   .entry-modal .modal-header {
-    padding: 16px 22px;
+    padding: 12px 18px;
   }
 
   .entry-modal .registration-mode-tabs {
-    padding: 12px 20px 10px;
+    padding: 10px 16px 8px;
+    gap: 6px;
   }
 
   .entry-modal .registration-mode-tabs > button {
-    min-height: 40px;
+    min-height: 38px;
+    font-size: 0.86rem;
   }
 
   .entry-modal .modal-body {
-    padding: 10px 20px 16px !important;
+    padding: 8px 16px 14px !important;
   }
 
   .entry-modal .entry-form .form-grid > label:not(.recurring-toggle) {
     min-height: var(--entry-field-height) !important;
-    padding: 7px 12px 8px !important;
+    padding: 5px 12px 6px !important;
   }
 
   .entry-modal .entry-actions,
   .entry-modal .asset-entry-actions {
     height: var(--entry-field-height);
     min-height: var(--entry-field-height);
+    margin-top: 6px;
   }
 
   .entry-modal .entry-actions > button,
   .entry-modal .asset-entry-actions > button {
     height: var(--entry-field-height);
     min-height: var(--entry-field-height);
-    font-size: 1.08rem;
+    font-size: 1rem;
+    font-weight: 800;
   }
 
   .modal-content.entry-modal.asset-entry-modal .asset-entry-form {
