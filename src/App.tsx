@@ -861,42 +861,42 @@ function MonthlyTransactionSubpage({
       if (diff < -150000) {
         return {
           pigFace: '😎',
-          title: `지출 다이어트 대성공! 치킨 ${chickenCount}마리 세이브 🍗`,
-          desc: `지난달보다 ${formatMoney(diffAbs)}이나 덜 썼어요! 저금통이 아주 흐뭇해하고 있어요.`,
+          title: `지출 절약 성공! (치킨 ${chickenCount}마리 🍗)`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 절약했어요.`,
           badgeClass: 'success',
-          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 절약 📉)`
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 📉)`
         };
       } else if (diff < -30000) {
         return {
           pigFace: '🥰',
-          title: `알뜰살뜰 절약 중! 커피 ${coffeeCount}잔 아꼈어요 ☕`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 덜 썼어요. 기분 좋은 절약 페이스를 유지 중이에요!`,
+          title: `알뜰한 절약 중! (커피 ${coffeeCount}잔 ☕)`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 아꼈어요.`,
           badgeClass: 'success',
-          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 절약 📉)`
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 📉)`
         };
       } else if (diff <= 30000) {
         return {
           pigFace: '😊',
-          title: `안정적인 지출 페이스! 칭찬해요 👏`,
-          desc: `지난달과 거의 비슷한 수준(${formatMoney(diffAbs)} 차이)으로 계획적인 소비를 이어가고 있어요.`,
+          title: `안정적인 지출 페이스 👏`,
+          desc: `지난달과 비슷한 지출 수준이에요.`,
           badgeClass: 'neutral',
-          badgeText: diff === 0 ? '지난달과 동일한 지출 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}% 변동)`
+          badgeText: diff === 0 ? '동일한 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}%)`
         };
       } else if (diff <= 150000) {
         return {
           pigFace: '😮',
-          title: `지출이 살짝 늘었어요! 커피 ${coffeeCount}잔 분량 ☕`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 더 나갔어요. 남은 기간 조금만 힘을 빼볼까요?`,
+          title: `지출이 조금 늘었어요 (커피 ${coffeeCount}잔 ☕)`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 더 썼어요.`,
           badgeClass: 'warning',
-          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 📈)`
         };
       } else {
         return {
           pigFace: '😵‍💫',
-          title: `이번 달 조금 달렸네요! 치킨 ${chickenCount}마리 추가 🍗`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 더 지출되었어요. 필요했던 지출인지 장부에서 점검해 보세요!`,
+          title: `지출이 늘었어요 (치킨 ${chickenCount}마리 🍗)`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 더 썼어요.`,
           badgeClass: 'danger',
-          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 📈)`
         };
       }
     } else {
@@ -904,34 +904,34 @@ function MonthlyTransactionSubpage({
       if (diff > 200000) {
         return {
           pigFace: '🥳',
-          title: `지갑이 빵빵해졌어요! 보너스 파티 💰`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 더 많이 들어왔어요! 멋진 성과예요.`,
+          title: `수입 대폭 증가! 💰`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 늘었어요.`,
           badgeClass: 'success',
-          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 🚀)`
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 🚀)`
         };
       } else if (diff > 30000) {
         return {
           pigFace: '😄',
-          title: `수입 상승 기류! 기분 좋은 흐름 ✨`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 증가했어요. 탄탄하게 자산을 불려나가고 있어요!`,
+          title: `수입 상승 흐름! ✨`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 늘었어요.`,
           badgeClass: 'success',
-          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 증가 📈)`
+          badgeText: `지난달 대비 +${formatMoney(diffAbs)} (+${percent.toFixed(1)}% 📈)`
         };
       } else if (diff >= -30000) {
         return {
           pigFace: '😊',
-          title: `안정적이고 꾸준한 수입 흐름 🧘`,
-          desc: `지난달과 일관된 수입 페이스를 유지하고 있어요. 든든한 기반이에요.`,
+          title: `안정적인 수입 흐름 🧘`,
+          desc: `지난달과 비슷한 수준이에요.`,
           badgeClass: 'neutral',
-          badgeText: diff === 0 ? '지난달과 동일한 수입 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}% 변동)`
+          badgeText: diff === 0 ? '동일한 수준 ⚖️' : `지난달과 비슷 (${Math.abs(percent).toFixed(1)}%)`
         };
       } else {
         return {
           pigFace: '🥺',
-          title: `다음 달엔 더 큰 수입이 올 거예요! 파이팅 🍀`,
-          desc: `지난달보다 ${formatMoney(diffAbs)} 적지만, 다음 달의 도약을 응원할게요!`,
+          title: `다음 달에 더 채워봐요! 🍀`,
+          desc: `지난달보다 ${formatMoney(diffAbs)} 적어요.`,
           badgeClass: 'warning',
-          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 감소 📉)`
+          badgeText: `지난달 대비 -${formatMoney(diffAbs)} (${Math.abs(percent).toFixed(1)}% 📉)`
         };
       }
     }
@@ -1036,18 +1036,6 @@ function MonthlyTransactionSubpage({
             {formatMoney(totalAmount)}
           </strong>
         </div>
-        <div className="subpage-metric-card">
-          <span>기록일 평균</span>
-          <strong>{formatMoney(dailyAverage)}</strong>
-        </div>
-        {topCategoryInfo && (
-          <div className="subpage-metric-card">
-            <span>최다 카테고리</span>
-            <strong style={{ fontSize: '1.05rem' }}>
-              {topCategoryInfo.label} <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>({formatMoney(topCategoryInfo.amount)})</span>
-            </strong>
-          </div>
-        )}
       </div>
 
       {/* 4. Filters (Search & Category) */}
