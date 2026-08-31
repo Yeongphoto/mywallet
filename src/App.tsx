@@ -10194,7 +10194,7 @@ function UnifiedEntryForm({
           )}
 
           <label
-            className={`content-entry-field compact-entry-field ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
+            className={`content-entry-field compact-entry-field ${isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
             style={{ gridColumn: 'span 2', position: 'relative' }}
             aria-label="내용"
           >
@@ -10204,15 +10204,20 @@ function UnifiedEntryForm({
               placeholder="내용 (미입력 시 분류명)"
               value={form.title}
               onChange={(e) => {
-                setForm((prev) => ({ ...prev, title: e.target.value }));
-                setIsTitleSuggestionsOpen(true);
+                const val = e.target.value;
+                setForm((prev) => ({ ...prev, title: val }));
+                setIsTitleSuggestionsOpen(val.trim().length > 0);
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                 }
               }}
-              onFocus={() => setIsTitleSuggestionsOpen(true)}
+              onFocus={() => {
+                if (form.title.trim().length > 0) {
+                  setIsTitleSuggestionsOpen(true);
+                }
+              }}
               onBlur={() => {
                 setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
               }}
@@ -10225,13 +10230,14 @@ function UnifiedEntryForm({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setForm((prev) => ({ ...prev, title: '' }));
+                  setIsTitleSuggestionsOpen(false);
                   titleRef.current?.focus();
                 }}
               >
                 ✕
               </button>
             )}
-            {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+            {isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 && (
               <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
                 <div className="title-suggestions-list">
                   {titleSuggestions.map((item) => (
@@ -10688,7 +10694,7 @@ function TransactionEditForm({
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
         <label
-          className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
+          className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
           style={{ gridColumn: 'span 2', position: 'relative' }}
           aria-label="내용"
         >
@@ -10698,35 +10704,41 @@ function TransactionEditForm({
             placeholder="내용 (미입력 시 분류명)"
             value={title}
             onChange={(e) => {
-              setTitle(e.target.value);
-              setIsTitleSuggestionsOpen(true);
+              const val = e.target.value;
+              setTitle(val);
+              setIsTitleSuggestionsOpen(val.trim().length > 0);
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
               }
             }}
-            onFocus={() => setIsTitleSuggestionsOpen(true)}
+            onFocus={() => {
+              if (title.trim().length > 0) {
+                setIsTitleSuggestionsOpen(true);
+              }
+            }}
             onBlur={() => {
               setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
             }}
           />
-          {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+          {title && (
+            <button
+              type="button"
+              className="content-clear-btn"
+              aria-label="내용 지우기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setTitle('');
+                setIsTitleSuggestionsOpen(false);
+                titleRef.current?.focus();
+              }}
+            >
+              ✕
+            </button>
+          )}
+          {isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 && (
             <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
-              <div className="title-suggestions-header">
-                <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
-                <button
-                  type="button"
-                  className="title-suggestions-close-btn"
-                  tabIndex={-1}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setIsTitleSuggestionsOpen(false);
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
               <div className="title-suggestions-list">
                 {titleSuggestions.map((item) => (
                   <button
@@ -10739,7 +10751,7 @@ function TransactionEditForm({
                       setIsTitleSuggestionsOpen(false);
                     }}
                   >
-                    <span className="suggestion-title">{item.title}</span>
+                    <HighlightedSuggestionTitle title={item.title} query={title} />
                     {item.category && (
                       <span className="suggestion-badge">
                         {categories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
