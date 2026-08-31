@@ -3467,11 +3467,15 @@ body.category-handle-drag-active {
 }
 
 .modal-content .form-grid .amount-entry-field > input {
-  padding-right: 2em !important;
+  text-align: right !important;
+  padding-right: 32px !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) > input {
-  padding-right: 100px !important;
+  text-align: right !important;
+  padding-right: 104px !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .modal-content .form-grid .amount-entry-field .currency-suffix {
@@ -3529,6 +3533,12 @@ body.category-handle-drag-active {
   background: color-mix(in srgb, var(--primary) 14%, var(--bg-card));
   color: var(--primary);
   border-color: rgba(var(--primary-rgb), 0.4);
+}
+
+.transaction-edit-form .amount-entry-field > input {
+  text-align: right !important;
+  padding-right: 32px !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .transaction-edit-form .amount-entry-field .currency-suffix {
