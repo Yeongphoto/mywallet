@@ -9118,6 +9118,23 @@ function getAssetIconOrEmoji(asset: AssetItem, category?: CategoryOption): strin
   return '💰';
 }
 
+function HighlightedSuggestionTitle({ title, query }: { title: string; query: string }) {
+  const q = query.trim();
+  if (!q) return <span className="suggestion-title">{title}</span>;
+  const idx = title.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return <span className="suggestion-title">{title}</span>;
+  const before = title.slice(0, idx);
+  const match = title.slice(idx, idx + q.length);
+  const after = title.slice(idx + q.length);
+  return (
+    <span className="suggestion-title">
+      {before}
+      <span className="suggestion-highlight">{match}</span>
+      {after}
+    </span>
+  );
+}
+
 function AmountNumberKeypad({
   value,
   onChange,
@@ -10200,52 +10217,51 @@ function UnifiedEntryForm({
                 setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
               }}
             />
-          </label>
-        </div>
-
-        {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
-          <div className="title-suggestions-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="title-suggestions-header">
-              <span>최근 / 자주 사용한 내역 ({titleSuggestions.length})</span>
+            {form.title && (
               <button
                 type="button"
-                className="title-suggestions-close-btn"
-                tabIndex={-1}
+                className="content-clear-btn"
+                aria-label="내용 지우기"
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  setIsTitleSuggestionsOpen(false);
+                  setForm((prev) => ({ ...prev, title: '' }));
+                  titleRef.current?.focus();
                 }}
               >
                 ✕
               </button>
-            </div>
-            <div className="title-suggestions-list">
-              {titleSuggestions.map((item) => (
-                <button
-                  key={item.title}
-                  type="button"
-                  className="title-suggestion-item"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setForm((prev) => ({
-                      ...prev,
-                      title: item.title,
-                      category: prev.category ? prev.category : (item.category || prev.category)
-                    }));
-                    setIsTitleSuggestionsOpen(false);
-                  }}
-                >
-                  <span className="suggestion-title">{item.title}</span>
-                  {item.category && (
-                    <span className="suggestion-badge">
-                      {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+            )}
+            {isTitleSuggestionsOpen && titleSuggestions.length > 0 && (
+              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+                <div className="title-suggestions-list">
+                  {titleSuggestions.map((item) => (
+                    <button
+                      key={item.title}
+                      type="button"
+                      className="title-suggestion-item"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setForm((prev) => ({
+                          ...prev,
+                          title: item.title,
+                          category: prev.category ? prev.category : (item.category || prev.category)
+                        }));
+                        setIsTitleSuggestionsOpen(false);
+                      }}
+                    >
+                      <HighlightedSuggestionTitle title={item.title} query={form.title} />
+                      {item.category && (
+                        <span className="suggestion-badge">
+                          {activeCategories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </label>
+        </div>
 
         <div className="entry-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
