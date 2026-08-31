@@ -6180,15 +6180,15 @@ body.asset-handle-drag-active {
   position: absolute;
   left: -1px;
   right: -1px;
-  top: calc(100% + 4px);
-  bottom: auto;
+  bottom: calc(100% + 4px);
+  top: auto;
   box-sizing: border-box;
   z-index: 100;
   background: var(--bg-card);
   border: 1px solid rgba(var(--primary-rgb), 0.85);
   border-radius: 14px;
-  max-height: clamp(140px, 26vh, 220px);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  max-height: clamp(160px, 32vh, 240px);
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.16);
   backdrop-filter: blur(20px);
   overflow: hidden;
   display: flex;
@@ -6199,7 +6199,7 @@ body.asset-handle-drag-active {
 [data-theme='dark'] .title-suggestions-dropdown {
   background: rgba(30, 41, 59, 0.98);
   border-color: color-mix(in srgb, var(--primary) 70%, rgba(255, 255, 255, 0.25));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .title-suggestions-header {
