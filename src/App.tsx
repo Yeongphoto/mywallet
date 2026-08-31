@@ -5185,7 +5185,7 @@ export default function App() {
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
   <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
   <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
-  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 
     const mainSheetName = scope === 'current' ? `${selectedMonth}_장부` : '전체_장부';
@@ -5227,12 +5227,14 @@ export default function App() {
       <right style="thin"><color rgb="FFE2E8F0"/></right>
       <top style="thin"><color rgb="FFE2E8F0"/></top>
       <bottom style="thin"><color rgb="FFE2E8F0"/></bottom>
+      <diagonal/>
     </border>
     <border>
       <left style="thin"><color rgb="FFE2E8F0"/></left>
       <right style="thin"><color rgb="FFE2E8F0"/></right>
       <top style="thin"><color rgb="FF94A3B8"/></top>
       <bottom style="double"><color rgb="FF64748B"/></bottom>
+      <diagonal/>
     </border>
   </borders>
   <cellStyleXfs count="1">
@@ -5669,6 +5671,7 @@ ${sheet3Rows}  </sheetData>
     liabilityTableHeaders.forEach((h, i) => {
       sheet4Rows += `      <c r="${cols[i]}${r4}" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
     });
+    sheet4Rows += `    </row>\n`;
     r4++;
 
     liabilityOnlyItems.sort((a, b) => Math.abs(b.currentBalance) - Math.abs(a.currentBalance));
