@@ -10241,16 +10241,6 @@ function UnifiedEntryForm({
             )}
           </label>
 
-          <label className="recurring-toggle" style={{ gridColumn: 'span 2', opacity: installmentMonths > 1 ? 0.55 : 1 }}>
-            <input
-              type="checkbox"
-              checked={isRecurring}
-              disabled={installmentMonths > 1}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-            />
-            <span className="recurring-toggle-mark" aria-hidden="true" />
-            <span className="recurring-toggle-text">매달 정기 기록으로 등록</span>
-          </label>
         </div>
 
         <div className="entry-actions">

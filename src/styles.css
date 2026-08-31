@@ -3492,8 +3492,10 @@ body.category-handle-drag-active {
 .amount-inline-mode-btn {
   position: absolute;
   right: 8px;
-  top: 50%;
-  transform: translateY(-50%) !important;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  transform: none !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3514,7 +3516,10 @@ body.category-handle-drag-active {
 .amount-inline-mode-btn:hover,
 .amount-inline-mode-btn:focus,
 .amount-inline-mode-btn:active {
-  transform: translateY(-50%) !important;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  transform: none !important;
   background: var(--bg-balance-light);
   color: var(--text-primary);
   border-color: var(--primary);
