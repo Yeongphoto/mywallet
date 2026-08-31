@@ -3466,15 +3466,34 @@ body.category-handle-drag-active {
   }
 }
 
+.modal-content .form-grid .compact-entry-field > input,
+.modal-content .form-grid .compact-entry-field > select {
+  text-align: center !important;
+  align-self: center;
+}
+
+.modal-content .form-grid .instant-select-trigger {
+  justify-content: center !important;
+  text-align: center !important;
+  position: relative;
+}
+
+.modal-content .form-grid .instant-select-trigger span[aria-hidden="true"] {
+  position: absolute;
+  right: 4px;
+}
+
 .modal-content .form-grid .amount-entry-field > input {
-  text-align: right !important;
+  text-align: center !important;
+  padding-left: 24px !important;
   padding-right: 32px !important;
   font-variant-numeric: tabular-nums;
 }
 
 .modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) > input {
-  text-align: right !important;
-  padding-right: 104px !important;
+  text-align: center !important;
+  padding-left: 70px !important;
+  padding-right: 88px !important;
   font-variant-numeric: tabular-nums;
 }
 
