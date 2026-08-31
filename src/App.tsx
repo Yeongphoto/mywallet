@@ -5569,62 +5569,162 @@ ${sheet2Rows}  </sheetData>
 ${sheet3Rows}  </sheetData>
 </worksheet>`;
 
-    // 4. SHEET 4: 자산 현황 (자산별 잔액 및 비중)
-    let sheet4Rows = '';
-    sheet4Rows += `    <row r="1" ht="26" customHeight="1">\n`;
-    sheet4Rows += `      <c r="A1" s="8" t="inlineStr"><is><t>💰 자산 현황 및 잔액 요약</t></is></c>\n`;
-    sheet4Rows += `    </row>\n`;
+    // 4. SHEET 4: 자산 및 부채(대출) 현황
+    const getCategoryName = (categoryId: string) => {
+      const custom = categoryLabels[categoryId];
+      if (custom) return custom;
+      const found = allAssetCategories.find((c) => c.id === categoryId || c.label === categoryId);
+      if (found) return categoryLabels[found.id] || found.label || found.id;
+      if (categoryId === 'bank') return '은행';
+      if (categoryId === 'card') return '카드';
+      if (categoryId === 'saving') return '저축/투자';
+      if (categoryId === 'cash') return '현금';
+      if (categoryId === 'loan') return '대출';
+      return categoryId;
+    };
 
-    const assetHeaders = ['구분 (대분류)', '자산명', '현재 잔액(원)', '비중(%)'];
-    sheet4Rows += `    <row r="2" ht="24" customHeight="1">\n`;
-    assetHeaders.forEach((h, i) => {
-      sheet4Rows += `      <c r="${cols[i]}2" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
-    });
-    sheet4Rows += `    </row>\n`;
-
-    const assetBalances = assets.map((a) => {
-      let bal = a.amount || 0;
-      for (const t of transactions) {
-        if (t.assetId === a.id) {
-          if (t.type === 'expense') bal -= t.amount;
-          else if (t.type === 'income') bal += t.amount;
-          else if (t.type === 'transfer') bal -= t.amount;
-        }
-        if (t.toAssetId === a.id && t.type === 'transfer') {
-          bal += t.amount;
-        }
+    const getCategoryKind = (categoryId: string, assetName: string = '') => {
+      const kindKey = `asset_kind_${categoryId}`;
+      const customKind = categoryLabels[kindKey];
+      if (customKind === 'liability' || customKind === 'asset') return customKind;
+      const found = allAssetCategories.find((c) => c.id === categoryId || c.label === categoryId);
+      if (found?.kind === 'liability') return 'liability';
+      const label = getCategoryName(categoryId);
+      if (label.includes('대출') || label.includes('부채') || label.includes('빌린') || categoryId.includes('loan') || categoryId.includes('liability')) {
+        return 'liability';
       }
-      return { ...a, currentBalance: bal };
+      if (assetName.includes('대출') || assetName.includes('부채') || assetName.includes('마이너스')) {
+        return 'liability';
+      }
+      return 'asset';
+    };
+
+    const allAssetItemsWithBalance = assets.map((a) => {
+      const bal = getNetAssetBalance ? getNetAssetBalance(a) : (a.amount || 0);
+      const catLabel = getCategoryName(a.category);
+      const kind = getCategoryKind(a.category, a.name || '');
+      return {
+        ...a,
+        displayName: a.name || catLabel || a.id,
+        categoryLabel: catLabel,
+        kind,
+        currentBalance: bal,
+      };
     });
 
-    const totalAssetBalance = assetBalances.reduce((s, a) => s + a.currentBalance, 0);
+    const assetOnlyItems = allAssetItemsWithBalance.filter((a) => a.kind === 'asset');
+    const liabilityOnlyItems = allAssetItemsWithBalance.filter((a) => a.kind === 'liability');
 
-    assetBalances.forEach((a, idx) => {
-      const rNum = idx + 3;
-      const share = totalAssetBalance > 0 ? (a.currentBalance / totalAssetBalance) : 0;
-      sheet4Rows += `    <row r="${rNum}" ht="21" customHeight="1">\n`;
-      sheet4Rows += `      <c r="A${rNum}" s="2" t="inlineStr"><is><t>${escapeXml(a.category || '자산')}</t></is></c>\n`;
-      sheet4Rows += `      <c r="B${rNum}" s="3" t="inlineStr"><is><t>${escapeXml(a.name || a.category || a.id)}</t></is></c>\n`;
-      sheet4Rows += `      <c r="C${rNum}" s="6"><v>${a.currentBalance}</v></c>\n`;
-      sheet4Rows += `      <c r="D${rNum}" s="7"><v>${share.toFixed(4)}</v></c>\n`;
+    const totalAssetOnlyBalance = assetOnlyItems.reduce((s, a) => s + a.currentBalance, 0);
+    const totalLiabilityOnlyBalance = liabilityOnlyItems.reduce((s, a) => s + Math.abs(a.currentBalance), 0);
+    const netWorth = totalAssetOnlyBalance - totalLiabilityOnlyBalance;
+
+    let sheet4Rows = '';
+    let r4 = 1;
+
+    // Title: 1. 보유 자산
+    sheet4Rows += `    <row r="${r4}" ht="26" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="8" t="inlineStr"><is><t>💰 보유 자산 (예금·적금·투자·현금·보증금)</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    const assetTableHeaders = ['순위', '구분 (대분류)', '자산명', '현재 잔액(원)', '자산 내 비중(%)'];
+    sheet4Rows += `    <row r="${r4}" ht="24" customHeight="1">\n`;
+    assetTableHeaders.forEach((h, i) => {
+      sheet4Rows += `      <c r="${cols[i]}${r4}" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    assetOnlyItems.sort((a, b) => b.currentBalance - a.currentBalance);
+    assetOnlyItems.forEach((a, idx) => {
+      const share = totalAssetOnlyBalance > 0 ? (a.currentBalance / totalAssetOnlyBalance) : 0;
+      sheet4Rows += `    <row r="${r4}" ht="21" customHeight="1">\n`;
+      sheet4Rows += `      <c r="A${r4}" s="2" t="inlineStr"><is><t>${idx + 1}위</t></is></c>\n`;
+      sheet4Rows += `      <c r="B${r4}" s="2" t="inlineStr"><is><t>${escapeXml(a.categoryLabel)}</t></is></c>\n`;
+      sheet4Rows += `      <c r="C${r4}" s="3" t="inlineStr"><is><t>${escapeXml(a.displayName)}</t></is></c>\n`;
+      sheet4Rows += `      <c r="D${r4}" s="6"><v>${a.currentBalance}</v></c>\n`;
+      sheet4Rows += `      <c r="E${r4}" s="7"><v>${share.toFixed(4)}</v></c>\n`;
       sheet4Rows += `    </row>\n`;
+      r4++;
     });
 
-    const totalAssetRow = assetBalances.length + 3;
-    sheet4Rows += `    <row r="${totalAssetRow}" ht="23" customHeight="1">\n`;
-    sheet4Rows += `      <c r="A${totalAssetRow}" s="9" t="inlineStr"><is><t>총 순자산</t></is></c>\n`;
-    sheet4Rows += `      <c r="B${totalAssetRow}" s="9" t="inlineStr"><is><t>${assetBalances.length}개 자산</t></is></c>\n`;
-    sheet4Rows += `      <c r="C${totalAssetRow}" s="10"><v>${totalAssetBalance}</v></c>\n`;
-    sheet4Rows += `      <c r="D${totalAssetRow}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet4Rows += `    <row r="${r4}" ht="23" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="9" t="inlineStr"><is><t>자산 합계</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${r4}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet4Rows += `      <c r="C${r4}" s="9" t="inlineStr"><is><t>${assetOnlyItems.length}개 자산</t></is></c>\n`;
+    sheet4Rows += `      <c r="D${r4}" s="10"><v>${totalAssetOnlyBalance}</v></c>\n`;
+    sheet4Rows += `      <c r="E${r4}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4 += 3;
+
+    // Title: 2. 대출 및 부채
+    sheet4Rows += `    <row r="${r4}" ht="26" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="8" t="inlineStr"><is><t>🏛️ 대출 및 부채 (전세대출·신용대출·카드 미결제)</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    const liabilityTableHeaders = ['순위', '구분 (대분류)', '대출/부채명', '현재 잔액(원)', '부채 내 비중(%)'];
+    sheet4Rows += `    <row r="${r4}" ht="24" customHeight="1">\n`;
+    liabilityTableHeaders.forEach((h, i) => {
+      sheet4Rows += `      <c r="${cols[i]}${r4}" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    r4++;
+
+    liabilityOnlyItems.sort((a, b) => Math.abs(b.currentBalance) - Math.abs(a.currentBalance));
+    liabilityOnlyItems.forEach((a, idx) => {
+      const absBal = Math.abs(a.currentBalance);
+      const share = totalLiabilityOnlyBalance > 0 ? (absBal / totalLiabilityOnlyBalance) : 0;
+      sheet4Rows += `    <row r="${r4}" ht="21" customHeight="1">\n`;
+      sheet4Rows += `      <c r="A${r4}" s="2" t="inlineStr"><is><t>${idx + 1}위</t></is></c>\n`;
+      sheet4Rows += `      <c r="B${r4}" s="2" t="inlineStr"><is><t>${escapeXml(a.categoryLabel)}</t></is></c>\n`;
+      sheet4Rows += `      <c r="C${r4}" s="3" t="inlineStr"><is><t>${escapeXml(a.displayName)}</t></is></c>\n`;
+      sheet4Rows += `      <c r="D${r4}" s="4"><v>${absBal}</v></c>\n`;
+      sheet4Rows += `      <c r="E${r4}" s="7"><v>${share.toFixed(4)}</v></c>\n`;
+      sheet4Rows += `    </row>\n`;
+      r4++;
+    });
+
+    sheet4Rows += `    <row r="${r4}" ht="23" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="9" t="inlineStr"><is><t>대출/부채 합계</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${r4}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet4Rows += `      <c r="C${r4}" s="9" t="inlineStr"><is><t>${liabilityOnlyItems.length}개 항목</t></is></c>\n`;
+    sheet4Rows += `      <c r="D${r4}" s="10"><v>${totalLiabilityOnlyBalance}</v></c>\n`;
+    sheet4Rows += `      <c r="E${r4}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4 += 3;
+
+    // Title: 3. 최종 순자산 요약
+    sheet4Rows += `    <row r="${r4}" ht="26" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="8" t="inlineStr"><is><t>⚖️ 최종 순자산 요약 (자산 - 대출/부채)</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    sheet4Rows += `    <row r="${r4}" ht="22" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="2" t="inlineStr"><is><t>총 자산 (A)</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${r4}" s="5"><v>${totalAssetOnlyBalance}</v></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    sheet4Rows += `    <row r="${r4}" ht="22" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="2" t="inlineStr"><is><t>총 대출/부채 (B)</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${r4}" s="4"><v>${totalLiabilityOnlyBalance}</v></c>\n`;
+    sheet4Rows += `    </row>\n`;
+    r4++;
+
+    sheet4Rows += `    <row r="${r4}" ht="25" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${r4}" s="9" t="inlineStr"><is><t>최종 순자산 (A - B)</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${r4}" s="10"><v>${netWorth}</v></c>\n`;
     sheet4Rows += `    </row>\n`;
 
     const sheet4 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <cols>
-    <col min="1" max="1" width="16" customWidth="1"/>
-    <col min="2" max="2" width="22" customWidth="1"/>
-    <col min="3" max="3" width="20" customWidth="1"/>
-    <col min="4" max="4" width="14" customWidth="1"/>
+    <col min="1" max="1" width="10" customWidth="1"/>
+    <col min="2" max="2" width="18" customWidth="1"/>
+    <col min="3" max="3" width="22" customWidth="1"/>
+    <col min="4" max="4" width="20" customWidth="1"/>
+    <col min="5" max="5" width="15" customWidth="1"/>
   </cols>
   <sheetData>
 ${sheet4Rows}  </sheetData>
