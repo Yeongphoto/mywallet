@@ -5168,6 +5168,9 @@ export default function App() {
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>`;
 
@@ -5179,34 +5182,45 @@ export default function App() {
     const wbRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
+  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 
-    const sheetTitle = scope === 'current' ? `${selectedMonth}_가계부` : '전체_가계부';
+    const mainSheetName = scope === 'current' ? `${selectedMonth}_장부` : '전체_장부';
     const workbook = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="${escapeXml(sheetTitle)}" sheetId="1" r:id="rId1"/>
+    <sheet name="${escapeXml(mainSheetName)}" sheetId="1" r:id="rId1"/>
+    <sheet name="카테고리 분석" sheetId="2" r:id="rId2"/>
+    <sheet name="월별 추이" sheetId="3" r:id="rId3"/>
+    <sheet name="자산 현황" sheetId="4" r:id="rId4"/>
   </sheets>
 </workbook>`;
 
-    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <numFmts count="1">
+  <numFmts count="2">
     <numFmt numFmtId="164" formatCode="#,##0"/>
+    <numFmt numFmtId="165" formatCode="0.0%"/>
   </numFmts>
-  <fonts count="4">
+  <fonts count="6">
     <font><sz val="10"/><name val="맑은 고딕"/></font>
     <font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="맑은 고딕"/></font>
     <font><b/><sz val="10"/><color rgb="FFDC2626"/><name val="맑은 고딕"/></font>
     <font><b/><sz val="10"/><color rgb="FF2563EB"/><name val="맑은 고딕"/></font>
+    <font><b/><sz val="12"/><color rgb="FF0F172A"/><name val="맑은 고딕"/></font>
+    <font><b/><sz val="10"/><color rgb="FF0F172A"/><name val="맑은 고딕"/></font>
   </fonts>
-  <fills count="3">
+  <fills count="5">
     <fill><patternFill patternType="none"/></fill>
     <fill><patternFill patternType="gray125"/></fill>
     <fill><patternFill patternType="solid"><fgColor rgb="FF0284C7"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/></patternFill></fill>
   </fills>
-  <borders count="2">
+  <borders count="3">
     <border><left/><right/><top/><bottom/><diagonal/></border>
     <border>
       <left style="thin"><color rgb="FFE2E8F0"/></left>
@@ -5214,41 +5228,78 @@ export default function App() {
       <top style="thin"><color rgb="FFE2E8F0"/></top>
       <bottom style="thin"><color rgb="FFE2E8F0"/></bottom>
     </border>
+    <border>
+      <left style="thin"><color rgb="FFE2E8F0"/></left>
+      <right style="thin"><color rgb="FFE2E8F0"/></right>
+      <top style="thin"><color rgb="FF94A3B8"/></top>
+      <bottom style="double"><color rgb="FF64748B"/></bottom>
+    </border>
   </borders>
   <cellStyleXfs count="1">
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
   </cellStyleXfs>
-  <cellXfs count="7">
+  <cellXfs count="12">
+    <!-- 0: Default -->
     <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <!-- 1: Header -->
     <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="center" vertical="center"/>
     </xf>
+    <!-- 2: CenterText -->
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="center" vertical="center"/>
     </xf>
+    <!-- 3: LeftText -->
     <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="left" vertical="center"/>
     </xf>
+    <!-- 4: ExpenseAmount (Red, #,##0) -->
     <xf numFmtId="164" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="right" vertical="center"/>
     </xf>
+    <!-- 5: IncomeAmount (Blue, #,##0) -->
     <xf numFmtId="164" fontId="3" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="right" vertical="center"/>
     </xf>
+    <!-- 6: Number (#,##0) -->
     <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1">
       <alignment horizontal="right" vertical="center"/>
+    </xf>
+    <!-- 7: Percentage (0.0%, Center) -->
+    <xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 8: Section Title (Bold 12pt) -->
+    <xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 9: Total Label (Bold, Center, Gray Fill) -->
+    <xf numFmtId="0" fontId="5" fillId="4" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 10: Total Amount (#,##0, Bold, Right, Gray Fill) -->
+    <xf numFmtId="164" fontId="5" fillId="4" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="right" vertical="center"/>
+    </xf>
+    <!-- 11: Subheader (Gray Fill, Bold, Center) -->
+    <xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
     </xf>
   </cellXfs>
 </styleSheet>`;
 
     const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-    const headers = ['날짜', '시간', '구분', '카테고리', '내용', '금액(원)', '출금 자산', '입금 자산(이체)', '할부/비고'];
 
-    let sheetRows = `    <row r="1" ht="25" customHeight="1">\n`;
-    headers.forEach((h, i) => {
-      sheetRows += `      <c r="${cols[i]}1" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    // 1. SHEET 1: 장부 내역
+    const headers1 = ['날짜', '시간', '구분', '카테고리', '내용', '금액(원)', '출금 자산', '입금 자산(이체)', '할부/비고'];
+    let sheet1Rows = `    <row r="1" ht="25" customHeight="1">\n`;
+    headers1.forEach((h, i) => {
+      sheet1Rows += `      <c r="${cols[i]}1" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
     });
-    sheetRows += `    </row>\n`;
+    sheet1Rows += `    </row>\n`;
+
+    let totalExpense1 = 0;
+    let totalIncome1 = 0;
 
     targetTransactions.forEach((t, rIdx) => {
       const rowNum = rIdx + 2;
@@ -5265,21 +5316,37 @@ export default function App() {
         installmentInfo = '정기 기록';
       }
 
+      if (t.type === 'expense') totalExpense1 += t.amount;
+      if (t.type === 'income' && !isOpeningBalanceTransaction(t)) totalIncome1 += t.amount;
+
       const styleId = t.type === 'expense' ? 4 : t.type === 'income' ? 5 : 6;
       const signedAmount = t.type === 'expense' ? -t.amount : t.amount;
 
-      sheetRows += `    <row r="${rowNum}" ht="21" customHeight="1">\n`;
-      sheetRows += `      <c r="A${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(t.date)}</t></is></c>\n`;
-      sheetRows += `      <c r="B${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(t.time || '')}</t></is></c>\n`;
-      sheetRows += `      <c r="C${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(typeLabel)}</t></is></c>\n`;
-      sheetRows += `      <c r="D${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(catLabel)}</t></is></c>\n`;
-      sheetRows += `      <c r="E${rowNum}" s="3" t="inlineStr"><is><t>${escapeXml(t.title)}</t></is></c>\n`;
-      sheetRows += `      <c r="F${rowNum}" s="${styleId}"><v>${signedAmount}</v></c>\n`;
-      sheetRows += `      <c r="G${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(assetName)}</t></is></c>\n`;
-      sheetRows += `      <c r="H${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(toAssetName)}</t></is></c>\n`;
-      sheetRows += `      <c r="I${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(installmentInfo)}</t></is></c>\n`;
-      sheetRows += `    </row>\n`;
+      sheet1Rows += `    <row r="${rowNum}" ht="21" customHeight="1">\n`;
+      sheet1Rows += `      <c r="A${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(t.date)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="B${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(t.time || '')}</t></is></c>\n`;
+      sheet1Rows += `      <c r="C${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(typeLabel)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="D${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(catLabel)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="E${rowNum}" s="3" t="inlineStr"><is><t>${escapeXml(t.title)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="F${rowNum}" s="${styleId}"><v>${signedAmount}</v></c>\n`;
+      sheet1Rows += `      <c r="G${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(assetName)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="H${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(toAssetName)}</t></is></c>\n`;
+      sheet1Rows += `      <c r="I${rowNum}" s="2" t="inlineStr"><is><t>${escapeXml(installmentInfo)}</t></is></c>\n`;
+      sheet1Rows += `    </row>\n`;
     });
+
+    const totalRow1Num = targetTransactions.length + 2;
+    sheet1Rows += `    <row r="${totalRow1Num}" ht="23" customHeight="1">\n`;
+    sheet1Rows += `      <c r="A${totalRow1Num}" s="9" t="inlineStr"><is><t>총 합계</t></is></c>\n`;
+    sheet1Rows += `      <c r="B${totalRow1Num}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet1Rows += `      <c r="C${totalRow1Num}" s="9" t="inlineStr"><is><t>수입-지출</t></is></c>\n`;
+    sheet1Rows += `      <c r="D${totalRow1Num}" s="9" t="inlineStr"><is><t>${targetTransactions.length}건</t></is></c>\n`;
+    sheet1Rows += `      <c r="E${totalRow1Num}" s="9" t="inlineStr"><is><t>순수익</t></is></c>\n`;
+    sheet1Rows += `      <c r="F${totalRow1Num}" s="10"><v>${totalIncome1 - totalExpense1}</v></c>\n`;
+    sheet1Rows += `      <c r="G${totalRow1Num}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet1Rows += `      <c r="H${totalRow1Num}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet1Rows += `      <c r="I${totalRow1Num}" s="9" t="inlineStr"><is><t></t></is></c>\n`;
+    sheet1Rows += `    </row>\n`;
 
     const sheet1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -5295,7 +5362,272 @@ export default function App() {
     <col min="9" max="9" width="15" customWidth="1"/>
   </cols>
   <sheetData>
-${sheetRows}  </sheetData>
+${sheet1Rows}  </sheetData>
+</worksheet>`;
+
+    // 2. SHEET 2: 카테고리 분석 (지출 랭킹 & 수입 랭킹)
+    const expenseMap = new Map<string, { amount: number; count: number }>();
+    const incomeMap = new Map<string, { amount: number; count: number }>();
+    let sumExp = 0;
+    let sumInc = 0;
+
+    targetTransactions.forEach((t) => {
+      if (t.type === 'expense') {
+        const cat = allExpenseCategories.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
+        const prev = expenseMap.get(cat) || { amount: 0, count: 0 };
+        expenseMap.set(cat, { amount: prev.amount + t.amount, count: prev.count + 1 });
+        sumExp += t.amount;
+      } else if (t.type === 'income' && !isOpeningBalanceTransaction(t)) {
+        const cat = allIncomeCategories.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
+        const prev = incomeMap.get(cat) || { amount: 0, count: 0 };
+        incomeMap.set(cat, { amount: prev.amount + t.amount, count: prev.count + 1 });
+        sumInc += t.amount;
+      }
+    });
+
+    const sortedExp = Array.from(expenseMap.entries())
+      .map(([category, data]) => ({ category, amount: data.amount, count: data.count, share: sumExp > 0 ? data.amount / sumExp : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const sortedInc = Array.from(incomeMap.entries())
+      .map(([category, data]) => ({ category, amount: data.amount, count: data.count, share: sumInc > 0 ? data.amount / sumInc : 0 }))
+      .sort((a, b) => b.amount - a.amount);
+
+    let sheet2Rows = '';
+    let r2 = 1;
+
+    // Title: 지출 분석
+    sheet2Rows += `    <row r="${r2}" ht="26" customHeight="1">\n`;
+    sheet2Rows += `      <c r="A${r2}" s="8" t="inlineStr"><is><t>📊 지출 카테고리별 분석 (지출 랭킹 &amp; 비중)</t></is></c>\n`;
+    sheet2Rows += `    </row>\n`;
+    r2++;
+
+    const expHeaders = ['순위', '카테고리', '지출 금액(원)', '비중(%)', '거래 건수', '건당 평균(원)'];
+    sheet2Rows += `    <row r="${r2}" ht="24" customHeight="1">\n`;
+    expHeaders.forEach((h, i) => {
+      sheet2Rows += `      <c r="${cols[i]}${r2}" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    sheet2Rows += `    </row>\n`;
+    r2++;
+
+    sortedExp.forEach((item, idx) => {
+      const avg = item.count > 0 ? Math.round(item.amount / item.count) : 0;
+      sheet2Rows += `    <row r="${r2}" ht="21" customHeight="1">\n`;
+      sheet2Rows += `      <c r="A${r2}" s="2" t="inlineStr"><is><t>${idx + 1}위</t></is></c>\n`;
+      sheet2Rows += `      <c r="B${r2}" s="3" t="inlineStr"><is><t>${escapeXml(item.category)}</t></is></c>\n`;
+      sheet2Rows += `      <c r="C${r2}" s="4"><v>${item.amount}</v></c>\n`;
+      sheet2Rows += `      <c r="D${r2}" s="7"><v>${item.share.toFixed(4)}</v></c>\n`;
+      sheet2Rows += `      <c r="E${r2}" s="6"><v>${item.count}</v></c>\n`;
+      sheet2Rows += `      <c r="F${r2}" s="6"><v>${avg}</v></c>\n`;
+      sheet2Rows += `    </row>\n`;
+      r2++;
+    });
+
+    const totalExpCount = sortedExp.reduce((s, i) => s + i.count, 0);
+    const avgExp = totalExpCount > 0 ? Math.round(sumExp / totalExpCount) : 0;
+    sheet2Rows += `    <row r="${r2}" ht="23" customHeight="1">\n`;
+    sheet2Rows += `      <c r="A${r2}" s="9" t="inlineStr"><is><t>지출 합계</t></is></c>\n`;
+    sheet2Rows += `      <c r="B${r2}" s="9" t="inlineStr"><is><t>${sortedExp.length}개 항목</t></is></c>\n`;
+    sheet2Rows += `      <c r="C${r2}" s="10"><v>${sumExp}</v></c>\n`;
+    sheet2Rows += `      <c r="D${r2}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet2Rows += `      <c r="E${r2}" s="10"><v>${totalExpCount}</v></c>\n`;
+    sheet2Rows += `      <c r="F${r2}" s="10"><v>${avgExp}</v></c>\n`;
+    sheet2Rows += `    </row>\n`;
+    r2 += 3;
+
+    // Title: 수입 분석
+    sheet2Rows += `    <row r="${r2}" ht="26" customHeight="1">\n`;
+    sheet2Rows += `      <c r="A${r2}" s="8" t="inlineStr"><is><t>📈 수입 카테고리별 분석 (수입 랭킹 &amp; 비중)</t></is></c>\n`;
+    sheet2Rows += `    </row>\n`;
+    r2++;
+
+    const incHeaders = ['순위', '카테고리', '수입 금액(원)', '비중(%)', '거래 건수', '건당 평균(원)'];
+    sheet2Rows += `    <row r="${r2}" ht="24" customHeight="1">\n`;
+    incHeaders.forEach((h, i) => {
+      sheet2Rows += `      <c r="${cols[i]}${r2}" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    sheet2Rows += `    </row>\n`;
+    r2++;
+
+    sortedInc.forEach((item, idx) => {
+      const avg = item.count > 0 ? Math.round(item.amount / item.count) : 0;
+      sheet2Rows += `    <row r="${r2}" ht="21" customHeight="1">\n`;
+      sheet2Rows += `      <c r="A${r2}" s="2" t="inlineStr"><is><t>${idx + 1}위</t></is></c>\n`;
+      sheet2Rows += `      <c r="B${r2}" s="3" t="inlineStr"><is><t>${escapeXml(item.category)}</t></is></c>\n`;
+      sheet2Rows += `      <c r="C${r2}" s="5"><v>${item.amount}</v></c>\n`;
+      sheet2Rows += `      <c r="D${r2}" s="7"><v>${item.share.toFixed(4)}</v></c>\n`;
+      sheet2Rows += `      <c r="E${r2}" s="6"><v>${item.count}</v></c>\n`;
+      sheet2Rows += `      <c r="F${r2}" s="6"><v>${avg}</v></c>\n`;
+      sheet2Rows += `    </row>\n`;
+      r2++;
+    });
+
+    const totalIncCount = sortedInc.reduce((s, i) => s + i.count, 0);
+    const avgInc = totalIncCount > 0 ? Math.round(sumInc / totalIncCount) : 0;
+    sheet2Rows += `    <row r="${r2}" ht="23" customHeight="1">\n`;
+    sheet2Rows += `      <c r="A${r2}" s="9" t="inlineStr"><is><t>수입 합계</t></is></c>\n`;
+    sheet2Rows += `      <c r="B${r2}" s="9" t="inlineStr"><is><t>${sortedInc.length}개 항목</t></is></c>\n`;
+    sheet2Rows += `      <c r="C${r2}" s="10"><v>${sumInc}</v></c>\n`;
+    sheet2Rows += `      <c r="D${r2}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet2Rows += `      <c r="E${r2}" s="10"><v>${totalIncCount}</v></c>\n`;
+    sheet2Rows += `      <c r="F${r2}" s="10"><v>${avgInc}</v></c>\n`;
+    sheet2Rows += `    </row>\n`;
+
+    const sheet2 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>
+    <col min="1" max="1" width="10" customWidth="1"/>
+    <col min="2" max="2" width="18" customWidth="1"/>
+    <col min="3" max="3" width="18" customWidth="1"/>
+    <col min="4" max="4" width="12" customWidth="1"/>
+    <col min="5" max="5" width="12" customWidth="1"/>
+    <col min="6" max="6" width="16" customWidth="1"/>
+  </cols>
+  <sheetData>
+${sheet2Rows}  </sheetData>
+</worksheet>`;
+
+    // 3. SHEET 3: 월별 추이 (전체 기간 월별 수입/지출/순수익)
+    const monthlyMap = new Map<string, { income: number; expense: number; count: number }>();
+    const allTxsForTrend = scope === 'all' ? targetTransactions : transactions;
+
+    allTxsForTrend.forEach((t) => {
+      const ym = t.date.slice(0, 7);
+      const prev = monthlyMap.get(ym) || { income: 0, expense: 0, count: 0 };
+      if (t.type === 'expense') {
+        prev.expense += t.amount;
+        prev.count += 1;
+      } else if (t.type === 'income' && !isOpeningBalanceTransaction(t)) {
+        prev.income += t.amount;
+        prev.count += 1;
+      } else if (t.type === 'transfer') {
+        prev.count += 1;
+      }
+      monthlyMap.set(ym, prev);
+    });
+
+    const sortedMonths = Array.from(monthlyMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+    let sheet3Rows = '';
+    sheet3Rows += `    <row r="1" ht="26" customHeight="1">\n`;
+    sheet3Rows += `      <c r="A1" s="8" t="inlineStr"><is><t>📅 월별 수입·지출 및 순수익 추이 요약</t></is></c>\n`;
+    sheet3Rows += `    </row>\n`;
+
+    const trendHeaders = ['년월', '총 수입(원)', '총 지출(원)', '순수익(원)', '저축/잉여율(%)', '거래 건수'];
+    sheet3Rows += `    <row r="2" ht="24" customHeight="1">\n`;
+    trendHeaders.forEach((h, i) => {
+      sheet3Rows += `      <c r="${cols[i]}2" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    sheet3Rows += `    </row>\n`;
+
+    let totalTrendInc = 0;
+    let totalTrendExp = 0;
+    let totalTrendCount = 0;
+
+    sortedMonths.forEach(([ym, data], idx) => {
+      const rNum = idx + 3;
+      const net = data.income - data.expense;
+      const rate = data.income > 0 ? (net / data.income) : 0;
+      totalTrendInc += data.income;
+      totalTrendExp += data.expense;
+      totalTrendCount += data.count;
+
+      sheet3Rows += `    <row r="${rNum}" ht="21" customHeight="1">\n`;
+      sheet3Rows += `      <c r="A${rNum}" s="2" t="inlineStr"><is><t>${ym.slice(0, 4)}년 ${Number(ym.slice(5, 7))}월</t></is></c>\n`;
+      sheet3Rows += `      <c r="B${rNum}" s="5"><v>${data.income}</v></c>\n`;
+      sheet3Rows += `      <c r="C${rNum}" s="4"><v>${data.expense}</v></c>\n`;
+      sheet3Rows += `      <c r="D${rNum}" s="6"><v>${net}</v></c>\n`;
+      sheet3Rows += `      <c r="E${rNum}" s="7"><v>${rate.toFixed(4)}</v></c>\n`;
+      sheet3Rows += `      <c r="F${rNum}" s="6"><v>${data.count}</v></c>\n`;
+      sheet3Rows += `    </row>\n`;
+    });
+
+    const totalTrendRow = sortedMonths.length + 3;
+    const totalTrendNet = totalTrendInc - totalTrendExp;
+    const totalTrendRate = totalTrendInc > 0 ? (totalTrendNet / totalTrendInc) : 0;
+
+    sheet3Rows += `    <row r="${totalTrendRow}" ht="23" customHeight="1">\n`;
+    sheet3Rows += `      <c r="A${totalTrendRow}" s="9" t="inlineStr"><is><t>누적 전체 합계</t></is></c>\n`;
+    sheet3Rows += `      <c r="B${totalTrendRow}" s="10"><v>${totalTrendInc}</v></c>\n`;
+    sheet3Rows += `      <c r="C${totalTrendRow}" s="10"><v>${totalTrendExp}</v></c>\n`;
+    sheet3Rows += `      <c r="D${totalTrendRow}" s="10"><v>${totalTrendNet}</v></c>\n`;
+    sheet3Rows += `      <c r="E${totalTrendRow}" s="9" t="inlineStr"><is><t>${(totalTrendRate * 100).toFixed(1)}%</t></is></c>\n`;
+    sheet3Rows += `      <c r="F${totalTrendRow}" s="10"><v>${totalTrendCount}</v></c>\n`;
+    sheet3Rows += `    </row>\n`;
+
+    const sheet3 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>
+    <col min="1" max="1" width="14" customWidth="1"/>
+    <col min="2" max="2" width="18" customWidth="1"/>
+    <col min="3" max="3" width="18" customWidth="1"/>
+    <col min="4" max="4" width="18" customWidth="1"/>
+    <col min="5" max="5" width="15" customWidth="1"/>
+    <col min="6" max="6" width="12" customWidth="1"/>
+  </cols>
+  <sheetData>
+${sheet3Rows}  </sheetData>
+</worksheet>`;
+
+    // 4. SHEET 4: 자산 현황 (자산별 잔액 및 비중)
+    let sheet4Rows = '';
+    sheet4Rows += `    <row r="1" ht="26" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A1" s="8" t="inlineStr"><is><t>💰 자산 현황 및 잔액 요약</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+
+    const assetHeaders = ['구분 (대분류)', '자산명', '현재 잔액(원)', '비중(%)'];
+    sheet4Rows += `    <row r="2" ht="24" customHeight="1">\n`;
+    assetHeaders.forEach((h, i) => {
+      sheet4Rows += `      <c r="${cols[i]}2" s="1" t="inlineStr"><is><t>${escapeXml(h)}</t></is></c>\n`;
+    });
+    sheet4Rows += `    </row>\n`;
+
+    const assetBalances = assets.map((a) => {
+      let bal = a.amount || 0;
+      for (const t of transactions) {
+        if (t.assetId === a.id) {
+          if (t.type === 'expense') bal -= t.amount;
+          else if (t.type === 'income') bal += t.amount;
+          else if (t.type === 'transfer') bal -= t.amount;
+        }
+        if (t.toAssetId === a.id && t.type === 'transfer') {
+          bal += t.amount;
+        }
+      }
+      return { ...a, currentBalance: bal };
+    });
+
+    const totalAssetBalance = assetBalances.reduce((s, a) => s + a.currentBalance, 0);
+
+    assetBalances.forEach((a, idx) => {
+      const rNum = idx + 3;
+      const share = totalAssetBalance > 0 ? (a.currentBalance / totalAssetBalance) : 0;
+      sheet4Rows += `    <row r="${rNum}" ht="21" customHeight="1">\n`;
+      sheet4Rows += `      <c r="A${rNum}" s="2" t="inlineStr"><is><t>${escapeXml(a.category || '자산')}</t></is></c>\n`;
+      sheet4Rows += `      <c r="B${rNum}" s="3" t="inlineStr"><is><t>${escapeXml(a.name || a.category || a.id)}</t></is></c>\n`;
+      sheet4Rows += `      <c r="C${rNum}" s="6"><v>${a.currentBalance}</v></c>\n`;
+      sheet4Rows += `      <c r="D${rNum}" s="7"><v>${share.toFixed(4)}</v></c>\n`;
+      sheet4Rows += `    </row>\n`;
+    });
+
+    const totalAssetRow = assetBalances.length + 3;
+    sheet4Rows += `    <row r="${totalAssetRow}" ht="23" customHeight="1">\n`;
+    sheet4Rows += `      <c r="A${totalAssetRow}" s="9" t="inlineStr"><is><t>총 순자산</t></is></c>\n`;
+    sheet4Rows += `      <c r="B${totalAssetRow}" s="9" t="inlineStr"><is><t>${assetBalances.length}개 자산</t></is></c>\n`;
+    sheet4Rows += `      <c r="C${totalAssetRow}" s="10"><v>${totalAssetBalance}</v></c>\n`;
+    sheet4Rows += `      <c r="D${totalAssetRow}" s="9" t="inlineStr"><is><t>100.0%</t></is></c>\n`;
+    sheet4Rows += `    </row>\n`;
+
+    const sheet4 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>
+    <col min="1" max="1" width="16" customWidth="1"/>
+    <col min="2" max="2" width="22" customWidth="1"/>
+    <col min="3" max="3" width="20" customWidth="1"/>
+    <col min="4" max="4" width="14" customWidth="1"/>
+  </cols>
+  <sheetData>
+${sheet4Rows}  </sheetData>
 </worksheet>`;
 
     const zipBytes = createZipArchive([
@@ -5303,8 +5635,11 @@ ${sheetRows}  </sheetData>
       { name: '_rels/.rels', content: rootRels },
       { name: 'xl/_rels/workbook.xml.rels', content: wbRels },
       { name: 'xl/workbook.xml', content: workbook },
-      { name: 'xl/styles.xml', content: styles },
+      { name: 'xl/styles.xml', content: stylesXml },
       { name: 'xl/worksheets/sheet1.xml', content: sheet1 },
+      { name: 'xl/worksheets/sheet2.xml', content: sheet2 },
+      { name: 'xl/worksheets/sheet3.xml', content: sheet3 },
+      { name: 'xl/worksheets/sheet4.xml', content: sheet4 },
     ]);
 
     const filename = scope === 'current'
@@ -5312,7 +5647,7 @@ ${sheetRows}  </sheetData>
       : `mywallet_전체장부_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`;
 
     downloadXlsx(zipBytes, filename);
-    showNotice(`${scope === 'current' ? `${selectedMonth} ` : '전체 '}가계부 엑셀(.xlsx) 파일을 다운로드했습니다.`, '엑셀 내보내기 완료', 'success');
+    showNotice(`${scope === 'current' ? `${selectedMonth} ` : '전체 '}가계부 엑셀(.xlsx) 통합 문서를 다운로드했습니다.`, '엑셀 내보내기 완료', 'success');
   }
 
   function handleImportFullCSV(event: React.ChangeEvent<HTMLInputElement>) {
