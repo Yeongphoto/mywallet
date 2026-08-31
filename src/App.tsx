@@ -1993,6 +1993,29 @@ function downloadCSV(csvContent: string, fileName: string) {
   document.body.removeChild(link);
 }
 
+function downloadExcel(xmlContent: string, fileName: string) {
+  const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), xmlContent], {
+    type: 'application/vnd.ms-excel;charset=utf-8;',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function escapeXml(unsafe: unknown): string {
+  if (unsafe == null) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function escapeCSVCell(value: unknown) {
   const text = value == null ? '' : String(value);
   if (!/[",\n\r]/.test(text)) return text;
@@ -5001,51 +5024,165 @@ export default function App() {
     downloadCSV(`${rows.join('\n')}\n`, `mywallet_full_backup_${selectedMonth.replace('-', '')}.csv`);
   }
 
-  function exportExcelReadableCSV(scope: 'current' | 'all') {
+  function exportExcelSpreadsheet(scope: 'current' | 'all') {
     const targetTransactions = scope === 'current'
       ? transactions.filter((t) => t.date.startsWith(selectedMonth))
       : [...transactions];
 
     targetTransactions.sort((a, b) => b.date.localeCompare(a.date) || (b.time || '').localeCompare(a.time || '') || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
 
-    const rows = [
-      createCSVRow(['날짜', '시간', '구분', '카테고리', '내용', '금액', '출금 자산/결제수단', '입금 자산(이체)', '할부/비고']),
-      ...targetTransactions.map((t) => {
-        const typeLabel = t.type === 'expense' ? '지출' : t.type === 'income' ? '수입' : '이체';
-        const catList = t.type === 'expense' ? allExpenseCategories : t.type === 'income' ? allIncomeCategories : allAssetCategories;
-        const catLabel = catList.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
-        const assetName = t.assetId ? (assets.find((a) => a.id === t.assetId)?.name || assets.find((a) => a.id === t.assetId)?.category || t.assetId) : '';
-        const toAssetName = t.toAssetId ? (assets.find((a) => a.id === t.toAssetId)?.name || assets.find((a) => a.id === t.toAssetId)?.category || t.toAssetId) : '';
+    const rowsXml = targetTransactions.map((t) => {
+      const typeLabel = t.type === 'expense' ? '지출' : t.type === 'income' ? '수입' : '이체';
+      const catList = t.type === 'expense' ? allExpenseCategories : t.type === 'income' ? allIncomeCategories : allAssetCategories;
+      const catLabel = catList.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
+      const assetName = t.assetId ? (assets.find((a) => a.id === t.assetId)?.name || assets.find((a) => a.id === t.assetId)?.category || t.assetId) : '';
+      const toAssetName = t.toAssetId ? (assets.find((a) => a.id === t.toAssetId)?.name || assets.find((a) => a.id === t.toAssetId)?.category || t.toAssetId) : '';
 
-        let installmentInfo = '';
-        if (t.installmentIndex && t.installmentMonths) {
-          installmentInfo = `${t.installmentIndex}/${t.installmentMonths}회차`;
-        } else if (t.recurringRuleId) {
-          installmentInfo = '정기 기록';
-        }
+      let installmentInfo = '';
+      if (t.installmentIndex && t.installmentMonths) {
+        installmentInfo = `${t.installmentIndex}/${t.installmentMonths}회차`;
+      } else if (t.recurringRuleId) {
+        installmentInfo = '정기 기록';
+      }
 
-        const signedAmount = t.type === 'expense' ? -t.amount : t.amount;
+      const styleId = t.type === 'expense' ? 'ExpenseAmount' : t.type === 'income' ? 'IncomeAmount' : 'TransferAmount';
+      const signedAmount = t.type === 'expense' ? -t.amount : t.amount;
 
-        return createCSVRow([
-          t.date,
-          t.time || '',
-          typeLabel,
-          catLabel,
-          t.title,
-          signedAmount,
-          assetName,
-          toAssetName,
-          installmentInfo,
-        ]);
-      }),
-    ];
+      return `   <Row ss:Height="21">
+    <Cell ss:StyleID="DateCell"><Data ss:Type="String">${escapeXml(t.date)}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(t.time || '')}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(typeLabel)}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(catLabel)}</Data></Cell>
+    <Cell ss:StyleID="TextCell"><Data ss:Type="String">${escapeXml(t.title)}</Data></Cell>
+    <Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${signedAmount}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(assetName)}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(toAssetName)}</Data></Cell>
+    <Cell ss:StyleID="CenterCell"><Data ss:Type="String">${escapeXml(installmentInfo)}</Data></Cell>
+   </Row>`;
+    }).join('\n');
+
+    const sheetName = scope === 'current' ? `${selectedMonth}_가계부` : '전체_가계부';
+    const xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="맑은 고딕" ss:Size="10"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+   <Font ss:FontName="맑은 고딕" ss:Size="10" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#0284C7" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="DateCell">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="TextCell">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="CenterCell">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="ExpenseAmount">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="맑은 고딕" ss:Size="10" ss:Color="#DC2626" ss:Bold="1"/>
+   <NumberFormat ss:Format="#,##0"/>
+  </Style>
+  <Style ss:ID="IncomeAmount">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="맑은 고딕" ss:Size="10" ss:Color="#2563EB" ss:Bold="1"/>
+   <NumberFormat ss:Format="#,##0"/>
+  </Style>
+  <Style ss:ID="TransferAmount">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="맑은 고딕" ss:Size="10" ss:Color="#0F766E"/>
+   <NumberFormat ss:Format="#,##0"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="${escapeXml(sheetName)}">
+  <Table>
+   <Column ss:Width="84"/>
+   <Column ss:Width="54"/>
+   <Column ss:Width="50"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="170"/>
+   <Column ss:Width="105"/>
+   <Column ss:Width="105"/>
+   <Column ss:Width="105"/>
+   <Column ss:Width="95"/>
+   <Row ss:Height="25">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">날짜</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">시간</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">구분</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">카테고리</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">내용</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">금액(원)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">출금 자산</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">입금 자산(이체)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">할부/비고</Data></Cell>
+   </Row>
+${rowsXml}
+  </Table>
+ </Worksheet>
+</Workbook>`;
 
     const filename = scope === 'current'
-      ? `mywallet_${selectedMonth.replace('-', '')}_장부.csv`
-      : `mywallet_전체장부_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+      ? `mywallet_${selectedMonth.replace('-', '')}_가계부.xls`
+      : `mywallet_전체장부_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xls`;
 
-    downloadCSV(`${rows.join('\n')}\n`, filename);
-    showNotice(`${scope === 'current' ? `${selectedMonth} ` : '전체 '}가계부 엑셀 파일을 다운로드했습니다.`, '내보내기 완료', 'success');
+    downloadExcel(xml, filename);
+    showNotice(`${scope === 'current' ? `${selectedMonth} ` : '전체 '}가계부 엑셀(.xls) 파일을 다운로드했습니다.`, '엑셀 내보내기 완료', 'success');
   }
 
   function handleImportFullCSV(event: React.ChangeEvent<HTMLInputElement>) {
@@ -7855,10 +7992,10 @@ export default function App() {
                       <strong>가계부 엑셀(Excel) 내보내기</strong>
                     </div>
                     <div className="settings-card-actions">
-                      <button type="button" className="primary-button" onClick={() => exportExcelReadableCSV('current')} title={`${selectedMonth} 내역만 내보내기`}>
+                      <button type="button" className="primary-button" onClick={() => exportExcelSpreadsheet('current')} title={`${selectedMonth} 내역만 엑셀로 내보내기`}>
                         {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월
                       </button>
-                      <button type="button" className="secondary-button" onClick={() => exportExcelReadableCSV('all')} title="전체 기간 장부 내역 내보내기">
+                      <button type="button" className="secondary-button" onClick={() => exportExcelSpreadsheet('all')} title="전체 기간 장부 내역을 엑셀로 내보내기">
                         전체 내역
                       </button>
                     </div>
