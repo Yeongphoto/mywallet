@@ -9762,6 +9762,31 @@ function UnifiedEntryForm({
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const contentFieldRef = useRef<HTMLLabelElement>(null);
+
+  useEffect(() => {
+    if (activePopup !== 'none') {
+      setIsTitleSuggestionsOpen(false);
+    }
+  }, [activePopup]);
+
+  useEffect(() => {
+    if (!isTitleSuggestionsOpen) return;
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
+        setIsTitleSuggestionsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick, true);
+    document.addEventListener('touchstart', handleOutsideClick, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick, true);
+      document.removeEventListener('touchstart', handleOutsideClick, true);
+    };
+  }, [isTitleSuggestionsOpen]);
 
   useEffect(() => {
     const handleGlobalKey = (e: KeyboardEvent) => {
@@ -10194,6 +10219,7 @@ function UnifiedEntryForm({
           )}
 
           <label
+            ref={contentFieldRef}
             className={`content-entry-field compact-entry-field ${isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
             style={{ gridColumn: 'span 2', position: 'relative' }}
             aria-label="내용"
@@ -10466,6 +10492,31 @@ function TransactionEditForm({
   const assetRef = useRef<HTMLButtonElement>(null);
   const toAssetRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const contentFieldRef = useRef<HTMLLabelElement>(null);
+
+  useEffect(() => {
+    if (activePopup !== 'none') {
+      setIsTitleSuggestionsOpen(false);
+    }
+  }, [activePopup]);
+
+  useEffect(() => {
+    if (!isTitleSuggestionsOpen) return;
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
+        setIsTitleSuggestionsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick, true);
+    document.addEventListener('touchstart', handleOutsideClick, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick, true);
+      document.removeEventListener('touchstart', handleOutsideClick, true);
+    };
+  }, [isTitleSuggestionsOpen]);
 
   useEffect(() => {
     if (activePopup !== 'none') {
@@ -10694,6 +10745,7 @@ function TransactionEditForm({
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
         <label
+          ref={contentFieldRef}
           className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
           style={{ gridColumn: 'span 2', position: 'relative' }}
           aria-label="내용"
