@@ -449,9 +449,9 @@ function isOpeningBalanceCategory(category?: string | null) {
     normalized.includes('import-기초') ||
     normalized.includes('import_기초') ||
     normalized.includes('import기초') ||
-    normalized === '기초' ||
-    normalized === '초기' ||
-    normalized === '이월' ||
+    normalized.includes('기초') ||
+    normalized.includes('초기') ||
+    normalized.includes('이월') ||
     normalized.includes('opening-balance') ||
     normalized.includes('opening_balance') ||
     normalized.includes('openingbalance') ||
@@ -474,9 +474,9 @@ function isOpeningBalanceTx(transaction: Transaction) {
     title.includes('import-기초') ||
     title.includes('import_기초') ||
     title.includes('import기초') ||
-    title === '기초' ||
-    title === '초기' ||
-    title === '이월' ||
+    title.includes('기초') ||
+    title.includes('초기') ||
+    title.includes('이월') ||
     title === '자산초기화' ||
     title === '초기자산' ||
     title.includes('opening-balance') ||
