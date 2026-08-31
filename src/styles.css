@@ -1762,8 +1762,8 @@ textarea:focus {
 }
 
 .settings-data-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(240px, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 

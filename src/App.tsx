@@ -5001,6 +5001,53 @@ export default function App() {
     downloadCSV(`${rows.join('\n')}\n`, `mywallet_full_backup_${selectedMonth.replace('-', '')}.csv`);
   }
 
+  function exportExcelReadableCSV(scope: 'current' | 'all') {
+    const targetTransactions = scope === 'current'
+      ? transactions.filter((t) => t.date.startsWith(selectedMonth))
+      : [...transactions];
+
+    targetTransactions.sort((a, b) => b.date.localeCompare(a.date) || (b.time || '').localeCompare(a.time || '') || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
+
+    const rows = [
+      createCSVRow(['날짜', '시간', '구분', '카테고리', '내용', '금액', '출금 자산/결제수단', '입금 자산(이체)', '할부/비고']),
+      ...targetTransactions.map((t) => {
+        const typeLabel = t.type === 'expense' ? '지출' : t.type === 'income' ? '수입' : '이체';
+        const catList = t.type === 'expense' ? allExpenseCategories : t.type === 'income' ? allIncomeCategories : allAssetCategories;
+        const catLabel = catList.find((c) => c.id === t.category || c.label === t.category)?.label || t.category;
+        const assetName = t.assetId ? (assets.find((a) => a.id === t.assetId)?.name || assets.find((a) => a.id === t.assetId)?.category || t.assetId) : '';
+        const toAssetName = t.toAssetId ? (assets.find((a) => a.id === t.toAssetId)?.name || assets.find((a) => a.id === t.toAssetId)?.category || t.toAssetId) : '';
+
+        let installmentInfo = '';
+        if (t.installmentIndex && t.installmentMonths) {
+          installmentInfo = `${t.installmentIndex}/${t.installmentMonths}회차`;
+        } else if (t.recurringRuleId) {
+          installmentInfo = '정기 기록';
+        }
+
+        const signedAmount = t.type === 'expense' ? -t.amount : t.amount;
+
+        return createCSVRow([
+          t.date,
+          t.time || '',
+          typeLabel,
+          catLabel,
+          t.title,
+          signedAmount,
+          assetName,
+          toAssetName,
+          installmentInfo,
+        ]);
+      }),
+    ];
+
+    const filename = scope === 'current'
+      ? `mywallet_${selectedMonth.replace('-', '')}_장부.csv`
+      : `mywallet_전체장부_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+
+    downloadCSV(`${rows.join('\n')}\n`, filename);
+    showNotice(`${scope === 'current' ? `${selectedMonth} ` : '전체 '}가계부 엑셀 파일을 다운로드했습니다.`, '내보내기 완료', 'success');
+  }
+
   function handleImportFullCSV(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -7800,6 +7847,20 @@ export default function App() {
                         복원
                         <input type="file" accept=".csv" onChange={handleImportFullCSV} style={{ display: 'none' }} />
                       </label>
+                    </div>
+                  </article>
+                  <article className="settings-data-card settings-csv-card">
+                    <div>
+                      <span>EXCEL EXPORT</span>
+                      <strong>가계부 엑셀(Excel) 내보내기</strong>
+                    </div>
+                    <div className="settings-card-actions">
+                      <button type="button" className="primary-button" onClick={() => exportExcelReadableCSV('current')} title={`${selectedMonth} 내역만 내보내기`}>
+                        {selectedMonth.slice(0, 4)}년 {Number(selectedMonth.slice(5, 7))}월
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => exportExcelReadableCSV('all')} title="전체 기간 장부 내역 내보내기">
+                        전체 내역
+                      </button>
                     </div>
                   </article>
                   <article className="settings-data-card settings-csv-card">
