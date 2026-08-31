@@ -440,17 +440,22 @@ function isOpeningBalanceCategory(category?: string | null) {
   if (!category) return false;
   const normalized = category.trim().toLowerCase().replace(/\s+/g, '');
   return (
-    normalized === '기초잔액' ||
-    normalized === '기초금액' ||
-    normalized === '초기잔액' ||
-    normalized === '초기금액' ||
-    normalized === '이월잔액' ||
-    normalized === '이월금액' ||
+    normalized.includes('기초잔액') ||
+    normalized.includes('기초금액') ||
+    normalized.includes('초기잔액') ||
+    normalized.includes('초기금액') ||
+    normalized.includes('이월잔액') ||
+    normalized.includes('이월금액') ||
+    normalized.includes('import-기초') ||
+    normalized.includes('import_기초') ||
+    normalized.includes('import기초') ||
+    normalized === '기초' ||
+    normalized === '초기' ||
     normalized === '이월' ||
-    normalized.startsWith('opening-balance') ||
-    normalized.startsWith('opening_balance') ||
-    normalized.startsWith('openingbalance') ||
-    normalized.startsWith('opening') ||
+    normalized.includes('opening-balance') ||
+    normalized.includes('opening_balance') ||
+    normalized.includes('openingbalance') ||
+    normalized.includes('opening') ||
     category === OPENING_BALANCE_CATEGORY
   );
 }
@@ -460,19 +465,24 @@ function isOpeningBalanceTx(transaction: Transaction) {
   if (isOpeningBalanceCategory(transaction.category)) return true;
   const title = (transaction.title || '').trim().toLowerCase().replace(/\s+/g, '');
   return (
-    title === '기초잔액' ||
-    title === '기초금액' ||
-    title === '초기잔액' ||
-    title === '초기금액' ||
-    title === '이월잔액' ||
-    title === '이월금액' ||
+    title.includes('기초잔액') ||
+    title.includes('기초금액') ||
+    title.includes('초기잔액') ||
+    title.includes('초기금액') ||
+    title.includes('이월잔액') ||
+    title.includes('이월금액') ||
+    title.includes('import-기초') ||
+    title.includes('import_기초') ||
+    title.includes('import기초') ||
+    title === '기초' ||
+    title === '초기' ||
     title === '이월' ||
-    title.startsWith('opening-balance') ||
-    title.startsWith('opening_balance') ||
-    title.startsWith('openingbalance') ||
-    title.startsWith('opening') ||
     title === '자산초기화' ||
-    title === '초기자산'
+    title === '초기자산' ||
+    title.includes('opening-balance') ||
+    title.includes('opening_balance') ||
+    title.includes('openingbalance') ||
+    title.includes('opening')
   );
 }
 
