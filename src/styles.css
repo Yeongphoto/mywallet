@@ -3152,7 +3152,29 @@ body.category-handle-drag-active {
 .modal-body:has(.entry-form) .entry-form .form-grid { flex: 1 1 auto; min-height: 0; gap: var(--registration-field-gap); overflow-y: auto; overscroll-behavior: contain; padding: 4px 4px 6px 4px !important; }
 .modal-body:has(.entry-form) .entry-form .form-grid:has(.instant-select-menu),
 .modal-body:has(.entry-form) .entry-form .form-grid:has(.title-suggestions-dropdown),
-.modal-body:has(.entry-form) .entry-form .form-grid:has(.has-suggestions-open) { overflow: visible !important; }
+.modal-body:has(.entry-form) .entry-form .form-grid:has(.has-suggestions-open) {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.modal-body:has(.has-suggestions-open),
+.modal-body:has(.title-suggestions-dropdown),
+.entry-modal:has(.has-suggestions-open) .modal-body,
+.entry-modal:has(.title-suggestions-dropdown) .modal-body {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.modal-body:has(.has-suggestions-open)::-webkit-scrollbar,
+.modal-body:has(.title-suggestions-dropdown)::-webkit-scrollbar,
+.entry-modal:has(.has-suggestions-open) .modal-body::-webkit-scrollbar,
+.entry-modal .form-grid:has(.has-suggestions-open)::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
 .modal-body:has(.entry-form) .entry-form .form-grid > label:not(.recurring-toggle) { min-height: 46px; padding: 5px 12px 6px !important; }
 .modal-body:has(.entry-form) .entry-form .recurring-toggle { min-height: 36px; }
 .modal-body:has(.entry-form) .entry-actions { display: flex; flex: 0 0 auto; gap: 8px; margin-top: 0; }
