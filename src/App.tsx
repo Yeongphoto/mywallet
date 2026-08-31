@@ -10058,7 +10058,7 @@ function UnifiedEntryForm({
                 {installmentMonths > 1 ? `${installmentMonths}개월` : isRecurring ? '정기' : '정기/할부'}
               </button>
             )}
-            {form.type === 'income' && (
+            {(form.type === 'income' || form.type === 'transfer') && (
               <button
                 type="button"
                 className={`amount-inline-mode-btn ${isRecurring ? 'active' : ''}`}
@@ -10275,7 +10275,7 @@ function UnifiedEntryForm({
               }}
               submitLabel={form.type === 'transfer' ? '자산 선택 →' : '분류 선택 →'}
               submitTone={formColorClass}
-              quickActionLabel={form.type === 'expense' ? '정기/할부' : form.type === 'income' ? '정기' : undefined}
+              quickActionLabel={form.type === 'expense' ? '정기/할부' : '정기'}
               onQuickAction={() => {
                 setRecurringInstallmentTab(form.type === 'expense' ? (installmentMonths > 1 ? 'installment' : isRecurring ? 'recurring' : 'installment') : 'recurring');
                 setActivePopup('recurringInstallment');
@@ -10289,7 +10289,7 @@ function UnifiedEntryForm({
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="picker-popup-header">
-              <strong>{form.type === 'income' ? '정기 기록 선택' : recurringInstallmentTab === 'installment' ? '할부 개월 선택' : '정기 주기 선택'}</strong>
+              <strong>{form.type === 'income' || form.type === 'transfer' ? '정기 기록 선택' : recurringInstallmentTab === 'installment' ? '할부 개월 선택' : '정기 주기 선택'}</strong>
               <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
             </div>
             <RecurringInstallmentPicker
