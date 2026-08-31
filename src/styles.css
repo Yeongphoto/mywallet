@@ -3468,32 +3468,23 @@ body.category-handle-drag-active {
 
 .modal-content .form-grid .compact-entry-field > input,
 .modal-content .form-grid .compact-entry-field > select {
-  text-align: center !important;
   align-self: center;
 }
 
 .modal-content .form-grid .instant-select-trigger {
-  justify-content: center !important;
-  text-align: center !important;
-  position: relative;
-}
-
-.modal-content .form-grid .instant-select-trigger span[aria-hidden="true"] {
-  position: absolute;
-  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
 }
 
 .modal-content .form-grid .amount-entry-field > input {
-  text-align: center !important;
-  padding-left: 24px !important;
-  padding-right: 32px !important;
+  padding-right: 2em !important;
   font-variant-numeric: tabular-nums;
 }
 
 .modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) > input {
-  text-align: center !important;
-  padding-left: 70px !important;
-  padding-right: 88px !important;
+  padding-right: 112px !important;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3509,7 +3500,7 @@ body.category-handle-drag-active {
 }
 
 .modal-content .form-grid .amount-entry-field:has(.amount-inline-mode-btn) .currency-suffix {
-  right: 88px;
+  right: 94px;
 }
 
 .amount-inline-mode-btn {
@@ -3536,6 +3527,17 @@ body.category-handle-drag-active {
   z-index: 2;
 }
 
+.amount-inline-mode-btn::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--border-input);
+  opacity: 0.8;
+}
+
 .amount-inline-mode-btn:hover,
 .amount-inline-mode-btn:focus,
 .amount-inline-mode-btn:active {
@@ -3555,8 +3557,7 @@ body.category-handle-drag-active {
 }
 
 .transaction-edit-form .amount-entry-field > input {
-  text-align: right !important;
-  padding-right: 32px !important;
+  padding-right: 2em !important;
   font-variant-numeric: tabular-nums;
 }
 
