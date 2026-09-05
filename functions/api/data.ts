@@ -637,6 +637,79 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ ...responsePayload, operationId }), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    if (body.op === 'category.create' || body.op === 'category.upsert') {
+      const id = String(body.id || '');
+      const type = String(body.type || '');
+      const label = String(body.label || '');
+      const color = body.color ? String(body.color) : null;
+      const kind = body.kind ? String(body.kind) : null;
+
+      if (!id || !type || !label) return apiError('VALIDATION_ERROR', 422);
+
+      const dbType = (type === 'asset' && kind === 'liability') ? 'liability' : type;
+
+      await db.prepare(
+        "INSERT INTO custom_categories (id, type, label, color) VALUES (?, ?, ?, ?) ON CONFLICT(id, type) DO UPDATE SET label = excluded.label, color = excluded.color"
+      ).bind(id, dbType, label, color).run();
+
+      // Also ensure settings categoryLabels and categoryColors are synchronized
+      const settingsRows = await db.prepare("SELECT key, value FROM settings WHERE key IN ('categoryLabels', 'categoryColors', 'categoryOrder')").all<any>();
+      const settingsMap = Object.fromEntries((settingsRows.results || []).map((row: any) => [String(row.key), String(row.value)]));
+      const currentLabels = settingsMap.categoryLabels ? JSON.parse(settingsMap.categoryLabels) : {};
+      const currentColors = settingsMap.categoryColors ? JSON.parse(settingsMap.categoryColors) : {};
+      const currentOrder = settingsMap.categoryOrder ? JSON.parse(settingsMap.categoryOrder) : {};
+
+      currentLabels[id] = label;
+      if (kind) {
+        currentLabels[`asset_kind_${id}`] = kind;
+      }
+      if (color) {
+        const colorKey = `${type}:${id}`;
+        currentColors[colorKey] = color;
+      }
+      if (currentOrder[type] && !currentOrder[type].includes(id)) {
+        currentOrder[type].push(id);
+      }
+
+      await db.batch([
+        db.prepare("INSERT INTO settings (key, value) VALUES ('categoryLabels', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(currentLabels)),
+        db.prepare("INSERT INTO settings (key, value) VALUES ('categoryColors', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(currentColors)),
+        db.prepare("INSERT INTO settings (key, value) VALUES ('categoryOrder', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(currentOrder)),
+      ]);
+
+      return new Response(JSON.stringify({ success: true, category: { id, type: dbType, label, color, kind } }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'category.delete') {
+      const id = String(body.id || '');
+      const type = String(body.type || '');
+      if (!id) return apiError('BAD_REQUEST', 400);
+
+      await db.prepare("DELETE FROM custom_categories WHERE id = ?").bind(id).run();
+
+      return new Response(JSON.stringify({ success: true, id, type }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.op === 'category.sync' || body.op === 'categories.sync') {
+      const categories = Array.isArray(body.categories) ? body.categories : [];
+      if (categories.length > 0) {
+        const statements = categories.map((c: any) => {
+          const dbType = (c.type === 'asset' && c.kind === 'liability') ? 'liability' : (c.type || 'expense');
+          return db.prepare(
+            "INSERT INTO custom_categories (id, type, label, color) VALUES (?, ?, ?, ?) ON CONFLICT(id, type) DO UPDATE SET label = excluded.label, color = excluded.color"
+          ).bind(String(c.id), dbType, String(c.label), c.color ? String(c.color) : null);
+        });
+        await db.batch(statements);
+      }
+      return new Response(JSON.stringify({ success: true, count: categories.length }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     if (body.op === 'plan.upsert') {
       const category = String(body.category || '');
       const type = String(body.type || '');

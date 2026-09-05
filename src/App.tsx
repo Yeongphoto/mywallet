@@ -2221,6 +2221,14 @@ function saveCategoryOrder(
   });
 }
 
+function saveCategoryMutation(payload: Record<string, unknown>) {
+  return fetch('/api/data', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 function saveAssetMutation(payload: Record<string, unknown>) {
   return fetch('/api/data', {
     method: 'PATCH',
@@ -2296,21 +2304,40 @@ export default function App() {
     return assets.filter((asset) => Boolean(hiddenAssets[asset.id]));
   }, [assets, hiddenAssets]);
 
-  const allExpenseCategories = useMemo(
-    () => applyCategorySettings([...expenseCategories, ...customExpenseCategories], 'expense', categoryColors, categoryLabels, categoryOrder),
-    [customExpenseCategories, categoryColors, categoryLabels, categoryOrder]
-  );
-  const allIncomeCategories = useMemo(
-    () =>
-      applyCategorySettings([...incomeCategories, ...customIncomeCategories], 'income', categoryColors, categoryLabels, categoryOrder).filter(
-        (category) => !isOpeningBalanceCategory(category.id) && !isOpeningBalanceCategory(category.label)
-      ),
-    [customIncomeCategories, categoryColors, categoryLabels, categoryOrder]
-  );
-  const allAssetCategories = useMemo(
-    () => applyCategorySettings([...assetCategories, ...customAssetCategories], 'asset', categoryColors, categoryLabels, categoryOrder),
-    [customAssetCategories, categoryColors, categoryLabels, categoryOrder]
-  );
+  const allExpenseCategories = useMemo(() => {
+    const existingIds = new Set([...expenseCategories.map((c) => c.id), ...customExpenseCategories.map((c) => c.id)]);
+    const fallbackCats: CategoryOption[] = [];
+    Object.entries(categoryLabels).forEach(([key, label]) => {
+      if (key.startsWith('cat_') && !key.startsWith('asset_kind_') && !existingIds.has(key)) {
+        fallbackCats.push({ id: key, label: String(label), color: categoryColors[`expense:${key}`] || categoryColors[key] });
+      }
+    });
+    return applyCategorySettings([...expenseCategories, ...customExpenseCategories, ...fallbackCats], 'expense', categoryColors, categoryLabels, categoryOrder);
+  }, [customExpenseCategories, categoryColors, categoryLabels, categoryOrder]);
+
+  const allIncomeCategories = useMemo(() => {
+    const existingIds = new Set([...incomeCategories.map((c) => c.id), ...customIncomeCategories.map((c) => c.id)]);
+    const fallbackCats: CategoryOption[] = [];
+    Object.entries(categoryLabels).forEach(([key, label]) => {
+      if (key.startsWith('cat_') && !key.startsWith('asset_kind_') && !existingIds.has(key)) {
+        fallbackCats.push({ id: key, label: String(label), color: categoryColors[`income:${key}`] || categoryColors[key] });
+      }
+    });
+    return applyCategorySettings([...incomeCategories, ...customIncomeCategories, ...fallbackCats], 'income', categoryColors, categoryLabels, categoryOrder).filter(
+      (category) => !isOpeningBalanceCategory(category.id) && !isOpeningBalanceCategory(category.label)
+    );
+  }, [customIncomeCategories, categoryColors, categoryLabels, categoryOrder]);
+
+  const allAssetCategories = useMemo(() => {
+    const existingIds = new Set([...assetCategories.map((c) => c.id), ...customAssetCategories.map((c) => c.id)]);
+    const fallbackCats: CategoryOption[] = [];
+    Object.entries(categoryLabels).forEach(([key, label]) => {
+      if (key.startsWith('cat_') && !key.startsWith('asset_kind_') && !existingIds.has(key)) {
+        fallbackCats.push({ id: key, label: String(label), color: categoryColors[`asset:${key}`] || categoryColors[key] });
+      }
+    });
+    return applyCategorySettings([...assetCategories, ...customAssetCategories, ...fallbackCats], 'asset', categoryColors, categoryLabels, categoryOrder);
+  }, [customAssetCategories, categoryColors, categoryLabels, categoryOrder]);
   const activeExpenseCategories = useMemo(
     () => allExpenseCategories.filter((category) => !isCategoryHidden(hiddenCategories, 'expense', category.id)),
     [allExpenseCategories, hiddenCategories]
@@ -3127,11 +3154,48 @@ export default function App() {
             categoryOrderRevisionsRef.current = data.categoryOrderRevisions || {};
             setBudget(data.budget ?? 1000000);
             // Note: theme and styleTheme are device-specific local preferences stored in localStorage.
-            setCustomExpenseCategories(data.customExpenseCategories || []);
-            setCustomIncomeCategories(data.customIncomeCategories || []);
-            setCustomAssetCategories(data.customAssetCategories || []);
+            const serverExpenseCats: CategoryOption[] = data.customExpenseCategories || [];
+            const serverIncomeCats: CategoryOption[] = data.customIncomeCategories || [];
+            const serverAssetCats: CategoryOption[] = data.customAssetCategories || [];
+            const serverCatLabels: CategoryLabelMap = data.categoryLabels || {};
+
+            const mergedExpenseCats = [...serverExpenseCats];
+            (storedData.customExpenseCategories || []).forEach((localCat: CategoryOption) => {
+              if (!mergedExpenseCats.some((c) => c.id === localCat.id)) {
+                mergedExpenseCats.push(localCat);
+              }
+            });
+
+            const mergedIncomeCats = [...serverIncomeCats];
+            (storedData.customIncomeCategories || []).forEach((localCat: CategoryOption) => {
+              if (!mergedIncomeCats.some((c) => c.id === localCat.id)) {
+                mergedIncomeCats.push(localCat);
+              }
+            });
+
+            const mergedAssetCats = [...serverAssetCats];
+            (storedData.customAssetCategories || []).forEach((localCat: CategoryOption) => {
+              if (!mergedAssetCats.some((c) => c.id === localCat.id)) {
+                mergedAssetCats.push(localCat);
+              }
+            });
+
+            const mergedCatLabels = { ...(storedData.categoryLabels || {}), ...serverCatLabels };
+
+            const missingToSync = [
+              ...mergedExpenseCats.filter((c) => !serverExpenseCats.some((s) => s.id === c.id)).map((c) => ({ ...c, type: 'expense' })),
+              ...mergedIncomeCats.filter((c) => !serverIncomeCats.some((s) => s.id === c.id)).map((c) => ({ ...c, type: 'income' })),
+              ...mergedAssetCats.filter((c) => !serverAssetCats.some((s) => s.id === c.id)).map((c) => ({ ...c, type: 'asset' })),
+            ];
+            if (missingToSync.length > 0) {
+              void saveCategoryMutation({ op: 'category.sync', categories: missingToSync }).catch(() => {});
+            }
+
+            setCustomExpenseCategories(mergedExpenseCats);
+            setCustomIncomeCategories(mergedIncomeCats);
+            setCustomAssetCategories(mergedAssetCats);
             setCategoryColors(data.categoryColors || {});
-            setCategoryLabels(data.categoryLabels || {});
+            setCategoryLabels(mergedCatLabels);
             setCategoryBudgetExcluded(data.categoryBudgetExcluded || {});
             setCategoryOrder(data.categoryOrder || {});
             setHiddenCategories(data.hiddenCategories || {});
@@ -4506,10 +4570,62 @@ export default function App() {
       }
       return next;
     });
+
+    if (id.startsWith('cat_')) {
+      void saveCategoryMutation({
+        op: 'category.create',
+        id,
+        type,
+        label: nextLabel,
+        kind: type === 'asset' ? categoryAssetKindDraft : undefined,
+      }).catch((err) => {
+        console.error('Failed to sync category rename to server:', err);
+      });
+    }
+
     setEditingCategory(null);
     setCategoryNameDraft('');
     setCategoryAssetKindDraft('asset');
     showNotice(`카테고리 이름을 '${nextLabel}'로 변경했습니다.`, '카테고리 수정', 'success');
+  }
+
+  function registerNewCustomCategory(cat: {
+    id: string;
+    type: CategoryScope;
+    label: string;
+    color?: string;
+    kind?: 'asset' | 'liability';
+  }) {
+    if (cat.type === 'expense') {
+      setCustomExpenseCategories((prev) => [...prev.filter((c) => c.id !== cat.id), { id: cat.id, label: cat.label, color: cat.color }]);
+      setPlans((prev) => [...prev.filter((p) => p.category !== cat.id || p.type !== 'expense'), { category: cat.id, type: 'expense', plannedAmount: 0 }]);
+    } else if (cat.type === 'income') {
+      setCustomIncomeCategories((prev) => [...prev.filter((c) => c.id !== cat.id), { id: cat.id, label: cat.label, color: cat.color }]);
+      setPlans((prev) => [...prev.filter((p) => p.category !== cat.id || p.type !== 'income'), { category: cat.id, type: 'income', plannedAmount: 0 }]);
+    } else {
+      setCustomAssetCategories((prev) => [...prev.filter((c) => c.id !== cat.id), { id: cat.id, label: cat.label, color: cat.color, kind: cat.kind }]);
+    }
+
+    setCategoryLabels((prev) => ({
+      ...prev,
+      [cat.id]: cat.label,
+      ...(cat.kind ? { [`asset_kind_${cat.id}`]: cat.kind } : {}),
+    }));
+
+    if (cat.color) {
+      handleCategoryColorChange(cat.type, cat.id, cat.color);
+    }
+
+    void saveCategoryMutation({
+      op: 'category.create',
+      id: cat.id,
+      type: cat.type,
+      label: cat.label,
+      color: cat.color,
+      kind: cat.kind,
+    }).catch((err) => {
+      console.error('Failed to sync category create to server:', err);
+    });
   }
 
   function handleAddManagedCategory(event: FormEvent<HTMLFormElement>) {
@@ -4533,19 +4649,13 @@ export default function App() {
     }
 
     const generatedId = `cat_${Date.now()}`;
-    const newCategory = { id: generatedId, label, color: categoryDraft.color };
+    registerNewCustomCategory({
+      id: generatedId,
+      type: categoryDraft.type,
+      label,
+      color: categoryDraft.color,
+    });
 
-    if (categoryDraft.type === 'expense') {
-      setCustomExpenseCategories((prev) => [...prev, newCategory]);
-      setPlans((prev) => [...prev, { category: generatedId, type: 'expense', plannedAmount: 0 }]);
-    } else if (categoryDraft.type === 'income') {
-      setCustomIncomeCategories((prev) => [...prev, newCategory]);
-      setPlans((prev) => [...prev, { category: generatedId, type: 'income', plannedAmount: 0 }]);
-    } else {
-      setCustomAssetCategories((prev) => [...prev, newCategory]);
-    }
-
-    handleCategoryColorChange(categoryDraft.type, generatedId, categoryDraft.color);
     setCategoryOrder((prev) => ({
       ...prev,
       [categoryDraft.type]: [...(prev[categoryDraft.type] ?? targetList.map((category) => category.id)), generatedId],
@@ -4567,10 +4677,14 @@ export default function App() {
     }
 
     const generatedId = `cat_${Date.now()}`;
-    const newCategory = { id: generatedId, label, color: colorVal };
+    registerNewCustomCategory({
+      id: generatedId,
+      type: 'asset',
+      label,
+      color: colorVal,
+      kind: 'asset',
+    });
 
-    setCustomAssetCategories((prev) => [...prev, newCategory]);
-    handleCategoryColorChange('asset', generatedId, colorVal);
     setCategoryOrder((prev) => ({
       ...prev,
       asset: [...(prev.asset ?? activeAssetCategories.map((category) => category.id)), generatedId],
@@ -4594,17 +4708,13 @@ export default function App() {
     }
 
     const generatedId = `cat_${Date.now()}`;
-    const newCategory = { id: generatedId, label, color: colorVal };
+    registerNewCustomCategory({
+      id: generatedId,
+      type: typeVal,
+      label,
+      color: colorVal,
+    });
 
-    if (typeVal === 'expense') {
-      setCustomExpenseCategories((prev) => [...prev, newCategory]);
-      setPlans((prev) => [...prev, { category: generatedId, type: 'expense', plannedAmount: 0 }]);
-    } else {
-      setCustomIncomeCategories((prev) => [...prev, newCategory]);
-      setPlans((prev) => [...prev, { category: generatedId, type: 'income', plannedAmount: 0 }]);
-    }
-
-    handleCategoryColorChange(typeVal, generatedId, colorVal);
     setCategoryOrder((prev) => ({
       ...prev,
       [typeVal]: [...(prev[typeVal] ?? targetList.map((category) => category.id)), generatedId],
@@ -9019,22 +9129,13 @@ ${sheet4Rows}  </sheetData>
               }
 
               const generatedId = `cat_${Date.now()}`;
-              const newCategory = {
+              registerNewCustomCategory({
                 id: generatedId,
+                type: catType,
                 label: catName,
                 color: selectedCategoryColor,
                 kind: catType === 'asset' ? categoryModalAssetKind : undefined,
-              };
-
-              if (catType === 'expense') {
-                setCustomExpenseCategories(prev => [...prev, newCategory]);
-                setPlans(prev => [...prev, { category: generatedId, type: 'expense', plannedAmount: 0 }]);
-              } else if (catType === 'income') {
-                setCustomIncomeCategories(prev => [...prev, newCategory]);
-                setPlans(prev => [...prev, { category: generatedId, type: 'income', plannedAmount: 0 }]);
-              } else {
-                setCustomAssetCategories(prev => [...prev, newCategory]);
-              }
+              });
 
               nameInput.value = '';
               setIsCategoryModalOpen(false);
