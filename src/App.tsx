@@ -10901,6 +10901,40 @@ function UnifiedEntryForm({
     onNotify?.('성공적으로 등록되었습니다.', '등록 완료', 'success');
   }
 
+  const advanceToNextRequiredStep = (currentFormState?: UnifiedFormState) => {
+    const current = currentFormState || form;
+    if (current.type === 'transfer') {
+      if (!current.assetId) {
+        setActivePopup('asset');
+      } else if (!current.toAssetId) {
+        setActivePopup('toAsset');
+      } else {
+        setActivePopup('none');
+        setTimeout(() => titleRef.current?.focus(), 50);
+      }
+    } else {
+      if (!current.category) {
+        setActivePopup('category');
+      } else if (!current.assetId) {
+        setActivePopup('asset');
+      } else {
+        setActivePopup('none');
+        setTimeout(() => titleRef.current?.focus(), 50);
+      }
+    }
+  };
+
+  const amountSubmitLabel = useMemo(() => {
+    if (form.type === 'transfer') {
+      if (!form.assetId) return '출금 자산 선택 →';
+      if (!form.toAssetId) return '입금 자산 선택 →';
+      return '입력 완료';
+    }
+    if (!form.category) return '분류 선택 →';
+    if (!form.assetId) return '자산 선택 →';
+    return '입력 완료';
+  }, [form.type, form.category, form.assetId, form.toAssetId]);
+
   const formColorClass = form.type === 'expense' ? 'expense' : form.type === 'income' ? 'income' : 'transfer';
 
   return (
@@ -11053,7 +11087,9 @@ function UnifiedEntryForm({
                     }}
                   >
                     <span className={form.assetId ? '' : 'instant-select-placeholder'}>
-                      {assets.find((a) => a.id === form.assetId) ? formatAssetLabel(assets.find((a) => a.id === form.assetId)!, currentAssetCategories) : '보내는 계좌'}
+                      {assets.find((a) => a.id === form.assetId)
+                        ? formatAssetLabel(assets.find((a) => a.id === form.assetId)!, currentAssetCategories)
+                        : '보내는 계좌'}
                     </span>
                     <span aria-hidden="true">⌄</span>
                   </button>
@@ -11076,7 +11112,9 @@ function UnifiedEntryForm({
                     }}
                   >
                     <span className={form.toAssetId ? '' : 'instant-select-placeholder'}>
-                      {assets.find((a) => a.id === form.toAssetId) ? formatAssetLabel(assets.find((a) => a.id === form.toAssetId)!, currentAssetCategories) : '받는 계좌'}
+                      {assets.find((a) => a.id === form.toAssetId)
+                        ? formatAssetLabel(assets.find((a) => a.id === form.toAssetId)!, currentAssetCategories)
+                        : '받는 계좌'}
                     </span>
                     <span aria-hidden="true">⌄</span>
                   </button>
@@ -11087,7 +11125,7 @@ function UnifiedEntryForm({
             <label
               className="compact-entry-field"
               style={{ gridColumn: 'span 2' }}
-              aria-label="계좌"
+              aria-label="자산"
               onClick={() => setActivePopup('asset')}
             >
               <div className="instant-select">
@@ -11095,14 +11133,16 @@ function UnifiedEntryForm({
                   type="button"
                   ref={assetRef}
                   className="instant-select-trigger"
-                  aria-label="계좌"
+                  aria-label="자산"
                   onClick={(e) => {
                     e.preventDefault();
                     setActivePopup('asset');
                   }}
                 >
                   <span className={form.assetId ? '' : 'instant-select-placeholder'}>
-                    {assets.find((a) => a.id === form.assetId) ? formatAssetLabel(assets.find((a) => a.id === form.assetId)!, currentAssetCategories) : '계좌'}
+                    {assets.find((a) => a.id === form.assetId)
+                      ? formatAssetLabel(assets.find((a) => a.id === form.assetId)!, currentAssetCategories)
+                      : '자산'}
                   </span>
                   <span aria-hidden="true">⌄</span>
                 </button>
@@ -11112,41 +11152,39 @@ function UnifiedEntryForm({
 
           <label
             ref={contentFieldRef}
-            className={`content-entry-field compact-entry-field ${isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
+            className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
             style={{ gridColumn: 'span 2', position: 'relative' }}
             aria-label="내용"
           >
             <input
-              type="text"
               ref={titleRef}
+              type="text"
               placeholder="내용 (미입력 시 분류명)"
               value={form.title}
-              onChange={(e) => {
-                const val = e.target.value;
-                setForm((prev) => ({ ...prev, title: val }));
-                setIsTitleSuggestionsOpen(val.trim().length > 0);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }
-              }}
               onFocus={() => {
-                if (form.title.trim().length > 0) {
+                if (titleSuggestions.length > 0) {
                   setIsTitleSuggestionsOpen(true);
                 }
               }}
-              onBlur={() => {
-                setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, title: e.target.value }));
+                if (!isTitleSuggestionsOpen && titleSuggestions.length > 0) {
+                  setIsTitleSuggestionsOpen(true);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsTitleSuggestionsOpen(false);
+                }
               }}
             />
             {form.title && (
               <button
                 type="button"
-                className="content-clear-btn"
+                className="input-clear-btn"
                 aria-label="내용 지우기"
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                onClick={(e) => {
+                  e.stopPropagation();
                   setForm((prev) => ({ ...prev, title: '' }));
                   setIsTitleSuggestionsOpen(false);
                   titleRef.current?.focus();
@@ -11212,13 +11250,9 @@ function UnifiedEntryForm({
               value={form.amount}
               onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
               onComplete={() => {
-                if (form.type !== 'transfer') {
-                  setActivePopup('category');
-                } else {
-                  setActivePopup('asset');
-                }
+                advanceToNextRequiredStep(form);
               }}
-              submitLabel={form.type === 'transfer' ? '자산 선택 →' : '분류 선택 →'}
+              submitLabel={amountSubmitLabel}
               submitTone={formColorClass}
               quickActionLabel={form.type === 'expense' ? '정기/할부' : '정기'}
               onQuickAction={() => {
@@ -11246,20 +11280,12 @@ function UnifiedEntryForm({
               onSelectRecurring={(_interval) => {
                 setIsRecurring(true);
                 setInstallmentMonths(1);
-                if (form.type !== 'transfer') {
-                  setActivePopup('category');
-                } else {
-                  setActivePopup('asset');
-                }
+                advanceToNextRequiredStep(form);
               }}
               onSelectInstallment={(months) => {
                 setInstallmentMonths(months);
                 setIsRecurring(false);
-                if (form.type !== 'transfer') {
-                  setActivePopup('category');
-                } else {
-                  setActivePopup('asset');
-                }
+                advanceToNextRequiredStep(form);
               }}
             />
           </div>
@@ -11277,8 +11303,9 @@ function UnifiedEntryForm({
               categories={activeCategories}
               selectedId={form.category}
               onSelect={(catId) => {
-                setForm((prev) => ({ ...prev, category: catId }));
-                setActivePopup('asset');
+                const nextForm = { ...form, category: catId };
+                setForm(nextForm);
+                advanceToNextRequiredStep(nextForm);
               }}
             />
           </div>
@@ -11297,13 +11324,9 @@ function UnifiedEntryForm({
               categories={currentAssetCategories}
               selectedId={form.assetId}
               onSelect={(aId) => {
-                setForm((prev) => ({ ...prev, assetId: aId }));
-                if (form.type === 'transfer') {
-                  setActivePopup('toAsset');
-                } else {
-                  setActivePopup('none');
-                  setTimeout(() => titleRef.current?.focus(), 50);
-                }
+                const nextForm = { ...form, assetId: aId };
+                setForm(nextForm);
+                advanceToNextRequiredStep(nextForm);
               }}
             />
           </div>
@@ -11322,9 +11345,9 @@ function UnifiedEntryForm({
               categories={currentAssetCategories}
               selectedId={form.toAssetId}
               onSelect={(toId) => {
-                setForm((prev) => ({ ...prev, toAssetId: toId }));
-                setActivePopup('none');
-                setTimeout(() => titleRef.current?.focus(), 50);
+                const nextForm = { ...form, toAssetId: toId };
+                setForm(nextForm);
+                advanceToNextRequiredStep(nextForm);
               }}
             />
           </div>
