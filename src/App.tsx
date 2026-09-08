@@ -10910,7 +10910,11 @@ function UnifiedEntryForm({
         setActivePopup('toAsset');
       } else {
         setActivePopup('none');
-        setTimeout(() => titleRef.current?.focus(), 50);
+        if (!current.title.trim()) {
+          setTimeout(() => titleRef.current?.focus(), 50);
+        } else if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
       }
     } else {
       if (!current.category) {
@@ -10919,7 +10923,11 @@ function UnifiedEntryForm({
         setActivePopup('asset');
       } else {
         setActivePopup('none');
-        setTimeout(() => titleRef.current?.focus(), 50);
+        if (!current.title.trim()) {
+          setTimeout(() => titleRef.current?.focus(), 50);
+        } else if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
       }
     }
   };
