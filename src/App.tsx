@@ -11257,7 +11257,15 @@ function UnifiedEntryForm({
                 <span className={`picker-popup-amount-preview ${form.amount?.startsWith('-') ? 'negative' : ''}`}>
                   {form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}
                 </span>
-                <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
+                <button
+                  type="button"
+                  className="picker-popup-close-btn"
+                  aria-label="금액 초기화"
+                  title="금액 초기화"
+                  onClick={() => setForm((prev) => ({ ...prev, amount: '' }))}
+                >
+                  ×
+                </button>
               </div>
             </div>
             <AmountNumberKeypad
@@ -11888,7 +11896,15 @@ function TransactionEditForm({
                 <span className={`picker-popup-amount-preview ${amount?.startsWith('-') ? 'negative' : ''}`}>
                   {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
                 </span>
-                <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
+                <button
+                  type="button"
+                  className="picker-popup-close-btn"
+                  aria-label="금액 초기화"
+                  title="금액 초기화"
+                  onClick={() => setAmount('')}
+                >
+                  ×
+                </button>
               </div>
             </div>
             <AmountNumberKeypad
@@ -11916,7 +11932,16 @@ function TransactionEditForm({
               selectedId={category}
               onSelect={(catId) => {
                 setCategory(catId);
-                setActivePopup('asset');
+                if (!assetId) {
+                  setActivePopup('asset');
+                } else {
+                  setActivePopup('none');
+                  if (!title.trim()) {
+                    setTimeout(() => titleRef.current?.focus(), 50);
+                  } else if (document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur();
+                  }
+                }
               }}
             />
           </div>
