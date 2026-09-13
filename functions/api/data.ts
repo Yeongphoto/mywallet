@@ -843,7 +843,15 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const id = String(body.id || '');
       if (!id) return apiError('BAD_REQUEST', 400);
 
-      await db.prepare("INSERT OR IGNORE INTO deleted_recurring_txs (id) VALUES (?)").bind(id).run();
+      const now = Date.now();
+      const deletionId = `recurring-delete:${crypto.randomUUID()}`;
+      await db.batch([
+        db.prepare("INSERT OR IGNORE INTO deleted_recurring_txs (id) VALUES (?)").bind(id),
+        db.prepare("UPDATE transactions SET deleted_at = ?, revision = revision + 1, last_operation_id = ? WHERE id = ? AND deleted_at IS NULL")
+          .bind(now, deletionId, id),
+        db.prepare("INSERT INTO sync_changes (entity_type, entity_id, change_type, revision, payload_json, created_at) SELECT 'transaction', id, 'delete', revision, NULL, ? FROM transactions WHERE id = ? AND last_operation_id = ?")
+          .bind(now, id, deletionId),
+      ]);
 
       return new Response(JSON.stringify({ success: true, id }), {
         headers: { 'Content-Type': 'application/json' },

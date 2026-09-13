@@ -3748,11 +3748,17 @@ export default function App() {
       tone: 'danger',
       onConfirm: async () => {
         if (id.startsWith('rec_')) {
-          skipNextPersistenceRef.current = true;
-          setDeletedRecurringTxs((prev) => [...prev, id]);
-          setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
-          saveRecurringMutation({ op: 'recurring_tx.delete', id }).catch(console.error);
-          showNotice('거래가 삭제되었습니다.', '삭제 완료', 'success');
+          try {
+            const response = await saveRecurringMutation({ op: 'recurring_tx.delete', id });
+            if (!response.ok) throw new Error('RECURRING_TRANSACTION_DELETE_FAILED');
+            skipNextPersistenceRef.current = true;
+            setDeletedRecurringTxs((prev) => prev.includes(id) ? prev : [...prev, id]);
+            setTransactions((prev) => prev.filter((transaction) => transaction.id !== id));
+            showNotice('거래가 삭제되었습니다.', '삭제 완료', 'success');
+          } catch (error) {
+            console.error(error);
+            showNotice('거래를 삭제하지 못했습니다. 네트워크를 확인한 뒤 다시 시도해 주세요.', '거래 삭제 실패', 'error');
+          }
           return;
         }
         try {
