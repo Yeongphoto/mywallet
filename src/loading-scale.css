@@ -1,0 +1,30 @@
+.app-loading-screen {
+  gap: 11px;
+}
+
+.app-loading-screen .app-loading-mark {
+  width: 68px;
+  height: 68px;
+}
+
+.app-loading-screen .app-loading-logo {
+  width: 45px;
+  height: 45px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.15));
+}
+
+.app-loading-screen .app-loading-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.app-loading-screen .app-loading-orbit-track {
+  border-width: 1px;
+}
+
+.app-loading-screen .app-loading-orbit {
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
+}
