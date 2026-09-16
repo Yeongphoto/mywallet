@@ -9,6 +9,7 @@ import './calendar.css';
 import './app-behavior.css';
 import './category-mobile-unify.css';
 import './bottom-bars-sync.css';
+import './loading-scale.css';
 
 const rootElement = document.getElementById('root');
 
