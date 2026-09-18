@@ -2636,6 +2636,11 @@ export default function App() {
       contentTop: contentScrollRef.current?.scrollTop ?? 0,
       documentTop: window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0,
     };
+    window.history.pushState(
+      { ...(window.history.state || {}), mywalletAssetDetail: asset.id },
+      '',
+      window.location.href,
+    );
     setSelectedAsset(asset);
     setShowAllCardPayments(false);
     setAssetBalanceDraft(String(getAssetBalance(asset.id, getAssetOpeningBalance(asset))));
@@ -2643,6 +2648,10 @@ export default function App() {
   }
 
   function returnToAssetList() {
+    if (window.history.state?.mywalletAssetDetail === selectedAsset?.id) {
+      window.history.back();
+      return;
+    }
     setSelectedAsset(null);
     assetScrollTransitionRef.current = 'list';
   }
@@ -3040,6 +3049,19 @@ export default function App() {
     }
     previousTabRef.current = activeTab;
   }, [activeTab, selectedAsset]);
+
+  useEffect(() => {
+    if (!selectedAsset) return;
+
+    const handleAssetDetailPopState = (event: PopStateEvent) => {
+      if (event.state?.mywalletAssetDetail === selectedAsset.id) return;
+      setSelectedAsset(null);
+      assetScrollTransitionRef.current = 'list';
+    };
+
+    window.addEventListener('popstate', handleAssetDetailPopState);
+    return () => window.removeEventListener('popstate', handleAssetDetailPopState);
+  }, [selectedAsset]);
 
   useLayoutEffect(() => {
     const transition = assetScrollTransitionRef.current;
