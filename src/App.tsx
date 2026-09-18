@@ -368,9 +368,14 @@ function getCategoryColorKey(type: CategoryScope, id: string) {
 }
 
 function getTabFromHash(): AppTab {
-  const hash = window.location.hash.replace('#', '');
+  const hash = window.location.hash.replace('#', '').split('?')[0];
   const tabs: AppTab[] = ['summary', 'asset', 'plan', 'calendar', 'ledger', 'settings', 'expense-list', 'income-list'];
   return tabs.includes(hash as AppTab) ? hash as AppTab : 'summary';
+}
+
+function getTransactionListCategoryFromHash() {
+  const query = window.location.hash.split('?')[1] ?? '';
+  return new URLSearchParams(query).get('category') || 'all';
 }
 
 function applyCategorySettings(categories: CategoryOption[], type: CategoryScope, colors: CategoryColorMap, labels: CategoryLabelMap, order: CategoryOrderMap) {
@@ -764,6 +769,7 @@ function MobileLedgerTimeline({
 
 function MonthlyTransactionSubpage({
   type,
+  initialCategory,
   selectedMonth,
   transactions,
   assets,
@@ -778,6 +784,7 @@ function MonthlyTransactionSubpage({
   onAdd
 }: {
   type: 'expense' | 'income';
+  initialCategory: string;
   selectedMonth: string;
   transactions: Transaction[];
   assets: AssetItem[];
@@ -795,7 +802,11 @@ function MonthlyTransactionSubpage({
   const monthTitle = `${selectedMonth.slice(0, 4)}년 ${parseInt(selectedMonth.slice(5, 7), 10)}월`;
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterCategory, setFilterCategory] = useState(initialCategory);
+
+  useEffect(() => {
+    setFilterCategory(initialCategory);
+  }, [initialCategory]);
 
   // Filter for this month and type (exclude opening balance from income)
   const allMonthlyTransactions = useMemo(() => {
@@ -1080,14 +1091,16 @@ function MonthlyTransactionSubpage({
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-          <option value="all">모든 {isIncome ? '수입' : '지출'} 카테고리</option>
-          {allCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <InstantSelect
+          ariaLabel={`${isIncome ? '수입' : '지출'} 카테고리 필터`}
+          value={filterCategory}
+          placeholder="카테고리 선택"
+          options={[
+            { value: 'all', label: `모든 ${isIncome ? '수입' : '지출'} 카테고리` },
+            ...allCategories.map((category) => ({ value: category.id, label: category.label })),
+          ]}
+          onChange={setFilterCategory}
+        />
       </div>
 
       {/* 5. Daily Grouped Transaction Timeline */}
@@ -1445,24 +1458,18 @@ function AssetHistoryPage({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-              <option value="all">모든 내역</option>
-              <option value="transfer">이체 내역 🟣</option>
-              <optgroup label="지출 카테고리">
-                {allExpenseCategories.map((c: CategoryOption) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="수입 카테고리">
-                {allIncomeCategories.map((c: CategoryOption) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+            <InstantSelect
+              ariaLabel="자산 변동 내역 카테고리 필터"
+              value={filterCategory}
+              placeholder="카테고리 선택"
+              options={[
+                { value: 'all', label: '모든 내역' },
+                { value: 'transfer', label: '이체 내역 🟣' },
+                ...allExpenseCategories.map((category) => ({ value: category.id, label: `지출 · ${category.label}` })),
+                ...allIncomeCategories.map((category) => ({ value: category.id, label: `수입 · ${category.label}` })),
+              ]}
+              onChange={setFilterCategory}
+            />
           </div>
 
           {filteredList.length === 0 ? (
@@ -2437,6 +2444,7 @@ export default function App() {
     });
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
+  const [transactionListCategory, setTransactionListCategory] = useState(() => getTransactionListCategoryFromHash());
   const contentScrollRef = useRef<HTMLElement | null>(null);
   const assetListScrollRef = useRef({ contentTop: 0, documentTop: 0 });
   const assetScrollTransitionRef = useRef<'detail' | 'list' | null>(null);
@@ -2834,7 +2842,10 @@ export default function App() {
   }, [notice]);
 
   useEffect(() => {
-    const syncTabFromHash = () => setActiveTab(getTabFromHash());
+    const syncTabFromHash = () => {
+      setActiveTab(getTabFromHash());
+      setTransactionListCategory(getTransactionListCategoryFromHash());
+    };
     window.addEventListener('hashchange', syncTabFromHash);
     return () => window.removeEventListener('hashchange', syncTabFromHash);
   }, []);
@@ -3734,6 +3745,14 @@ export default function App() {
   }, [monthlyTransactions, searchTerm, filterCategory, allExpenseCategories, allIncomeCategories]);
 
   // Actions
+  function openMonthlyTransactionList(type: 'expense' | 'income', category = 'all') {
+    const tab = type === 'expense' ? 'expense-list' : 'income-list';
+    const categoryQuery = category === 'all' ? '' : `?category=${encodeURIComponent(category)}`;
+    window.location.hash = `${tab}${categoryQuery}`;
+    setTransactionListCategory(category);
+    setActiveTab(tab);
+  }
+
   async function handleAddTransaction(transaction: Transaction) {
     try {
       const result = await saveTransactionOperation({ op: 'transaction.create', transaction });
@@ -6341,13 +6360,10 @@ ${sheet4Rows}  </sheetData>
             <section className="summary-grid" aria-label="월간 요약">
               <article 
                 className="summary-card expense clickable-summary-card"
-                onClick={() => {
-                  window.location.hash = 'expense-list';
-                  setActiveTab('expense-list');
-                }}
+                onClick={() => openMonthlyTransactionList('expense')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.hash = 'expense-list'; setActiveTab('expense-list'); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthlyTransactionList('expense'); } }}
                 title="클릭하여 이번 달 지출 목록 페이지로 이동"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -6361,13 +6377,10 @@ ${sheet4Rows}  </sheetData>
               </article>
               <article 
                 className="summary-card income clickable-summary-card"
-                onClick={() => {
-                  window.location.hash = 'income-list';
-                  setActiveTab('income-list');
-                }}
+                onClick={() => openMonthlyTransactionList('income')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.hash = 'income-list'; setActiveTab('income-list'); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthlyTransactionList('income'); } }}
                 title="클릭하여 이번 달 수입 목록 페이지로 이동"
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -7009,14 +7022,14 @@ ${sheet4Rows}  </sheetData>
 
               {/* 선택된 요약 테이블만 렌더링 */}
               <div className="summary-category-columns">
-                <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} />
+                <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} onCategoryClick={(category) => openMonthlyTransactionList('expense', category.id)} />
                 <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} formatMoney={displayCurrency} />
                 <CategorySummaryColumn title="자산 분배 상태 요약" categories={activeAssetCategories} values={assetSummary} formatMoney={displayCurrency} />
               </div>
 
               <div className="summary-category-mobile">
                 {summaryType === 'expense' && (
-                  <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} />
+                  <CategorySummaryColumn title="지출 카테고리 요약" categories={activeExpenseCategories} values={expenseSummary} formatMoney={displayCurrency} onCategoryClick={(category) => openMonthlyTransactionList('expense', category.id)} />
                 )}
                 {summaryType === 'income' && (
                   <CategorySummaryColumn title="수입 카테고리 요약" categories={activeIncomeCategories} values={incomeSummary} formatMoney={displayCurrency} />
@@ -7129,24 +7142,18 @@ ${sheet4Rows}  </sheetData>
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                  <option value="all">모든 내역</option>
-                  <option value="transfer">이체 내역 🟣</option>
-                  <optgroup label="지출 카테고리">
-                    {activeExpenseCategories.map((c: CategoryOption) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="수입 카테고리">
-                    {activeIncomeCategories.map((c: CategoryOption) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
+                <InstantSelect
+                  ariaLabel="장부 카테고리 필터"
+                  value={filterCategory}
+                  placeholder="카테고리 선택"
+                  options={[
+                    { value: 'all', label: '모든 내역' },
+                    { value: 'transfer', label: '이체 내역 🟣' },
+                    ...activeExpenseCategories.map((category) => ({ value: category.id, label: `지출 · ${category.label}` })),
+                    ...activeIncomeCategories.map((category) => ({ value: category.id, label: `수입 · ${category.label}` })),
+                  ]}
+                  onChange={setFilterCategory}
+                />
               </div>
 
               <div className="ledger-header">
@@ -8723,6 +8730,7 @@ ${sheet4Rows}  </sheetData>
         {activeTab === 'expense-list' && (
           <MonthlyTransactionSubpage
             type="expense"
+            initialCategory={transactionListCategory}
             selectedMonth={selectedMonth}
             transactions={transactions}
             assets={assets}
@@ -8760,6 +8768,7 @@ ${sheet4Rows}  </sheetData>
         {activeTab === 'income-list' && (
           <MonthlyTransactionSubpage
             type="income"
+            initialCategory={transactionListCategory}
             selectedMonth={selectedMonth}
             transactions={transactions}
             assets={assets}
@@ -9568,7 +9577,7 @@ function FlowRowItem({
 }
 
 // Category summary sub-column
-function CategorySummaryColumn({ title, categories, values, formatMoney = formatCurrency }: { title: string; categories: CategoryOption[]; values: Record<string, number>; formatMoney?: (value: number) => string }) {
+function CategorySummaryColumn({ title, categories, values, formatMoney = formatCurrency, onCategoryClick }: { title: string; categories: CategoryOption[]; values: Record<string, number>; formatMoney?: (value: number) => string; onCategoryClick?: (category: CategoryOption) => void }) {
   const validCategories = categories.filter(category => (values[category.id] ?? 0) !== 0);
   const total = validCategories.reduce((sum, category) => sum + (values[category.id] ?? 0), 0);
   const summaryKind = title.includes('지출') ? 'expense' : title.includes('수입') ? 'income' : 'asset';
@@ -9592,8 +9601,27 @@ function CategorySummaryColumn({ title, categories, values, formatMoney = format
       <table>
         <tbody>
           {validCategories.map((category) => (
-            <tr key={category.id}>
-              <td>{category.label}</td>
+            <tr
+              key={category.id}
+              className={onCategoryClick ? 'summary-category-link-row' : undefined}
+              onClick={onCategoryClick ? () => onCategoryClick(category) : undefined}
+              onKeyDown={onCategoryClick ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onCategoryClick(category);
+                }
+              } : undefined}
+              role={onCategoryClick ? 'link' : undefined}
+              tabIndex={onCategoryClick ? 0 : undefined}
+              aria-label={onCategoryClick ? `${category.label} 지출 내역 보기` : undefined}
+              title={onCategoryClick ? `${category.label} 지출 내역 보기` : undefined}
+            >
+              <td>
+                <span className="summary-category-link-label">
+                  {category.label}
+                  {onCategoryClick && <span className="summary-category-link-arrow" aria-hidden="true">›</span>}
+                </span>
+              </td>
               <td>{formatMoney(values[category.id] ?? 0)}</td>
             </tr>
           ))}
@@ -9956,14 +9984,22 @@ function InstantSelect({
       if (event.target instanceof Node && rootRef.current?.contains(event.target)) return;
       setIsOpen(false);
     };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setIsOpen(false);
+      triggerRef?.current?.focus();
+    };
 
     document.addEventListener('pointerdown', closeOutsideSelect, true);
     document.addEventListener('focusin', closeOutsideSelect, true);
+    document.addEventListener('keydown', closeWithEscape);
     return () => {
       document.removeEventListener('pointerdown', closeOutsideSelect, true);
       document.removeEventListener('focusin', closeOutsideSelect, true);
+      document.removeEventListener('keydown', closeWithEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, triggerRef]);
 
   return (
     <div ref={rootRef} className="instant-select">
@@ -9974,23 +10010,26 @@ function InstantSelect({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        onClick={() => setIsOpen(true)}
+        onClick={() => setIsOpen((current) => !current)}
       >
         <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (
         <div className="instant-select-menu" role="listbox" aria-label={ariaLabel}>
-          {options.map((option) => (
+          {options.map((option, index) => (
             <button
               type="button"
               role="option"
               aria-selected={String(option.value) === String(value)}
               className={String(option.value) === String(value) ? 'selected' : ''}
-              key={String(option.value)}
+              key={`${String(option.value)}-${index}`}
               onClick={() => selectOption(option)}
             >
-              {option.label}
+              <span>{option.label}</span>
+              {String(option.value) === String(value) && (
+                <span className="instant-select-option-check" aria-hidden="true">✓</span>
+              )}
             </button>
           ))}
         </div>

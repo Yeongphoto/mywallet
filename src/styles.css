@@ -2463,6 +2463,86 @@ body.category-handle-drag-active {
   width: 100%;
 }
 
+.ledger-filters .instant-select {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.ledger-filters .instant-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ledger-filters .instant-select-trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.ledger-filters .instant-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 80;
+  display: grid;
+  max-height: min(320px, 48dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2);
+  scrollbar-gutter: stable;
+}
+
+.ledger-filters .instant-select-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ledger-filters .instant-select-menu button:hover,
+.ledger-filters .instant-select-menu button:focus-visible,
+.ledger-filters .instant-select-menu button.selected {
+  background: var(--bg-balance-light);
+  color: var(--primary-dark);
+  outline: none;
+}
+
+.instant-select-option-check {
+  flex: 0 0 auto;
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
 /* Split Ledger */
 .split-ledger {
   display: grid;
@@ -3076,6 +3156,33 @@ body.category-handle-drag-active {
   border-bottom: none;
 }
 
+.summary-column .summary-category-link-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.summary-column .summary-category-link-row:hover {
+  background: color-mix(in srgb, var(--color-expense) 8%, transparent);
+}
+
+.summary-column .summary-category-link-row:focus-visible {
+  outline: 2px solid var(--color-expense);
+  outline-offset: -2px;
+}
+
+.summary-category-link-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-category-link-arrow {
+  color: var(--color-expense);
+  font-size: 1.1em;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .summary-column .total-row {
   background: var(--bg-balance-light);
   font-weight: 800;
@@ -3358,6 +3465,10 @@ body.category-handle-drag-active {
 }
 
 .modal-content .instant-select-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-height: 36px;
   padding: 0 10px;
   border: 0;
