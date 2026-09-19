@@ -2454,7 +2454,7 @@ export default function App() {
   const [showAssetDetails, setShowAssetDetails] = useState(false);
   
   // Dashboard Chart states
-  const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense' | 'asset'>('both');
+  const [chartFilter, setChartFilter] = useState<'both' | 'income' | 'expense' | 'asset' | 'assetNet'>('both');
   const [hoveredChartIndex, setHoveredChartIndex] = useState<number | null>(null);
   const [hoveredChartPos, setHoveredChartPos] = useState<{ x: number; y: number } | null>(null);
   const [summaryType, setSummaryType] = useState<'expense' | 'income' | 'asset'>('expense');
@@ -2509,6 +2509,21 @@ export default function App() {
     const year = selectedMonth.slice(0, 4);
     const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
     const today = getToday();
+    const assetIds = new Set(assets.map((asset) => asset.id));
+    const installmentGroupStartDates = new Map<string, string>();
+    transactions.forEach((transaction) => {
+      if (!transaction.installmentGroupId || !transaction.installmentMonths || transaction.installmentMonths <= 1) return;
+      let startDate = transaction.date;
+      if (transaction.createdAt && Number.isFinite(transaction.createdAt)) {
+        const createdDate = new Date(transaction.createdAt);
+        const createdDateString = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}-${String(createdDate.getDate()).padStart(2, '0')}`;
+        if (createdDateString < startDate) startDate = createdDateString;
+      }
+      const previousStartDate = installmentGroupStartDates.get(transaction.installmentGroupId);
+      if (!previousStartDate || startDate < previousStartDate) {
+        installmentGroupStartDates.set(transaction.installmentGroupId, startDate);
+      }
+    });
     return months.map((mo) => {
       const monthStr = `${year}-${mo}`;
       const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr) && t.date <= today);
@@ -2518,11 +2533,22 @@ export default function App() {
       const expense = monthlyTxs.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       const isFutureMonth = monthStr > today.slice(0, 7);
       if (isFutureMonth) {
-        return { month: `${Number(mo)}월`, income, expense, asset: null };
+        return { month: `${Number(mo)}월`, income, expense, grossAsset: null, asset: null };
       }
       const monthEnd = `${monthStr}-${String(new Date(Number(year), Number(mo), 0).getDate()).padStart(2, '0')}`;
       const balanceDate = monthEnd < today ? monthEnd : today;
-      const balanceTransactions = transactions.filter((transaction) => transaction.date <= balanceDate);
+      const balanceTransactions = transactions.filter((transaction) => {
+        if (transaction.date <= balanceDate) return true;
+        if (!transaction.installmentGroupId || !transaction.installmentMonths || transaction.installmentMonths <= 1) return false;
+        return (installmentGroupStartDates.get(transaction.installmentGroupId) ?? transaction.date) <= balanceDate;
+      });
+      const hasTrackedAssetData = balanceTransactions.some((transaction) =>
+        (Boolean(transaction.assetId) && assetIds.has(transaction.assetId!))
+        || (Boolean(transaction.toAssetId) && assetIds.has(transaction.toAssetId!))
+      );
+      if (!hasTrackedAssetData) {
+        return { month: `${Number(mo)}월`, income, expense, grossAsset: null, asset: null };
+      }
       const balances = new Map(assets.map((asset) => {
         let openingBalance = 0;
         let hasOpeningBalance = false;
@@ -2557,15 +2583,22 @@ export default function App() {
           if (transaction.toAssetId) balances.set(transaction.toAssetId, (balances.get(transaction.toAssetId) ?? 0) + transaction.amount);
         }
       });
-      const asset = assets.reduce((sum, item) => {
+      const assetBalances = assets.reduce((result, item) => {
         const balance = balances.get(item.id) ?? item.amount;
-        return sum + (isLiabilityAsset(item, allAssetCategories, categoryLabels) ? -Math.abs(balance) : balance);
-      }, 0);
+        if (isLiabilityAsset(item, allAssetCategories, categoryLabels)) {
+          result.net -= Math.abs(balance);
+        } else {
+          result.gross += Math.max(balance, 0);
+          result.net += balance;
+        }
+        return result;
+      }, { gross: 0, net: 0 });
       return {
         month: `${Number(mo)}월`,
         income,
         expense,
-        asset,
+        grossAsset: assetBalances.gross,
+        asset: assetBalances.net,
       };
     });
   }, [transactions, assets, selectedMonth, allAssetCategories, categoryLabels, isOpeningBalanceTransaction]);
@@ -6693,9 +6726,30 @@ ${sheet4Rows}  </sheetData>
                   >
                     자산
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartFilter('assetNet')}
+                    style={{
+                      padding: '5px 9px',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      borderRadius: '7px',
+                      border: 'none',
+                      background: chartFilter === 'assetNet' ? 'var(--bg-app)' : 'transparent',
+                      color: chartFilter === 'assetNet' ? 'var(--color-asset)' : 'var(--text-secondary)',
+                      boxShadow: chartFilter === 'assetNet' ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    자산(부채포함)
+                  </button>
                 </div>
-                {chartFilter === 'asset' && latestTrackedAsset && latestTrackedAsset.asset !== null && (
-                  <span className="yearly-asset-current" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>순자산 {displayCurrency(latestTrackedAsset.asset)}</span>
+                {(chartFilter === 'asset' || chartFilter === 'assetNet') && latestTrackedAsset && latestTrackedAsset.asset !== null && (
+                  <span className="yearly-asset-current" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                    {chartFilter === 'asset' ? '자산' : '자산(부채포함)'} {displayCurrency(chartFilter === 'asset' ? latestTrackedAsset.grossAsset! : latestTrackedAsset.asset)}
+                  </span>
                 )}
               </div>
 
@@ -6736,15 +6790,19 @@ ${sheet4Rows}  </sheetData>
 
                     {/* Y축 그리드 라인 & 라벨 */}
                     {(() => {
-                      const isAssetChart = chartFilter === 'asset';
+                      const isAssetChart = chartFilter === 'asset' || chartFilter === 'assetNet';
+                      const getAssetChartValue = (data: (typeof yearlyData)[number]) => chartFilter === 'asset' ? data.grossAsset : data.asset;
                       const toNiceStep = (value: number) => {
                         const magnitude = 10 ** Math.floor(Math.log10(value));
                         const normalized = value / magnitude;
                         return (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * magnitude;
                       };
-                      const assetValues = yearlyData.flatMap((data) => data.asset === null ? [] : [data.asset]);
-                      const assetMinimum = Math.min(...assetValues);
-                      const assetMaximum = Math.max(...assetValues);
+                      const assetValues = yearlyData.flatMap((data) => {
+                        const value = getAssetChartValue(data);
+                        return value === null ? [] : [value];
+                      });
+                      const assetMinimum = assetValues.length > 0 ? Math.min(...assetValues) : 0;
+                      const assetMaximum = assetValues.length > 0 ? Math.max(...assetValues) : 0;
                       const standardMaximum = Math.max(
                         ...yearlyData.map((data) => {
                           if (chartFilter === 'income') return data.income;
@@ -6811,7 +6869,10 @@ ${sheet4Rows}  </sheetData>
 
                           {isAssetChart && (
                             <polyline
-                              points={yearlyData.map((data, index) => data.asset === null ? null : `${chartX(index)},${chartY(data.asset)}`).filter((point): point is string => point !== null).join(' ')}
+                              points={yearlyData.flatMap((data, index) => {
+                                const value = getAssetChartValue(data);
+                                return value === null ? [] : [`${chartX(index)},${chartY(value)}`];
+                              }).join(' ')}
                               fill="none"
                               stroke="url(#chart-asset-grad)"
                               strokeWidth="3"
@@ -6829,7 +6890,8 @@ ${sheet4Rows}  </sheetData>
                             
                             const showIncome = chartFilter === 'both' || chartFilter === 'income';
                             const showExpense = chartFilter === 'both' || chartFilter === 'expense';
-                            const showAsset = chartFilter === 'asset';
+                            const showAsset = isAssetChart;
+                            const assetValue = getAssetChartValue(d);
 
                             return (
                               <g 
@@ -6887,10 +6949,10 @@ ${sheet4Rows}  </sheetData>
                                   />
                                 )}
 
-                                {showAsset && d.asset !== null && (
+                                {showAsset && assetValue !== null && (
                                   <circle
                                     cx={xCenter}
-                                    cy={chartY(d.asset)}
+                                    cy={chartY(assetValue)}
                                     r={hoveredChartIndex === idx ? 5 : 3.5}
                                     fill="var(--bg-card)"
                                     stroke="#10b981"
@@ -6965,10 +7027,14 @@ ${sheet4Rows}  </sheetData>
                             <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].expense)}</span>
                           </div>
                         )}
-                        {chartFilter === 'asset' && (
+                        {(chartFilter === 'asset' || chartFilter === 'assetNet') && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                            <span style={{ color: '#34d399', fontWeight: 600 }}>자산:</span>
-                            <span style={{ fontWeight: 'bold' }}>{yearlyData[hoveredChartIndex].asset === null ? '기록 전' : displayCurrency(yearlyData[hoveredChartIndex].asset)}</span>
+                            <span style={{ color: '#34d399', fontWeight: 600 }}>{chartFilter === 'asset' ? '자산:' : '자산(부채포함):'}</span>
+                            <span style={{ fontWeight: 'bold' }}>
+                              {(chartFilter === 'asset' ? yearlyData[hoveredChartIndex].grossAsset : yearlyData[hoveredChartIndex].asset) === null
+                                ? '기록 전'
+                                : displayCurrency((chartFilter === 'asset' ? yearlyData[hoveredChartIndex].grossAsset : yearlyData[hoveredChartIndex].asset)!)}
+                            </span>
                           </div>
                         )}
                         {chartFilter === 'both' && (
