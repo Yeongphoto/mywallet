@@ -7060,30 +7060,19 @@ ${sheet4Rows}  </sheetData>
                   <h2 className="panel-title-kor">카테고리별 요약</h2>
                 </div>
                 
-                {/* 드롭다운 셀렉트 박스 */}
-                <select
-                  className="summary-category-select"
-                  value={summaryType} 
-                  onChange={(e) => setSummaryType(e.target.value as 'expense' | 'income' | 'asset')}
-                  style={{
-                    padding: '5px 28px 5px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-input)',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
-                    fontWeight: 'bold',
-                    fontSize: '0.76rem',
-                    cursor: 'pointer',
-                    outline: 'none',
-                    minWidth: '116px',
-                    width: '116px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <option value="expense">🔴 지출</option>
-                  <option value="income">🔵 수입</option>
-                  <option value="asset">🟢 자산</option>
-                </select>
+                <div className="summary-category-select ledger-filters" style={{ minWidth: '116px', width: '116px' }}>
+                  <InstantSelect
+                    ariaLabel="카테고리 요약 종류"
+                    value={summaryType}
+                    placeholder="요약 종류"
+                    options={[
+                      { value: 'expense', label: '🔴 지출' },
+                      { value: 'income', label: '🔵 수입' },
+                      { value: 'asset', label: '🟢 자산' },
+                    ]}
+                    onChange={(value) => setSummaryType(value as 'expense' | 'income' | 'asset')}
+                  />
+                </div>
               </div>
 
               {/* 선택된 요약 테이블만 렌더링 */}
