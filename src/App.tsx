@@ -9616,6 +9616,7 @@ ${sheet4Rows}  </sheetData>
               <button type="button" className={registrationMode === 'income' ? 'active income' : ''} onClick={() => switchRegistrationMode('income')}>수입</button>
               <button type="button" className={registrationMode === 'transfer' ? 'active transfer' : ''} onClick={() => switchRegistrationMode('transfer')}>이체</button>
             </div>
+            <div className="modal-body" style={{ padding: '24px 28px' }}>
             {registrationMode === 'asset' ? (
               <AssetRegistrationForm
                 editingAsset={editingAsset}
@@ -9636,7 +9637,6 @@ ${sheet4Rows}  </sheetData>
                 }}
               />
             ) : (
-              <div className="modal-body" style={{ padding: '24px 28px' }}>
                 <UnifiedEntryForm
                 key={registrationMode}
                 initialType={registrationMode}
@@ -9663,8 +9663,8 @@ ${sheet4Rows}  </sheetData>
                 onCancel={() => setIsEntryModalOpen(false)}
                 isQuickAdd={true}
                 />
-              </div>
             )}
+            </div>
           </div>
         </div>
       )}
@@ -10764,7 +10764,7 @@ function AssetRegistrationForm({
     <>
       <form
         key={editingAsset ? editingAsset.id : 'new'}
-        className="asset-entry-form"
+        className="entry-form asset-entry-form"
         onSubmit={async (event) => {
           event.preventDefault();
           const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
@@ -10773,7 +10773,8 @@ function AssetRegistrationForm({
           await onSave({ category, name, amount: parsedAmt, memo });
         }}
       >
-        <div className="form-group" onClick={() => setActivePopup('category')}>
+        <div className="form-grid">
+        <label className="compact-entry-field" aria-label="자산 카테고리" style={{ gridColumn: 'span 2' }} onClick={() => setActivePopup('category')}>
           <div className="instant-select">
             <button
               type="button"
@@ -10791,10 +10792,9 @@ function AssetRegistrationForm({
               <span aria-hidden="true">⌄</span>
             </button>
           </div>
-        </div>
+        </label>
 
-        <div className="form-group">
-          <label>자산 이름</label>
+        <label className="compact-entry-field" aria-label="자산 이름" style={{ gridColumn: 'span 2' }}>
           <input
             ref={nameRef}
             name="asset-name"
@@ -10802,10 +10802,9 @@ function AssetRegistrationForm({
             required
             defaultValue={editingAsset ? formatAssetLabel(editingAsset, allCategories) : ''}
           />
-        </div>
+        </label>
 
-        <div className="form-group" onClick={() => { if (!editingAsset) setActivePopup('amount'); }}>
-          <label>기초 금액</label>
+        <label className="compact-entry-field amount-entry-field" aria-label="기초 금액" style={{ gridColumn: 'span 2' }} onClick={() => { if (!editingAsset) setActivePopup('amount'); }}>
           <input
             ref={amountRef}
             type="text"
@@ -10821,10 +10820,9 @@ function AssetRegistrationForm({
               if (!editingAsset) setActivePopup('amount');
             }}
           />
-        </div>
+        </label>
 
-        <div className="form-group asset-memo-field">
-          <label>메모</label>
+        <label className="compact-entry-field asset-memo-field" aria-label="메모" style={{ gridColumn: 'span 2' }}>
           <textarea
             ref={memoRef}
             className="asset-memo-input"
@@ -10834,9 +10832,10 @@ function AssetRegistrationForm({
             rows={1}
             onInput={(event) => fitMemoHeight(event.currentTarget)}
           />
+        </label>
         </div>
 
-        <div className="asset-entry-actions">
+        <div className="entry-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>
             취소
           </button>

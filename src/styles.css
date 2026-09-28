@@ -3369,6 +3369,7 @@ body.category-handle-drag-active {
 }
 
 .registration-mode-tabs > button.active { background: var(--primary); color: #fff; }
+.registration-mode-tabs > button.active.asset { background: var(--color-asset); color: #052e23; }
 .registration-mode-tabs > button.active.expense { background: var(--color-expense); }
 .registration-mode-tabs > button.active.income { background: var(--color-income); }
 .registration-mode-tabs > button.active.transfer { background: var(--color-transfer); }
@@ -3382,6 +3383,33 @@ body.category-handle-drag-active {
 [data-theme='dark'] .registration-mode-tabs > button.active {
   border-color: transparent;
   color: #111827;
+}
+
+[data-theme='dark'] .registration-mode-tabs > button.active.asset {
+  background: var(--color-asset);
+  color: #052e23;
+}
+
+.modal-content .instant-select-trigger > span[aria-hidden='true'] {
+  display: inline-grid;
+  flex: 0 0 0.9rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  min-height: 0.9rem;
+  place-items: center;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0;
+  line-height: 1;
+}
+
+.modal-content .instant-select-trigger > span[aria-hidden='true']::after {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 1.7px solid currentColor;
+  border-bottom: 1.7px solid currentColor;
+  content: '';
+  transform: translateY(-0.12em) rotate(45deg);
 }
 
 .modal-content .form-grid label:not(.recurring-toggle),
@@ -3722,22 +3750,24 @@ body.category-handle-drag-active {
   pointer-events: none;
 }
 
-.asset-entry-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--registration-field-gap);
-  padding: 12px var(--registration-gutter-right) 16px var(--registration-gutter-left);
-}
-
-.entry-modal.asset-entry-modal .asset-entry-form { min-height: 0; overflow-y: auto; }
-.asset-entry-modal .asset-entry-form .form-group.asset-memo-field { height: auto !important; }
 .asset-entry-modal .asset-entry-form .asset-memo-input {
   display: block;
-  min-height: calc(var(--entry-field-height) - 17px) !important;
-  padding-block: max(4px, calc((var(--entry-field-height) - 17px - 1.25em) / 2)) !important;
-  padding-right: 16px !important;
+  width: 100%;
+  min-height: calc(var(--entry-field-height) - 17px);
+  padding-block: max(4px, calc((var(--entry-field-height) - 17px - 1.25em) / 2));
+  padding-left: 0;
+  padding-right: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 850;
+  line-height: 1.25;
   resize: none;
   overflow: hidden;
+  outline: none;
+  box-shadow: none;
 }
 .asset-entry-modal .asset-memo-field::after {
   content: '';
@@ -3750,15 +3780,6 @@ body.category-handle-drag-active {
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
   opacity: 0.28;
   pointer-events: none;
-}
-
-.modal-content .asset-entry-form .form-group > label {
-  display: none !important;
-}
-
-.asset-entry-form > div:last-child {
-  grid-column: span 2;
-  margin-top: 2px !important;
 }
 
 .asset-entry-actions {
@@ -3793,55 +3814,6 @@ body.category-handle-drag-active {
     border: 0;
     border-radius: 0 !important;
     box-shadow: none;
-  }
-
-  .asset-entry-modal .asset-entry-form {
-    display: grid;
-    flex: 1;
-    min-height: 0;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, var(--entry-field-height)) minmax(var(--entry-field-height), auto) var(--entry-field-height);
-    align-content: start;
-    gap: var(--registration-field-gap) !important;
-    padding: clamp(12px, 3dvh, 24px) calc(var(--registration-gutter-right) * 2) calc(clamp(16px, 4dvh, 32px) + env(safe-area-inset-bottom)) calc(var(--registration-gutter-left) * 2);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .asset-entry-modal .asset-entry-form .form-group {
-    height: var(--entry-field-height) !important;
-    min-height: var(--entry-field-height) !important;
-  }
-
-  .asset-entry-modal .asset-entry-form .form-group > input,
-  .asset-entry-modal .asset-entry-form .form-group > select,
-  .asset-entry-modal .asset-entry-form .form-group > .instant-select,
-  .asset-entry-modal .asset-entry-form .instant-select-trigger {
-    height: 100% !important;
-    min-height: 100% !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    font-size: clamp(1rem, 2dvh, 1.16rem) !important;
-    line-height: 1.25;
-  }
-
-  .asset-entry-modal .asset-entry-form .asset-memo-input {
-    font-size: clamp(1rem, 2dvh, 1.16rem) !important;
-    line-height: 1.25;
-  }
-
-  .asset-entry-modal .asset-entry-actions {
-    grid-row: 5;
-    grid-column: span 1;
-    display: flex;
-    gap: 8px;
-    margin: 0;
-  }
-
-  .asset-entry-modal .asset-entry-actions > button {
-    height: var(--entry-field-height);
-    min-height: var(--entry-field-height);
   }
 
   .modal-backdrop:has(.transaction-edit-modal) {
@@ -3950,6 +3922,7 @@ body.category-handle-drag-active {
 }
 
 .modal-content .form-grid label:not(.recurring-toggle) > input::placeholder,
+.modal-content .form-grid label:not(.recurring-toggle) > textarea::placeholder,
 .modal-content .form-group > input::placeholder,
 .modal-content .form-group > textarea::placeholder,
 .transaction-edit-form > label:not(.recurring-toggle) > input::placeholder {
