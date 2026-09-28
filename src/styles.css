@@ -1821,6 +1821,10 @@ textarea:focus {
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.72));
 }
 
+html[data-style-theme="doodle"] .settings-data-stack .primary-button {
+  color: #1e1903 !important;
+}
+
 .category-manager {
   display: grid;
   gap: 18px;

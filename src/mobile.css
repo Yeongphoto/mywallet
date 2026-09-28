@@ -10,19 +10,28 @@
 
 /* Shared row actions: assets and ledger use the exact same geometry. */
 .row-action-button {
-  display: grid !important;
-  place-items: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 44px !important;
   min-width: 44px !important;
+  height: 44px !important;
   min-height: 44px !important;
+  box-sizing: border-box;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 50% !important;
   color: #fff !important;
+  line-height: 0 !important;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14) !important;
 }
 
 .row-action-edit { background: var(--primary) !important; }
+.row-action-edit .app-icon { display: block; }
+
+html[data-style-theme="doodle"][data-theme="dark"] .row-action-button {
+  color: #1e1903 !important;
+}
 
 .row-action-delete {
   position: relative;
@@ -40,7 +49,7 @@
   width: 15px;
   height: 2px;
   border-radius: 999px;
-  background: #fff;
+  background: currentColor;
   transform-origin: center;
 }
 
@@ -90,6 +99,7 @@
   .row-action-button {
     width: 40px !important;
     min-width: 40px !important;
+    height: 40px !important;
     min-height: 40px !important;
   }
 
