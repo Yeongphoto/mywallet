@@ -10983,7 +10983,10 @@ function AppTimePicker({ value, onSelect, onClose }: { value: string; onSelect: 
   const [minute, setMinute] = useState(Number(initial.slice(3, 5)));
   const columnRefs = useRef<Array<HTMLDivElement | null>>([]);
   const mouseDragRef = useRef<{ index: number; pointerId: number; startY: number; startScroll: number; moved: boolean } | null>(null);
+  const snapCleanupRef = useRef<(() => void) | null>(null);
   const skipClickRef = useRef(false);
+
+  useEffect(() => () => { snapCleanupRef.current?.(); }, []);
 
   useLayoutEffect(() => {
     columnRefs.current.forEach((column) => {
@@ -11017,14 +11020,16 @@ function AppTimePicker({ value, onSelect, onClose }: { value: string; onSelect: 
                 }}
                 onPointerDown={(event) => {
                   if (event.pointerType !== 'mouse' || event.button !== 0) return;
+                  snapCleanupRef.current?.();
                   mouseDragRef.current = { index, pointerId: event.pointerId, startY: event.clientY, startScroll: event.currentTarget.scrollTop, moved: false };
-                  event.currentTarget.setPointerCapture(event.pointerId);
                 }}
                 onPointerMove={(event) => {
                   const drag = mouseDragRef.current;
                   if (!drag || drag.index !== index || drag.pointerId !== event.pointerId) return;
                   if (!drag.moved && Math.abs(event.clientY - drag.startY) > 4) {
                     drag.moved = true;
+                    event.currentTarget.classList.add('mouse-dragging');
+                    event.currentTarget.setPointerCapture(event.pointerId);
                   }
                   if (drag.moved) {
                     event.preventDefault();
@@ -11034,14 +11039,33 @@ function AppTimePicker({ value, onSelect, onClose }: { value: string; onSelect: 
                 onPointerUp={(event) => {
                   const drag = mouseDragRef.current;
                   if (!drag || drag.pointerId !== event.pointerId) return;
+                  const pickerColumn = event.currentTarget;
                   if (drag.moved) {
                     skipClickRef.current = true;
                     window.setTimeout(() => { skipClickRef.current = false; }, 0);
+                    const itemHeight = pickerColumn.querySelector('button')?.getBoundingClientRect().height || 48;
+                    const target = Math.round(pickerColumn.scrollTop / itemHeight) * itemHeight;
+                    if (Math.abs(pickerColumn.scrollTop - target) < 1) {
+                      pickerColumn.classList.remove('mouse-dragging');
+                    } else {
+                      const finishSnap = () => {
+                        pickerColumn.classList.remove('mouse-dragging');
+                        pickerColumn.removeEventListener('scrollend', finishSnap);
+                        window.clearTimeout(fallback);
+                        if (snapCleanupRef.current === finishSnap) snapCleanupRef.current = null;
+                      };
+                      pickerColumn.addEventListener('scrollend', finishSnap, { once: true });
+                      const fallback = window.setTimeout(finishSnap, 600);
+                      snapCleanupRef.current = finishSnap;
+                      pickerColumn.scrollTo({ top: target, behavior: 'smooth' });
+                    }
+                  } else {
+                    pickerColumn.classList.remove('mouse-dragging');
                   }
-                  if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  if (pickerColumn.hasPointerCapture(event.pointerId)) pickerColumn.releasePointerCapture(event.pointerId);
                   mouseDragRef.current = null;
                 }}
-                onPointerCancel={() => { mouseDragRef.current = null; }}
+                onPointerCancel={(event) => { event.currentTarget.classList.remove('mouse-dragging'); mouseDragRef.current = null; }}
               >
                 {column.values.map((option) => (
                   <button

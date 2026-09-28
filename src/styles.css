@@ -6250,6 +6250,7 @@ body.asset-handle-drag-active {
 
 .app-time-picker-column::-webkit-scrollbar { display: none; }
 .app-time-picker-column:active { cursor: grabbing; }
+.app-time-picker-column.mouse-dragging { scroll-snap-type: none; }
 
 .app-time-picker-column > button {
   flex: 0 0 48px;
