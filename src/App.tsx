@@ -1479,6 +1479,12 @@ function AssetHistoryPage({
             </div>
           </div>
 
+          {currentAsset.memo?.trim() && (
+            <div className="asset-history-memo">
+              <p>{currentAsset.memo.trim()}</p>
+            </div>
+          )}
+
           <div className="asset-history-current">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>현재 자산</span>

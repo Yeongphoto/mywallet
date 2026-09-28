@@ -3369,6 +3369,17 @@ body.category-handle-drag-active {
 .registration-mode-tabs > button.active.income { background: var(--color-income); }
 .registration-mode-tabs > button.active.transfer { background: var(--color-transfer); }
 
+[data-theme='dark'] .registration-mode-tabs > button {
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .registration-mode-tabs > button.active {
+  border-color: transparent;
+  color: #111827;
+}
+
 .modal-content .form-grid label:not(.recurring-toggle),
 .modal-content .form-group,
 .transaction-edit-form > label:not(.recurring-toggle) {
@@ -5446,6 +5457,8 @@ body.category-handle-drag-active {
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
+.asset-history-memo { min-width: 0; padding: 12px 14px; border: 1px solid var(--border-card); border-radius: 12px; background: var(--bg-card); }
+.asset-history-memo p { margin: 0; color: var(--text-primary); font-size: .9rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .asset-card-schedule-summary { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-asset) 25%, var(--border-card)); border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 7%, var(--bg-card)); color: var(--text-secondary); font-size: .84rem; line-height: 1.45; }
 .asset-card-payment-list { display: grid; gap: 8px; }
 .asset-card-payment-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-asset) 30%, var(--border-card)); border-radius: 12px; background: var(--bg-card); }
