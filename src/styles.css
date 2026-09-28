@@ -4556,6 +4556,15 @@ body.category-handle-drag-active {
   gap: 16px;
 }
 
+.plans-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.plan-view-toggle {
+  margin-bottom: 16px;
+}
+
 .ledger-view-toggle {
   display: inline-flex;
   width: fit-content;
@@ -4699,7 +4708,7 @@ body.category-handle-drag-active {
 
 .settlement-summary-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   padding: 0;
   background: transparent;
   border: none;

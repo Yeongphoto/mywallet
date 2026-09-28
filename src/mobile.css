@@ -595,7 +595,7 @@ html[data-style-theme="doodle"] .row-action-delete {
     height: 100%;
     min-height: 0;
     flex: 1;
-    gap: clamp(6px, 1.4vh, 14px);
+    gap: 16px;
   }
 
   .ledger-view-toggle {

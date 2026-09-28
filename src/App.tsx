@@ -7719,7 +7719,7 @@ ${sheet4Rows}  </sheetData>
         {/* Plans Tab */}
         {activeTab === 'plan' && (
           <>
-            <div className="ledger-view-toggle" role="tablist" aria-label="계획 보기 전환" style={{ marginBottom: '14px' }}>
+            <div className="ledger-view-toggle plan-view-toggle" role="tablist" aria-label="계획 보기 전환">
               <button
                 type="button"
                 className={planView === 'budget' ? 'active' : ''}
@@ -7737,7 +7737,7 @@ ${sheet4Rows}  </sheetData>
             </div>
 
             {planView === 'budget' && (
-              <div className="plans-workspace" style={{ display: 'grid', gap: '16px' }}>
+              <div className="plans-workspace">
                 {/* 상단 요약 카드 (결산 탭과 동일한 3행 1열 구조 및 위치) */}
                 <div className="settlement-summary-card">
                   <div className="settlement-summary-top">
