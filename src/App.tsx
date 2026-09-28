@@ -57,7 +57,7 @@ type CategoryOrderMap = Partial<Record<CategoryScope, string[]>>;
 type HiddenCategoryMap = Record<string, boolean>;
 type HiddenAssetMap = Record<string, boolean>;
 type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'expense-list' | 'income-list';
-type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
+type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'clock' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
 type StyleThemePreference = 'default' | 'doodle';
@@ -97,6 +97,7 @@ function AppIcon({ name, size = 20 }: { name: AppIconName; size?: number }) {
     asset: ['M5 8h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z', 'M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2', 'M4 11h16'],
     plan: ['M4 19V5', 'M4 19h16', 'M7 15l3-4 3 2 5-7'],
     calendar: ['M7 3v3', 'M17 3v3', 'M4 8h16', 'M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z'],
+    clock: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 6v6l4 2'],
     ledger: ['M6 3h9l3 3v15H6z', 'M15 3v4h4', 'M8 12h8', 'M8 16h8', 'M8 8h4'],
     settings: ['M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z', 'M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c0 .4.2.76.6 1 .3.25.7.4 1.1.4H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.6z'],
     plus: ['M12 5v14', 'M5 12h14'],
@@ -10894,6 +10895,190 @@ function AssetRegistrationForm({
   );
 }
 
+function formatPickerTime(value: string) {
+  if (!isValidTransactionTime(value)) return '시간 선택';
+  const hour = Number(value.slice(0, 2));
+  return `${hour < 12 ? '오전' : '오후'} ${String(hour % 12 || 12).padStart(2, '0')}:${value.slice(3, 5)}`;
+}
+
+function DateTimeEntryField({
+  kind,
+  value,
+  onOpen,
+}: {
+  kind: 'date' | 'time';
+  value: string;
+  onOpen: () => void;
+}) {
+  const label = kind === 'date' ? '날짜' : '시간';
+  return (
+    <label className="compact-entry-field date-time-entry-field" aria-label={label}>
+      <button type="button" className="instant-select-trigger date-time-entry-trigger" aria-label={`${label} 선택, 현재 ${kind === 'date' ? value : formatPickerTime(value)}`} aria-haspopup="dialog" onClick={onOpen}>
+        <span>{kind === 'date' ? value : formatPickerTime(value)}</span>
+        <AppIcon name={kind === 'date' ? 'calendar' : 'clock'} size={18} />
+      </button>
+    </label>
+  );
+}
+
+function AppDatePicker({ value, onSelect, onClose }: { value: string; onSelect: (value: string) => void; onClose: () => void }) {
+  const [viewMonth, setViewMonth] = useState(() => {
+    const [year, month] = (value || getCurrentTransactionDate()).split('-').map(Number);
+    return { year, month: month - 1 };
+  });
+  const firstWeekday = new Date(viewMonth.year, viewMonth.month, 1).getDay();
+  const today = getCurrentTransactionDate();
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(viewMonth.year, viewMonth.month, index - firstWeekday + 1);
+    const dateValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { value: dateValue, day: date.getDate(), inMonth: date.getMonth() === viewMonth.month };
+  });
+  const changeMonth = (offset: number) => {
+    setViewMonth((current) => {
+      const next = new Date(current.year, current.month + offset, 1);
+      return { year: next.getFullYear(), month: next.getMonth() };
+    });
+  };
+
+  return (
+    <div className="picker-popup-backdrop" onClick={onClose}>
+      <div className="picker-popup-sheet app-date-picker" role="dialog" aria-modal="true" aria-label="날짜 선택" onClick={(event) => event.stopPropagation()}>
+        <div className="picker-popup-header">
+          <strong>날짜 선택</strong>
+          <button type="button" className="picker-popup-close-btn" aria-label="닫기" onClick={onClose}>×</button>
+        </div>
+        <div className="app-date-picker-month">
+          <button type="button" aria-label="이전 달" onClick={() => changeMonth(-1)}><AppIcon name="chevronLeft" size={20} /></button>
+          <strong>{viewMonth.year}년 {viewMonth.month + 1}월</strong>
+          <button type="button" aria-label="다음 달" onClick={() => changeMonth(1)}><AppIcon name="chevronRight" size={20} /></button>
+        </div>
+        <div className="app-date-picker-weekdays" aria-hidden="true">
+          {['일', '월', '화', '수', '목', '금', '토'].map((day) => <span key={day}>{day}</span>)}
+        </div>
+        <div className="app-date-picker-days">
+          {days.map((day) => (
+            <button
+              key={day.value}
+              type="button"
+              className={`${day.inMonth ? '' : 'outside'}${day.value === value ? ' selected' : ''}${day.value === today ? ' today' : ''}`}
+              aria-label={`${day.value} 선택`}
+              aria-pressed={day.value === value}
+              onClick={() => onSelect(day.value)}
+            >
+              {day.day}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="app-date-picker-today" onClick={() => onSelect(today)}>오늘</button>
+      </div>
+    </div>
+  );
+}
+
+function AppTimePicker({ value, onSelect, onClose }: { value: string; onSelect: (value: string) => void; onClose: () => void }) {
+  const initial = isValidTransactionTime(value) ? value : getCurrentTransactionTime();
+  const initialHour = Number(initial.slice(0, 2));
+  const [period, setPeriod] = useState<'오전' | '오후'>(initialHour < 12 ? '오전' : '오후');
+  const [hour, setHour] = useState(initialHour % 12 || 12);
+  const [minute, setMinute] = useState(Number(initial.slice(3, 5)));
+  const columnRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const mouseDragRef = useRef<{ index: number; pointerId: number; startY: number; startScroll: number; moved: boolean } | null>(null);
+  const skipClickRef = useRef(false);
+
+  useLayoutEffect(() => {
+    columnRefs.current.forEach((column) => {
+      const selected = column?.querySelector<HTMLElement>('.selected');
+      if (column && selected) column.scrollTop = selected.offsetTop - (column.clientHeight - selected.offsetHeight) / 2;
+    });
+  }, []);
+
+  const columns = [
+    { label: '오전/오후', values: ['오전', '오후'], selected: period, onSelect: (next: string) => setPeriod(next as '오전' | '오후') },
+    { label: '시', values: Array.from({ length: 12 }, (_, index) => String(index + 1)), selected: String(hour), onSelect: (next: string) => setHour(Number(next)) },
+    { label: '분', values: Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0')), selected: String(minute).padStart(2, '0'), onSelect: (next: string) => setMinute(Number(next)) },
+  ];
+  return (
+    <div className="picker-popup-backdrop" onClick={onClose}>
+      <div className="picker-popup-sheet app-time-picker" role="dialog" aria-modal="true" aria-label="시간 선택" onClick={(event) => event.stopPropagation()}>
+        <div className="picker-popup-header">
+          <strong>시간 선택</strong>
+          <button type="button" className="picker-popup-close-btn" aria-label="닫기" onClick={onClose}>×</button>
+        </div>
+        <div className="app-time-picker-columns">
+          {columns.map((column, index) => (
+            <div className="app-time-picker-group" key={column.label} role="group" aria-label={column.label}>
+              <div
+                className="app-time-picker-column"
+                ref={(node) => { columnRefs.current[index] = node; }}
+                onScroll={(event) => {
+                  const itemHeight = event.currentTarget.querySelector('button')?.getBoundingClientRect().height || 48;
+                  const selectedIndex = Math.max(0, Math.min(column.values.length - 1, Math.round(event.currentTarget.scrollTop / itemHeight)));
+                  column.onSelect(column.values[selectedIndex]);
+                }}
+                onPointerDown={(event) => {
+                  if (event.pointerType !== 'mouse' || event.button !== 0) return;
+                  mouseDragRef.current = { index, pointerId: event.pointerId, startY: event.clientY, startScroll: event.currentTarget.scrollTop, moved: false };
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  const drag = mouseDragRef.current;
+                  if (!drag || drag.index !== index || drag.pointerId !== event.pointerId) return;
+                  if (!drag.moved && Math.abs(event.clientY - drag.startY) > 4) {
+                    drag.moved = true;
+                  }
+                  if (drag.moved) {
+                    event.preventDefault();
+                    event.currentTarget.scrollTop = drag.startScroll + drag.startY - event.clientY;
+                  }
+                }}
+                onPointerUp={(event) => {
+                  const drag = mouseDragRef.current;
+                  if (!drag || drag.pointerId !== event.pointerId) return;
+                  if (drag.moved) {
+                    skipClickRef.current = true;
+                    window.setTimeout(() => { skipClickRef.current = false; }, 0);
+                  }
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  mouseDragRef.current = null;
+                }}
+                onPointerCancel={() => { mouseDragRef.current = null; }}
+              >
+                {column.values.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={option === column.selected ? 'selected' : ''}
+                    aria-label={index === 1 ? `${option}시` : index === 2 ? `${option}분` : option}
+                    aria-pressed={option === column.selected}
+                    onClick={(event) => {
+                      if (skipClickRef.current) { event.preventDefault(); return; }
+                      const pickerColumn = columnRefs.current[index];
+                      if (pickerColumn) pickerColumn.scrollTo({ top: event.currentTarget.offsetTop - (pickerColumn.clientHeight - event.currentTarget.offsetHeight) / 2, behavior: 'smooth' });
+                      column.onSelect(option);
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="primary-button app-time-picker-confirm"
+          onClick={() => {
+            const hour24 = hour % 12 + (period === '오후' ? 12 : 0);
+            onSelect(`${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+          }}
+        >
+          확인
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function UnifiedEntryForm({
   defaultDate = getCurrentTransactionDate(),
   initialType = 'expense',
@@ -10928,7 +11113,7 @@ function UnifiedEntryForm({
   const [form, setForm] = useState<UnifiedFormState>(() => createUnifiedForm(defaultDate, initialType));
   const [isRecurring, setIsRecurring] = useState(false);
   const [installmentMonths, setInstallmentMonths] = useState(1);
-  const [activePopup, setActivePopup] = useState<'amount' | 'recurringInstallment' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [activePopup, setActivePopup] = useState<'date' | 'time' | 'amount' | 'recurringInstallment' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
   const [recurringInstallmentTab, setRecurringInstallmentTab] = useState<'recurring' | 'installment'>('installment');
   const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -11264,23 +11449,8 @@ function UnifiedEntryForm({
             </div>
           </div>
 
-          <label className="compact-entry-field" aria-label="날짜">
-            <input
-              type="date"
-              aria-label="날짜"
-              value={form.date}
-              onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-            />
-          </label>
-
-          <label className="compact-entry-field" aria-label="시간">
-            <input
-              type="time"
-              aria-label="시간"
-              value={form.time}
-              onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-            />
-          </label>
+          <DateTimeEntryField kind="date" value={form.date} onOpen={() => setActivePopup('date')} />
+          <DateTimeEntryField kind="time" value={form.time} onOpen={() => setActivePopup('time')} />
 
           <label
             className="compact-entry-field amount-entry-field"
@@ -11524,6 +11694,14 @@ function UnifiedEntryForm({
         </div>
       </form>
 
+      {activePopup === 'date' && (
+        <AppDatePicker value={form.date} onSelect={(date) => { setForm((prev) => ({ ...prev, date })); setActivePopup('none'); }} onClose={() => setActivePopup('none')} />
+      )}
+
+      {activePopup === 'time' && (
+        <AppTimePicker value={form.time} onSelect={(time) => { setForm((prev) => ({ ...prev, time })); setActivePopup('none'); }} onClose={() => setActivePopup('none')} />
+      )}
+
       {activePopup === 'amount' && (
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>
@@ -11699,7 +11877,7 @@ function TransactionEditForm({
   ));
   const [assetId, setAssetId] = useState(transaction.assetId || '');
   const [toAssetId, setToAssetId] = useState(transaction.toAssetId || '');
-  const [activePopup, setActivePopup] = useState<'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
+  const [activePopup, setActivePopup] = useState<'date' | 'time' | 'amount' | 'category' | 'asset' | 'toAsset' | 'none'>('none');
   const [isTitleSuggestionsOpen, setIsTitleSuggestionsOpen] = useState(false);
   const amountRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLButtonElement>(null);
@@ -11931,12 +12109,8 @@ function TransactionEditForm({
   return (
     <>
       <form className="transaction-edit-form" onSubmit={handleSubmit}>
-        <label className="compact-entry-field" aria-label="날짜">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-        <label className="compact-entry-field" aria-label="시간">
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-        </label>
+        <DateTimeEntryField kind="date" value={date} onOpen={() => setActivePopup('date')} />
+        <DateTimeEntryField kind="time" value={time} onOpen={() => setActivePopup('time')} />
         <label
           className="compact-entry-field amount-entry-field"
           style={{ gridColumn: 'span 2' }}
@@ -12163,6 +12337,14 @@ function TransactionEditForm({
       </form>
 
       {/* Popups on top of the edit form */}
+      {activePopup === 'date' && (
+        <AppDatePicker value={date} onSelect={(nextDate) => { setDate(nextDate); setActivePopup('none'); }} onClose={() => setActivePopup('none')} />
+      )}
+
+      {activePopup === 'time' && (
+        <AppTimePicker value={time} onSelect={(nextTime) => { setTime(nextTime); setActivePopup('none'); }} onClose={() => setActivePopup('none')} />
+      )}
+
       {activePopup === 'amount' && (
         <div className="picker-popup-backdrop" onClick={() => setActivePopup('none')}>
           <div className="picker-popup-sheet" onClick={(e) => e.stopPropagation()}>

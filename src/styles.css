@@ -3459,6 +3459,23 @@ body.category-handle-drag-active {
   align-self: center;
 }
 
+.date-time-entry-trigger {
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.date-time-entry-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date-time-entry-trigger > .app-icon {
+  flex: 0 0 18px;
+  color: var(--text-primary);
+}
+
 .modal-content .instant-select {
   position: relative;
   align-self: center;
@@ -6120,6 +6137,140 @@ body.asset-handle-drag-active {
   background: var(--border-card);
   color: var(--text-primary);
 }
+
+.app-date-picker-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.app-date-picker-month > button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.app-date-picker-weekdays,
+.app-date-picker-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+}
+
+.app-date-picker-weekdays > span {
+  padding: 4px 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.app-date-picker-weekdays > span:first-child { color: var(--color-expense); }
+.app-date-picker-weekdays > span:last-child { color: var(--color-income); }
+
+.app-date-picker-days > button {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.app-date-picker-days > button.outside { color: var(--text-secondary); opacity: 0.55; }
+.app-date-picker-days > button.today { border-color: var(--primary); }
+.app-date-picker-days > button.selected {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 22%, var(--bg-input));
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.app-date-picker-today {
+  min-height: 42px;
+  border: 1px solid var(--border-input);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.app-time-picker-columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.app-time-picker-columns::before {
+  position: absolute;
+  top: calc(50% - 24px);
+  right: 0;
+  left: 0;
+  height: 48px;
+  border-top: 1px solid var(--border-card);
+  border-bottom: 1px solid var(--border-card);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.app-time-picker-group { min-width: 0; }
+
+.app-time-picker-column {
+  position: relative;
+  display: flex;
+  height: 240px;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 96px 0;
+  background: transparent;
+  cursor: grab;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+}
+
+.app-time-picker-column::-webkit-scrollbar { display: none; }
+.app-time-picker-column:active { cursor: grabbing; }
+
+.app-time-picker-column > button {
+  flex: 0 0 48px;
+  scroll-snap-align: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 650;
+  cursor: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-time-picker-column > button.selected {
+  color: var(--text-primary);
+  font-size: 1.55rem;
+  font-weight: 800;
+}
+
+.app-time-picker-confirm { min-height: 48px; }
 
 /* Number Keypad Grid */
 .amount-keypad-grid {
