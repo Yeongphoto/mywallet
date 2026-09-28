@@ -4551,7 +4551,7 @@ body.category-handle-drag-active {
 /* Ledger workspace */
 .ledger-workspace {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .ledger-view-toggle {
@@ -4580,40 +4580,12 @@ body.category-handle-drag-active {
   box-shadow: 0 3px 8px rgba(var(--primary-rgb), 0.28);
 }
 
-.ledger-month-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border-card);
-  border-bottom: 1px solid var(--border-card);
-}
-
-.ledger-month-summary > div {
-  display: grid;
-  gap: 4px;
-  padding: 10px 14px;
-  text-align: center;
-}
-
-.ledger-month-summary > div + div {
-  border-left: 1px solid var(--border-card);
-}
-
-.ledger-month-summary span,
 .ledger-period-label small {
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 700;
 }
-
-.ledger-month-summary strong {
-  color: var(--text-primary);
-  font-size: 1.08rem;
-}
-
-.ledger-month-summary .income,
 .ledger-period-row .income { color: var(--color-income); }
-
-.ledger-month-summary .expense,
 .ledger-period-row .expense { color: var(--color-expense); }
 
 .ledger-calendar-view {
@@ -4621,6 +4593,15 @@ body.category-handle-drag-active {
   flex-direction: column;
   gap: 12px;
   min-height: 480px;
+}
+
+.ledger-calendar-view .ledger-calendar-month-navigation {
+  justify-content: center;
+  gap: 12px;
+}
+
+.ledger-calendar-month-navigation h2 {
+  white-space: nowrap;
 }
 
 .ledger-monthly-view {
@@ -5168,7 +5149,7 @@ body.category-handle-drag-active {
   }
 
   .ledger-workspace {
-    gap: 14px;
+    gap: 16px;
   }
 
   .ledger-view-toggle {
@@ -5177,16 +5158,6 @@ body.category-handle-drag-active {
 
   .ledger-view-toggle button {
     flex: 1;
-  }
-
-  .ledger-month-summary > div {
-    padding: 10px 8px;
-  }
-
-  .ledger-month-summary strong {
-    font-size: 1.04rem;
-    letter-spacing: -0.04em;
-    white-space: nowrap;
   }
 
 .ledger-calendar-view {
@@ -5202,7 +5173,7 @@ body.category-handle-drag-active {
   flex: 0 0 auto;
   flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
 }
 
@@ -5263,7 +5234,7 @@ body.category-handle-drag-active {
     grid-template-columns: minmax(0, 1fr) minmax(104px, 0.44fr);
   }
 
-  .ledger-header .page-title-kor {
+  .ledger-header .settlement-summary-title {
     font-size: 1rem;
     min-width: 0;
     white-space: nowrap;
@@ -5310,11 +5281,6 @@ body.category-handle-drag-active {
   }
 
   .ledger-view-toggle {
-    flex: 0 0 auto;
-    flex-shrink: 0;
-  }
-
-  .ledger-month-summary {
     flex: 0 0 auto;
     flex-shrink: 0;
   }
@@ -5490,13 +5456,6 @@ body.category-handle-drag-active {
 .asset-history-page-body { display: grid; gap: 16px; min-width: 0; }
 .asset-history-overview { display: grid; align-content: start; gap: 16px; min-width: 0; }
 .asset-history-list h4 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.asset-history-overview .ledger-month-summary {
-  border: 1px solid var(--border-card);
-  border-radius: 12px;
-  background: var(--bg-card);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
 .asset-history-memo { min-width: 0; padding: 12px 14px; border: 1px solid var(--border-card); border-radius: 12px; background: var(--bg-card); }
 .asset-history-memo p { margin: 0; color: var(--text-primary); font-size: .9rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .asset-card-schedule-summary { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-asset) 25%, var(--border-card)); border-radius: 12px; background: color-mix(in srgb, var(--color-asset) 7%, var(--bg-card)); color: var(--text-secondary); font-size: .84rem; line-height: 1.45; }

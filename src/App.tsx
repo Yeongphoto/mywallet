@@ -1482,17 +1482,17 @@ function AssetHistoryPage({
       <div className="asset-history-page-body">
         {/* Left: Overview & Card Bills */}
         <div className="asset-history-overview">
-          {/* 수입 / 지출 / 합계 요약 바 */}
-          <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
-            <div>
+          {/* 수입 / 지출 / 합계 공통 요약 카드 */}
+          <div className="settlement-stat-grid" aria-label={`${selectedMonth} 수입 지출 합계`}>
+            <div className="settlement-stat-item">
               <span>수입</span>
               <strong className="income">{formatMoney(periodIncomeTotal)}</strong>
             </div>
-            <div>
+            <div className="settlement-stat-item">
               <span>지출</span>
               <strong className="expense">{formatMoney(periodExpenseTotal)}</strong>
             </div>
-            <div>
+            <div className="settlement-stat-item">
               <span>합계</span>
               <strong>{formatMoney(periodBalance)}</strong>
             </div>
@@ -6280,12 +6280,10 @@ ${sheet4Rows}  </sheetData>
   const displayCalendarAmount = (value: number) => (privacyMode ? formatMobileCalendarAmount(getPrivacyDisplayAmount(value)) : formatMobileCalendarAmount(value));
   const renderLedgerCalendar = () => (
     <section className="calendar-view-container ledger-calendar-view">
-      <div className="calendar-control" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="calendar-control ledger-calendar-month-navigation">
+        <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev} aria-label="이전 달"><AppIcon name="chevronLeft" size={20} /></button>
         <h2 className="page-title-kor page-title-with-icon"><AppIcon name="calendar" size={18} /> {calendarYear}년 {calendarMonth + 1}월</h2>
-        <div className="calendar-nav-buttons">
-          <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev}><AppIcon name="chevronLeft" size={20} /></button>
-          <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext}><AppIcon name="chevronRight" size={20} /></button>
-        </div>
+        <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext} aria-label="다음 달"><AppIcon name="chevronRight" size={20} /></button>
       </div>
       <div className="calendar-day-names-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '4px' }}>
         {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
@@ -6542,23 +6540,6 @@ ${sheet4Rows}  </sheetData>
           <>
             <section className="summary-grid" aria-label="월간 요약">
               <article 
-                className="summary-card expense clickable-summary-card"
-                onClick={() => openMonthlyTransactionList('expense')}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthlyTransactionList('expense'); } }}
-                title="클릭하여 이번 달 지출 목록 페이지로 이동"
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <span>이번 달 총 지출</span>
-                  <span className="summary-card-arrow" aria-hidden="true" title="지출 목록 페이지 이동">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </span>
-                </div>
-                <strong>{displayCurrency(expenseTotal)}</strong>
-                <small>합리적인 소비를 위한 예산 대비 관리</small>
-              </article>
-              <article 
                 className="summary-card income clickable-summary-card"
                 onClick={() => openMonthlyTransactionList('income')}
                 role="button"
@@ -6574,6 +6555,23 @@ ${sheet4Rows}  </sheetData>
                 </div>
                 <strong>{displayCurrency(incomeTotal)}</strong>
                 <small>월별 부가 소득 및 급여 포함</small>
+              </article>
+              <article 
+                className="summary-card expense clickable-summary-card"
+                onClick={() => openMonthlyTransactionList('expense')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthlyTransactionList('expense'); } }}
+                title="클릭하여 이번 달 지출 목록 페이지로 이동"
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span>이번 달 총 지출</span>
+                  <span className="summary-card-arrow" aria-hidden="true" title="지출 목록 페이지 이동">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </span>
+                </div>
+                <strong>{displayCurrency(expenseTotal)}</strong>
+                <small>합리적인 소비를 위한 예산 대비 관리</small>
               </article>
               <article className="summary-card asset">
                 <span>자산</span>
@@ -7167,7 +7165,7 @@ ${sheet4Rows}  </sheetData>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         {(chartFilter === 'both' || chartFilter === 'income') && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                            <span style={{ color: '#34d399', fontWeight: 600 }}>🟢 수입:</span>
+                            <span style={{ color: 'var(--color-income)', fontWeight: 600 }}>🔵 수입:</span>
                             <span style={{ fontWeight: 'bold' }}>{displayCurrency(yearlyData[hoveredChartIndex].income)}</span>
                           </div>
                         )}
@@ -7333,10 +7331,14 @@ ${sheet4Rows}  </sheetData>
               <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
               <button type="button" className={ledgerView === 'monthly' ? 'active' : ''} onClick={() => setLedgerView('monthly')}>월별</button>
             </div>
-            <div className="ledger-month-summary" aria-label={`${selectedMonth} 수입 지출 합계`}>
-              <div><span>수입</span><strong className="income">{displayCurrency(incomeTotal)}</strong></div>
-              <div><span>지출</span><strong className="expense">{displayCurrency(expenseTotal)}</strong></div>
-              <div><span>합계</span><strong>{displayCurrency(balance)}</strong></div>
+            <div className="ledger-header settlement-summary-top">
+              <h2 className="settlement-summary-title"><AppIcon name="ledger" size={19} /> 거래 장부 목록</h2>
+              {ledgerView === 'daily' && <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>}
+            </div>
+            <div className="settlement-stat-grid" aria-label={`${selectedMonth} 수입 지출 합계`}>
+              <div className="settlement-stat-item"><span>수입</span><strong className="income">{displayCurrency(incomeTotal)}</strong></div>
+              <div className="settlement-stat-item"><span>지출</span><strong className="expense">{displayCurrency(expenseTotal)}</strong></div>
+              <div className="settlement-stat-item"><span>합계</span><strong>{displayCurrency(balance)}</strong></div>
             </div>
             {ledgerView === 'daily' && (
               <>
@@ -7359,11 +7361,6 @@ ${sheet4Rows}  </sheetData>
                   ]}
                   onChange={setFilterCategory}
                 />
-              </div>
-
-              <div className="ledger-header">
-                <h2 className="page-title-kor page-title-with-icon"><AppIcon name="ledger" size={18} /> 거래 장부 목록</h2>
-                <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>
               </div>
 
             <div className="split-ledger">
@@ -7750,12 +7747,12 @@ ${sheet4Rows}  </sheetData>
                   </div>
                   <div className="settlement-stat-grid">
                     <div className="settlement-stat-item">
-                      <span>지출 예산 합계</span>
-                      <strong className="expense">{displayCurrency(plannedExpenseTotal)}</strong>
-                    </div>
-                    <div className="settlement-stat-item">
                       <span>수입 목표 합계</span>
                       <strong className="income">{displayCurrency(plannedIncomeTotal)}</strong>
+                    </div>
+                    <div className="settlement-stat-item">
+                      <span>지출 예산 합계</span>
+                      <strong className="expense">{displayCurrency(plannedExpenseTotal)}</strong>
                     </div>
                     <div className="settlement-stat-item">
                       <span>계획 차액</span>
