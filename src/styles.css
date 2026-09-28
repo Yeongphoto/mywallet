@@ -3725,6 +3725,29 @@ body.category-handle-drag-active {
   padding: 12px var(--registration-gutter-right) 16px var(--registration-gutter-left);
 }
 
+.entry-modal.asset-entry-modal .asset-entry-form { min-height: 0; overflow-y: auto; }
+.asset-entry-modal .asset-entry-form .form-group.asset-memo-field { height: auto !important; }
+.asset-entry-modal .asset-entry-form .asset-memo-input {
+  display: block;
+  min-height: calc(var(--entry-field-height) - 17px) !important;
+  padding-block: max(4px, calc((var(--entry-field-height) - 17px - 1.25em) / 2)) !important;
+  padding-right: 16px !important;
+  resize: none;
+  overflow: hidden;
+}
+.asset-entry-modal .asset-memo-field::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  bottom: 11px;
+  width: 13px;
+  height: 13px;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px, transparent 4px 6px);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  opacity: 0.28;
+  pointer-events: none;
+}
+
 .modal-content .asset-entry-form .form-group > label {
   display: none !important;
 }
@@ -3773,11 +3796,12 @@ body.category-handle-drag-active {
     flex: 1;
     min-height: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(4, var(--entry-field-height)) var(--entry-field-height);
+    grid-template-rows: repeat(3, var(--entry-field-height)) minmax(var(--entry-field-height), auto) var(--entry-field-height);
     align-content: start;
     gap: var(--registration-field-gap) !important;
     padding: clamp(12px, 3dvh, 24px) calc(var(--registration-gutter-right) * 2) calc(clamp(16px, 4dvh, 32px) + env(safe-area-inset-bottom)) calc(var(--registration-gutter-left) * 2);
-    overflow: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .asset-entry-modal .asset-entry-form .form-group {
@@ -3794,6 +3818,11 @@ body.category-handle-drag-active {
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
+    font-size: clamp(1rem, 2dvh, 1.16rem) !important;
+    line-height: 1.25;
+  }
+
+  .asset-entry-modal .asset-entry-form .asset-memo-input {
     font-size: clamp(1rem, 2dvh, 1.16rem) !important;
     line-height: 1.25;
   }
@@ -3895,6 +3924,7 @@ body.category-handle-drag-active {
 .modal-content .form-grid label:not(.recurring-toggle) > select,
 .modal-content .form-group > input,
 .modal-content .form-group > select,
+.modal-content .form-group > textarea,
 .transaction-edit-form > label:not(.recurring-toggle) > input {
   width: 100% !important;
   min-height: 30px !important;
@@ -3917,6 +3947,7 @@ body.category-handle-drag-active {
 
 .modal-content .form-grid label:not(.recurring-toggle) > input::placeholder,
 .modal-content .form-group > input::placeholder,
+.modal-content .form-group > textarea::placeholder,
 .transaction-edit-form > label:not(.recurring-toggle) > input::placeholder {
   color: rgba(100, 116, 139, 0.62);
   font-weight: 750;
@@ -6570,6 +6601,11 @@ html[data-style-theme="doodle"] input[type="time"]:not(.compact-entry-field inpu
 html[data-style-theme="doodle"] input[type="number"]:not(.compact-entry-field input) {
   border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
   border: 1.5px solid var(--border-input) !important;
+}
+
+html[data-style-theme="doodle"] .asset-entry-modal .asset-entry-form input[name="asset-amount"] {
+  border: 0 !important;
+  border-radius: 0 !important;
 }
 
 html[data-style-theme="doodle"] .compact-entry-field input,

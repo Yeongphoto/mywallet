@@ -209,7 +209,7 @@
 @media (max-width: 768px) {
   .modal-content.entry-modal.asset-entry-modal .asset-entry-form {
     grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: repeat(4, var(--entry-field-height)) minmax(0, 1fr) var(--entry-field-height) !important;
+    grid-template-rows: repeat(3, var(--entry-field-height)) minmax(var(--entry-field-height), auto) minmax(0, 1fr) var(--entry-field-height) !important;
   }
 
   .modal-content.entry-modal.asset-entry-modal .asset-entry-actions {
@@ -1384,7 +1384,7 @@
 
   .modal-content.entry-modal.asset-entry-modal .asset-entry-form {
     grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: repeat(4, var(--entry-field-height)) var(--entry-field-height) !important;
+    grid-template-rows: repeat(3, var(--entry-field-height)) minmax(var(--entry-field-height), auto) var(--entry-field-height) !important;
   }
 
   .modal-content.entry-modal.asset-entry-modal .asset-entry-actions {

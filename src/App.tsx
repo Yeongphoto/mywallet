@@ -10715,7 +10715,16 @@ function AssetRegistrationForm({
   const categoryRef = useRef<HTMLButtonElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
-  const memoRef = useRef<HTMLInputElement>(null);
+  const memoRef = useRef<HTMLTextAreaElement>(null);
+
+  const fitMemoHeight = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  };
+
+  useLayoutEffect(() => {
+    if (memoRef.current) fitMemoHeight(memoRef.current);
+  }, [editingAsset?.memo]);
 
   useEffect(() => {
     if (activePopup !== 'none') {
@@ -10742,7 +10751,7 @@ function AssetRegistrationForm({
           event.preventDefault();
           const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
           const parsedAmt = parseAmount(amount) || 0;
-          const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLInputElement).value;
+          const memo = (event.currentTarget.elements.namedItem('asset-memo') as HTMLTextAreaElement).value;
           await onSave({ category, name, amount: parsedAmt, memo });
         }}
       >
@@ -10796,13 +10805,16 @@ function AssetRegistrationForm({
           />
         </div>
 
-        <div className="form-group">
+        <div className="form-group asset-memo-field">
           <label>메모</label>
-          <input
+          <textarea
             ref={memoRef}
+            className="asset-memo-input"
             name="asset-memo"
             placeholder="메모 (선택)"
             defaultValue={editingAsset?.memo || ''}
+            rows={1}
+            onInput={(event) => fitMemoHeight(event.currentTarget)}
           />
         </div>
 
