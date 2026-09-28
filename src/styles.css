@@ -5453,6 +5453,19 @@ body.category-handle-drag-active {
 .asset-card-payment-row span { color: var(--text-secondary); font-size: .82rem; font-weight: 750; }
 .asset-card-payment-row strong { color: var(--text-primary); font-size: 1rem; font-variant-numeric: tabular-nums; }
 .asset-card-payment-row .primary-button { min-width: 64px; min-height: 40px; margin: 0; }
+.asset-card-payment-row > .asset-card-payment-actions { display: grid; grid-template-columns: 64px 64px; align-items: center; gap: 7px; flex: none; }
+.asset-card-payment-detail-button { width: 64px; min-height: 40px; padding: 0 12px; border: 1px solid color-mix(in srgb, var(--color-asset) 45%, var(--border-card)); border-radius: 10px; background: var(--bg-card); color: var(--color-asset); font-size: .86rem; font-weight: 850; cursor: pointer; }
+.asset-card-payment-detail-button:hover { background: color-mix(in srgb, var(--color-asset) 10%, var(--bg-card)); }
+.asset-card-payment-actions > .asset-card-payment-future { display: grid; place-items: center; width: 64px; min-height: 40px; }
+.asset-card-detail-header { grid-template-columns: 44px minmax(0, 1fr); }
+.asset-card-detail-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid color-mix(in srgb, var(--color-asset) 30%, var(--border-card)); border-radius: 12px; background: var(--bg-card); }
+.asset-card-detail-summary > div { display: grid; gap: 4px; min-width: 0; }
+.asset-card-detail-summary > div > span { color: var(--text-secondary); font-size: .82rem; font-weight: 750; }
+.asset-card-detail-summary strong { color: var(--text-primary); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.asset-card-detail-summary small { color: var(--text-secondary); font-size: .78rem; }
+.asset-card-detail-summary .primary-button { min-width: 64px; min-height: 40px; margin: 0; }
+.asset-card-detail-empty { padding: 36px 16px; border-radius: 14px; color: var(--text-secondary); font-size: .92rem; font-weight: 700; text-align: center; }
+.asset-card-detail-page .asset-history-list { grid-column: 1; grid-row: auto; }
 .asset-card-payment-toggle {
   display: flex;
   align-items: center;
@@ -5505,6 +5518,7 @@ body.category-handle-drag-active {
 @media (max-width: 539px), (max-aspect-ratio: 2 / 3) {
   .asset-history-page { gap: 14px; }
   .asset-history-page-header { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 8px; }
+  .asset-card-detail-header { grid-template-columns: 40px minmax(0, 1fr); }
   .asset-history-back { width: 40px; height: 40px; border-radius: 11px; }
   .asset-history-settings-button { min-height: 40px; padding: 0 11px; }
   .asset-settings-fields, .asset-settings-actions { padding-left: 16px; padding-right: 16px; }

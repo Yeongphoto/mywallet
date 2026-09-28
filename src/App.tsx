@@ -1190,6 +1190,9 @@ function AssetHistoryPage({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [showAllCardPayments, setShowAllCardPayments] = useState(false);
+  const [selectedCardPayment, setSelectedCardPayment] = useState<CardPaymentPeriod | null>(null);
+  const cardPaymentScrollRef = useRef({ contentTop: 0, documentTop: 0 });
+  const cardPaymentScrollTransitionRef = useRef<'detail' | 'history' | null>(null);
   const [isAssetSettingsOpen, setIsAssetSettingsOpen] = useState(false);
   const [isAdjustBalanceModalOpen, setIsAdjustBalanceModalOpen] = useState(false);
 
@@ -1281,6 +1284,81 @@ function AssetHistoryPage({
     ? pendingCardPayments
     : pendingCardPayments.slice(0, INITIAL_CARD_PAYMENT_COUNT);
 
+  useEffect(() => {
+    const handlePaymentDetailPopState = (event: PopStateEvent) => {
+      const detail = event.state?.mywalletCardPaymentDetail as
+        | { assetId: string; period: CardPaymentPeriod }
+        | undefined;
+      const nextPayment = detail?.assetId === currentAsset.id ? detail.period : null;
+      setSelectedCardPayment((previous) => {
+        if (previous?.periodStart === nextPayment?.periodStart) return previous;
+        cardPaymentScrollTransitionRef.current = nextPayment ? 'detail' : 'history';
+        return nextPayment;
+      });
+    };
+    window.addEventListener('popstate', handlePaymentDetailPopState);
+    return () => window.removeEventListener('popstate', handlePaymentDetailPopState);
+  }, [currentAsset.id]);
+
+  useLayoutEffect(() => {
+    const transition = cardPaymentScrollTransitionRef.current;
+    if (!transition) return;
+    cardPaymentScrollTransitionRef.current = null;
+    const content = document.querySelector<HTMLElement>('.content');
+    const position = transition === 'detail'
+      ? { contentTop: 0, documentTop: 0 }
+      : cardPaymentScrollRef.current;
+    content?.scrollTo({ top: position.contentTop, behavior: 'auto' });
+    window.scrollTo({ top: position.documentTop, behavior: 'auto' });
+  }, [selectedCardPayment]);
+
+  function openCardPaymentDetail(period: CardPaymentPeriod) {
+    cardPaymentScrollRef.current = {
+      contentTop: document.querySelector<HTMLElement>('.content')?.scrollTop ?? 0,
+      documentTop: window.scrollY || document.documentElement.scrollTop || 0,
+    };
+    window.history.pushState(
+      { ...window.history.state, mywalletCardPaymentDetail: { assetId: currentAsset.id, period } },
+      '',
+      window.location.href,
+    );
+    cardPaymentScrollTransitionRef.current = 'detail';
+    setSelectedCardPayment(period);
+  }
+
+  function returnToAssetHistory() {
+    cardPaymentScrollTransitionRef.current = 'history';
+    setSelectedCardPayment(null);
+    if (window.history.state?.mywalletCardPaymentDetail?.assetId === currentAsset.id) {
+      window.history.back();
+    }
+  }
+
+  function confirmCardSettlement(period: CardPaymentPeriod) {
+    if (window.confirm(
+      `${period.periodStart} ~ ${period.periodEnd} 사용분 ${formatMoney(period.amount)}을 ${paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '결제 계좌'}에서 결제 처리할까요?`
+    )) {
+      void handleCardSettlement(currentAsset, period);
+    }
+  }
+
+  const selectedPendingPayment = selectedCardPayment
+    ? pendingCardPayments.find((period) => period.periodStart === selectedCardPayment.periodStart)
+    : null;
+  const cardPaymentTransactions = selectedCardPayment
+    ? transactions
+        .filter((transaction) =>
+          transaction.assetId === currentAsset.id &&
+          transaction.date >= selectedCardPayment.periodStart &&
+          transaction.date <= selectedCardPayment.periodEnd &&
+          !isOpeningBalanceCategory(transaction.category) &&
+          (transaction.type === 'expense' || transaction.type === 'income')
+        )
+        .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')))
+    : [];
+  const cardPaymentCompleted = cardPaymentTransactions.length > 0 &&
+    cardPaymentTransactions.every((transaction) => !!transaction.cardSettlementId);
+
   const allAssetTransactions = useMemo(() => {
     return transactions
       .filter((t) => t.date <= todayStr && (t.assetId === currentAsset.id || t.toAssetId === currentAsset.id))
@@ -1312,6 +1390,60 @@ function AssetHistoryPage({
       return true;
     });
   }, [allAssetTransactions, filterCategory, searchTerm, allExpenseCategories, allIncomeCategories]);
+
+  if (selectedCardPayment) {
+    const canSettle = !!selectedPendingPayment &&
+      (!currentPaymentDueDate || selectedPendingPayment.dueDate <= currentPaymentDueDate);
+    return (
+      <section className="asset-history-page asset-card-detail-page" aria-label="카드 결제 상세 내역">
+        <header className="asset-history-page-header asset-card-detail-header">
+          <button type="button" className="asset-history-back" onClick={returnToAssetHistory} aria-label="자산 이력으로 돌아가기">
+            <AppIcon name="chevronLeft" size={20} />
+          </button>
+          <div className="asset-history-page-title">
+            <span>{formatAssetLabel(currentAsset, allAssetCategories)}</span>
+            <strong>{selectedCardPayment.dueDate.replace(/-/g, '.')} 결제 상세 내역</strong>
+          </div>
+        </header>
+
+        <div className="asset-card-detail-summary">
+          <div>
+            <span>결제 금액</span>
+            <strong>{formatMoney(selectedPendingPayment?.amount ?? (cardPaymentCompleted ? selectedCardPayment.amount : 0))}</strong>
+            <small>{selectedCardPayment.periodStart.replace(/-/g, '.')} ~ {selectedCardPayment.periodEnd.replace(/-/g, '.')} 사용분</small>
+          </div>
+          {canSettle ? (
+            <button type="button" className="primary-button" onClick={() => confirmCardSettlement(selectedPendingPayment)}>
+              결제
+            </button>
+          ) : (
+            <span className="asset-card-payment-future">
+              {cardPaymentCompleted ? '결제 완료' : selectedPendingPayment ? '결제 예정' : '결제 대상 없음'}
+            </span>
+          )}
+        </div>
+
+        <div className="asset-history-list">
+          <h4>사용 내역 <span>{cardPaymentTransactions.length}건</span></h4>
+          {cardPaymentTransactions.length === 0 ? (
+            <div className="glass-panel asset-card-detail-empty">이 결제기간에 등록된 내역이 없습니다.</div>
+          ) : (
+            <MobileLedgerTimeline
+              items={cardPaymentTransactions}
+              expenseCategories={allExpenseCategories}
+              incomeCategories={allIncomeCategories}
+              assetCategories={allAssetCategories}
+              assets={assets}
+              formatMoney={formatMoney}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              currentAssetId={currentAsset.id}
+            />
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="asset-history-page" aria-label="자산 상세 이력">
@@ -1405,27 +1537,18 @@ function AssetHistoryPage({
                     <span>{period.dueDate.replace(/-/g, '.')} 결제 예상액</span>
                     <strong>{formatMoney(period.amount)}</strong>
                   </div>
-                  {!currentPaymentDueDate || period.dueDate <= currentPaymentDueDate ? (
-                    <button
-                      type="button"
-                      className="primary-button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `${period.periodStart} ~ ${period.periodEnd} 사용분 ${formatMoney(
-                              period.amount
-                            )}을 ${paymentAsset ? formatAssetLabel(paymentAsset, allAssetCategories) : '결제 계좌'}에서 결제 처리할까요?`
-                          )
-                        ) {
-                          void handleCardSettlement(currentAsset, period);
-                        }
-                      }}
-                    >
-                      결제
+                  <div className="asset-card-payment-actions">
+                    <button type="button" className="asset-card-payment-detail-button" onClick={() => openCardPaymentDetail(period)}>
+                      상세
                     </button>
-                  ) : (
-                    <span className="asset-card-payment-future">예정</span>
-                  )}
+                    {!currentPaymentDueDate || period.dueDate <= currentPaymentDueDate ? (
+                      <button type="button" className="primary-button" onClick={() => confirmCardSettlement(period)}>
+                        결제
+                      </button>
+                    ) : (
+                      <span className="asset-card-payment-future">예정</span>
+                    )}
+                  </div>
                 </div>
               ))}
               {hasMoreCardPayments && (
@@ -2677,8 +2800,10 @@ export default function App() {
       contentTop: contentScrollRef.current?.scrollTop ?? 0,
       documentTop: window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0,
     };
+    const nextHistoryState = { ...(window.history.state || {}) };
+    delete nextHistoryState.mywalletCardPaymentDetail;
     window.history.pushState(
-      { ...(window.history.state || {}), mywalletAssetDetail: asset.id },
+      { ...nextHistoryState, mywalletAssetDetail: asset.id },
       '',
       window.location.href,
     );
