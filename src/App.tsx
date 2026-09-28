@@ -6282,7 +6282,7 @@ ${sheet4Rows}  </sheetData>
     <section className="calendar-view-container ledger-calendar-view">
       <div className="calendar-control ledger-calendar-month-navigation">
         <button type="button" className="calendar-nav-btn" onClick={handleCalendarPrev} aria-label="이전 달"><AppIcon name="chevronLeft" size={20} /></button>
-        <h2 className="page-title-kor page-title-with-icon"><AppIcon name="calendar" size={18} /> {calendarYear}년 {calendarMonth + 1}월</h2>
+        <h2 className="page-title-kor">{calendarYear}년 {calendarMonth + 1}월</h2>
         <button type="button" className="calendar-nav-btn" onClick={handleCalendarNext} aria-label="다음 달"><AppIcon name="chevronRight" size={20} /></button>
       </div>
       <div className="calendar-day-names-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '4px' }}>
