@@ -5621,7 +5621,7 @@ html[data-style-theme="doodle"] .asset-detail-toggle-switch {
 }
 
 html[data-style-theme="doodle"] .asset-detail-toggle input:checked + .asset-detail-toggle-switch {
-  background: rgba(234, 179, 8, 0.3) !important;
+  background: rgba(var(--primary-rgb), 0.3) !important;
   border-color: #1e1903 !important;
 }
 
@@ -6747,6 +6747,16 @@ html[data-style-theme="doodle"] .summary-hero-title {
   letter-spacing: -0.02em;
 }
 
+/* Doodle accent colors are shared by light and dark themes. */
+html[data-style-theme="doodle"] {
+  --primary: #eab308;
+  --primary-hover: #ca8a04;
+  --primary-rgb: 234, 179, 8;
+  --primary-light: #facc15;
+  --primary-soft: rgba(234, 179, 8, 0.18);
+  --brand-highlight: #eab308;
+}
+
 /* Subtle Warm Notebook Background for Light Doodle Mode */
 html[data-style-theme="doodle"][data-theme="light"] {
   --bg-app: #fcf9f2;
@@ -6754,12 +6764,6 @@ html[data-style-theme="doodle"][data-theme="light"] {
   --bg-card: rgba(255, 253, 248, 0.94);
   --border-card: rgba(180, 160, 130, 0.28);
   --border-input: #e6dfd1;
-  --primary: #eab308;
-  --primary-hover: #ca8a04;
-  --primary-rgb: 234, 179, 8;
-  --primary-light: #facc15;
-  --primary-soft: rgba(234, 179, 8, 0.18);
-  --brand-highlight: #eab308;
   --surface-inverse: #2c241d;
 }
 
@@ -6784,12 +6788,6 @@ html[data-style-theme="doodle"][data-theme="dark"] {
   --bg-card: rgba(28, 25, 22, 0.88);
   --border-card: rgba(255, 255, 255, 0.12);
   --border-input: #383028;
-  --primary: #facc15;
-  --primary-hover: #fde047;
-  --primary-rgb: 250, 204, 21;
-  --primary-light: #fef08a;
-  --primary-soft: rgba(250, 204, 21, 0.22);
-  --brand-highlight: #facc15;
   --surface-inverse: #12100e;
 }
 
@@ -6861,7 +6859,7 @@ html[data-style-theme="doodle"] .month-picker-display {
 
 html[data-style-theme="doodle"] .month-nav-button:hover,
 html[data-style-theme="doodle"] .month-picker-display:hover {
-  background: rgba(234, 179, 8, 0.12) !important;
+  background: rgba(var(--primary-rgb), 0.12) !important;
   border-radius: 8px !important;
   transform: scale(1.05) !important;
 }
@@ -6908,7 +6906,7 @@ html[data-style-theme="doodle"] .header-settings-btn.active,
 html[data-style-theme="doodle"] .privacy-toggle.active {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
-  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.35) !important;
+  box-shadow: 0 3px 10px rgba(var(--primary-rgb), 0.35) !important;
 }
 
 html[data-style-theme="doodle"] .sync-mini-indicator.synced,
@@ -6954,8 +6952,8 @@ html[data-style-theme="doodle"] .sidebar nav a {
 }
 
 html[data-style-theme="doodle"] .sidebar nav a:hover:not(.active) {
-  background: rgba(254, 240, 138, 0.12) !important;
-  border-color: rgba(234, 179, 8, 0.35) !important;
+  background: rgba(var(--primary-rgb), 0.12) !important;
+  border-color: rgba(var(--primary-rgb), 0.35) !important;
   border-radius: 14px 6px 16px 8px / 8px 16px 6px 14px !important;
   color: var(--primary) !important;
   box-shadow: 1px 2px 0px rgba(0, 0, 0, 0.08) !important;
@@ -6991,7 +6989,7 @@ html[data-style-theme="doodle"] .mobile-primary-action {
 }
 
 html[data-style-theme="doodle"] .mobile-primary-action:hover {
-  background: var(--primary-hover) !important;
+  background: var(--primary) !important;
   transform: translateY(-1px) scale(1.03) !important;
 }
 
@@ -7002,15 +7000,15 @@ html[data-style-theme="doodle"] .mobile-primary-action .app-icon {
 
 html[data-style-theme="doodle"] .desktop-registration-action > button {
   background: linear-gradient(135deg, var(--primary-light), var(--primary)) !important;
-  border: 1.5px solid #fef08a !important;
+  border: 1.5px solid var(--primary-light) !important;
   color: #1e1903 !important;
   font-weight: 900 !important;
-  box-shadow: 0 8px 18px rgba(234, 179, 8, 0.35) !important;
+  box-shadow: 0 8px 18px rgba(var(--primary-rgb), 0.35) !important;
 }
 
 html[data-style-theme="doodle"] .desktop-registration-action > button:hover {
   background: linear-gradient(135deg, var(--primary-light), var(--primary-hover)) !important;
-  box-shadow: 0 12px 24px rgba(234, 179, 8, 0.45) !important;
+  box-shadow: 0 12px 24px rgba(var(--primary-rgb), 0.45) !important;
 }
 
 /* Doodle Month Navigation in Header */
@@ -7031,7 +7029,7 @@ html[data-style-theme="doodle"] .view-toggle-btn.active {
   background: var(--primary) !important;
   color: #1e1903 !important;
   font-weight: 850 !important;
-  box-shadow: 0 3px 10px rgba(234, 179, 8, 0.3) !important;
+  box-shadow: 0 3px 10px rgba(var(--primary-rgb), 0.3) !important;
 }
 
 /* Doodle Category / Asset Focus Ring */
@@ -7039,6 +7037,41 @@ html[data-style-theme="doodle"] .picker-grid-btn.highlighted,
 html[data-style-theme="doodle"] .picker-grid-btn.selected {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 2px var(--primary) !important;
+}
+
+/* Doodle primary actions use one yellow surface with dark text everywhere. */
+html[data-style-theme="doodle"] .primary-button,
+html[data-style-theme="doodle"] .category-row-action-save,
+html[data-style-theme="doodle"] .category-create-card .primary-button,
+html[data-style-theme="doodle"] .category-palette-actions .primary-button,
+html[data-style-theme="doodle"] .entry-modal .asset-entry-form .entry-actions > .primary-button,
+html[data-style-theme="doodle"] .registration-mode-tabs > button.active.asset {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #1e1903 !important;
+}
+
+html[data-style-theme="doodle"] .primary-button:hover,
+html[data-style-theme="doodle"] .category-row-action-save:hover,
+html[data-style-theme="doodle"] .entry-modal .asset-entry-form .entry-actions > .primary-button:hover {
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: #1e1903 !important;
+}
+
+html[data-style-theme="doodle"] .close-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--primary) !important;
+  border-radius: 50% !important;
+  background: var(--primary) !important;
+  color: #1e1903 !important;
+}
+
+html[data-style-theme="doodle"] .close-btn:hover {
+  background: var(--primary-hover) !important;
+  color: #1e1903 !important;
 }
 
 /* ==================== Doodle Charts Styling ==================== */

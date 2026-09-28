@@ -29,8 +29,14 @@
 .row-action-edit { background: var(--primary) !important; }
 .row-action-edit .app-icon { display: block; }
 
-html[data-style-theme="doodle"][data-theme="dark"] .row-action-button {
+html[data-style-theme="doodle"] .row-action-button {
+  background: var(--primary) !important;
   color: #1e1903 !important;
+}
+
+html[data-style-theme="doodle"] .row-action-button .app-icon {
+  color: #1e1903 !important;
+  stroke: #1e1903 !important;
 }
 
 .row-action-delete {
@@ -38,6 +44,11 @@ html[data-style-theme="doodle"][data-theme="dark"] .row-action-button {
   background: var(--color-expense) !important;
   font-size: 0 !important;
   line-height: 1 !important;
+}
+
+html[data-style-theme="doodle"] .row-action-delete {
+  background: var(--color-expense) !important;
+  color: #fff !important;
 }
 
 .row-action-delete::before,
