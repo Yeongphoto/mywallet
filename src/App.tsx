@@ -6910,8 +6910,8 @@ ${sheet4Rows}  </sheetData>
                     {/* SVG Definition for Gradients & Tetris Block Patterns */}
                     <defs>
                       <linearGradient id="chart-income-grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#34d399" />
-                        <stop offset="100%" stopColor="#10b981" />
+                        <stop offset="0%" stopColor="#60a5fa" />
+                        <stop offset="100%" stopColor="#3b82f6" />
                       </linearGradient>
                       <linearGradient id="chart-expense-grad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#f87171" />

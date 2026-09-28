@@ -24,6 +24,7 @@
   --color-income: #3b82f6;
   --color-transfer: #8b5cf6;
   --color-asset: #10b981;
+  --asset-action-bg: color-mix(in srgb, var(--color-asset) 30%, #065f46);
   --color-balance: #0f172a;
   --color-budget: #f59e0b;
   
@@ -1064,6 +1065,16 @@ textarea:focus {
 .primary-button:hover {
   background: var(--primary-hover);
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+}
+
+.entry-modal .asset-entry-form .entry-actions > .primary-button {
+  background: var(--asset-action-bg);
+  color: #fff;
+}
+
+.entry-modal .asset-entry-form .entry-actions > .primary-button:hover {
+  background: color-mix(in srgb, var(--color-asset) 20%, #064e3b);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-asset) 28%, transparent);
 }
 
 /* Cards & Glassmorphism */
@@ -3369,7 +3380,7 @@ body.category-handle-drag-active {
 }
 
 .registration-mode-tabs > button.active { background: var(--primary); color: #fff; }
-.registration-mode-tabs > button.active.asset { background: var(--color-asset); color: #052e23; }
+.registration-mode-tabs > button.active.asset { background: var(--asset-action-bg); color: #fff; }
 .registration-mode-tabs > button.active.expense { background: var(--color-expense); }
 .registration-mode-tabs > button.active.income { background: var(--color-income); }
 .registration-mode-tabs > button.active.transfer { background: var(--color-transfer); }
@@ -3382,12 +3393,16 @@ body.category-handle-drag-active {
 
 [data-theme='dark'] .registration-mode-tabs > button.active {
   border-color: transparent;
-  color: #111827;
+  color: #fff;
 }
 
+[data-theme='dark'] .registration-mode-tabs > button.active.expense { background: color-mix(in srgb, var(--color-expense) 65%, #111827); }
+[data-theme='dark'] .registration-mode-tabs > button.active.income { background: color-mix(in srgb, var(--color-income) 65%, #111827); }
+[data-theme='dark'] .registration-mode-tabs > button.active.transfer { background: color-mix(in srgb, var(--color-transfer) 65%, #111827); }
+
 [data-theme='dark'] .registration-mode-tabs > button.active.asset {
-  background: var(--color-asset);
-  color: #052e23;
+  background: var(--asset-action-bg);
+  color: #fff;
 }
 
 .modal-content .instant-select-trigger > span[aria-hidden='true'] {
