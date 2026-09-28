@@ -560,7 +560,11 @@ function MobileLedgerSwipeItem({
             setOffset(clampOffset(gestureRef.current.baseOffset + deltaX));
           }}
           onPointerUp={(event) => {
-            if (!gestureRef.current.isHorizontal) return;
+            if (!gestureRef.current.isHorizontal) {
+              const moved = Math.hypot(event.clientX - gestureRef.current.startX, event.clientY - gestureRef.current.startY);
+              if (isOpen && moved < 8) onOpenChange(false);
+              return;
+            }
             const nextOffset = clampOffset(gestureRef.current.baseOffset + event.clientX - gestureRef.current.startX);
             onOpenChange(nextOffset <= -(actionWidth / 2));
             gestureRef.current.isHorizontal = false;
@@ -655,6 +659,20 @@ function MobileLedgerTimeline({
   currentAssetId?: string;
 }) {
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openSwipeId) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      const openSwipe = timelineRef.current?.querySelector('.mobile-ledger-swipe.is-open');
+      if (target instanceof Element && openSwipe?.contains(target) && target.closest('.mobile-ledger-swipe-actions, .mobile-ledger-swipe-region')) return;
+      setOpenSwipeId(null);
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePointer, true);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer, true);
+  }, [openSwipeId]);
+
   const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
   const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
   const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
@@ -705,7 +723,7 @@ function MobileLedgerTimeline({
   };
 
   return (
-    <div className="mobile-ledger-timeline" aria-label="모바일 거래 장부">
+    <div ref={timelineRef} className="mobile-ledger-timeline" aria-label="모바일 거래 장부">
       {groups.length === 0 ? (
         <p className="mobile-ledger-empty">등록된 내역이 없습니다.</p>
       ) : groups.map((group) => {
