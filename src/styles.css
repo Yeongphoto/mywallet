@@ -7290,7 +7290,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   align-items: flex-end;
   justify-content: space-around;
   gap: 10px;
-  height: 84px;
+  height: 168px;
   padding-top: 8px;
   padding-bottom: 2px;
 }
@@ -7341,7 +7341,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 7px 12px;
   border-radius: 12px;
   background: var(--bg-input);
   border: 1px solid var(--border-card);
@@ -7349,23 +7349,21 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
 }
 
 .trend-piggy-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--primary) 15%, var(--bg-card));
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.45rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-  border: 2px solid var(--border-card);
 }
 
 .trend-bubble-content {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
   flex: 1;
   min-width: 0;
 }
@@ -7375,6 +7373,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   font-weight: 850;
   color: var(--text-primary);
   line-height: 1.3;
+  white-space: nowrap;
 }
 
 .trend-bubble-desc {
@@ -7393,7 +7392,7 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   font-size: 0.7rem;
   font-weight: 750;
   width: fit-content;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .trend-badge-pill.success {

@@ -1037,7 +1037,7 @@ function MonthlyTransactionSubpage({
               <div 
                 className="trend-bar-pill" 
                 style={{ 
-                  height: `${Math.max(12, Math.round((amount2 / max3MonthAmount) * 72))}px`,
+                  height: `${Math.max(12, Math.round((amount2 / max3MonthAmount) * 144))}px`,
                   background: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)'
                 }} 
               />
@@ -1050,7 +1050,7 @@ function MonthlyTransactionSubpage({
               <div 
                 className="trend-bar-pill" 
                 style={{ 
-                  height: `${Math.max(12, Math.round((amount1 / max3MonthAmount) * 72))}px`,
+                  height: `${Math.max(12, Math.round((amount1 / max3MonthAmount) * 144))}px`,
                   background: 'color-mix(in srgb, var(--text-secondary) 50%, transparent)'
                 }} 
               />
@@ -1063,7 +1063,7 @@ function MonthlyTransactionSubpage({
               <div 
                 className="trend-bar-pill" 
                 style={{ 
-                  height: `${Math.max(12, Math.round((amount0 / max3MonthAmount) * 72))}px`,
+                  height: `${Math.max(12, Math.round((amount0 / max3MonthAmount) * 144))}px`,
                   background: isIncome ? 'var(--color-income)' : 'var(--color-expense)',
                   boxShadow: isIncome ? '0 4px 12px rgba(59, 130, 246, 0.35)' : '0 4px 12px rgba(239, 68, 68, 0.35)'
                 }} 
@@ -1082,7 +1082,7 @@ function MonthlyTransactionSubpage({
             <div className="trend-bubble-title">{wittyFeedback.title}</div>
             <p className="trend-bubble-desc">{wittyFeedback.desc}</p>
             <span className={`trend-badge-pill ${wittyFeedback.badgeClass}`}>
-              {wittyFeedback.badgeText}
+              ({percent > 0 ? '+' : percent < 0 ? '-' : ''}{Math.abs(percent).toFixed(1)}%)
             </span>
           </div>
         </div>
@@ -6646,7 +6646,7 @@ ${sheet4Rows}  </sheetData>
                     </defs>
 
                     {/* Background Circle / Donut Hole Background */}
-                    <circle cx="190" cy="185" r="96" fill="var(--bg-input)" opacity="0.3" />
+                    <circle cx="190" cy="175" r="115" fill="var(--bg-input)" opacity="0.3" />
 
                     {assetFlowSegments.length === 0 ? (
                       <text x="190" y="190" textAnchor="middle" fill="var(--text-secondary)" fontSize="13" fontWeight="bold">
@@ -6654,10 +6654,10 @@ ${sheet4Rows}  </sheetData>
                       </text>
                     ) : (
                       (() => {
-                        const R_outer = 96;
-                        const R_inner = 64;
+                        const R_outer = 115;
+                        const R_inner = 77;
                         const CX = 190;
-                        const CY = 185;
+                        const CY = 175;
                         let accumulatedAngle = -90; // 12시 방향부터 시작
 
                         // 1단계: 너무 작아서 겹치는 세그먼트에 최소 렌더링 퍼센트(5%) 적용
@@ -6709,7 +6709,7 @@ ${sheet4Rows}  </sheetData>
 
                               // 지그재그 오프셋 계산 (인접 겹침 방지)
                               const smallIndex = smallSegments.findIndex(s => s.id === segment.id);
-                              const lineScale = 1.15 + (smallIndex !== -1 ? (smallIndex % 3) * 0.14 : 0);
+                              const lineScale = 1.08 + (smallIndex !== -1 ? (smallIndex % 3) * 0.14 : 0);
                               const horizontalLength = 12 + (smallIndex !== -1 ? (smallIndex % 3) * 6 : 0);
 
                               const lxStart = CX + R_outer * 0.98 * Math.cos(rad);
