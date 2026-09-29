@@ -34,6 +34,8 @@ const assetCategories: CategoryOption[] = [
 const STORAGE_KEY = 'mywallet:v2';
 const THEME_STORAGE_KEY = 'mywallet:theme';
 const STYLE_THEME_STORAGE_KEY = 'mywallet:styleTheme';
+const NO_SPEND_CHALLENGE_STORAGE_KEY = 'mywallet:noSpendChallenge';
+const NO_SPEND_PLEDGES_STORAGE_KEY = 'mywallet:noSpendPledges';
 const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
 const PENDING_TRANSACTION_OPERATIONS_KEY = 'mywallet:v2:pendingTransactionOperations';
 const SYNC_CURSOR_KEY = 'mywallet:v2:syncCursor';
@@ -249,6 +251,133 @@ function getPreviousMonth(month: string) {
   const [year, monthNumber] = month.split('-').map(Number);
   const previousDate = new Date(year, monthNumber - 2, 1);
   return `${previousDate.getFullYear()}-${String(previousDate.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getPreviousDateString(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const prev = new Date(y, m - 1, d - 1);
+  const year = prev.getFullYear();
+  const month = String(prev.getMonth() + 1).padStart(2, '0');
+  const day = String(prev.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+interface NoSpendStreakInfo {
+  streak: number;
+  badgeTag: string;
+  badgeIcon: string;
+  cardTitle: string;
+  cardDesc: string;
+}
+
+function calculateNoSpendStreak(
+  targetDate: string,
+  transactions: Transaction[],
+  minDate?: string | null
+): number {
+  const todayStr = getToday();
+  if (targetDate > todayStr) return 0;
+  if (transactions.length === 0) return 0;
+
+  const earliestDate = minDate || transactions.reduce((min, t) => (t.date < min ? t.date : min), targetDate);
+  if (!earliestDate || targetDate < earliestDate) return 0;
+
+  const expenseByDate = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type === 'expense') {
+      expenseByDate.set(t.date, (expenseByDate.get(t.date) || 0) + t.amount);
+    }
+  }
+
+  if ((expenseByDate.get(targetDate) || 0) > 0) return 0;
+
+  let streak = 0;
+  let curr = targetDate;
+
+  while (curr >= earliestDate && curr <= todayStr) {
+    const expense = expenseByDate.get(curr) || 0;
+    if (expense === 0) {
+      streak += 1;
+      curr = getPreviousDateString(curr);
+    } else {
+      break;
+    }
+  }
+
+  return Math.max(1, streak);
+}
+
+function getNoSpendStreakInfo(targetDate: string, streak: number, isPledged = false): NoSpendStreakInfo {
+  const isToday = targetDate === getToday();
+
+  // 오늘인 경우
+  if (isToday) {
+    if (isPledged) {
+      return {
+        streak: Math.max(1, streak),
+        badgeTag: streak >= 2 ? `🔥 ${streak}일 연속 도전중` : '🔥 챌린지 도전중',
+        badgeIcon: '🔥',
+        cardTitle: streak >= 2 ? `${streak}일 연속 무지출 도전 진행 중! 🔥` : '오늘 무지출 도전 진행 중! 🔥',
+        cardDesc: '자정까지 0원을 방어하면 챌린지 성공 달성! 🛡️',
+      };
+    }
+    return {
+      streak: Math.max(1, streak),
+      badgeTag: streak >= 2 ? `🔥 ${streak}일 연속` : '🍀 0원',
+      badgeIcon: streak >= 2 ? '🔥' : '🍀',
+      cardTitle: streak >= 2 ? `${streak}일 연속 지출 0원 방어 중! 🍀` : '오늘 지출 0원 방어 중! 🍀',
+      cardDesc: '소비 유혹을 이겨내고 하루를 알뜰하게 지키는 중 ✨',
+    };
+  }
+
+  // 과거 날짜 중 도전을 선언하고 달성한 날 (🏆 트로피 챌린지 성공!)
+  if (isPledged) {
+    if (streak <= 1) {
+      return {
+        streak: 1,
+        badgeTag: '🏆 챌린지 성공',
+        badgeIcon: '🏆',
+        cardTitle: '무지출 챌린지 도전 성공! 🏆',
+        cardDesc: '스스로 다짐한 무지출 챌린지를 멋지게 성공해냈습니다! 🎉',
+      };
+    }
+    return {
+      streak,
+      badgeTag: `🏆 ${streak}일 연속 성공`,
+      badgeIcon: '🏆',
+      cardTitle: `무지출 챌린지 ${streak}일 연속 성공! 🏆🔥`,
+      cardDesc: `${streak}일 동안 스스로의 다짐을 지켜내며 챌린지를 완벽히 달성했습니다!`,
+    };
+  }
+
+  // 일반 무지출 (도전 선언 없이 지출 0원 달성한 날)
+  if (streak <= 1) {
+    return {
+      streak: 1,
+      badgeTag: '🍀 0원',
+      badgeIcon: '🍀',
+      cardTitle: '무지출 달성 완료!',
+      cardDesc: '소비 유혹을 이겨내고 소중한 자산을 지켜낸 날입니다.',
+    };
+  }
+
+  if (streak === 2) {
+    return {
+      streak: 2,
+      badgeTag: '🔥 2일 연속',
+      badgeIcon: '🔥',
+      cardTitle: '무지출 연속 달성! (2일) 🔥',
+      cardDesc: '이틀 연속 소비 없는 알뜰한 하루를 성공적으로 이어갔어요.',
+    };
+  }
+
+  return {
+    streak,
+    badgeTag: `🔥 ${streak}일 연속`,
+    badgeIcon: '🔥',
+    cardTitle: `무지출 ${streak}일 연속 달성! 🔥`,
+    cardDesc: `${streak}일 동안 흔들림 없이 소중한 자산을 멋지게 지켜냈습니다.`,
+  };
 }
 
 function createId() {
@@ -648,6 +777,13 @@ function MobileLedgerTimeline({
   onEdit,
   onDelete,
   currentAssetId,
+  isNoSpendChallengeEnabled = false,
+  selectedMonth,
+  isFilterApplied = false,
+  allTransactions,
+  firstTransactionDate,
+  pledgedDates = [],
+  onTogglePledgeToday,
 }: {
   items: Transaction[];
   expenseCategories: CategoryOption[];
@@ -658,6 +794,13 @@ function MobileLedgerTimeline({
   onEdit: (transaction: Transaction) => void;
   onDelete: (id: string) => void;
   currentAssetId?: string;
+  isNoSpendChallengeEnabled?: boolean;
+  selectedMonth?: string;
+  isFilterApplied?: boolean;
+  allTransactions?: Transaction[];
+  firstTransactionDate?: string | null;
+  pledgedDates?: string[];
+  onTogglePledgeToday?: (pledge: boolean) => void;
 }) {
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -675,16 +818,53 @@ function MobileLedgerTimeline({
   }, [openSwipeId]);
 
   const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
+  const todayStr = getToday();
+
   const sortedItems = [...items].sort((a, b) => `${b.date} ${b.time || ''}`.localeCompare(`${a.date} ${a.time || ''}`));
-  const groups = sortedItems.reduce<Array<{ date: string; items: Transaction[] }>>((result, transaction) => {
-    const currentGroup = result[result.length - 1];
-    if (!currentGroup || currentGroup.date !== transaction.date) {
-      result.push({ date: transaction.date, items: [transaction] });
-    } else {
-      currentGroup.items.push(transaction);
+  const itemsByDate = new Map<string, Transaction[]>();
+  for (const transaction of sortedItems) {
+    const list = itemsByDate.get(transaction.date) || [];
+    list.push(transaction);
+    itemsByDate.set(transaction.date, list);
+  }
+
+  const dateSet = new Set<string>(itemsByDate.keys());
+
+  const effectiveFirstDate = firstTransactionDate !== undefined
+    ? firstTransactionDate
+    : (allTransactions && allTransactions.length > 0
+        ? allTransactions.reduce((min, t) => (t.date < min ? t.date : min), allTransactions[0].date)
+        : null);
+
+  if (isNoSpendChallengeEnabled && selectedMonth && !isFilterApplied && effectiveFirstDate) {
+    const [yStr, mStr] = selectedMonth.split('-');
+    const year = Number(yStr);
+    const month = Number(mStr);
+    if (!Number.isNaN(year) && !Number.isNaN(month)) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        if (dateStr >= effectiveFirstDate && dateStr <= todayStr) {
+          const dayItems = itemsByDate.get(dateStr) || [];
+          const dayExpense = dayItems.filter((t) => {
+            if (t.type === 'expense') return true;
+            if (currentAssetId && t.type === 'transfer' && t.assetId === currentAssetId) return true;
+            return false;
+          }).reduce((sum, t) => sum + t.amount, 0);
+
+          if (dayExpense === 0) {
+            dateSet.add(dateStr);
+          }
+        }
+      }
     }
-    return result;
-  }, []);
+  }
+
+  const sortedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+  const groups = sortedDates.map((dateStr) => ({
+    date: dateStr,
+    items: itemsByDate.get(dateStr) || [],
+  }));
 
   const getAssetName = (id: string | null | undefined) => {
     const asset = assets.find((item) => item.id === id);
@@ -739,8 +919,20 @@ function MobileLedgerTimeline({
           if (currentAssetId && item.type === 'transfer' && item.assetId === currentAssetId) return true;
           return false;
         }).reduce((sum, item) => sum + item.amount, 0);
+
+        const isPastOrToday = group.date <= todayStr;
+        const isAfterOrOnFirst = Boolean(effectiveFirstDate && group.date >= effectiveFirstDate);
+        const isNoSpendDay = isNoSpendChallengeEnabled && isPastOrToday && isAfterOrOnFirst && expense === 0;
+        const isToday = group.date === todayStr;
+        const streak = isNoSpendDay ? calculateNoSpendStreak(group.date, allTransactions || items, effectiveFirstDate) : 0;
+        const isPledged = Boolean(pledgedDates?.includes(group.date));
+        const streakInfo = getNoSpendStreakInfo(group.date, streak, isPledged);
+
         return (
-          <section className="mobile-ledger-day" key={group.date}>
+          <section
+            className={`mobile-ledger-day ${isNoSpendDay ? 'no-spend-day-group' : ''} ${isNoSpendDay && isPledged ? 'pledged' : ''} ${isNoSpendDay && isPledged && isToday ? 'today-pledged' : ''}`}
+            key={group.date}
+          >
             <header className="mobile-ledger-day-header">
               <div className="mobile-ledger-date-card">
                 <strong>{Number(date.getMonth() + 1)}월 {Number(group.date.slice(8, 10))}일</strong>
@@ -748,37 +940,137 @@ function MobileLedgerTimeline({
               </div>
               <div className="mobile-ledger-day-totals">
                 {income > 0 && <span className="income">+{formatMoney(income)}</span>}
-                {expense > 0 && <span className="expense">-{formatMoney(expense)}</span>}
+                {expense > 0 ? (
+                  <span className="expense">-{formatMoney(expense)}</span>
+                ) : isNoSpendDay ? (
+                  <span
+                    className={`no-spend-day-tag ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}
+                    title={
+                      isPledged
+                        ? streak >= 2
+                          ? `무지출 챌린지 ${streak}일 연속 달성!`
+                          : '무지출 챌린지 달성!'
+                        : streak >= 2
+                          ? `무지출 ${streak}일 연속 달성!`
+                          : '무지출 달성'
+                    }
+                  >
+                    <span className="no-spend-tag-icon" aria-hidden="true">{streakInfo.badgeIcon}</span> {streakInfo.badgeTag.slice(streakInfo.badgeIcon.length).trim()}
+                  </span>
+                ) : null}
               </div>
             </header>
-            <div className="mobile-ledger-day-list">
-              {group.items.map((transaction) => {
-                const typeClass = getItemTypeClass(transaction);
-                const title = transaction.title || getCategoryName(transaction);
-                const detail = getDetail(transaction);
-                return (
-                  <MobileLedgerSwipeItem
-                    key={transaction.id}
-                    transaction={transaction}
-                    typeClass={typeClass}
-                    category={getCategoryName(transaction)}
-                    title={title}
-                    detail={detail}
-                    formatMoney={formatMoney}
-                    isOpen={openSwipeId === transaction.id}
-                    onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)}
-                    onEdit={() => {
-                      setOpenSwipeId(null);
-                      onEdit(transaction);
-                    }}
-                    onDelete={() => {
-                      setOpenSwipeId(null);
-                      onDelete(transaction.id);
-                    }}
-                  />
-                );
-              })}
-            </div>
+            {group.items.length === 0 ? (
+              <div className="mobile-ledger-day-list">
+                <div className={`mobile-ledger-no-spend-card ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}>
+                  <div className="no-spend-card-main">
+                    <div className={`no-spend-card-badge ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`} aria-hidden="true">
+                      {streakInfo.badgeIcon}
+                    </div>
+                    <div className="no-spend-card-info">
+                      <strong className={`no-spend-card-title ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}>
+                        {streakInfo.cardTitle}
+                      </strong>
+                      <span className="no-spend-card-desc">
+                        {streakInfo.cardDesc}
+                      </span>
+                    </div>
+                  </div>
+                  {isToday && onTogglePledgeToday && (
+                    <div className="no-spend-card-actions">
+                      {!isPledged ? (
+                        <button
+                          type="button"
+                          className="no-spend-pledge-action-btn"
+                          onClick={() => onTogglePledgeToday(true)}
+                        >
+                          🎯 도전하기
+                        </button>
+                      ) : (
+                        <div className="no-spend-pledged-status-bar">
+                          <span className="pledged-status-pill">
+                            <span className="pledged-pulse-dot" />
+                            도전 중
+                          </span>
+                          <button
+                            type="button"
+                            className="pledged-cancel-btn"
+                            onClick={() => onTogglePledgeToday(false)}
+                          >
+                            취소
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="mobile-ledger-day-list">
+                {isNoSpendDay && (
+                  <div className={`mobile-ledger-no-spend-mini-banner ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}>
+                    <span className="no-spend-mini-icon" aria-hidden="true">{streakInfo.badgeIcon}</span>
+                    <span className="no-spend-mini-text">
+                      {isPledged
+                        ? streak >= 2
+                          ? `🏆 ${streak}일 연속 무지출 챌린지 성공! (수입·이체만 발생)`
+                          : '🏆 무지출 챌린지 성공! (수입·이체만 발생)'
+                        : streak >= 2
+                          ? `${streak}일 연속 무지출 중! (수입·이체만 발생한 날)`
+                          : '지출 없이 수입·이체만 발생한 날이에요!'}
+                    </span>
+                    {isToday && onTogglePledgeToday && (
+                      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {!isPledged ? (
+                          <button
+                            type="button"
+                            className="no-spend-pledge-action-btn"
+                            style={{ padding: '4px 10px', fontSize: '0.76rem' }}
+                            onClick={() => onTogglePledgeToday(true)}
+                          >
+                            🎯 도전하기!
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="pledged-cancel-btn"
+                            onClick={() => onTogglePledgeToday(false)}
+                          >
+                            도전 취소
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {group.items.map((transaction) => {
+                  const typeClass = getItemTypeClass(transaction);
+                  const title = transaction.title || getCategoryName(transaction);
+                  const detail = getDetail(transaction);
+                  return (
+                    <MobileLedgerSwipeItem
+                      key={transaction.id}
+                      transaction={transaction}
+                      typeClass={typeClass}
+                      category={getCategoryName(transaction)}
+                      title={title}
+                      detail={detail}
+                      formatMoney={formatMoney}
+                      isOpen={openSwipeId === transaction.id}
+                      onOpenChange={(open) => setOpenSwipeId(open ? transaction.id : null)}
+                      onEdit={() => {
+                        setOpenSwipeId(null);
+                        onEdit(transaction);
+                      }}
+                      onDelete={() => {
+                        setOpenSwipeId(null);
+                        onDelete(transaction.id);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </section>
         );
       })}
@@ -2437,6 +2729,37 @@ export default function App() {
   const [budget, setBudget] = useState<number>(storedData.budget);
   const [theme, setTheme] = useState<ThemePreference>(storedData.theme);
   const [styleTheme, setStyleTheme] = useState<StyleThemePreference>(storedData.styleTheme || 'default');
+  const [isNoSpendChallengeEnabled, setIsNoSpendChallengeEnabled] = useState<boolean>(() => {
+    try {
+      const raw = window.localStorage.getItem(NO_SPEND_CHALLENGE_STORAGE_KEY);
+      return raw !== null ? raw === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const [pledgedChallengeDates, setPledgedChallengeDates] = useState<string[]>(() => {
+    try {
+      const raw = window.localStorage.getItem(NO_SPEND_PLEDGES_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleTogglePledgeToday = useCallback((pledge: boolean) => {
+    const today = getToday();
+    setPledgedChallengeDates((prev) => {
+      const next = pledge
+        ? Array.from(new Set([...prev, today]))
+        : prev.filter((d) => d !== today);
+      try {
+        window.localStorage.setItem(NO_SPEND_PLEDGES_STORAGE_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+  const [isPledgeInterruptModalOpen, setIsPledgeInterruptModalOpen] = useState(false);
+  const isTodayPledged = isNoSpendChallengeEnabled && pledgedChallengeDates.includes(getToday());
   const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>(getSystemTheme);
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CategoryOption[]>(storedData.customExpenseCategories);
   const [customIncomeCategories, setCustomIncomeCategories] = useState<CategoryOption[]>(storedData.customIncomeCategories);
@@ -2454,6 +2777,11 @@ export default function App() {
   const activeAssets = useMemo(() => {
     return assets.filter((asset) => !hiddenAssets[asset.id]);
   }, [assets, hiddenAssets]);
+
+  const firstTransactionDate = useMemo(() => {
+    if (transactions.length === 0) return null;
+    return transactions.reduce((min, t) => (t.date < min ? t.date : min), transactions[0].date);
+  }, [transactions]);
 
   const hiddenAssetsList = useMemo(() => {
     return assets.filter((asset) => Boolean(hiddenAssets[asset.id]));
@@ -3304,8 +3632,9 @@ export default function App() {
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
       window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+      window.localStorage.setItem(NO_SPEND_CHALLENGE_STORAGE_KEY, String(isNoSpendChallengeEnabled));
     } catch {}
-  }, [theme, systemTheme, styleTheme]);
+  }, [theme, systemTheme, styleTheme, isNoSpendChallengeEnabled]);
 
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
@@ -6295,16 +6624,34 @@ ${sheet4Rows}  </sheetData>
           const daySums = dateWiseSums[day.dateStr];
           const isSelected = selectedDayData === day.dateStr;
           const isToday = day.dateStr === getToday();
+          const isPastOrToday = day.dateStr <= getToday();
+          const isAfterOrOnFirst = Boolean(firstTransactionDate && day.dateStr >= firstTransactionDate);
+          const isNoSpend = isNoSpendChallengeEnabled && isAfterOrOnFirst && isPastOrToday && day.isCurrentMonth && (!daySums || daySums.expense === 0);
+          const isPledged = Boolean(pledgedChallengeDates.includes(day.dateStr));
+          const isTodayPledged = isPledged && isToday;
+          const badgeIcon = isPledged ? (isToday ? '🔥' : '🏆') : '🍀';
+          const badgeText = isPledged ? (isToday ? '도전중' : '성공') : '0원';
+          const badgeTitle = isPledged ? (isToday ? '무지출 챌린지 도전 진행 중' : '무지출 챌린지 성공!') : '무지출';
           return (
             <div
               key={day.dateStr}
-              className={`calendar-cell ${day.isCurrentMonth ? '' : 'prev-month'} ${day.dayOfWeek === 0 ? 'sunday' : day.dayOfWeek === 6 ? 'saturday' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+              className={`calendar-cell ${day.isCurrentMonth ? '' : 'prev-month'} ${day.dayOfWeek === 0 ? 'sunday' : day.dayOfWeek === 6 ? 'saturday' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isNoSpend ? 'no-spend-day' : ''}`}
               onClick={() => { setSelectedDayData(day.dateStr); setModalTab('view'); }}
             >
               <span className="date-number">{day.dayNum}</span>
               <div className="day-values">
                 {daySums?.income > 0 && <span className="calendar-value-badge income"><span className="calendar-value-sign">+</span>{displayCalendarAmount(daySums.income)}</span>}
-                {daySums?.expense > 0 && <span className="calendar-value-badge expense"><span className="calendar-value-sign">−</span>{displayCalendarAmount(daySums.expense)}</span>}
+                {daySums?.expense > 0 ? (
+                  <span className="calendar-value-badge expense"><span className="calendar-value-sign">−</span>{displayCalendarAmount(daySums.expense)}</span>
+                ) : isNoSpend ? (
+                  <span
+                    className={`calendar-value-badge no-spend ${isPledged ? 'pledged' : ''} ${isTodayPledged ? 'today-pledged' : ''}`}
+                    title={badgeTitle}
+                  >
+                    <span className="calendar-no-spend-icon" aria-hidden="true">{badgeIcon}</span>
+                    {badgeText}
+                  </span>
+                ) : null}
               </div>
             </div>
           );
@@ -6363,9 +6710,14 @@ ${sheet4Rows}  </sheetData>
             </a>
             <button
               type="button"
-              className="mobile-primary-action"
-              aria-label={activeTab === 'asset' ? '자산 등록' : '거래 등록'}
+              className={`mobile-primary-action ${isTodayPledged ? 'pledged' : ''}`}
+              aria-label={activeTab === 'asset' ? '자산 등록' : isTodayPledged ? '무지출 챌린지 도전 중 (등록 시 확인)' : '거래 등록'}
+              title={isTodayPledged ? '무지출 챌린지 도전 중!' : (activeTab === 'asset' ? '자산 등록' : '거래 등록')}
               onClick={() => {
+                if (isTodayPledged && activeTab !== 'asset') {
+                  setIsPledgeInterruptModalOpen(true);
+                  return;
+                }
                 openAmountEntry(() => {
                   if (activeTab === 'asset') {
                     setEditingAsset(null);
@@ -6379,7 +6731,11 @@ ${sheet4Rows}  </sheetData>
                 });
               }}
             >
-              <AppIcon name="plus" size={25} />
+              {isTodayPledged ? (
+                <span className="fab-fire-icon" aria-hidden="true">🔥</span>
+              ) : (
+                <AppIcon name="plus" size={25} />
+              )}
             </button>
             <a href="#plan" className={activeTab === 'plan' ? 'active' : ''} onClick={() => setActiveTab('plan')}>
               <span><AppIcon name="plan" /></span>
@@ -6393,7 +6749,12 @@ ${sheet4Rows}  </sheetData>
           <div className="desktop-registration-action">
             <button
               type="button"
+              className={isTodayPledged ? 'pledged' : ''}
               onClick={() => {
+                if (isTodayPledged && activeTab !== 'asset') {
+                  setIsPledgeInterruptModalOpen(true);
+                  return;
+                }
                 openAmountEntry(() => {
                   if (activeTab === 'asset') {
                     setEditingAsset(null);
@@ -6407,8 +6768,12 @@ ${sheet4Rows}  </sheetData>
                 });
               }}
             >
-              <AppIcon name="plus" size={20} />
-              <span>{activeTab === 'asset' ? '자산 등록' : '거래 등록'}</span>
+              {isTodayPledged ? (
+                <span className="desktop-fire-icon" aria-hidden="true" style={{ fontSize: '18px', marginRight: '6px' }}>🔥</span>
+              ) : (
+                <AppIcon name="plus" size={20} />
+              )}
+              <span>{isTodayPledged && activeTab !== 'asset' ? '무지출 챌린지 중' : (activeTab === 'asset' ? '자산 등록' : '거래 등록')}</span>
             </button>
           </div>
         </div>
@@ -7295,13 +7660,21 @@ ${sheet4Rows}  </sheetData>
                 const daySums = dateWiseSums[day.dateStr];
                 const isSelected = selectedDayData === day.dateStr;
                 const isToday = day.dateStr === getToday();
+                const isPastOrToday = day.dateStr <= getToday();
+                const isAfterOrOnFirst = Boolean(firstTransactionDate && day.dateStr >= firstTransactionDate);
+                const isNoSpend = isNoSpendChallengeEnabled && isAfterOrOnFirst && isPastOrToday && day.isCurrentMonth && (!daySums || daySums.expense === 0);
+                const isPledged = Boolean(pledgedChallengeDates.includes(day.dateStr));
+                const isTodayPledged = isPledged && isToday;
+                const badgeIcon = isPledged ? (isToday ? '🔥' : '🏆') : '🍀';
+                const badgeText = isPledged ? (isToday ? '도전중' : '성공') : '0원';
+                const badgeTitle = isPledged ? (isToday ? '무지출 챌린지 도전 진행 중' : '무지출 챌린지 성공!') : '무지출';
                 
                 return (
                   <div
                     key={day.dateStr}
                     className={`calendar-cell ${day.isCurrentMonth ? '' : 'prev-month'} ${
                       day.dayOfWeek === 0 ? 'sunday' : day.dayOfWeek === 6 ? 'saturday' : ''
-                    } ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                    } ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${isNoSpend ? 'no-spend-day' : ''}`}
                     onClick={() => {
                       setSelectedDayData(day.dateStr);
                       setModalTab('view');
@@ -7312,9 +7685,17 @@ ${sheet4Rows}  </sheetData>
                       {daySums?.income > 0 && (
                         <span className="calendar-value-badge income"><span className="calendar-value-sign">+</span>{displayCalendarAmount(daySums.income)}</span>
                       )}
-                      {daySums?.expense > 0 && (
+                      {daySums?.expense > 0 ? (
                         <span className="calendar-value-badge expense"><span className="calendar-value-sign">−</span>{displayCalendarAmount(daySums.expense)}</span>
-                      )}
+                      ) : isNoSpend ? (
+                        <span
+                          className={`calendar-value-badge no-spend ${isPledged ? 'pledged' : ''} ${isTodayPledged ? 'today-pledged' : ''}`}
+                          title={badgeTitle}
+                        >
+                          <span className="calendar-no-spend-icon" aria-hidden="true">{badgeIcon}</span>
+                          {badgeText}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -7410,6 +7791,13 @@ ${sheet4Rows}  </sheetData>
               formatMoney={displayCurrency}
               onEdit={(transaction) => openAmountEntry(() => setEditingTransaction(transaction))}
               onDelete={handleDeleteTransaction}
+              isNoSpendChallengeEnabled={isNoSpendChallengeEnabled}
+              selectedMonth={selectedMonth}
+              isFilterApplied={Boolean(searchTerm.trim() || (filterCategory && filterCategory !== 'all'))}
+              allTransactions={transactions}
+              firstTransactionDate={firstTransactionDate}
+              pledgedDates={pledgedChallengeDates}
+              onTogglePledgeToday={handleTogglePledgeToday}
             />
               </>
             )}
@@ -8242,6 +8630,31 @@ ${sheet4Rows}  </sheetData>
                     </button>
                   </div>
                 </div>
+
+                <div className="settings-row theme-settings-row">
+                  <div>
+                    <strong>무지출 챌린지</strong>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      지출이 0원인 날을 캘린더에 🍀 무지출 도장으로 표시합니다.
+                    </div>
+                  </div>
+                  <div className="theme-toggle" role="group" aria-label="무지출 챌린지">
+                    <button
+                      type="button"
+                      className={isNoSpendChallengeEnabled ? 'active' : ''}
+                      onClick={() => setIsNoSpendChallengeEnabled(true)}
+                    >
+                      🍀 켜짐
+                    </button>
+                    <button
+                      type="button"
+                      className={!isNoSpendChallengeEnabled ? 'active' : ''}
+                      onClick={() => setIsNoSpendChallengeEnabled(false)}
+                    >
+                      꺼짐
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -9008,6 +9421,69 @@ ${sheet4Rows}  </sheetData>
 
 
 
+      {/* Pledge Interrupt Confirmation Modal */}
+      {isPledgeInterruptModalOpen && (
+        <div
+          className="modal-backdrop pledge-interrupt-backdrop"
+          style={{ zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setIsPledgeInterruptModalOpen(false)}
+        >
+          <div
+            className="modal-content pledge-interrupt-modal"
+            style={{
+              width: 'min(calc(100% - 36px), 360px)',
+              padding: '26px 20px 20px',
+              borderRadius: '20px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '14px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pledge-interrupt-icon-box" aria-hidden="true">
+              🔥
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 850, color: 'var(--text-primary)' }}>
+                무지출 챌린지 도전 중!
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                현재 자정까지 지출 방어에 도전 중이에요.<br />
+                정말 중단하시겠어요?
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '4px' }}>
+              <button
+                type="button"
+                className="pledge-continue-btn"
+                onClick={() => setIsPledgeInterruptModalOpen(false)}
+              >
+                챌린지 이어가기
+              </button>
+              <button
+                type="button"
+                className="pledge-interrupt-cancel-btn"
+                onClick={() => {
+                  handleTogglePledgeToday(false);
+                  setIsPledgeInterruptModalOpen(false);
+                  openAmountEntry(() => {
+                    setRegistrationMode('expense');
+                    setIsEntryModalOpen(true);
+                    setModalTab('add');
+                  });
+                }}
+              >
+                장부 등록하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Date Detail View Modal (Calendar Cell Clicked) */}
       {selectedDayData && (
         <div className="modal-backdrop" onClick={() => setSelectedDayData(null)}>
@@ -9022,15 +9498,105 @@ ${sheet4Rows}  </sheetData>
             <div className="modal-body" style={{ padding: '20px 24px' }}>
               <div style={{ display: 'grid', gap: '16px' }}>
                 <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', color: 'var(--text-primary)' }}>지출 및 수입 내역</h4>
-                {transactions.filter((t) => t.date === selectedDayData).length === 0 ? (
-                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>
-                    해당 날짜에 등록된 거래 내역이 없습니다.
-                  </p>
-                ) : (
-                  <div style={{ display: 'grid', gap: '12px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {transactions
-                      .filter((t) => t.date === selectedDayData)
-                      .map((t) => {
+                {(() => {
+                  const dayTx = transactions.filter((t) => t.date === selectedDayData);
+                  const dayExpenseTx = dayTx.filter((t) => t.type === 'expense');
+                  const isPastOrToday = selectedDayData <= getToday();
+                  const isAfterOrOnFirst = Boolean(firstTransactionDate && selectedDayData >= firstTransactionDate);
+                  const isNoSpend = isNoSpendChallengeEnabled && isAfterOrOnFirst && isPastOrToday && dayExpenseTx.length === 0;
+                  const streak = isNoSpend ? calculateNoSpendStreak(selectedDayData, transactions, firstTransactionDate) : 0;
+                  const isPledged = Boolean(pledgedChallengeDates.includes(selectedDayData));
+                  const streakInfo = getNoSpendStreakInfo(selectedDayData, streak, isPledged);
+                  const isToday = selectedDayData === getToday();
+
+                  return (
+                    <>
+                      {isNoSpend && (
+                        <div
+                          className={`no-spend-day-banner ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            padding: '14px 16px',
+                            borderRadius: '12px',
+                            background: isPledged
+                              ? 'rgba(234, 179, 8, 0.12)'
+                              : streak >= 2
+                                ? 'rgba(249, 115, 22, 0.08)'
+                                : 'rgba(16, 185, 129, 0.08)',
+                            border: isPledged
+                              ? '1.5px dashed rgba(234, 179, 8, 0.45)'
+                              : streak >= 2
+                                ? '1.5px dashed rgba(249, 115, 22, 0.4)'
+                                : '1.5px dashed rgba(16, 185, 129, 0.35)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '2rem', lineHeight: 1 }} aria-hidden="true">{streakInfo.badgeIcon}</span>
+                            <div>
+                              <strong
+                                style={{
+                                  fontSize: '0.98rem',
+                                  display: 'block',
+                                  color: isPledged ? '#b45309' : streak >= 2 ? '#ea580c' : '#059669',
+                                }}
+                              >
+                                {streakInfo.cardTitle}
+                              </strong>
+                              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                {streakInfo.cardDesc}
+                              </span>
+                            </div>
+                          </div>
+                          {isToday && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'flex-start',
+                                gap: '10px',
+                                paddingTop: '8px',
+                                borderTop: isPledged ? '1px dashed rgba(234, 179, 8, 0.3)' : '1px dashed rgba(16, 185, 129, 0.25)',
+                              }}
+                            >
+                              {!isPledged ? (
+                                <button
+                                  type="button"
+                                  className="no-spend-pledge-action-btn"
+                                  style={{ padding: '6px 14px', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                                  onClick={() => handleTogglePledgeToday(true)}
+                                >
+                                  🎯 오늘 무지출 챌린지 도전하기!
+                                </button>
+                              ) : (
+                                <div className="no-spend-pledged-status-bar" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                                  <span className="pledged-status-pill" style={{ fontSize: '0.82rem', padding: '5px 12px', whiteSpace: 'nowrap' }}>
+                                    <span className="pledged-pulse-dot" />
+                                    도전 진행 중
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="pledged-cancel-btn"
+                                    onClick={() => handleTogglePledgeToday(false)}
+                                  >
+                                    도전 취소
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {dayTx.length === 0 ? (
+                        !isNoSpend && (
+                          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>
+                            해당 날짜에 등록된 거래 내역이 없습니다.
+                          </p>
+                        )
+                      ) : (
+                        <div style={{ display: 'grid', gap: '12px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+                          {dayTx.map((t) => {
                         const isIncome = t.type === 'income';
                         const isFuture = t.date > getToday();
                         return (
@@ -9112,9 +9678,12 @@ ${sheet4Rows}  </sheetData>
                           </div>
                         );
                       })}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
             </div>
           </div>
         </div>

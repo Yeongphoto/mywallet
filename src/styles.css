@@ -1460,6 +1460,866 @@ textarea:focus {
   background: var(--bg-expense-light);
 }
 
+.calendar-value-badge.no-spend {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+[data-theme="dark"] .calendar-value-badge.no-spend {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.16);
+}
+
+.calendar-no-spend-icon {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.calendar-cell.no-spend-day {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+[data-theme="dark"] .calendar-cell.no-spend-day {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+html[data-style-theme="doodle"] .calendar-value-badge.no-spend {
+  border-radius: 6px 3px 7px 4px / 4px 7px 3px 6px;
+  border: 1px dashed rgba(16, 185, 129, 0.4);
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .calendar-value-badge.no-spend {
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+/* No-Spend Day in Daily Ledger List */
+.no-spend-day-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #059669 !important;
+  font-size: 0.86rem !important;
+  font-weight: 850 !important;
+  line-height: 1.2;
+}
+
+[data-theme="dark"] .no-spend-day-tag {
+  color: #34d399 !important;
+}
+
+.no-spend-tag-icon {
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+/* Option A: Outer Dashed Border for the whole day card */
+.mobile-ledger-day.no-spend-day-group {
+  border: 1.5px dashed rgba(16, 185, 129, 0.5) !important;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group {
+  border-color: rgba(52, 211, 153, 0.5) !important;
+}
+
+/* Option A: Header styling by state (Green for normal, Flame Red for active pledge, Gold for past success) */
+.mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header {
+  background: #ecfdf5 !important;
+  border-bottom: 1px dashed rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-bottom-color: rgba(16, 185, 129, 0.28) !important;
+}
+
+.mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header strong {
+  color: #065f46;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header strong {
+  color: #34d399;
+}
+
+.mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header span {
+  color: rgba(6, 95, 70, 0.85);
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header span {
+  color: rgba(52, 211, 153, 0.85);
+}
+
+/* Active Pledge Today: Flame Red header & border */
+.mobile-ledger-day.no-spend-day-group.today-pledged {
+  border-color: #ea580c !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged {
+  border-color: #fb923c !important;
+}
+
+.mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header {
+  background: #fff1f2 !important;
+  border-bottom: 1px dashed rgba(244, 63, 94, 0.35) !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header {
+  background: rgba(244, 63, 94, 0.18) !important;
+  border-bottom-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+.mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header strong {
+  color: #9f1239;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header strong {
+  color: #fb7185;
+}
+
+.mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header span {
+  color: rgba(159, 18, 57, 0.85);
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header span {
+  color: rgba(251, 113, 133, 0.85);
+}
+
+.mobile-ledger-day.no-spend-day-group.today-pledged .no-spend-day-tag {
+  color: #e11d48 !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged .no-spend-day-tag {
+  color: #fb7185 !important;
+}
+
+/* Past Pledged Success: Gold header & border */
+.mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) {
+  border-color: #d97706 !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) {
+  border-color: #fbbf24 !important;
+}
+
+.mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header {
+  background: #fefce8 !important;
+  border-bottom: 1px dashed rgba(234, 179, 8, 0.35) !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header {
+  background: rgba(234, 179, 8, 0.15) !important;
+  border-bottom-color: rgba(234, 179, 8, 0.35) !important;
+}
+
+.mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header strong {
+  color: #854d0e;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header strong {
+  color: #fbbf24;
+}
+
+.mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header span {
+  color: rgba(133, 77, 14, 0.85);
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header span {
+  color: rgba(251, 191, 36, 0.85);
+}
+
+.mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .no-spend-day-tag {
+  color: #b45309 !important;
+}
+
+[data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .no-spend-day-tag {
+  color: #fbbf24 !important;
+}
+
+/* Option A: Inside Card has NO border, NO margin (Eliminates the double-box) */
+.mobile-ledger-no-spend-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px !important;
+  min-height: 76px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.no-spend-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.no-spend-card-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.14);
+  flex-shrink: 0;
+  font-size: 1.45rem;
+}
+
+.no-spend-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.no-spend-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #059669;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .no-spend-card-title {
+  color: #34d399;
+}
+
+.no-spend-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.mobile-ledger-no-spend-mini-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.08);
+  border-bottom: 1px dashed rgba(16, 185, 129, 0.25);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+[data-theme="dark"] .mobile-ledger-no-spend-mini-banner {
+  background: rgba(16, 185, 129, 0.12);
+  border-bottom-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.no-spend-mini-icon {
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+/* Doodle Theme overrides for Option A */
+html[data-style-theme="doodle"] .no-spend-day-tag {
+  border: none !important;
+  background: transparent !important;
+  color: #065f46 !important;
+  padding: 0 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-day-tag {
+  border: none !important;
+  background: transparent !important;
+  color: #34d399 !important;
+  padding: 0 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group {
+  border: 1.5px dashed #059669 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group {
+  border-color: #34d399 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header {
+  background: #e6f9f0 !important;
+  border-bottom: 1.5px dashed #059669 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group .mobile-ledger-day-header {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border-bottom-color: #34d399 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group.today-pledged {
+  border-color: #ea580c !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged {
+  border-color: #fb923c !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header {
+  background: #ffe4e6 !important;
+  border-bottom: 1.5px dashed #e11d48 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group.today-pledged .mobile-ledger-day-header {
+  background: rgba(244, 63, 94, 0.22) !important;
+  border-bottom-color: #fb7185 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) {
+  border-color: #d97706 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) {
+  border-color: #fbbf24 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header {
+  background: #fef9c3 !important;
+  border-bottom: 1.5px dashed #d97706 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-day.no-spend-day-group.pledged:not(.today-pledged) .mobile-ledger-day-header {
+  background: rgba(234, 179, 8, 0.2) !important;
+  border-bottom-color: #fbbf24 !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-no-spend-card {
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"] .no-spend-card-badge {
+  border: 1.5px solid #059669;
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-no-spend-card {
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-card-badge {
+  border-color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+}
+
+/* No-Spend Streak (2+ days) Styling */
+.no-spend-day-tag.streak {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: #ea580c !important;
+}
+
+[data-theme="dark"] .no-spend-day-tag.streak {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: #fb923c !important;
+}
+
+.mobile-ledger-no-spend-card.streak {
+  background: transparent !important;
+  border: none !important;
+}
+
+[data-theme="dark"] .mobile-ledger-no-spend-card.streak {
+  background: transparent !important;
+  border: none !important;
+}
+
+.no-spend-card-badge.streak {
+  background: rgba(249, 115, 22, 0.16);
+}
+
+.no-spend-card-title.streak {
+  color: #ea580c;
+}
+
+[data-theme="dark"] .no-spend-card-title.streak {
+  color: #fb923c;
+}
+
+.mobile-ledger-no-spend-mini-banner.streak {
+  background: rgba(249, 115, 22, 0.09);
+  border-bottom-color: rgba(249, 115, 22, 0.3);
+  color: #ea580c;
+}
+
+[data-theme="dark"] .mobile-ledger-no-spend-mini-banner.streak {
+  background: rgba(249, 115, 22, 0.15);
+  border-bottom-color: rgba(249, 115, 22, 0.4);
+  color: #fb923c;
+}
+
+html[data-style-theme="doodle"] .no-spend-day-tag.streak {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #c2410c !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-no-spend-card.streak {
+  border: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"] .no-spend-card-badge.streak {
+  border-color: #ea580c;
+  background: #ffedd5;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-day-tag.streak {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #fb923c !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-no-spend-card.streak {
+  border: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-card-badge.streak {
+  border-color: #fb923c;
+  background: rgba(249, 115, 22, 0.22);
+}
+
+/* No-Spend Challenge Pledge Button & Status (Right-Aligned, Vertically Centered) */
+.no-spend-card-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.no-spend-pledge-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.no-spend-pledge-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(16, 185, 129, 0.35);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.no-spend-pledge-action-btn:active {
+  transform: scale(0.98);
+}
+
+.no-spend-pledged-status-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.pledged-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  color: #ea580c;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .pledged-status-pill {
+  background: rgba(249, 115, 22, 0.22);
+  border-color: rgba(249, 115, 22, 0.45);
+  color: #fb923c;
+}
+
+.pledged-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f97316;
+  box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(249, 115, 22, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
+
+.pledged-cancel-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.8;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.pledged-cancel-btn:hover {
+  opacity: 1;
+  color: var(--color-expense);
+}
+
+/* Pledged Success (Gold/Trophy Theme) */
+.no-spend-day-tag.pledged {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: #b45309 !important;
+}
+
+[data-theme="dark"] .no-spend-day-tag.pledged {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  color: #fbbf24 !important;
+}
+
+.mobile-ledger-no-spend-card.pledged {
+  background: transparent !important;
+  border: none !important;
+}
+
+[data-theme="dark"] .mobile-ledger-no-spend-card.pledged {
+  background: transparent !important;
+  border: none !important;
+}
+
+.no-spend-card-badge.pledged {
+  background: rgba(234, 179, 8, 0.18);
+}
+
+[data-theme="dark"] .no-spend-card-badge.pledged {
+  background: rgba(234, 179, 8, 0.22);
+}
+
+.no-spend-card-title.pledged {
+  color: #b45309;
+}
+
+[data-theme="dark"] .no-spend-card-title.pledged {
+  color: #fbbf24;
+}
+
+.mobile-ledger-no-spend-mini-banner.pledged {
+  background: rgba(234, 179, 8, 0.1);
+  border-bottom-color: rgba(234, 179, 8, 0.35);
+  color: #b45309;
+}
+
+[data-theme="dark"] .mobile-ledger-no-spend-mini-banner.pledged {
+  background: rgba(234, 179, 8, 0.16);
+  border-bottom-color: rgba(234, 179, 8, 0.45);
+  color: #fbbf24;
+}
+
+.calendar-value-badge.no-spend.pledged {
+  background: rgba(234, 179, 8, 0.18);
+  color: #b45309;
+}
+
+[data-theme="dark"] .calendar-value-badge.no-spend.pledged {
+  background: rgba(234, 179, 8, 0.25);
+  color: #fbbf24;
+}
+
+.calendar-value-badge.no-spend.pledged.today-pledged {
+  background: rgba(249, 115, 22, 0.16);
+  color: #ea580c;
+}
+
+[data-theme="dark"] .calendar-value-badge.no-spend.pledged.today-pledged {
+  background: rgba(249, 115, 22, 0.22);
+  color: #fb923c;
+}
+
+/* Doodle Theme for Pledged */
+html[data-style-theme="doodle"] .no-spend-pledge-action-btn {
+  border: 1.5px solid #222;
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  background: #10b981;
+  box-shadow: 2px 3px 0 #222;
+}
+
+html[data-style-theme="doodle"] .pledged-status-pill {
+  border: 1.5px solid #222;
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+html[data-style-theme="doodle"] .no-spend-day-tag.pledged {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #854d0e !important;
+}
+
+html[data-style-theme="doodle"] .mobile-ledger-no-spend-card.pledged {
+  border: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"] .no-spend-card-badge.pledged {
+  border-color: #d97706;
+  background: #fef3c7;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-pledge-action-btn {
+  border-color: #34d399;
+  background: #059669;
+  box-shadow: 2px 3px 0 #34d399;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .pledged-status-pill {
+  border-color: #fb923c;
+  background: rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-day-tag.pledged {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #fbbf24 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-ledger-no-spend-card.pledged {
+  border: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .no-spend-card-badge.pledged {
+  border-color: #fbbf24;
+  background: rgba(234, 179, 8, 0.22);
+}
+
+html[data-style-theme="doodle"] .calendar-value-badge.no-spend.pledged {
+  border-color: rgba(217, 119, 6, 0.5);
+  background: #fef3c7;
+  color: #b45309;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .calendar-value-badge.no-spend.pledged {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(234, 179, 8, 0.25);
+  color: #fbbf24;
+}
+
+html[data-style-theme="doodle"] .calendar-value-badge.no-spend.pledged.today-pledged {
+  border-color: rgba(234, 88, 12, 0.5);
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .calendar-value-badge.no-spend.pledged.today-pledged {
+  border-color: rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+}
+
+/* Pledged Challenge FAB Button */
+.mobile-primary-action.pledged {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.45) !important;
+  animation: pulse-fab-fire 2.2s infinite ease-in-out;
+}
+
+@keyframes pulse-fab-fire {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    box-shadow: 0 6px 24px rgba(249, 115, 22, 0.65);
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+
+.mobile-primary-action.pledged .fab-fire-icon {
+  font-size: 24px;
+  line-height: 1;
+  display: inline-block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.desktop-registration-action > button.pledged {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  border-color: #f97316 !important;
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.35) !important;
+}
+
+html[data-style-theme="doodle"] .mobile-primary-action.pledged {
+  background: #f97316 !important;
+  border-color: #1e1903 !important;
+  color: #1e1903 !important;
+  box-shadow: 2px 4px 0px rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .mobile-primary-action.pledged {
+  background: #ea580c !important;
+  border-color: #fb923c !important;
+  box-shadow: 2px 4px 0px #fb923c !important;
+}
+
+/* Pledge Interrupt Modal */
+.pledge-interrupt-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.pledge-interrupt-modal {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-card) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25) !important;
+}
+
+.pledge-interrupt-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+
+[data-theme="dark"] .pledge-interrupt-icon-box {
+  background: rgba(249, 115, 22, 0.22);
+  border-color: rgba(249, 115, 22, 0.45);
+}
+
+.pledge-continue-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 0.96rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pledge-continue-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+}
+
+.pledge-continue-btn:active {
+  transform: scale(0.98);
+}
+
+.pledge-interrupt-cancel-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pledge-interrupt-cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--color-expense);
+}
+
+/* Doodle Theme for Pledge Interrupt Modal */
+html[data-style-theme="doodle"] .pledge-interrupt-modal {
+  border: 2px solid #222 !important;
+  border-radius: 24px 12px 26px 14px / 14px 26px 12px 24px !important;
+  box-shadow: 4px 6px 0 #222 !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .pledge-interrupt-modal {
+  border-color: #fb923c !important;
+  box-shadow: 4px 6px 0 #fb923c !important;
+}
+
+html[data-style-theme="doodle"] .pledge-continue-btn {
+  border: 1.5px solid #222;
+  border-radius: 14px 6px 16px 8px / 8px 16px 6px 14px;
+  box-shadow: 2px 3px 0 #222;
+}
+
+html[data-style-theme="doodle"] .pledge-interrupt-cancel-btn {
+  border: 1.5px solid #222;
+  border-radius: 14px 6px 16px 8px / 8px 16px 6px 14px;
+}
+
+
 .floating-action-layer {
   position: fixed;
   right: var(--fab-right);
