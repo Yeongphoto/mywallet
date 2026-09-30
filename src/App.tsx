@@ -828,6 +828,13 @@ function MobileLedgerTimeline({
     itemsByDate.set(transaction.date, list);
   }
 
+  const fullExpenseByDate = new Map<string, number>();
+  for (const transaction of allTransactions || items) {
+    if (transaction.type === 'expense') {
+      fullExpenseByDate.set(transaction.date, (fullExpenseByDate.get(transaction.date) || 0) + transaction.amount);
+    }
+  }
+
   const dateSet = new Set<string>(itemsByDate.keys());
 
   const effectiveFirstDate = firstTransactionDate !== undefined
@@ -922,7 +929,7 @@ function MobileLedgerTimeline({
 
         const isPastOrToday = group.date <= todayStr;
         const isAfterOrOnFirst = Boolean(effectiveFirstDate && group.date >= effectiveFirstDate);
-        const isNoSpendDay = isNoSpendChallengeEnabled && isPastOrToday && isAfterOrOnFirst && expense === 0;
+        const isNoSpendDay = isNoSpendChallengeEnabled && isPastOrToday && isAfterOrOnFirst && (fullExpenseByDate.get(group.date) || 0) === 0;
         const isToday = group.date === todayStr;
         const streak = isNoSpendDay ? calculateNoSpendStreak(group.date, allTransactions || items, effectiveFirstDate) : 0;
         const isPledged = Boolean(pledgedDates?.includes(group.date));
