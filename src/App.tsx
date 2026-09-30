@@ -62,7 +62,7 @@ type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' 
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'clock' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
-type StyleThemePreference = 'default' | 'doodle';
+type StyleThemePreference = 'default' | 'doodle' | 'mememo';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 const SYNC_OVERLAY_MIN_DURATION = 2000;
@@ -2203,7 +2203,9 @@ function normalizeThemePreference(value: unknown): ThemePreference {
 }
 
 function normalizeStyleThemePreference(value: unknown): StyleThemePreference {
-  return value === 'doodle' ? 'doodle' : 'default';
+  if (value === 'doodle') return 'doodle';
+  if (value === 'mememo') return 'mememo';
+  return 'default';
 }
 
 function getSystemTheme(): 'light' | 'dark' {
@@ -8617,7 +8619,7 @@ ${sheet4Rows}  </sheetData>
                   <div>
                     <strong>디자인 테마</strong>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      손그림 감성의 귀여운 두들(Doodle) 스타일을 켜고 끌 수 있습니다.
+                      모던, 두들(손그림), 메메모(초록 감성) 스타일을 선택할 수 있습니다.
                     </div>
                   </div>
                   <div className="theme-toggle" role="group" aria-label="디자인 테마">
@@ -8626,14 +8628,21 @@ ${sheet4Rows}  </sheetData>
                       className={styleTheme === 'default' ? 'active' : ''}
                       onClick={() => setStyleTheme('default')}
                     >
-                      ✨ 모던 (기본)
+                      ✨ 모던
                     </button>
                     <button
                       type="button"
                       className={styleTheme === 'doodle' ? 'active' : ''}
                       onClick={() => setStyleTheme('doodle')}
                     >
-                      ✏️ 두들 (Doodle)
+                      ✏️ 두들
+                    </button>
+                    <button
+                      type="button"
+                      className={styleTheme === 'mememo' ? 'active' : ''}
+                      onClick={() => setStyleTheme('mememo')}
+                    >
+                      🍃 메메모 (Mememo)
                     </button>
                   </div>
                 </div>

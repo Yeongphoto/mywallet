@@ -8286,6 +8286,316 @@ html[data-style-theme="doodle"] .annual-chart-panel svg polyline {
   color: var(--text-secondary);
 }
 
+/* ==========================================================================
+   Mememo (메메모) Theme - Sage / Mint Green Palette
+   Inspired by Mememo Desktop App & Mecon Character
+   ========================================================================== */
+
+/* Mememo Brand Accent Tokens */
+html[data-style-theme="mememo"] {
+  --primary: #40916c;
+  --primary-hover: #2d6a4f;
+  --primary-rgb: 64, 145, 108;
+  --primary-light: #52b788;
+  --primary-soft: rgba(64, 145, 108, 0.14);
+  --brand-highlight: #52b788;
+}
+
+/* Mememo Light Mode (Fresh Sage Mint & Clean White Cards) */
+html[data-style-theme="mememo"][data-theme="light"] {
+  --bg-app: #f2f7f4;
+  --bg-sidebar: #1d3328;
+  --bg-card: #ffffff;
+  --bg-balance-light: #edf5f0;
+  --border-card: #d5e5db;
+  --border-input: #cde0d4;
+  --text-primary: #1c2e24;
+  --text-secondary: #587566;
+  --surface-inverse: #1d3328;
+}
+
+html[data-style-theme="mememo"][data-theme="light"] .app-header {
+  background-color: #f2f7f4;
+  border-bottom: 1.5px solid #d5e5db;
+}
+
+html[data-style-theme="mememo"][data-theme="light"] .sidebar {
+  background: #1d3328;
+}
+
+html[data-style-theme="mememo"][data-theme="light"] .fixed-bottom-bar {
+  background: rgba(242, 247, 244, 0.96) !important;
+  border-top: 1.5px solid #d5e5db !important;
+}
+
+/* Mememo Dark Mode (Deep Forest Mint / Night Green) */
+html[data-style-theme="mememo"][data-theme="dark"] {
+  --bg-app: #111a15;
+  --bg-sidebar: #0b130f;
+  --bg-card: #18241e;
+  --bg-balance-light: #15201a;
+  --border-card: #273d32;
+  --border-input: #2f493c;
+  --text-primary: #e6f0ea;
+  --text-secondary: #8ea89a;
+  --surface-inverse: #0b130f;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .app-header {
+  background-color: #111a15;
+  border-bottom: 1.5px solid #273d32;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .sidebar {
+  background: #0b130f;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .fixed-bottom-bar {
+  background: rgba(17, 26, 21, 0.96) !important;
+  border-top: 1.5px solid #273d32 !important;
+}
+
+/* Mememo Brand Wordmark & Header Accents */
+html[data-style-theme="mememo"] .brand-wordmark span:first-child {
+  color: #2d5a43;
+}
+
+[data-theme="dark"] html[data-style-theme="mememo"] .brand-wordmark span:first-child {
+  color: #74c69d;
+}
+
+html[data-style-theme="mememo"] .brand-wordmark span:last-child {
+  color: #52b788;
+}
+
+/* Mememo Interactive Controls & Buttons */
+html[data-style-theme="mememo"] .mobile-primary-action,
+html[data-style-theme="mememo"] .desktop-registration-action > button {
+  background: linear-gradient(135deg, #40916c 0%, #2d6a4f 100%) !important;
+  box-shadow: 0 4px 14px rgba(64, 145, 108, 0.35) !important;
+}
+
+html[data-style-theme="mememo"] .primary-button {
+  background: linear-gradient(135deg, #40916c 0%, #2d6a4f 100%) !important;
+  border-color: #2d6a4f !important;
+}
+
+html[data-style-theme="mememo"] .sidebar nav a.active {
+  background: #40916c !important;
+  color: #ffffff !important;
+}
+
+html[data-style-theme="mememo"] .sidebar nav a.active .app-icon {
+  color: #ffffff !important;
+}
+
+html[data-style-theme="mememo"] .theme-toggle button.active,
+html[data-style-theme="mememo"] .settings-segment button.active,
+html[data-style-theme="mememo"] .ledger-view-toggle button.active,
+html[data-style-theme="mememo"] .view-toggle-btn.active {
+  background: #40916c !important;
+  color: #ffffff !important;
+}
+
+/* Mememo Card Radius & Clean Aesthetic */
+html[data-style-theme="mememo"] .glass-panel,
+html[data-style-theme="mememo"] .mobile-ledger-day {
+  border-radius: 14px;
+}
+
+/* Mememo Header Branding: Mecon Character Logo */
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mecon-256.png") !important;
+  width: 36px !important;
+  height: 36px !important;
+  object-fit: contain !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Mememo Header Buttons (Sync, Privacy, Settings) */
+html[data-style-theme="mememo"] .header-settings-btn,
+html[data-style-theme="mememo"] .privacy-toggle,
+html[data-style-theme="mememo"] .sync-mini-indicator {
+  background: #ffffff !important;
+  border: 1.5px solid #c8ded2 !important;
+  border-radius: 12px !important;
+  color: #2d5a43 !important;
+  box-shadow: 0 1px 3px rgba(64, 145, 108, 0.08) !important;
+  transition: all 0.18s ease !important;
+}
+
+html[data-style-theme="mememo"] .header-settings-btn svg,
+html[data-style-theme="mememo"] .header-settings-btn span,
+html[data-style-theme="mememo"] .privacy-toggle svg,
+html[data-style-theme="mememo"] .privacy-toggle span,
+html[data-style-theme="mememo"] .privacy-toggle .app-icon,
+html[data-style-theme="mememo"] .header-settings-btn .app-icon,
+html[data-style-theme="mememo"] .sync-mini-indicator .app-icon,
+html[data-style-theme="mememo"] .sync-mini-indicator svg {
+  color: #2d5a43 !important;
+  stroke: #2d5a43 !important;
+}
+
+html[data-style-theme="mememo"] .header-settings-btn:hover,
+html[data-style-theme="mememo"] .privacy-toggle:hover,
+html[data-style-theme="mememo"] .sync-mini-indicator:hover {
+  background: #e8f4ed !important;
+  border-color: #52b788 !important;
+  color: #1b4332 !important;
+}
+
+html[data-style-theme="mememo"] .header-settings-btn:hover svg,
+html[data-style-theme="mememo"] .header-settings-btn:hover .app-icon,
+html[data-style-theme="mememo"] .privacy-toggle:hover svg,
+html[data-style-theme="mememo"] .privacy-toggle:hover .app-icon {
+  color: #1b4332 !important;
+  stroke: #1b4332 !important;
+}
+
+html[data-style-theme="mememo"] .header-settings-btn.active,
+html[data-style-theme="mememo"] .privacy-toggle.active {
+  background: #40916c !important;
+  border-color: #2d6a4f !important;
+  color: #ffffff !important;
+}
+
+html[data-style-theme="mememo"] .header-settings-btn.active svg,
+html[data-style-theme="mememo"] .header-settings-btn.active .app-icon,
+html[data-style-theme="mememo"] .privacy-toggle.active svg,
+html[data-style-theme="mememo"] .privacy-toggle.active .app-icon {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Mememo Header Dark Mode Buttons */
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle,
+html[data-style-theme="mememo"][data-theme="dark"] .sync-mini-indicator {
+  background: #18241e !important;
+  border-color: #2f493c !important;
+  color: #b7e4c7 !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn svg,
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn span,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle svg,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle span,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle .app-icon,
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn .app-icon,
+html[data-style-theme="mememo"][data-theme="dark"] .sync-mini-indicator .app-icon,
+html[data-style-theme="mememo"][data-theme="dark"] .sync-mini-indicator svg {
+  color: #b7e4c7 !important;
+  stroke: #b7e4c7 !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn:hover,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle:hover,
+html[data-style-theme="mememo"][data-theme="dark"] .sync-mini-indicator:hover {
+  background: #20332a !important;
+  border-color: #52b788 !important;
+  color: #d8f3dc !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn:hover svg,
+html[data-style-theme="mememo"][data-theme="dark"] .header-settings-btn:hover .app-icon,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle:hover svg,
+html[data-style-theme="mememo"][data-theme="dark"] .privacy-toggle:hover .app-icon {
+  color: #d8f3dc !important;
+  stroke: #d8f3dc !important;
+}
+
+/* Mememo Month Navigation in Header (Outer box retained, Inner 2nd box removed) */
+html[data-style-theme="mememo"] .month-navigation,
+html[data-style-theme="mememo"] .app-header .month-navigation {
+  background: #ffffff !important;
+  border: 1.5px solid #c8ded2 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(64, 145, 108, 0.08) !important;
+  height: 42px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 4px !important;
+  overflow: visible !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .month-navigation,
+html[data-style-theme="mememo"][data-theme="dark"] .app-header .month-navigation {
+  background: #18241e !important;
+  border-color: #2f493c !important;
+}
+
+/* Remove Inner 2nd Box Completely */
+html[data-style-theme="mememo"] .month-picker-wrap,
+html[data-style-theme="mememo"] .app-header .month-picker-wrap,
+html[data-style-theme="mememo"] .month-picker-display {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: #2d5a43 !important;
+  font-weight: 800 !important;
+}
+
+html[data-style-theme="mememo"] .month-nav-button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  color: #2d5a43 !important;
+}
+
+html[data-style-theme="mememo"] .month-nav-button:hover {
+  background: rgba(64, 145, 108, 0.12) !important;
+  color: #1b4332 !important;
+}
+
+html[data-style-theme="mememo"] .month-picker-display:hover {
+  background: rgba(64, 145, 108, 0.08) !important;
+  border-radius: 8px !important;
+}
+
+html[data-style-theme="mememo"] .month-nav-button svg,
+html[data-style-theme="mememo"] .month-picker-display svg {
+  color: #2d5a43 !important;
+  stroke: #2d5a43 !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .month-picker-display,
+html[data-style-theme="mememo"][data-theme="dark"] .month-nav-button {
+  color: #b7e4c7 !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .month-nav-button:hover {
+  background: rgba(82, 183, 136, 0.18) !important;
+  color: #d8f3dc !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .month-picker-display:hover {
+  background: rgba(82, 183, 136, 0.12) !important;
+}
+
+html[data-style-theme="mememo"][data-theme="dark"] .month-nav-button svg,
+html[data-style-theme="mememo"][data-theme="dark"] .month-picker-display svg {
+  color: #b7e4c7 !important;
+  stroke: #b7e4c7 !important;
+}
+
 
 
 
