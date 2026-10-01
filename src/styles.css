@@ -277,16 +277,22 @@ button:active {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .mywallet-logo {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
   display: block;
   overflow: visible;
   object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(2, 132, 199, 0.22));
+  filter: none;
 }
 
 .brand-wordmark {
@@ -452,20 +458,68 @@ button:active {
 }
 
 .app-header .mywallet-logo-frame {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   box-sizing: border-box;
-  padding: 4px;
-  border-radius: 9px;
-  border: 1px solid #fff;
-  background: var(--surface-inverse);
-  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.18);
+  padding: 0;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-header .mywallet-logo-frame .mywallet-logo {
-  width: 100%;
-  height: 100%;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  transform: none;
   filter: none;
+}
+
+/* Modern Header & Sidebar Branding */
+html[data-style-theme="default"][data-theme="light"] .app-header .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="light"] .app-header .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/logo-cat-dark.png") !important;
+}
+
+html[data-style-theme="default"][data-theme="light"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="default"][data-theme="light"] .brand .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="light"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="light"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/logo-cat-blue.png") !important;
+}
+
+html[data-style-theme="default"][data-theme="dark"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="default"][data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="default"][data-theme="dark"] .brand .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="dark"] .app-header .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html:not([data-style-theme])[data-theme="dark"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/logo-cat-blue.png") !important;
+}
+
+/* Modern Loading & Sync Screen Accent */
+html[data-style-theme="default"] .app-loading-logo,
+html:not([data-style-theme]) .app-loading-logo {
+  filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.45)) !important;
+}
+
+html[data-style-theme="default"] .app-loading-orbit-track,
+html:not([data-style-theme]) .app-loading-orbit-track {
+  border-color: rgba(56, 189, 248, 0.22) !important;
+}
+
+html[data-style-theme="default"] .app-loading-orbit,
+html:not([data-style-theme]) .app-loading-orbit {
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #38bdf8 74deg, #0284c7 126deg, transparent 164deg 360deg) !important;
+}
+
+html[data-style-theme="default"] .app-loading-copy h1 span:last-child,
+html:not([data-style-theme]) .app-loading-copy h1 span:last-child {
+  color: #38bdf8 !important;
 }
 
 .app-header .brand-text strong {
@@ -5332,15 +5386,15 @@ body.category-handle-drag-active {
 .app-loading-mark {
   position: relative;
   display: grid;
-  width: 136px;
-  height: 136px;
+  width: 86px;
+  height: 86px;
   place-items: center;
 }
 
 .app-loading-logo {
-  width: 90px;
-  height: 90px;
-  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.15));
+  width: 57px;
+  height: 57px;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18));
 }
 
 .app-loading-logo img {
@@ -5358,13 +5412,13 @@ body.category-handle-drag-active {
 }
 
 .app-loading-orbit-track {
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 1.25px solid rgba(255, 255, 255, 0.12);
 }
 
 .app-loading-orbit {
   background: conic-gradient(from -65deg, transparent 0deg 38deg, #ffffff 74deg, #a1a1aa 126deg, transparent 164deg 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.25px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.25px));
   animation: loadingOrbit 1.2s linear infinite;
 }
 
@@ -5386,13 +5440,13 @@ body.category-handle-drag-active {
 }
 
 .app-sync-overlay .app-loading-mark {
-  width: 104px;
-  height: 104px;
+  width: 86px;
+  height: 86px;
 }
 
 .app-sync-overlay .app-loading-logo {
-  width: 66px;
-  height: 66px;
+  width: 57px;
+  height: 57px;
 }
 
 .app-sync-overlay .app-loading-logo img {
@@ -7689,21 +7743,58 @@ html[data-style-theme="doodle"] .brand-wordmark span:last-child {
   color: var(--brand-highlight) !important;
 }
 
-html[data-style-theme="doodle"] .app-header .mywallet-logo-frame {
+/* Doodle Header & Sidebar Branding: Doodle Cat Mascot */
+html[data-style-theme="doodle"] .app-header .mywallet-logo-frame,
+html[data-style-theme="doodle"] .sidebar .mywallet-logo-frame,
+html[data-style-theme="doodle"] .brand .mywallet-logo-frame {
   width: 36px !important;
   height: 36px !important;
-  padding: 3px !important;
-  background: var(--primary) !important;
-  border: 2px solid #2c241d !important;
-  border-radius: 12px 6px 14px 7px / 7px 14px 6px 12px !important;
-  box-shadow: 1px 2px 0px rgba(0, 0, 0, 0.15) !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-html[data-style-theme="doodle"] .app-header .mywallet-logo-frame .mywallet-logo {
-  width: 100% !important;
-  height: 100% !important;
-  transform: scale(1.12) !important;
-  filter: brightness(0) !important;
+html[data-style-theme="doodle"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="doodle"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="doodle"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/logo-cat-doodle.png") !important;
+  width: 36px !important;
+  height: 36px !important;
+  object-fit: contain !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+html[data-style-theme="doodle"][data-theme="dark"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="doodle"][data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="doodle"][data-theme="dark"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/logo-cat-cream.png") !important;
+}
+
+/* Doodle Loading & Sync Screen Branding */
+html[data-style-theme="doodle"] .app-loading-screen,
+html[data-style-theme="doodle"] .app-sync-overlay {
+  background: radial-gradient(circle at center, #261f1a 0%, #120e0b 100%) !important;
+}
+
+html[data-style-theme="doodle"] .app-loading-logo {
+  filter: drop-shadow(0 0 16px rgba(255, 159, 67, 0.45)) !important;
+}
+
+html[data-style-theme="doodle"] .app-loading-orbit-track {
+  border-color: rgba(255, 159, 67, 0.22) !important;
+}
+
+html[data-style-theme="doodle"] .app-loading-orbit {
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #ff9f43 74deg, #d35400 126deg, transparent 164deg 360deg) !important;
+}
+
+html[data-style-theme="doodle"] .app-loading-copy h1 span:last-child {
+  color: #ff9f43 !important;
 }
 
 /* Doodle Month Navigation in Header */
@@ -8403,8 +8494,10 @@ html[data-style-theme="mememo"] .mobile-ledger-day {
   border-radius: 14px;
 }
 
-/* Mememo Header Branding: Mecon Character Logo */
-html[data-style-theme="mememo"] .app-header .mywallet-logo-frame {
+/* Mememo Header & Brand Branding: Mememo Met Character Logo */
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame,
+html[data-style-theme="mememo"] .sidebar .mywallet-logo-frame,
+html[data-style-theme="mememo"] .brand .mywallet-logo-frame {
   width: 36px !important;
   height: 36px !important;
   padding: 0 !important;
@@ -8417,13 +8510,61 @@ html[data-style-theme="mememo"] .app-header .mywallet-logo-frame {
   justify-content: center !important;
 }
 
-html[data-style-theme="mememo"] .app-header .mywallet-logo-frame .mywallet-logo {
-  content: url("/images/mecon-256.png") !important;
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-green.png") !important;
   width: 36px !important;
   height: 36px !important;
   object-fit: contain !important;
   transform: none !important;
   filter: none !important;
+}
+
+/* Light mode sidebar is dark green (#1d3328), so use mint logo */
+html[data-style-theme="mememo"][data-theme="light"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="light"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-mint.png") !important;
+}
+
+/* Dark mode header & sidebar both use mint logo */
+html[data-style-theme="mememo"][data-theme="dark"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="dark"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-mint.png") !important;
+}
+
+/* Mememo Loading & Sync Screen Branding */
+html[data-style-theme="mememo"] .app-loading-screen,
+html[data-style-theme="mememo"] .app-sync-overlay {
+  background: radial-gradient(circle at center, #15241c 0%, #0a130e 100%) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-logo img {
+  content: url("/images/mememo/mememo-met.png") !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-logo {
+  filter: drop-shadow(0 0 16px rgba(82, 183, 136, 0.5)) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-orbit-track {
+  border: 1.5px solid rgba(82, 183, 136, 0.22) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-orbit {
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #52b788 74deg, #2d6a4f 126deg, transparent 164deg 360deg) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-copy h1 span:first-child {
+  color: #74c69d !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-copy h1 span:last-child {
+  color: #52b788 !important;
 }
 
 /* Mememo Header Buttons (Sync, Privacy, Settings) */

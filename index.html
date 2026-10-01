@@ -11,8 +11,9 @@
     <meta name="apple-mobile-web-app-title" content="MyWallet" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" href="/logo.png" />
-    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>MyWallet</title>
     <style>
       html,
@@ -42,7 +43,7 @@
           }
           var theme = savedTheme === 'dark' ? 'dark' : (savedTheme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 'light');
           document.documentElement.setAttribute('data-theme', theme);
-          document.documentElement.setAttribute('data-style-theme', savedStyleTheme === 'doodle' ? 'doodle' : 'default');
+          document.documentElement.setAttribute('data-style-theme', (savedStyleTheme === 'mememo' || savedStyleTheme === 'doodle') ? savedStyleTheme : 'default');
         } catch (e) {}
       })();
     </script>
@@ -58,6 +59,25 @@
         #root > .app-loading-screen .app-loading-orbit-track,#root > .app-loading-screen .app-loading-orbit { position:absolute;inset:0;border-radius:50%; }
         #root > .app-loading-screen .app-loading-orbit-track { border:1.25px solid rgba(255,255,255,.12); }
         #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#ffffff 74deg,#a1a1aa 126deg,transparent 164deg 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 1.25px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 1.25px));animation:loadingOrbit 1.2s linear infinite; }
+        html[data-style-theme="mememo"] #root > .app-loading-screen { background:radial-gradient(circle at center,#15241c 0%,#0a130e 100%); }
+        html[data-style-theme="mememo"] #root > .app-loading-screen .app-loading-logo { filter:drop-shadow(0 0 16px rgba(82,183,136,.5)); }
+        html[data-style-theme="mememo"] #root > .app-loading-screen .app-loading-orbit-track { border-color:rgba(82,183,136,.22); }
+        html[data-style-theme="mememo"] #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#52b788 74deg,#2d6a4f 126deg,transparent 164deg 360deg); }
+        html[data-style-theme="mememo"] #root > .app-loading-screen .app-loading-copy h1 span:first-child { color:#74c69d !important; }
+        html[data-style-theme="mememo"] #root > .app-loading-screen .app-loading-copy h1 span:last-child { color:#52b788 !important; }
+        html[data-style-theme="doodle"] #root > .app-loading-screen { background:radial-gradient(circle at center,#261f1a 0%,#120e0b 100%); }
+        html[data-style-theme="doodle"] #root > .app-loading-screen .app-loading-logo { filter:drop-shadow(0 0 16px rgba(255,159,67,.45)); }
+        html[data-style-theme="doodle"] #root > .app-loading-screen .app-loading-orbit-track { border-color:rgba(255,159,67,.22); }
+        html[data-style-theme="doodle"] #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#ff9f43 74deg,#d35400 126deg,transparent 164deg 360deg); }
+        html[data-style-theme="doodle"] #root > .app-loading-screen .app-loading-copy h1 span:last-child { color:#ff9f43 !important; }
+        html[data-style-theme="default"] #root > .app-loading-screen .app-loading-logo,
+        html:not([data-style-theme]) #root > .app-loading-screen .app-loading-logo { filter:drop-shadow(0 0 16px rgba(56,189,248,.45)); }
+        html[data-style-theme="default"] #root > .app-loading-screen .app-loading-orbit,
+        html:not([data-style-theme]) #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#38bdf8 74deg,#0284c7 126deg,transparent 164deg 360deg); }
+        html[data-style-theme="default"] #root > .app-loading-screen .app-loading-orbit-track,
+        html:not([data-style-theme]) #root > .app-loading-screen .app-loading-orbit-track { border-color:rgba(56,189,248,.22); }
+        html[data-style-theme="default"] #root > .app-loading-screen .app-loading-copy h1 span:last-child,
+        html:not([data-style-theme]) #root > .app-loading-screen .app-loading-copy h1 span:last-child { color:#38bdf8 !important; }
         #root > .app-loading-screen .app-loading-copy h1 { margin:0;font-family:system-ui,-apple-system,sans-serif;font-size:1.9rem;font-weight:900;letter-spacing:-.03em; }
         @keyframes loadingOrbit { to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion:reduce) { #root > .app-loading-screen .app-loading-orbit { animation-duration:3.5s; } }

@@ -1,35 +1,42 @@
-.app-loading-screen {
+.app-loading-screen,
+.app-sync-overlay {
   gap: 33px;
 }
 
 .app-loading-screen > .app-loading-mark,
-.app-loading-screen > .app-loading-copy {
+.app-loading-screen > .app-loading-copy,
+.app-sync-overlay > .app-loading-mark {
   transform: translateY(14px);
 }
 
-.app-loading-screen .app-loading-mark {
+.app-loading-screen .app-loading-mark,
+.app-sync-overlay .app-loading-mark {
   width: 86px;
   height: 86px;
 }
 
-.app-loading-screen .app-loading-logo {
+.app-loading-screen .app-loading-logo,
+.app-sync-overlay .app-loading-logo {
   width: 57px;
   height: 57px;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
 }
 
-.app-loading-screen .app-loading-logo img {
+.app-loading-screen .app-loading-logo img,
+.app-sync-overlay .app-loading-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
 }
 
-.app-loading-screen .app-loading-orbit-track {
+.app-loading-screen .app-loading-orbit-track,
+.app-sync-overlay .app-loading-orbit-track {
   border-width: 1.25px;
 }
 
-.app-loading-screen .app-loading-orbit {
+.app-loading-screen .app-loading-orbit,
+.app-sync-overlay .app-loading-orbit {
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.25px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 1.25px));
 }
