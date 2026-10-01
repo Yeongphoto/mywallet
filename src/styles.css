@@ -8403,8 +8403,10 @@ html[data-style-theme="mememo"] .mobile-ledger-day {
   border-radius: 14px;
 }
 
-/* Mememo Header Branding: Mecon Character Logo */
-html[data-style-theme="mememo"] .app-header .mywallet-logo-frame {
+/* Mememo Header & Brand Branding: Mememo Met Character Logo */
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame,
+html[data-style-theme="mememo"] .sidebar .mywallet-logo-frame,
+html[data-style-theme="mememo"] .brand .mywallet-logo-frame {
   width: 36px !important;
   height: 36px !important;
   padding: 0 !important;
@@ -8417,13 +8419,61 @@ html[data-style-theme="mememo"] .app-header .mywallet-logo-frame {
   justify-content: center !important;
 }
 
-html[data-style-theme="mememo"] .app-header .mywallet-logo-frame .mywallet-logo {
-  content: url("/images/mecon-256.png") !important;
+html[data-style-theme="mememo"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-green.png") !important;
   width: 36px !important;
   height: 36px !important;
   object-fit: contain !important;
   transform: none !important;
   filter: none !important;
+}
+
+/* Light mode sidebar is dark green (#1d3328), so use mint logo */
+html[data-style-theme="mememo"][data-theme="light"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="light"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-mint.png") !important;
+}
+
+/* Dark mode header & sidebar both use mint logo */
+html[data-style-theme="mememo"][data-theme="dark"] .app-header .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="mememo"][data-theme="dark"] .brand .mywallet-logo-frame .mywallet-logo {
+  content: url("/images/mememo/mememo-met-mint.png") !important;
+}
+
+/* Mememo Loading & Sync Screen Branding */
+html[data-style-theme="mememo"] .app-loading-screen,
+html[data-style-theme="mememo"] .app-sync-overlay {
+  background: radial-gradient(circle at center, #15241c 0%, #0a130e 100%) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-logo img {
+  content: url("/images/mememo/mememo-met.png") !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-logo {
+  filter: drop-shadow(0 0 16px rgba(82, 183, 136, 0.5)) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-orbit-track {
+  border: 1.5px solid rgba(82, 183, 136, 0.22) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-orbit {
+  background: conic-gradient(from -65deg, transparent 0deg 38deg, #52b788 74deg, #2d6a4f 126deg, transparent 164deg 360deg) !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-copy h1 span:first-child {
+  color: #74c69d !important;
+}
+
+html[data-style-theme="mememo"] .app-loading-copy h1 span:last-child {
+  color: #52b788 !important;
 }
 
 /* Mememo Header Buttons (Sync, Privacy, Settings) */
