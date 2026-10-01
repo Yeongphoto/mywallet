@@ -43,6 +43,9 @@ const MONTH_PICKER_YEAR_START = 2000;
 const MONTH_PICKER_YEAR_END = 2100;
 const MONTH_PICKER_ROW_HEIGHT = 38;
 const OPENING_BALANCE_CATEGORY = '\uAE30\uCD08\uC794\uC561';
+// Reserved category persisted with the transaction so D1, local sync, and backups retain asset-only adjustments.
+const ASSET_ONLY_ADJUSTMENT_CATEGORY = '__asset_only_adjustment__';
+const isAssetOnlyAdjustment = (transaction: Transaction) => transaction.category === ASSET_ONLY_ADJUSTMENT_CATEGORY;
 const categoryColorPresets = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
   '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
@@ -284,7 +287,7 @@ function calculateNoSpendStreak(
 
   const expenseByDate = new Map<string, number>();
   for (const t of transactions) {
-    if (t.type === 'expense') {
+    if (t.type === 'expense' && !isAssetOnlyAdjustment(t)) {
       expenseByDate.set(t.date, (expenseByDate.get(t.date) || 0) + t.amount);
     }
   }
@@ -734,7 +737,7 @@ function cardPaymentPeriods(asset: AssetItem, transactions: Transaction[]): Card
   const paymentDay = asset.cardPaymentDay;
   if (!startDay || !endDay || !paymentDay || !asset.cardPaymentAssetId) return [];
   const grouped = new Map<string, CardPaymentPeriod>();
-  transactions.filter((transaction) => transaction.assetId === asset.id && !transaction.cardSettlementId && !isOpeningBalanceCategory(transaction.category) && (transaction.type === 'expense' || transaction.type === 'income')).forEach((transaction) => {
+  transactions.filter((transaction) => transaction.assetId === asset.id && !transaction.cardSettlementId && !isOpeningBalanceCategory(transaction.category) && !isAssetOnlyAdjustment(transaction) && (transaction.type === 'expense' || transaction.type === 'income')).forEach((transaction) => {
     const yearMonth = transaction.date.slice(0, 7);
     const day = Number(transaction.date.slice(8, 10));
     const crossesMonth = startDay > endDay;
@@ -830,7 +833,7 @@ function MobileLedgerTimeline({
 
   const fullExpenseByDate = new Map<string, number>();
   for (const transaction of allTransactions || items) {
-    if (transaction.type === 'expense') {
+    if (transaction.type === 'expense' && !isAssetOnlyAdjustment(transaction)) {
       fullExpenseByDate.set(transaction.date, (fullExpenseByDate.get(transaction.date) || 0) + transaction.amount);
     }
   }
@@ -879,6 +882,7 @@ function MobileLedgerTimeline({
   };
   const getCategoryName = (transaction: Transaction) => {
     if (transaction.type === 'transfer') return '이체';
+    if (isAssetOnlyAdjustment(transaction)) return '자산 변동';
     const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
     return categories.find((category) => category.id === transaction.category)?.label || transaction.category || '기타';
   };
@@ -1499,7 +1503,7 @@ function AssetHistoryPage({
   onEdit: (t: Transaction) => void;
   onDelete: (id: string) => void;
   handleUpdateAsset: (asset: AssetItem) => Promise<boolean>;
-  handleAssetBalanceAdjustment: (asset: AssetItem, nextBalance: number) => void;
+  handleAssetBalanceAdjustment: (asset: AssetItem, nextBalance: number, recordInLedger: boolean) => void;
   handleCardSettlement: (asset: AssetItem, period: CardPaymentPeriod) => Promise<boolean>;
   getAssetOpeningBalance: (asset: AssetItem) => number;
   getAssetBalance: (assetId: string, openingBalance: number) => number;
@@ -1513,6 +1517,7 @@ function AssetHistoryPage({
   const cardPaymentScrollTransitionRef = useRef<'detail' | 'history' | null>(null);
   const [isAssetSettingsOpen, setIsAssetSettingsOpen] = useState(false);
   const [isAdjustBalanceModalOpen, setIsAdjustBalanceModalOpen] = useState(false);
+  const [recordAdjustmentInLedger, setRecordAdjustmentInLedger] = useState(true);
 
   const currentAsset = assets.find((a) => a.id === asset.id) ?? asset;
   const openingBalance = getAssetOpeningBalance(currentAsset);
@@ -1566,7 +1571,8 @@ function AssetHistoryPage({
           t.date <= periodEndDate &&
           t.assetId === currentAsset.id &&
           t.type === 'income' &&
-          !isOpeningBalanceCategory(t.category)
+          !isOpeningBalanceCategory(t.category) &&
+          !isAssetOnlyAdjustment(t)
       )
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions, periodStartDate, periodEndDate, currentAsset.id]);
@@ -1578,7 +1584,8 @@ function AssetHistoryPage({
           t.date >= periodStartDate &&
           t.date <= periodEndDate &&
           t.assetId === currentAsset.id &&
-          t.type === 'expense'
+          t.type === 'expense' &&
+          !isAssetOnlyAdjustment(t)
       )
       .reduce((sum, t) => sum + t.amount, 0);
   }, [transactions, periodStartDate, periodEndDate, currentAsset.id]);
@@ -1670,6 +1677,7 @@ function AssetHistoryPage({
           transaction.date >= selectedCardPayment.periodStart &&
           transaction.date <= selectedCardPayment.periodEnd &&
           !isOpeningBalanceCategory(transaction.category) &&
+          !isAssetOnlyAdjustment(transaction) &&
           (transaction.type === 'expense' || transaction.type === 'income')
         )
         .sort((a, b) => (b.date + ' ' + (b.time || '')).localeCompare(a.date + ' ' + (a.time || '')))
@@ -1698,7 +1706,7 @@ function AssetHistoryPage({
         const catLabel =
           allExpenseCategories.find((c) => c.id === t.category || c.label === t.category)?.label ||
           allIncomeCategories.find((c) => c.id === t.category || c.label === t.category)?.label ||
-          t.category ||
+          (isAssetOnlyAdjustment(t) ? '자산 변동' : t.category) ||
           '';
         const matchesTitle = (t.title || '').toLowerCase().includes(query);
         const matchesCategory = catLabel.toLowerCase().includes(query);
@@ -1817,6 +1825,7 @@ function AssetHistoryPage({
                 title="현재 잔액 수정"
                 onClick={() => {
                   setAssetBalanceDraft(String(currentBalance));
+                  setRecordAdjustmentInLedger(true);
                   setIsAdjustBalanceModalOpen(true);
                 }}
               >
@@ -1912,6 +1921,7 @@ function AssetHistoryPage({
               options={[
                 { value: 'all', label: '모든 내역' },
                 { value: 'transfer', label: '이체 내역 🟣' },
+                { value: ASSET_ONLY_ADJUSTMENT_CATEGORY, label: '자산 변동' },
                 ...allExpenseCategories.map((category) => ({ value: category.id, label: `지출 · ${category.label}` })),
                 ...allIncomeCategories.map((category) => ({ value: category.id, label: `수입 · ${category.label}` })),
               ]}
@@ -1972,10 +1982,12 @@ function AssetHistoryPage({
                 const direction = difference > 0 ? '수입(+)' : '지출(-)';
                 if (
                   window.confirm(
-                    '차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?'
+                    recordAdjustmentInLedger
+                      ? '차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?'
+                      : '차액 ' + formatCurrency(Math.abs(difference)) + '을 자산 변동 내역에만 기록할까요?'
                   )
                 ) {
-                  handleAssetBalanceAdjustment(currentAsset, nextBalance);
+                  handleAssetBalanceAdjustment(currentAsset, nextBalance, recordAdjustmentInLedger);
                   setIsAdjustBalanceModalOpen(false);
                 }
               }}
@@ -2027,6 +2039,12 @@ function AssetHistoryPage({
                 />
               </div>
 
+              <label className="recurring-toggle" style={{ margin: 0 }}>
+                <input type="checkbox" checked={recordAdjustmentInLedger} onChange={(e) => setRecordAdjustmentInLedger(e.target.checked)} />
+                <span className="recurring-toggle-mark" aria-hidden="true" />
+                <span className="recurring-toggle-text">장부 수입·지출에도 기록</span>
+              </label>
+
               {(() => {
                 const nextBal = parseSignedNumberInput(assetBalanceDraft);
                 if (Number.isFinite(nextBal) && nextBal !== currentBalance) {
@@ -2034,13 +2052,13 @@ function AssetHistoryPage({
                   const isPlus = diff > 0;
                   return (
                     <div style={{ fontSize: '0.84rem', color: isPlus ? 'var(--color-income)' : 'var(--color-expense)', fontWeight: 800 }}>
-                      차액: {isPlus ? '+' : '-'}{formatMoney(Math.abs(diff))} ({isPlus ? '수입' : '지출'} 거래로 장부에 자동 기록됩니다)
+                      차액: {isPlus ? '+' : '-'}{formatMoney(Math.abs(diff))} ({recordAdjustmentInLedger ? `${isPlus ? '수입' : '지출'} 거래로 장부에 기록` : '자산 변동 내역에만 기록'})
                     </div>
                   );
                 }
                 return (
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    저장 시 기존 잔액과의 차액이 수입 또는 지출 거래로 장부에 기록됩니다.
+                    {recordAdjustmentInLedger ? '저장 시 차액이 수입 또는 지출 거래로 장부에 기록됩니다.' : '저장 시 차액은 자산 상세 내역에만 기록됩니다.'}
                   </p>
                 );
               })()}
@@ -2788,8 +2806,9 @@ export default function App() {
   }, [assets, hiddenAssets]);
 
   const firstTransactionDate = useMemo(() => {
-    if (transactions.length === 0) return null;
-    return transactions.reduce((min, t) => (t.date < min ? t.date : min), transactions[0].date);
+    const ledgerTransactions = transactions.filter((transaction) => !isAssetOnlyAdjustment(transaction));
+    if (ledgerTransactions.length === 0) return null;
+    return ledgerTransactions.reduce((min, t) => (t.date < min ? t.date : min), ledgerTransactions[0].date);
   }, [transactions]);
 
   const hiddenAssetsList = useMemo(() => {
@@ -3011,7 +3030,7 @@ export default function App() {
     });
     return months.map((mo) => {
       const monthStr = `${year}-${mo}`;
-      const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr) && t.date <= today);
+      const monthlyTxs = transactions.filter((t) => t.date.startsWith(monthStr) && t.date <= today && !isAssetOnlyAdjustment(t));
       const income = monthlyTxs
         .filter((t) => t.type === 'income' && !isOpeningBalanceTransaction(t))
         .reduce((sum, t) => sum + t.amount, 0);
@@ -3968,12 +3987,16 @@ export default function App() {
   }, [selectedMonth]);
 
   // Derived Values
+  const ledgerTransactions = useMemo(
+    () => transactions.filter((transaction) => !isAssetOnlyAdjustment(transaction)),
+    [transactions],
+  );
   const monthlyTransactions = useMemo(
     () =>
-      transactions
+      ledgerTransactions
         .filter((transaction) => transaction.date.startsWith(selectedMonth))
         .sort(compareTransactionsByDateTime),
-    [transactions, selectedMonth],
+    [ledgerTransactions, selectedMonth],
   );
 
   const todayStr = getToday();
@@ -3989,7 +4012,7 @@ export default function App() {
     return Array.from({ length: 12 }, (_, index) => {
       const monthNumber = 12 - index;
       const month = `${year}-${String(monthNumber).padStart(2, '0')}`;
-      const items = transactions.filter((transaction) => transaction.date.startsWith(month));
+      const items = ledgerTransactions.filter((transaction) => transaction.date.startsWith(month));
       return {
         month,
         label: `${monthNumber}월`,
@@ -3997,7 +4020,7 @@ export default function App() {
         expense: items.filter((transaction) => transaction.type === 'expense').reduce((sum, transaction) => sum + transaction.amount, 0),
       };
     }).filter((summary) => summary.income > 0 || summary.expense > 0);
-  }, [transactions, selectedMonth]);
+  }, [ledgerTransactions, selectedMonth]);
 
   const ledgerWeeklySummaries = useMemo(() => {
     const [year, month] = (expandedLedgerMonth ?? selectedMonth).split('-').map(Number);
@@ -4013,7 +4036,7 @@ export default function App() {
       const weekEndDate = new Date(cursor);
       weekEndDate.setDate(weekEndDate.getDate() + 6);
       const weekEnd = formatDate(weekEndDate);
-      const items = transactions.filter((transaction) => transaction.date >= weekStart && transaction.date <= weekEnd);
+      const items = ledgerTransactions.filter((transaction) => transaction.date >= weekStart && transaction.date <= weekEnd);
       weeks.push({
         start: weekStart,
         end: weekEnd,
@@ -4024,7 +4047,7 @@ export default function App() {
     }
 
     return weeks.reverse();
-  }, [transactions, expandedLedgerMonth, selectedMonth, isOpeningBalanceTransaction]);
+  }, [ledgerTransactions, expandedLedgerMonth, selectedMonth, isOpeningBalanceTransaction]);
   
   const getAssetOpeningBalance = useCallback((asset: AssetItem) => {
     let openingBalance = 0;
@@ -4489,7 +4512,7 @@ export default function App() {
     }
   }
 
-  function handleAssetBalanceAdjustment(asset: AssetItem, nextBalance: number) {
+  function handleAssetBalanceAdjustment(asset: AssetItem, nextBalance: number, recordInLedger: boolean) {
     const currentBalance = getAssetBalance(asset.id, getAssetOpeningBalance(asset));
     const difference = nextBalance - currentBalance;
     if (!difference) return;
@@ -4500,7 +4523,7 @@ export default function App() {
       time: new Date().toTimeString().slice(0, 5),
       amount: Math.abs(difference),
       title: '자산 잔액 조정',
-      category: 'etc',
+      category: recordInLedger ? 'etc' : ASSET_ONLY_ADJUSTMENT_CATEGORY,
       assetId: asset.id,
     });
   }
@@ -5582,7 +5605,7 @@ export default function App() {
   }, [calendarYear, calendarMonth]);
 
   const dateWiseSums = useMemo(() => {
-    return transactions.reduce<Record<string, { income: number; expense: number }>>((acc, t) => {
+    return ledgerTransactions.reduce<Record<string, { income: number; expense: number }>>((acc, t) => {
       if (!acc[t.date]) {
         acc[t.date] = { income: 0, expense: 0 };
       }
@@ -5593,7 +5616,7 @@ export default function App() {
       }
       return acc;
     }, {});
-  }, [transactions, isOpeningBalanceTransaction]);
+  }, [ledgerTransactions, isOpeningBalanceTransaction]);
 
   function handleCalendarPrev() {
     if (calendarMonth === 0) {
@@ -5835,8 +5858,8 @@ export default function App() {
 
   function exportExcelSpreadsheet(scope: 'current' | 'all') {
     const targetTransactions = scope === 'current'
-      ? transactions.filter((t) => t.date.startsWith(selectedMonth))
-      : [...transactions];
+      ? ledgerTransactions.filter((t) => t.date.startsWith(selectedMonth))
+      : [...ledgerTransactions];
 
     targetTransactions.sort((a, b) => b.date.localeCompare(a.date) || (b.time || '').localeCompare(a.time || '') || (b.createdAt || 0) - (a.createdAt || 0) || b.id.localeCompare(a.id));
 
@@ -6169,7 +6192,7 @@ ${sheet2Rows}  </sheetData>
 
     // 3. SHEET 3: 월별 추이 (전체 기간 월별 수입/지출/순수익)
     const monthlyMap = new Map<string, { income: number; expense: number; count: number }>();
-    const allTxsForTrend = scope === 'all' ? targetTransactions : transactions;
+    const allTxsForTrend = scope === 'all' ? targetTransactions : ledgerTransactions;
 
     allTxsForTrend.forEach((t) => {
       const ym = t.date.slice(0, 7);
@@ -7803,7 +7826,7 @@ ${sheet4Rows}  </sheetData>
               isNoSpendChallengeEnabled={isNoSpendChallengeEnabled}
               selectedMonth={selectedMonth}
               isFilterApplied={Boolean(searchTerm.trim() || (filterCategory && filterCategory !== 'all'))}
-              allTransactions={transactions}
+              allTransactions={ledgerTransactions}
               firstTransactionDate={firstTransactionDate}
               pledgedDates={pledgedChallengeDates}
               onTogglePledgeToday={handleTogglePledgeToday}
@@ -9363,7 +9386,7 @@ ${sheet4Rows}  </sheetData>
             type="expense"
             initialCategory={transactionListCategory}
             selectedMonth={selectedMonth}
-            transactions={transactions}
+            transactions={ledgerTransactions}
             assets={assets}
             allCategories={allExpenseCategories}
             allExpenseCategories={allExpenseCategories}
@@ -9401,7 +9424,7 @@ ${sheet4Rows}  </sheetData>
             type="income"
             initialCategory={transactionListCategory}
             selectedMonth={selectedMonth}
-            transactions={transactions}
+            transactions={ledgerTransactions}
             assets={assets}
             allCategories={allIncomeCategories}
             allExpenseCategories={allExpenseCategories}
@@ -9515,12 +9538,12 @@ ${sheet4Rows}  </sheetData>
               <div style={{ display: 'grid', gap: '16px' }}>
                 <h4 style={{ margin: '0 0 4px', fontSize: '1.1rem', color: 'var(--text-primary)' }}>지출 및 수입 내역</h4>
                 {(() => {
-                  const dayTx = transactions.filter((t) => t.date === selectedDayData);
+                  const dayTx = ledgerTransactions.filter((t) => t.date === selectedDayData);
                   const dayExpenseTx = dayTx.filter((t) => t.type === 'expense');
                   const isPastOrToday = selectedDayData <= getToday();
                   const isAfterOrOnFirst = Boolean(firstTransactionDate && selectedDayData >= firstTransactionDate);
                   const isNoSpend = isNoSpendChallengeEnabled && isAfterOrOnFirst && isPastOrToday && dayExpenseTx.length === 0;
-                  const streak = isNoSpend ? calculateNoSpendStreak(selectedDayData, transactions, firstTransactionDate) : 0;
+                  const streak = isNoSpend ? calculateNoSpendStreak(selectedDayData, ledgerTransactions, firstTransactionDate) : 0;
                   const isPledged = Boolean(pledgedChallengeDates.includes(selectedDayData));
                   const streakInfo = getNoSpendStreakInfo(selectedDayData, streak, isPledged);
                   const isToday = selectedDayData === getToday();
@@ -9765,7 +9788,7 @@ ${sheet4Rows}  </sheetData>
                   if (!difference) { setSelectedAsset(null); return; }
                   const direction = difference > 0 ? '수입(+)' : '지출(-)';
                   if (window.confirm('차액 ' + formatCurrency(Math.abs(difference)) + '을 ' + direction + ' 거래로 장부에 기록할까요?')) {
-                    handleAssetBalanceAdjustment(selectedAsset!, nextBalance);
+                    handleAssetBalanceAdjustment(selectedAsset!, nextBalance, true);
                     setAssetBalanceDraft(String(nextBalance));
                     setSelectedAsset(null);
                   }
@@ -12477,7 +12500,10 @@ function TransactionEditForm({
   const [time, setTime] = useState(transaction.time || '');
   const [amount, setAmount] = useState(String(transaction.amount));
   const [title, setTitle] = useState(transaction.title);
-  const categories = transaction.type === 'expense' ? expenseCategories : incomeCategories;
+  const isAssetOnly = isAssetOnlyAdjustment(transaction);
+  const categories = isAssetOnly
+    ? [{ id: ASSET_ONLY_ADJUSTMENT_CATEGORY, label: '자산 변동' }]
+    : transaction.type === 'expense' ? expenseCategories : incomeCategories;
   const [category, setCategory] = useState(() => (
     categories.some((item) => item.id === transaction.category) ? transaction.category : ''
   ));
@@ -12538,7 +12564,7 @@ function TransactionEditForm({
     for (let i = transactions.length - 1; i >= 0; i--) {
       const t = transactions[i];
       const tTitle = t.title?.trim();
-      if (!tTitle || tTitle === '계좌 이체') continue;
+      if (!tTitle || tTitle === '계좌 이체' || isAssetOnlyAdjustment(t)) continue;
       const existing = titleMap.get(tTitle);
       if (!existing) {
         titleMap.set(tTitle, {
@@ -12920,7 +12946,7 @@ function TransactionEditForm({
           </>
         )}
 
-        {!isInstallment && (
+        {!isInstallment && !isAssetOnly && (
           <label className="recurring-toggle" style={{ gridColumn: 'span 2' }}>
             <input
               type="checkbox"

@@ -379,8 +379,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const cardAsset = await db.prepare("SELECT * FROM assets WHERE id = ?").bind(cardAssetId).first<any>();
       const paymentAsset = await db.prepare("SELECT id FROM assets WHERE id = ?").bind(paymentAssetId).first<any>();
       if (!cardAsset || !paymentAsset || cardAsset.card_payment_asset_id !== paymentAssetId) return apiError('INVALID_CARD_PAYMENT_ACCOUNT', 422);
-      const sourceRows = await db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL AND card_settlement_id IS NULL AND asset_id = ? AND date >= ? AND date <= ? AND date <= ? AND category <> ? AND type IN ('expense', 'income') ORDER BY date, transaction_time, id")
-        .bind(cardAssetId, periodStart, periodEnd, settledDate, 'opening-balance').all<any>();
+      const sourceRows = await db.prepare("SELECT * FROM transactions WHERE deleted_at IS NULL AND card_settlement_id IS NULL AND asset_id = ? AND date >= ? AND date <= ? AND date <= ? AND category NOT IN (?, ?) AND type IN ('expense', 'income') ORDER BY date, transaction_time, id")
+        .bind(cardAssetId, periodStart, periodEnd, settledDate, 'opening-balance', '__asset_only_adjustment__').all<any>();
       const sources = sourceRows.results || [];
       const amount = sources.reduce((sum: number, transaction: any) => sum + (transaction.type === 'expense' ? Number(transaction.amount) : -Number(transaction.amount)), 0);
       if (!sources.length || amount <= 0) return apiError('NO_CARD_BALANCE_TO_SETTLE', 422);
