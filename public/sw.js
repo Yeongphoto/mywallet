@@ -1,15 +1,15 @@
-const CACHE_NAME = 'mywallet-shell-v9';
+const CACHE_NAME = 'mywallet-shell-v10';
 const APP_SHELL = [
   '/',
-  '/manifest.webmanifest?v=2',
+  '/manifest.webmanifest?v=3',
   '/logo.png',
   '/favicon.ico?v=2',
   '/favicon.svg?v=2',
-  '/apple-touch-icon.png?v=2',
-  '/icons/pwa-192.png?v=2',
-  '/icons/pwa-512.png?v=2',
-  '/icons/pwa-maskable-192.png?v=2',
-  '/icons/pwa-maskable-512.png?v=2'
+  '/apple-touch-icon.png?v=3',
+  '/icons/pwa-192.png?v=3',
+  '/icons/pwa-512.png?v=3',
+  '/icons/pwa-maskable-192.png?v=3',
+  '/icons/pwa-maskable-512.png?v=3'
 ];
 
 self.addEventListener('install', (event) => {
