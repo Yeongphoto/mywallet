@@ -17,8 +17,8 @@
 
 .app-loading-screen .app-loading-logo,
 .app-sync-overlay .app-loading-logo {
-  width: 57px;
-  height: 57px;
+  width: 49px;
+  height: 49px;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
 }
 

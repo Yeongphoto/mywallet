@@ -5392,8 +5392,8 @@ body.category-handle-drag-active {
 }
 
 .app-loading-logo {
-  width: 57px;
-  height: 57px;
+  width: 49px;
+  height: 49px;
   filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18));
 }
 
@@ -5445,8 +5445,8 @@ body.category-handle-drag-active {
 }
 
 .app-sync-overlay .app-loading-logo {
-  width: 57px;
-  height: 57px;
+  width: 49px;
+  height: 49px;
 }
 
 .app-sync-overlay .app-loading-logo img {

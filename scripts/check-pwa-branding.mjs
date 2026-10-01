@@ -1,0 +1,126 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
+
+const root = new URL('../', import.meta.url);
+const read = (path) => readFileSync(new URL(path, root));
+
+function pngPixels(path) {
+  const bytes = read(path);
+  assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${path}: invalid PNG`);
+  let width = 0;
+  let height = 0;
+  const data = [];
+  for (let offset = 8; offset < bytes.length;) {
+    const length = bytes.readUInt32BE(offset);
+    const type = bytes.toString('ascii', offset + 4, offset + 8);
+    const chunk = bytes.subarray(offset + 8, offset + 8 + length);
+    if (type === 'IHDR') {
+      width = chunk.readUInt32BE(0);
+      height = chunk.readUInt32BE(4);
+      assert.equal(chunk[8], 8, `${path}: expected 8-bit PNG`);
+      assert.equal(chunk[9], 6, `${path}: expected RGBA PNG`);
+      assert.equal(chunk[12], 0, `${path}: interlaced PNG is unsupported`);
+    }
+    if (type === 'IDAT') data.push(chunk);
+    offset += length + 12;
+  }
+  assert(width > 0 && height > 0 && data.length > 0, `${path}: incomplete PNG`);
+  const scanlines = inflateSync(Buffer.concat(data));
+  const stride = width * 4;
+  const pixels = Buffer.alloc(stride * height);
+  let input = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = scanlines[input++];
+    assert(filter >= 0 && filter <= 4, `${path}: unsupported PNG filter`);
+    for (let x = 0; x < stride; x++) {
+      const left = x >= 4 ? pixels[y * stride + x - 4] : 0;
+      const up = y > 0 ? pixels[(y - 1) * stride + x] : 0;
+      const upperLeft = y > 0 && x >= 4 ? pixels[(y - 1) * stride + x - 4] : 0;
+      let predictor = 0;
+      if (filter === 1) predictor = left;
+      if (filter === 2) predictor = up;
+      if (filter === 3) predictor = Math.floor((left + up) / 2);
+      if (filter === 4) {
+        const estimate = left + up - upperLeft;
+        const distances = [left, up, upperLeft].map((value) => Math.abs(estimate - value));
+        predictor = distances.indexOf(Math.min(...distances)) === 0 ? left
+          : distances[1] <= distances[2] ? up : upperLeft;
+      }
+      pixels[y * stride + x] = (scanlines[input++] + predictor) & 255;
+    }
+  }
+  assert.equal(input, scanlines.length, `${path}: unexpected PNG data length`);
+  return { width, height, pixels };
+}
+
+function whiteMark(path) {
+  const { width, height, pixels } = pngPixels(path);
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  let count = 0;
+  let radius = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const at = (y * width + x) * 4;
+      if (pixels[at] < 200 || pixels[at + 1] < 200 || pixels[at + 2] < 200 || pixels[at + 3] < 128) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+      radius = Math.max(radius, Math.hypot((x + .5) / width - .5, (y + .5) / height - .5));
+      count++;
+    }
+  }
+  assert(count > 0, `${path}: no white logo found`);
+  return {
+    width, height, pixels,
+    xSize: (maxX - minX + 1) / width,
+    ySize: (maxY - minY + 1) / height,
+    xCenter: (minX + maxX + 1) / (2 * width),
+    yCenter: (minY + maxY + 1) / (2 * height),
+    area: count / (width * height),
+    radius,
+  };
+}
+
+const source = whiteMark('public/logo.png');
+assert.equal(source.width, source.height, 'Loading logo must use a square canvas');
+const manifest = JSON.parse(read('public/manifest.webmanifest').toString('utf8'));
+const html = read('index.html').toString('utf8');
+const worker = read('public/sw.js').toString('utf8');
+const styles = read('src/styles.css').toString('utf8');
+const loadingScale = read('src/loading-scale.css').toString('utf8');
+assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"\s*\/>/, 'Keep the installed PWA manifest URL stable');
+assert(worker.includes("'/manifest.webmanifest'"), 'Service worker must cache the stable manifest URL');
+assert(read('public/logo.png').equals(read('public/images/mememo/mememo-met.png')), 'Mememo loading logo must match the canonical cat artwork');
+assert(html.includes('width:49px;height:49px'), 'First-paint logo size differs from the measured Android splash');
+assert((styles.match(/width: 49px;\s*height: 49px;/g) ?? []).length >= 2, 'App and sync loading logo sizes differ');
+assert(/width: 49px;\s*height: 49px;/.test(loadingScale), 'Loading scale override differs from measured Android splash');
+
+for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
+  for (const size of [192, 512]) {
+    const path = `public/icons/pwa-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
+    const alias = `public/icons/icon-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
+    assert(read(path).equals(read(alias)), `${alias}: differs from canonical ${path}`);
+    const mark = whiteMark(path);
+    assert.equal(mark.width, size, `${path}: incorrect width`);
+    assert.equal(mark.height, size, `${path}: incorrect height`);
+    for (const corner of [0, (size - 1) * 4, (size * size - size) * 4, (size * size - 1) * 4]) {
+      assert.deepEqual([...mark.pixels.subarray(corner, corner + 4)], [9, 9, 11, 255], `${path}: wrong opaque background`);
+    }
+    for (const dimension of ['xSize', 'ySize']) {
+      assert(Math.abs(mark[dimension] - source[dimension] * scale) < .015, `${path}: logo ${dimension} differs from loading logo`);
+    }
+    for (const dimension of ['xCenter', 'yCenter']) {
+      assert(Math.abs(mark[dimension] - source[dimension]) < .01, `${path}: logo is off-center`);
+    }
+    assert(Math.abs(mark.area - source.area * scale * scale) < .008, `${path}: unexpected white pixels, possibly a border or another mark`);
+    if (purpose === 'maskable') assert(mark.radius <= .405, `${path}: logo extends outside maskable safe zone`);
+    assert(manifest.icons.some((icon) => icon.src.split('?')[0] === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose === purpose), `${path}: missing or incorrect manifest entry`);
+    console.log(`${path}: ${(mark.xSize * 100).toFixed(1)}% wide, ${(mark.ySize * 100).toFixed(1)}% high, centered`);
+  }
+}
+console.log('PWA artwork and loading size checks passed. Android OS splash must still be checked on the installed device.');

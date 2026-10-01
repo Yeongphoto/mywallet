@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npm run build && npx wrangler pages dev dist --compatibility-date=2024-01-01 --port=5174",
     "dev:vite": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run check:pwa && tsc -b && vite build",
+    "check:pwa": "node scripts/check-pwa-branding.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "dev:d1": "npm run dev"
