@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
+import { execFileSync } from 'node:child_process';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root));
@@ -98,13 +99,13 @@ assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v3.webmanifest').toS
 for (const filename of readdirSync(new URL('public/', root)).filter((name) => name.endsWith('.webmanifest'))) {
   const advertised = JSON.parse(read(`public/${filename}`).toString('utf8'));
   assert.deepEqual(advertised, manifest, `${filename}: old install routes must advertise the repaired configuration`);
-  assert(advertised.icons.every((icon) => icon.purpose === 'any'), `${filename}: ANY maskable entry, including 192px or combined purposes, regresses Samsung splash`);
+  assert(advertised.icons.filter((icon) => icon.type !== 'image/svg+xml').every((icon) => icon.purpose === 'any'), `${filename}: Do not reintroduce the PNG maskable regression`);
 }
 assert.equal(manifest.name, 'Memoney');
 assert.equal(manifest.short_name, 'Memoney');
 assert.equal(manifest.id, manifest.start_url, 'Keep the previously inferred PWA identity to preserve existing installations');
-assert.equal(manifest.icons.length, 2, 'Install manifest must contain two cat icons');
-assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['192x192', 'any'], ['512x512', 'any']], 'Keep the device-confirmed any-only splash configuration');
+assert.equal(manifest.icons.length, 3, 'Match WORKROOM: vector first, then two regular PNG icons');
+assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['any', 'any maskable'], ['192x192', 'any'], ['512x512', 'any']], 'Match the WORKROOM icon-purpose structure');
 const html = read('index.html').toString('utf8');
 assert(html.includes('<title>Memoney</title>'), 'Browser title must match the installed name');
 assert(html.includes('name="apple-mobile-web-app-title" content="Memoney"'), 'Apple install name must match');
@@ -112,21 +113,22 @@ assert(!html.includes('Mewallet'), 'Initial HTML must not show the old name');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');
-assert.match(html, /<link rel="manifest" href="\/mewallet-v5\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
-assert(worker.includes("'/mewallet-v5.webmanifest'"), 'Service worker must cache the versioned manifest');
+assert.match(html, /<link rel="manifest" href="\/memoney-v1\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
+assert(worker.includes("'/memoney-v1.webmanifest'"), 'Service worker must cache the versioned manifest');
 const launcher = read('public/mewallet-v2-launcher-192.svg').toString('utf8');
 const embedded = launcher.match(/href="data:image\/png;base64,([A-Za-z0-9+/=]+)"/);
 assert(embedded, 'Launcher SVG must embed its original image without external dependencies');
 assert(Buffer.from(embedded[1], 'base64').equals(read('public/mewallet-v1-192.png')), 'Launcher must not redraw or replace the original cat pixels');
 assert(launcher.includes('<rect width="192" height="192" rx="44"/>'), 'Launcher must clip only the black tile corners');
-assert.deepEqual(manifest.icons[0], { src: '/mewallet-v2-launcher-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' });
-assert.deepEqual(manifest.icons[1], { src: '/mewallet-v1-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, 'Do not change the existing large splash icon');
-assert(worker.includes("'/mewallet-v2-launcher-192.svg'"), 'Launcher must be available offline');
-for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png']) {
-  assert(existsSync(new URL(`public/${path}`, root)), `${path}: missing versioned fallback icon`);
-  assert(html.includes(`href="/${path}"`), `${path}: missing HTML reference`);
-  assert(worker.includes(`'/${path}'`), `${path}: missing service worker reference`);
-}
+assert.deepEqual(manifest.icons[0], { src: '/memoney-mark-v1.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' });
+assert.deepEqual(manifest.icons[2], { src: '/mewallet-v1-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, 'Keep the PNG fallback artwork unchanged');
+const vector = read('public/memoney-mark-v1.svg').toString('utf8');
+assert(!/<(?:image|rect|filter|mask)\b|data:image/.test(vector), 'Adaptive vector must contain no raster canvas or background');
+assert.equal((vector.match(/M[0-9]/g) ?? []).length, 5, 'Preserve outline, face opening, two eyes and mouth');
+assert.equal(vector.replace(/\r\n/g, '\n'), execFileSync(process.execPath, ['scripts/trace-cat-artwork.mjs'], { cwd: root, encoding: 'utf8' }), 'Vector must be reproducible from the original alpha contour');
+assert(worker.includes("'/memoney-mark-v1.svg'"), 'Vector must be available offline');
+assert(html.includes('rel="icon" type="image/png" sizes="192x192" href="/mewallet-v1-192.png"'), 'Match the single PNG favicon fallback in WORKROOM');
+assert(html.includes('rel="apple-touch-icon" sizes="192x192" href="/mewallet-v1-192.png"'), 'Touch icon must share the PNG fallback');
 assert(!/href="\/(?:favicon\.ico|apple-touch-icon\.png|pwa-cat-)/.test(html), 'HTML must not reuse old install icon URLs');
 assert(read('public/logo.png').equals(read('public/images/mememo/mememo-met.png')), 'Mememo loading logo must match the canonical cat artwork');
 assert(read('public/logo.png').equals(read('public/mewallet-loading-v1.png')), 'Versioned loading mask must preserve the canonical artwork');

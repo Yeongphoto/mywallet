@@ -1,7 +1,7 @@
 # Installation branding
 
 The current installed name is Memoney. New installations use
-`/mewallet-v5.webmanifest`, the new rounded 192px SVG, and the existing 512px PNG.
+`/memoney-v1.webmanifest`, the traced transparent vector, and the existing PNGs.
 Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.
 
@@ -44,8 +44,8 @@ the user then reported a white launcher border. Android can normalize any-only
 icons onto a white background. The 192px `any maskable` / 512px `any` split trial
 REGRESSED the native splash on the user's device. Size does not isolate launcher
 and splash selection. All install routes are restored to any-only icons.
-Do not reintroduce maskable (even combined purposes or small sizes) to fix the
-launcher border: this device has confirmed that approach breaks the splash.
+Do not reintroduce PNG maskable icons (even combined purposes or small sizes)
+to fix the launcher border: this device confirmed that approach breaks splash.
 The launcher border remains unresolved; do not claim both fixed.
 The next image-only trial uses `/mewallet-v2-launcher-192.svg`: it embeds the
 unchanged 192px PNG and clips only the outer black corners with a rounded rect.
@@ -54,6 +54,28 @@ and loading renderer stay unchanged. Chromium's legacy shortcut code adds
 padding to icons with opaque corners. This is a hypothesis for Samsung, not a
 guarantee: Samsung may wrap the icon anyway or choose the unchanged PNG if its
 installer does not accept SVG. Verify both launcher and native splash on-device.
+That rounded embedded-PNG SVG trial did not remove the user's launcher border.
+
+## WORKROOM vector comparison
+
+The user's working app at https://daily-work-manager.pages.dev/manifest.json
+advertises a pure white path SVG with transparent background first, using
+`sizes: any` and `purpose: any maskable`, followed by two regular PNGs. Its SVG
+contains no embedded bitmap or opaque background. Its favicon and touch icon
+both point to the same PNG. Memoney now trials that structure instead of the
+failed PNG-maskable and rounded embedded-PNG variants. This is a distinct
+device-test hypothesis, not proof that Samsung will behave identically.
+
+`scripts/trace-cat-artwork.mjs` automatically extracts five closed alpha contours
+from the original 1280px cat PNG: outline, face opening, two eyes, and mouth.
+The generated `memoney-mark-v1.svg` contains only a white even-odd path. It uses
+the existing 0.89 adaptive safe-zone scale; no hand-drawn replacement geometry.
+PNG-to-vector antialiasing is not pixel-identical: the browser comparison at
+512px measured 99.54% binary-silhouette agreement and 0.51/255 mean alpha error.
+The 49px/1x preview has larger edge differences, which the test reports openly.
+Keep the original PNG and canvas loading renderer unchanged. Run both
+`check-vector-artwork.mjs` and `check-loading-rendering.mjs` before publishing.
+Real Samsung checks must cover launcher AND native splash on the same install.
 Progressier reports Samsung Internet adds a white padded box when maskable
 icons are supplied; omitting them is the device-confirmed workaround:
 https://intercom.help/progressier/en/articles/9795029-about-the-splash-screens-of-pwas-installed-from-samsung-internet
