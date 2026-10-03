@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root));
+for (const path of ['public/favicon.svg', 'public/logo.svg', 'public/logo-icon.svg', 'public/icons', 'public/images/logo-pig-backup.png']) {
+  assert(!existsSync(new URL(path, root)), `${path}: retired branding asset must not return`);
+}
 
 function pngPixels(path) {
   const bytes = read(path);
@@ -89,6 +92,7 @@ function whiteMark(path) {
 const source = whiteMark('public/logo.png');
 assert.equal(source.width, source.height, 'Loading logo must use a square canvas');
 const manifest = JSON.parse(read('public/manifest.webmanifest').toString('utf8'));
+assert.equal(manifest.icons.length, 4, 'Only the four canonical cat PWA icons belong in the manifest');
 const html = read('index.html').toString('utf8');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
@@ -102,9 +106,7 @@ assert(/width: 49px;\s*height: 49px;/.test(loadingScale), 'Loading scale overrid
 
 for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
   for (const size of [192, 512]) {
-    const path = `public/icons/pwa-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
-    const alias = `public/icons/icon-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
-    assert(read(path).equals(read(alias)), `${alias}: differs from canonical ${path}`);
+    const path = `public/pwa-cat-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
     const mark = whiteMark(path);
     assert.equal(mark.width, size, `${path}: incorrect width`);
     assert.equal(mark.height, size, `${path}: incorrect height`);
