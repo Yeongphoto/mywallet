@@ -1,15 +1,13 @@
-const CACHE_NAME = 'mewallet-shell-v2';
+const CACHE_NAME = 'mewallet-shell-v3';
 const APP_SHELL = [
   '/',
-  '/mewallet-v1.webmanifest',
+  '/mewallet-v2.webmanifest',
   '/logo.png',
   '/mewallet-loading-v1.png',
   '/mewallet-v1-favicon.ico',
   '/mewallet-v1-apple-touch-icon.png',
   '/mewallet-v1-192.png',
-  '/mewallet-v1-512.png',
-  '/mewallet-v1-maskable-192.png',
-  '/mewallet-v1-maskable-512.png'
+  '/mewallet-v1-512.png'
 ];
 
 self.addEventListener('install', (event) => {
