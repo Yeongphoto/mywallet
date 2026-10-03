@@ -125,6 +125,9 @@ for (let y = 0; y < mask.height; y++) {
 assert(html.includes('class="app-loading-glyph"'), 'First paint must render the loading glyph');
 assert(!/<img src="\/logo\.png"/.test(html), 'First paint must not use a bitmap image element');
 assert(styles.includes("mask: url('/mewallet-loading-v1.png')"), 'React loading glyph must use the same alpha mask');
+assert(html.includes('background:linear-gradient(#ffffff,#ffffff);color-scheme:only light;opacity:1;'), 'First paint must preserve the white loading fill');
+assert(styles.includes('background: linear-gradient(#ffffff, #ffffff);'), 'React loading must preserve the white loading fill');
+assert(loadingScale.includes('filter: none !important;'), 'Loading artwork must remain crisp without a glow filter');
 assert(html.includes('width:49px;height:49px'), 'First-paint logo size differs from the measured Android splash');
 assert((styles.match(/width: 49px;\s*height: 49px;/g) ?? []).length >= 2, 'App and sync loading logo sizes differ');
 assert(/width: 49px;\s*height: 49px;/.test(loadingScale), 'Loading scale override differs from measured Android splash');

@@ -15,11 +15,12 @@
   height: 86px;
 }
 
-.app-loading-screen .app-loading-logo,
-.app-sync-overlay .app-loading-logo {
+#root .app-loading-screen .app-loading-logo,
+#root .app-sync-overlay .app-loading-logo {
   width: 49px;
   height: 49px;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  filter: none !important;
+  opacity: 1;
 }
 
 .app-loading-screen .app-loading-glyph,

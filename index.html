@@ -56,7 +56,7 @@
         #root > .app-loading-screen > .app-loading-mark { position:relative;display:grid;width:86px;height:86px;place-items:center; }
         #root > .app-loading-screen > .app-loading-mark,#root > .app-loading-screen > .app-loading-copy { transform:translateY(14px); }
         #root > .app-loading-screen > .app-loading-mark > .app-loading-logo { width:49px;height:49px;filter:drop-shadow(0 0 10px rgba(255,255,255,.15)); }
-        #root > .app-loading-screen > .app-loading-mark > .app-loading-logo > .app-loading-glyph { display:block;width:100%;height:100%;background:#ffffff;-webkit-mask:url('/mewallet-loading-v1.png') center/contain no-repeat;mask:url('/mewallet-loading-v1.png') center/contain no-repeat;mask-mode:alpha; }
+        #root > .app-loading-screen > .app-loading-mark > .app-loading-logo > .app-loading-glyph { display:block;width:100%;height:100%;background:linear-gradient(#ffffff,#ffffff);color-scheme:only light;opacity:1;-webkit-mask:url('/mewallet-loading-v1.png') center/contain no-repeat;mask:url('/mewallet-loading-v1.png') center/contain no-repeat;mask-mode:alpha; }
         #root > .app-loading-screen .app-loading-orbit-track,#root > .app-loading-screen .app-loading-orbit { position:absolute;inset:0;border-radius:50%; }
         #root > .app-loading-screen .app-loading-orbit-track { border:1.25px solid rgba(255,255,255,.12); }
         #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#ffffff 74deg,#a1a1aa 126deg,transparent 164deg 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 1.25px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 1.25px));animation:loadingOrbit 1.2s linear infinite; }
@@ -83,6 +83,7 @@
         @keyframes loadingOrbit { to { transform:rotate(360deg); } }
         @media (prefers-reduced-motion:reduce) { #root > .app-loading-screen .app-loading-orbit { animation-duration:3.5s; } }
         @media (max-width:768px) { #root > .app-loading-screen .app-loading-copy h1 { font-size:25.1px !important; } }
+        #root > .app-loading-screen .app-loading-logo { filter:none !important;opacity:1; }
       </style>
       <main class="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
         <div class="app-loading-mark" aria-hidden="true">

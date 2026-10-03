@@ -28,6 +28,12 @@ initial HTML mask and React CSS mask in sync; check both before JavaScript loads
 and after React mounts. Samsung Internet startup behavior still requires device
 verification.
 
+Loading glyph brightness: use a solid-white gradient for the mask fill and
+`color-scheme: only light` on the glyph, avoiding a flat CSS background that a
+browser's automatic dark mode may recolor. Disable glow filters on the loading
+logo in both initial HTML and final loading CSS. This is a mitigation for the
+dim logo in the Samsung recording, not proof of a reproduced device fix.
+
 ## Samsung Internet native splash padding
 
 The supplied 2026-10-03 recording shows a square icon frame before the web

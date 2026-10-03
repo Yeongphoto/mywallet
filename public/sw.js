@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mewallet-shell-v3';
+const CACHE_NAME = 'mewallet-shell-v4';
 const APP_SHELL = [
   '/',
   '/mewallet-v2.webmanifest',
