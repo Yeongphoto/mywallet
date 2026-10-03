@@ -1,6 +1,6 @@
 # Installation branding
 
-The current installed name is Mewallet. New installations use
+The current installed name is Memoney. New installations use
 `/mewallet-v5.webmanifest`, the new rounded 192px SVG, and the existing 512px PNG.
 Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.

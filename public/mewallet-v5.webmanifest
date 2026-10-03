@@ -1,6 +1,6 @@
 {
-  "name": "Mewallet",
-  "short_name": "Mewallet",
+  "name": "Memoney",
+  "short_name": "Memoney",
   "id": "/?source=pwa",
   "description": "스마트 가계부 캘린더",
   "start_url": "/?source=pwa",

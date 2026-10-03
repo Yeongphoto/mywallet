@@ -100,12 +100,15 @@ for (const filename of readdirSync(new URL('public/', root)).filter((name) => na
   assert.deepEqual(advertised, manifest, `${filename}: old install routes must advertise the repaired configuration`);
   assert(advertised.icons.every((icon) => icon.purpose === 'any'), `${filename}: ANY maskable entry, including 192px or combined purposes, regresses Samsung splash`);
 }
-assert.equal(manifest.name, 'Mewallet');
-assert.equal(manifest.short_name, 'Mewallet');
+assert.equal(manifest.name, 'Memoney');
+assert.equal(manifest.short_name, 'Memoney');
 assert.equal(manifest.id, manifest.start_url, 'Keep the previously inferred PWA identity to preserve existing installations');
 assert.equal(manifest.icons.length, 2, 'Install manifest must contain two cat icons');
 assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['192x192', 'any'], ['512x512', 'any']], 'Keep the device-confirmed any-only splash configuration');
 const html = read('index.html').toString('utf8');
+assert(html.includes('<title>Memoney</title>'), 'Browser title must match the installed name');
+assert(html.includes('name="apple-mobile-web-app-title" content="Memoney"'), 'Apple install name must match');
+assert(!html.includes('Mewallet'), 'Initial HTML must not show the old name');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');

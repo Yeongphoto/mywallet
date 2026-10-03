@@ -129,7 +129,7 @@ function MyWalletLogo({ className = '', style, src = '/logo.png' }: { className?
     <span className={`mywallet-logo-frame ${className}`} style={style}>
       <img 
         src={src}
-        alt="Mewallet 로고"
+        alt="Memoney 로고"
         className="mywallet-logo" 
       />
     </span>
@@ -6731,7 +6731,7 @@ ${sheet4Rows}  </sheetData>
               <span style={{
                 color: styleTheme === 'mememo' ? '#52b788' : (styleTheme === 'doodle' ? '#ff9f43' : '#38bdf8'),
                 marginLeft: '2px'
-              }}>wallet</span>
+              }}>money</span>
             </h1>
           </div>
         </div>
@@ -6753,7 +6753,7 @@ ${sheet4Rows}  </sheetData>
           <div className="brand">
             <MyWalletLogo src={getSidebarLogoSrc(styleTheme, resolvedTheme)} />
             <div>
-              <strong className="brand-wordmark"><span>Me</span><span>wallet</span></strong>
+              <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
             </div>
           </div>
           <nav>
@@ -6844,7 +6844,7 @@ ${sheet4Rows}  </sheetData>
             src={getHeaderLogoSrc(styleTheme, resolvedTheme)}
           />
           <div className="brand-text">
-            <strong className="brand-wordmark"><span>Me</span><span>wallet</span></strong>
+            <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
           </div>
         </div>
 

@@ -22,6 +22,17 @@ try {
       }
       await page.goto(origin, { waitUntil: 'networkidle0' });
       await page.waitForSelector('canvas.app-loading-glyph[data-painted="true"]');
+      const branding = await page.evaluate(() => ({
+        title: document.title,
+        loading: document.querySelector('.app-loading-copy h1')?.textContent?.trim(),
+        wordmarks: [...document.querySelectorAll('.brand-wordmark')].map((element) => element.textContent),
+      }));
+      assert.equal(branding.title, 'Memoney');
+      assert.equal(branding.loading, 'Memoney');
+      if (!initial) {
+        assert.equal(branding.wordmarks.length, 2);
+        assert(branding.wordmarks.every((text) => text === 'Memoney'));
+      }
       if (dpr === 3 && process.argv[4]) {
         await page.screenshot({ path: `${process.argv[4]}/mewallet-${initial ? 'initial' : 'react'}-canvas.png` });
       }
