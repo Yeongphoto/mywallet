@@ -110,6 +110,19 @@ for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png
 }
 assert(!/href="\/(?:favicon\.ico|apple-touch-icon\.png|pwa-cat-)/.test(html), 'HTML must not reuse old install icon URLs');
 assert(read('public/logo.png').equals(read('public/images/mememo/mememo-met.png')), 'Mememo loading logo must match the canonical cat artwork');
+assert(read('public/logo.png').equals(read('public/mewallet-loading-v1.png')), 'Versioned loading mask must preserve the canonical artwork');
+const mask = pngPixels('public/mewallet-loading-v1.png');
+for (let x = 0; x < mask.width; x++) {
+  assert.equal(mask.pixels[x * 4 + 3], 0, 'Loading mask top edge must remain transparent');
+  assert.equal(mask.pixels[((mask.height - 1) * mask.width + x) * 4 + 3], 0, 'Loading mask bottom edge must remain transparent');
+}
+for (let y = 0; y < mask.height; y++) {
+  assert.equal(mask.pixels[y * mask.width * 4 + 3], 0, 'Loading mask left edge must remain transparent');
+  assert.equal(mask.pixels[(y * mask.width + mask.width - 1) * 4 + 3], 0, 'Loading mask right edge must remain transparent');
+}
+assert(html.includes('class="app-loading-glyph"'), 'First paint must render the loading glyph');
+assert(!/<img src="\/logo\.png"/.test(html), 'First paint must not use a bitmap image element');
+assert(styles.includes("mask: url('/mewallet-loading-v1.png')"), 'React loading glyph must use the same alpha mask');
 assert(html.includes('width:49px;height:49px'), 'First-paint logo size differs from the measured Android splash');
 assert((styles.match(/width: 49px;\s*height: 49px;/g) ?? []).length >= 2, 'App and sync loading logo sizes differ');
 assert(/width: 49px;\s*height: 49px;/.test(loadingScale), 'Loading scale override differs from measured Android splash');

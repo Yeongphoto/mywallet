@@ -5397,11 +5397,14 @@ body.category-handle-drag-active {
   filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.18));
 }
 
-.app-loading-logo img {
+.app-loading-glyph {
   width: 100%;
   height: 100%;
-  object-fit: contain;
   display: block;
+  background: #ffffff;
+  -webkit-mask: url('/mewallet-loading-v1.png') center / contain no-repeat;
+  mask: url('/mewallet-loading-v1.png') center / contain no-repeat;
+  mask-mode: alpha;
 }
 
 .app-loading-orbit-track,
@@ -5447,13 +5450,6 @@ body.category-handle-drag-active {
 .app-sync-overlay .app-loading-logo {
   width: 49px;
   height: 49px;
-}
-
-.app-sync-overlay .app-loading-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
 }
 
 @keyframes loadingOrbit {
@@ -8538,13 +8534,6 @@ html[data-style-theme="mememo"][data-theme="dark"] .brand .mywallet-logo-frame .
 html[data-style-theme="mememo"] .app-loading-screen,
 html[data-style-theme="mememo"] .app-sync-overlay {
   background: radial-gradient(circle at center, #15241c 0%, #0a130e 100%) !important;
-}
-
-html[data-style-theme="mememo"] .app-loading-logo img {
-  content: url("/images/mememo/mememo-met.png") !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: contain !important;
 }
 
 html[data-style-theme="mememo"] .app-loading-logo {

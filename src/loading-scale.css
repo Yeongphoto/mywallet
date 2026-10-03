@@ -22,11 +22,10 @@
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
 }
 
-.app-loading-screen .app-loading-logo img,
-.app-sync-overlay .app-loading-logo img {
+.app-loading-screen .app-loading-glyph,
+.app-sync-overlay .app-loading-glyph {
   width: 100%;
   height: 100%;
-  object-fit: contain;
   display: block;
 }
 

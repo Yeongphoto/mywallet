@@ -20,3 +20,10 @@ Run `npm run build` before publishing. Verify the deployed HTML, both manifests,
 and all versioned icon responses, then check a new installation in Samsung
 Internet on a real device. Source checks alone do not prove installed-icon
 refresh behavior.
+
+Initial HTML, React loading, and synchronization overlays render the transparent
+`/mewallet-loading-v1.png` artwork as a CSS alpha mask on a white span. This avoids
+painting an image canvas as a foreground rectangle during loading. Keep the
+initial HTML mask and React CSS mask in sync; check both before JavaScript loads
+and after React mounts. Samsung Internet startup behavior still requires device
+verification.

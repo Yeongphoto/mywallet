@@ -6721,11 +6721,7 @@ ${sheet4Rows}  </sheetData>
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
             <div className="app-loading-logo">
-              <img
-                src="/logo.png"
-                alt="Mewallet 로고"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
+              <span className="app-loading-glyph" />
             </div>
           </div>
           <div className="app-loading-copy">
@@ -6745,11 +6741,7 @@ ${sheet4Rows}  </sheetData>
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" />
             <div className="app-loading-logo">
-              <img
-                src="/logo.png"
-                alt="Mewallet 로고"
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
+              <span className="app-loading-glyph" />
             </div>
           </div>
         </div>
