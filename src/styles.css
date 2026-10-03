@@ -5409,6 +5409,12 @@ body.category-handle-drag-active {
   mask-mode: alpha;
 }
 
+.app-loading-glyph[data-painted="true"] {
+  background: none;
+  -webkit-mask: none;
+  mask: none;
+}
+
 .app-loading-orbit-track,
 .app-loading-orbit {
   position: absolute;

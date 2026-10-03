@@ -1,9 +1,11 @@
-const CACHE_NAME = 'mewallet-shell-v4';
+const CACHE_NAME = 'mewallet-shell-v5';
 const APP_SHELL = [
   '/',
-  '/mewallet-v2.webmanifest',
+  '/mewallet-v3.webmanifest',
   '/logo.png',
   '/mewallet-loading-v1.png',
+  '/mewallet-loading-v2.js',
+  '/mewallet-v1-maskable-192.png',
   '/mewallet-v1-favicon.ico',
   '/mewallet-v1-apple-touch-icon.png',
   '/mewallet-v1-192.png',

@@ -1,7 +1,7 @@
 # Installation branding
 
 The current installed name is Mewallet. New installations use
-`/mewallet-v2.webmanifest` and the `mewallet-v1-*` icon files.
+`/mewallet-v3.webmanifest` and the `mewallet-v1-*` icon files.
 Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.
 
@@ -21,12 +21,13 @@ and all versioned icon responses, then check a new installation in Samsung
 Internet on a real device. Source checks alone do not prove installed-icon
 refresh behavior.
 
-Initial HTML, React loading, and synchronization overlays render the transparent
-`/mewallet-loading-v1.png` artwork as a CSS alpha mask on a white span. This avoids
-painting an image canvas as a foreground rectangle during loading. Keep the
-initial HTML mask and React CSS mask in sync; check both before JavaScript loads
-and after React mounts. Samsung Internet startup behavior still requires device
-verification.
+Initial HTML, React loading, and synchronization overlays share the versioned
+`/mewallet-loading-v2.js` canvas renderer. It copies the original transparent PNG
+with drawImage at device-pixel resolution, then makes only its existing alpha
+pixels white with source-in. Eyes, mouth, outline and transparent gaps are not
+redrawn or filled in. The CSS alpha mask remains a fallback until painting.
+Compare first paint and React, including DPR 1, 2 and 3 and automatic dark mode.
+Samsung Internet startup behavior still requires device verification.
 
 Loading glyph brightness: use a solid-white gradient for the mask fill and
 `color-scheme: only light` on the glyph, avoiding a flat CSS background that a
@@ -38,13 +39,18 @@ dim logo in the Samsung recording, not proof of a reproduced device fix.
 
 The supplied 2026-10-03 recording shows a square icon frame before the web
 loading screen appears. Changing HTML/CSS cannot affect that native phase.
-The current and both legacy manifests therefore offer only `purpose: any`
-icons. The previous maskable PNGs remain available for old requests but are not
-advertised. Progressier reports Samsung Internet adds a white padded box when
-maskable icons are supplied; omitting them is a workaround:
+The previous any-only workaround removed that box on the user's device, but
+the user then reported a white launcher border. Android can normalize any-only
+icons onto a white background. The new trial offers a 192px `any maskable`
+launcher icon and retains the 512px `any` splash icon. This is NOT a standardized
+launcher/splash routing guarantee: Samsung may still prefer the smaller maskable
+icon for its native splash, so check both screens on the same real installation.
+Do not claim both fixed from manifest parsing or desktop previews alone.
+Progressier reports Samsung Internet adds a white padded box when maskable
+icons are supplied; omitting them is the fallback if the split trial regresses:
 https://intercom.help/progressier/en/articles/9795029-about-the-splash-screens-of-pwas-installed-from-samsung-internet
 
-This can change adaptive launcher icon padding in other browsers. Verify on the
+Verify on the
 Samsung device after its installation metadata refreshes; an already installed
 app may retain the old maskable icon metadata. Do not delete app/site data as
 part of an automatic repair.

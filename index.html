@@ -10,7 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Mewallet" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="manifest" href="/mewallet-v2.webmanifest" />
+    <link rel="manifest" href="/mewallet-v3.webmanifest" />
+    <link rel="preload" as="image" href="/mewallet-loading-v1.png" />
     <link rel="icon" type="image/x-icon" href="/mewallet-v1-favicon.ico" />
     <link rel="icon" type="image/png" sizes="192x192" href="/mewallet-v1-192.png" />
     <link rel="icon" type="image/png" sizes="512x512" href="/mewallet-v1-512.png" />
@@ -84,13 +85,14 @@
         @media (prefers-reduced-motion:reduce) { #root > .app-loading-screen .app-loading-orbit { animation-duration:3.5s; } }
         @media (max-width:768px) { #root > .app-loading-screen .app-loading-copy h1 { font-size:25.1px !important; } }
         #root > .app-loading-screen .app-loading-logo { filter:none !important;opacity:1; }
+        #root > .app-loading-screen > .app-loading-mark > .app-loading-logo > .app-loading-glyph[data-painted="true"] { background:none;-webkit-mask:none;mask:none; }
       </style>
       <main class="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
         <div class="app-loading-mark" aria-hidden="true">
           <span class="app-loading-orbit-track"></span>
           <span class="app-loading-orbit"></span>
           <div class="app-loading-logo">
-            <span class="app-loading-glyph"></span>
+            <canvas class="app-loading-glyph" width="49" height="49" aria-hidden="true"></canvas>
           </div>
         </div>
         <div class="app-loading-copy">
@@ -107,6 +109,7 @@
         root.innerHTML = '<main style="min-height:100vh;display:grid;place-items:center;background:#fef2f2;color:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;"><section style="width:min(720px,calc(100% - 32px));padding:32px;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.08);"><p style="margin:0 0 8px;color:#b42318;font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px;">Runtime Error</p><h1 style="margin:0 0 12px;font-size:28px;letter-spacing:-.04em;">앱 실행 중 오류가 발생했습니다.</h1><pre style="white-space:pre-wrap;line-height:1.5;color:#b42318;">' + String(event.message || 'Unknown error') + '</pre></section></main>';
       });
     </script>
+    <script src="/mewallet-loading-v2.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

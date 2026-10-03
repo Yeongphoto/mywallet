@@ -94,17 +94,18 @@ assert.equal(source.width, source.height, 'Loading logo must use a square canvas
 const manifest = JSON.parse(read('public/manifest.webmanifest').toString('utf8'));
 assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v1.webmanifest').toString('utf8')), 'Legacy manifest must advertise the same current branding');
 assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v2.webmanifest').toString('utf8')), 'Current manifest must match the legacy update routes');
+assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v3.webmanifest').toString('utf8')), 'Current manifest must match the legacy update routes');
 assert.equal(manifest.name, 'Mewallet');
 assert.equal(manifest.short_name, 'Mewallet');
 assert.equal(manifest.id, manifest.start_url, 'Keep the previously inferred PWA identity to preserve existing installations');
-assert.equal(manifest.icons.length, 2, 'Install manifest must contain only the two regular cat icons');
-assert(manifest.icons.every((icon) => icon.purpose === 'any'), 'Maskable icons trigger the Samsung Internet native splash padding bug');
+assert.equal(manifest.icons.length, 2, 'Install manifest must contain two cat icons');
+assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['192x192', 'any maskable'], ['512x512', 'any']], 'Keep the adaptive launcher asset separate from the large regular splash asset');
 const html = read('index.html').toString('utf8');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');
-assert.match(html, /<link rel="manifest" href="\/mewallet-v2\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
-assert(worker.includes("'/mewallet-v2.webmanifest'"), 'Service worker must cache the versioned manifest');
+assert.match(html, /<link rel="manifest" href="\/mewallet-v3\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
+assert(worker.includes("'/mewallet-v3.webmanifest'"), 'Service worker must cache the versioned manifest');
 for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png']) {
   assert(existsSync(new URL(`public/${path}`, root)), `${path}: missing versioned fallback icon`);
   assert(html.includes(`href="/${path}"`), `${path}: missing HTML reference`);
@@ -123,6 +124,10 @@ for (let y = 0; y < mask.height; y++) {
   assert.equal(mask.pixels[(y * mask.width + mask.width - 1) * 4 + 3], 0, 'Loading mask right edge must remain transparent');
 }
 assert(html.includes('class="app-loading-glyph"'), 'First paint must render the loading glyph');
+assert(html.includes('<canvas class="app-loading-glyph"'), 'First paint must use the same canvas renderer as React');
+assert(html.includes('src="/mewallet-loading-v2.js"'), 'Canvas renderer must load before React');
+assert(worker.includes("'/mewallet-loading-v2.js'"), 'Canvas renderer must be available offline');
+assert(read('src/LoadingGlyph.tsx').toString('utf8').includes('MewalletLoadingArtwork?.draw'), 'React must share the first-paint renderer');
 assert(!/<img src="\/logo\.png"/.test(html), 'First paint must not use a bitmap image element');
 assert(styles.includes("mask: url('/mewallet-loading-v1.png')"), 'React loading glyph must use the same alpha mask');
 assert(html.includes('background:linear-gradient(#ffffff,#ffffff);color-scheme:only light;opacity:1;'), 'First paint must preserve the white loading fill');
@@ -149,7 +154,7 @@ for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
     }
     assert(Math.abs(mark.area - source.area * scale * scale) < .008, `${path}: unexpected white pixels, possibly a border or another mark`);
     if (purpose === 'maskable') assert(mark.radius <= .405, `${path}: logo extends outside maskable safe zone`);
-    if (purpose === 'any') assert(manifest.icons.some((icon) => icon.src.split('?')[0] === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose === purpose), `${path}: missing or incorrect manifest entry`);
+    if ((purpose === 'any' && size === 512) || (purpose === 'maskable' && size === 192)) assert(manifest.icons.some((icon) => icon.src === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose.includes(purpose)), `${path}: missing or incorrect manifest entry`);
     console.log(`${path}: ${(mark.xSize * 100).toFixed(1)}% wide, ${(mark.ySize * 100).toFixed(1)}% high, centered`);
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState, useCallback, useRef } fr
 import type { DragEvent, FormEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
+import { LoadingGlyph } from './LoadingGlyph';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식', color: '#ef4444' },
@@ -6721,7 +6722,7 @@ ${sheet4Rows}  </sheetData>
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
             <div className="app-loading-logo">
-              <span className="app-loading-glyph" />
+              <LoadingGlyph />
             </div>
           </div>
           <div className="app-loading-copy">
@@ -6741,7 +6742,7 @@ ${sheet4Rows}  </sheetData>
             <span className="app-loading-orbit-track" />
             <span className="app-loading-orbit" />
             <div className="app-loading-logo">
-              <span className="app-loading-glyph" />
+              <LoadingGlyph />
             </div>
           </div>
         </div>

@@ -13,10 +13,10 @@
   "lang": "ko-KR",
   "icons": [
     {
-      "src": "/mewallet-v1-192.png",
+      "src": "/mewallet-v1-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/mewallet-v1-512.png",
