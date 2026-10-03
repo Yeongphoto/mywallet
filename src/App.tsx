@@ -128,7 +128,7 @@ function MyWalletLogo({ className = '', style, src = '/logo.png' }: { className?
     <span className={`mywallet-logo-frame ${className}`} style={style}>
       <img 
         src={src}
-        alt="MyWallet 로고" 
+        alt="Mewallet 로고"
         className="mywallet-logo" 
       />
     </span>
@@ -6723,18 +6723,18 @@ ${sheet4Rows}  </sheetData>
             <div className="app-loading-logo">
               <img
                 src="/logo.png"
-                alt="MyWallet 로고"
+                alt="Mewallet 로고"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
             </div>
           </div>
           <div className="app-loading-copy">
             <h1>
-              <span style={{ color: styleTheme === 'mememo' ? '#74c69d' : '#ffffff' }}>My</span>
+              <span style={{ color: styleTheme === 'mememo' ? '#74c69d' : '#ffffff' }}>Me</span>
               <span style={{
                 color: styleTheme === 'mememo' ? '#52b788' : (styleTheme === 'doodle' ? '#ff9f43' : '#38bdf8'),
                 marginLeft: '2px'
-              }}>Wallet</span>
+              }}>wallet</span>
             </h1>
           </div>
         </div>
@@ -6747,7 +6747,7 @@ ${sheet4Rows}  </sheetData>
             <div className="app-loading-logo">
               <img
                 src="/logo.png"
-                alt="MyWallet 로고"
+                alt="Mewallet 로고"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
             </div>
@@ -6760,7 +6760,7 @@ ${sheet4Rows}  </sheetData>
           <div className="brand">
             <MyWalletLogo src={getSidebarLogoSrc(styleTheme, resolvedTheme)} />
             <div>
-              <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
+              <strong className="brand-wordmark"><span>Me</span><span>wallet</span></strong>
             </div>
           </div>
           <nav>
@@ -6851,7 +6851,7 @@ ${sheet4Rows}  </sheetData>
             src={getHeaderLogoSrc(styleTheme, resolvedTheme)}
           />
           <div className="brand-text">
-            <strong className="brand-wordmark"><span>My</span><span>Wallet</span></strong>
+            <strong className="brand-wordmark"><span>Me</span><span>wallet</span></strong>
           </div>
         </div>
 

@@ -92,13 +92,23 @@ function whiteMark(path) {
 const source = whiteMark('public/logo.png');
 assert.equal(source.width, source.height, 'Loading logo must use a square canvas');
 const manifest = JSON.parse(read('public/manifest.webmanifest').toString('utf8'));
+assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v1.webmanifest').toString('utf8')), 'Legacy manifest must advertise the same current branding');
+assert.equal(manifest.name, 'Mewallet');
+assert.equal(manifest.short_name, 'Mewallet');
+assert.equal(manifest.id, manifest.start_url, 'Keep the previously inferred PWA identity to preserve existing installations');
 assert.equal(manifest.icons.length, 4, 'Only the four canonical cat PWA icons belong in the manifest');
 const html = read('index.html').toString('utf8');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');
-assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"\s*\/>/, 'Keep the installed PWA manifest URL stable');
-assert(worker.includes("'/manifest.webmanifest'"), 'Service worker must cache the stable manifest URL');
+assert.match(html, /<link rel="manifest" href="\/mewallet-v1\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
+assert(worker.includes("'/mewallet-v1.webmanifest'"), 'Service worker must cache the versioned manifest');
+for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png']) {
+  assert(existsSync(new URL(`public/${path}`, root)), `${path}: missing versioned fallback icon`);
+  assert(html.includes(`href="/${path}"`), `${path}: missing HTML reference`);
+  assert(worker.includes(`'/${path}'`), `${path}: missing service worker reference`);
+}
+assert(!/href="\/(?:favicon\.ico|apple-touch-icon\.png|pwa-cat-)/.test(html), 'HTML must not reuse old install icon URLs');
 assert(read('public/logo.png').equals(read('public/images/mememo/mememo-met.png')), 'Mememo loading logo must match the canonical cat artwork');
 assert(html.includes('width:49px;height:49px'), 'First-paint logo size differs from the measured Android splash');
 assert((styles.match(/width: 49px;\s*height: 49px;/g) ?? []).length >= 2, 'App and sync loading logo sizes differ');
@@ -106,7 +116,7 @@ assert(/width: 49px;\s*height: 49px;/.test(loadingScale), 'Loading scale overrid
 
 for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
   for (const size of [192, 512]) {
-    const path = `public/pwa-cat-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
+    const path = `public/mewallet-v1-${purpose === 'any' ? '' : 'maskable-'}${size}.png`;
     const mark = whiteMark(path);
     assert.equal(mark.width, size, `${path}: incorrect width`);
     assert.equal(mark.height, size, `${path}: incorrect height`);
