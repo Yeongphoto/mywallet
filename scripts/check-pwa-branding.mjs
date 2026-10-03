@@ -109,8 +109,16 @@ const html = read('index.html').toString('utf8');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');
-assert.match(html, /<link rel="manifest" href="\/mewallet-v4\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
-assert(worker.includes("'/mewallet-v4.webmanifest'"), 'Service worker must cache the versioned manifest');
+assert.match(html, /<link rel="manifest" href="\/mewallet-v5\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
+assert(worker.includes("'/mewallet-v5.webmanifest'"), 'Service worker must cache the versioned manifest');
+const launcher = read('public/mewallet-v2-launcher-192.svg').toString('utf8');
+const embedded = launcher.match(/href="data:image\/png;base64,([A-Za-z0-9+/=]+)"/);
+assert(embedded, 'Launcher SVG must embed its original image without external dependencies');
+assert(Buffer.from(embedded[1], 'base64').equals(read('public/mewallet-v1-192.png')), 'Launcher must not redraw or replace the original cat pixels');
+assert(launcher.includes('<rect width="192" height="192" rx="44"/>'), 'Launcher must clip only the black tile corners');
+assert.deepEqual(manifest.icons[0], { src: '/mewallet-v2-launcher-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' });
+assert.deepEqual(manifest.icons[1], { src: '/mewallet-v1-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, 'Do not change the existing large splash icon');
+assert(worker.includes("'/mewallet-v2-launcher-192.svg'"), 'Launcher must be available offline');
 for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png']) {
   assert(existsSync(new URL(`public/${path}`, root)), `${path}: missing versioned fallback icon`);
   assert(html.includes(`href="/${path}"`), `${path}: missing HTML reference`);
@@ -159,7 +167,7 @@ for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
     }
     assert(Math.abs(mark.area - source.area * scale * scale) < .008, `${path}: unexpected white pixels, possibly a border or another mark`);
     if (purpose === 'maskable') assert(mark.radius <= .405, `${path}: logo extends outside maskable safe zone`);
-    if (purpose === 'any') assert(manifest.icons.some((icon) => icon.src === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose === purpose), `${path}: missing or incorrect manifest entry`);
+    if (purpose === 'any' && size === 512) assert(manifest.icons.some((icon) => icon.src === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose === purpose), `${path}: missing or incorrect manifest entry`);
     console.log(`${path}: ${(mark.xSize * 100).toFixed(1)}% wide, ${(mark.ySize * 100).toFixed(1)}% high, centered`);
   }
 }

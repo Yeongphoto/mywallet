@@ -1,7 +1,7 @@
 # Installation branding
 
 The current installed name is Mewallet. New installations use
-`/mewallet-v4.webmanifest` and the `mewallet-v1-*` icon files.
+`/mewallet-v5.webmanifest`, the new rounded 192px SVG, and the existing 512px PNG.
 Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.
 
@@ -47,6 +47,13 @@ and splash selection. All install routes are restored to any-only icons.
 Do not reintroduce maskable (even combined purposes or small sizes) to fix the
 launcher border: this device has confirmed that approach breaks the splash.
 The launcher border remains unresolved; do not claim both fixed.
+The next image-only trial uses `/mewallet-v2-launcher-192.svg`: it embeds the
+unchanged 192px PNG and clips only the outer black corners with a rounded rect.
+Both purposes stay `any`; the 512px PNG, theme/background colors, PWA identity,
+and loading renderer stay unchanged. Chromium's legacy shortcut code adds
+padding to icons with opaque corners. This is a hypothesis for Samsung, not a
+guarantee: Samsung may wrap the icon anyway or choose the unchanged PNG if its
+installer does not accept SVG. Verify both launcher and native splash on-device.
 Progressier reports Samsung Internet adds a white padded box when maskable
 icons are supplied; omitting them is the device-confirmed workaround:
 https://intercom.help/progressier/en/articles/9795029-about-the-splash-screens-of-pwas-installed-from-samsung-internet

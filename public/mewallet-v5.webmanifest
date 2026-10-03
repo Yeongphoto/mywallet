@@ -9,7 +9,10 @@
   "orientation": "portrait",
   "background_color": "#09090b",
   "theme_color": "#09090b",
-  "categories": ["finance", "productivity"],
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "lang": "ko-KR",
   "icons": [
     {
