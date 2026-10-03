@@ -1,7 +1,7 @@
 # Installation branding
 
 The current installed name is Mewallet. New installations use
-`/mewallet-v3.webmanifest` and the `mewallet-v1-*` icon files.
+`/mewallet-v4.webmanifest` and the `mewallet-v1-*` icon files.
 Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.
 
@@ -41,13 +41,14 @@ The supplied 2026-10-03 recording shows a square icon frame before the web
 loading screen appears. Changing HTML/CSS cannot affect that native phase.
 The previous any-only workaround removed that box on the user's device, but
 the user then reported a white launcher border. Android can normalize any-only
-icons onto a white background. The new trial offers a 192px `any maskable`
-launcher icon and retains the 512px `any` splash icon. This is NOT a standardized
-launcher/splash routing guarantee: Samsung may still prefer the smaller maskable
-icon for its native splash, so check both screens on the same real installation.
-Do not claim both fixed from manifest parsing or desktop previews alone.
+icons onto a white background. The 192px `any maskable` / 512px `any` split trial
+REGRESSED the native splash on the user's device. Size does not isolate launcher
+and splash selection. All install routes are restored to any-only icons.
+Do not reintroduce maskable (even combined purposes or small sizes) to fix the
+launcher border: this device has confirmed that approach breaks the splash.
+The launcher border remains unresolved; do not claim both fixed.
 Progressier reports Samsung Internet adds a white padded box when maskable
-icons are supplied; omitting them is the fallback if the split trial regresses:
+icons are supplied; omitting them is the device-confirmed workaround:
 https://intercom.help/progressier/en/articles/9795029-about-the-splash-screens-of-pwas-installed-from-samsung-internet
 
 Verify on the

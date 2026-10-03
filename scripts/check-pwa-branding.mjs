@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
 
 const root = new URL('../', import.meta.url);
@@ -95,17 +95,22 @@ const manifest = JSON.parse(read('public/manifest.webmanifest').toString('utf8')
 assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v1.webmanifest').toString('utf8')), 'Legacy manifest must advertise the same current branding');
 assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v2.webmanifest').toString('utf8')), 'Current manifest must match the legacy update routes');
 assert.deepEqual(manifest, JSON.parse(read('public/mewallet-v3.webmanifest').toString('utf8')), 'Current manifest must match the legacy update routes');
+for (const filename of readdirSync(new URL('public/', root)).filter((name) => name.endsWith('.webmanifest'))) {
+  const advertised = JSON.parse(read(`public/${filename}`).toString('utf8'));
+  assert.deepEqual(advertised, manifest, `${filename}: old install routes must advertise the repaired configuration`);
+  assert(advertised.icons.every((icon) => icon.purpose === 'any'), `${filename}: ANY maskable entry, including 192px or combined purposes, regresses Samsung splash`);
+}
 assert.equal(manifest.name, 'Mewallet');
 assert.equal(manifest.short_name, 'Mewallet');
 assert.equal(manifest.id, manifest.start_url, 'Keep the previously inferred PWA identity to preserve existing installations');
 assert.equal(manifest.icons.length, 2, 'Install manifest must contain two cat icons');
-assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['192x192', 'any maskable'], ['512x512', 'any']], 'Keep the adaptive launcher asset separate from the large regular splash asset');
+assert.deepEqual(manifest.icons.map(({ sizes, purpose }) => [sizes, purpose]), [['192x192', 'any'], ['512x512', 'any']], 'Keep the device-confirmed any-only splash configuration');
 const html = read('index.html').toString('utf8');
 const worker = read('public/sw.js').toString('utf8');
 const styles = read('src/styles.css').toString('utf8');
 const loadingScale = read('src/loading-scale.css').toString('utf8');
-assert.match(html, /<link rel="manifest" href="\/mewallet-v3\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
-assert(worker.includes("'/mewallet-v3.webmanifest'"), 'Service worker must cache the versioned manifest');
+assert.match(html, /<link rel="manifest" href="\/mewallet-v4\.webmanifest"\s*\/>/, 'New installs must request the versioned manifest');
+assert(worker.includes("'/mewallet-v4.webmanifest'"), 'Service worker must cache the versioned manifest');
 for (const path of ['mewallet-v1-favicon.ico', 'mewallet-v1-apple-touch-icon.png']) {
   assert(existsSync(new URL(`public/${path}`, root)), `${path}: missing versioned fallback icon`);
   assert(html.includes(`href="/${path}"`), `${path}: missing HTML reference`);
@@ -154,7 +159,7 @@ for (const [purpose, scale] of [['any', 1], ['maskable', .89]]) {
     }
     assert(Math.abs(mark.area - source.area * scale * scale) < .008, `${path}: unexpected white pixels, possibly a border or another mark`);
     if (purpose === 'maskable') assert(mark.radius <= .405, `${path}: logo extends outside maskable safe zone`);
-    if ((purpose === 'any' && size === 512) || (purpose === 'maskable' && size === 192)) assert(manifest.icons.some((icon) => icon.src === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose.includes(purpose)), `${path}: missing or incorrect manifest entry`);
+    if (purpose === 'any') assert(manifest.icons.some((icon) => icon.src === `/${path.slice(7)}` && icon.sizes === `${size}x${size}` && icon.purpose === purpose), `${path}: missing or incorrect manifest entry`);
     console.log(`${path}: ${(mark.xSize * 100).toFixed(1)}% wide, ${(mark.ySize * 100).toFixed(1)}% high, centered`);
   }
 }
