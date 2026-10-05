@@ -6,7 +6,7 @@ Every install icon source (manifest, favicon, and Apple touch icon) uses a
 versioned pathname, rather than relying only on query parameters.
 
 Treat versioned icon files as immutable. For the next artwork change, create
-`mewallet-v2-*` files, update both manifests, HTML, service worker cache and
+new `memoney-*` versioned files, update all manifests, HTML, service worker cache and
 precache URLs, `_headers`, and the branding check together. Do not overwrite v1
 files: existing installations can continue requesting them.
 
@@ -16,7 +16,7 @@ the old identity inferred from `start_url`; renaming does not create a second
 app or migrate stored financial data. Existing browser/launcher installations
 may retain their own icon until they refresh their installation metadata.
 
-Run `npm run build` before publishing. Verify the deployed HTML, both manifests,
+Run `npm run build` before publishing. Verify the deployed HTML, all manifests,
 and all versioned icon responses, then check a new installation in Samsung
 Internet on a real device. Source checks alone do not prove installed-icon
 refresh behavior.
@@ -43,11 +43,11 @@ The previous any-only workaround removed that box on the user's device, but
 the user then reported a white launcher border. Android can normalize any-only
 icons onto a white background. The 192px `any maskable` / 512px `any` split trial
 REGRESSED the native splash on the user's device. Size does not isolate launcher
-and splash selection. All install routes are restored to any-only icons.
+and splash selection. At that stage, install routes were restored to any-only.
 Do not reintroduce PNG maskable icons (even combined purposes or small sizes)
 to fix the launcher border: this device confirmed that approach breaks splash.
-The launcher border remains unresolved; do not claim both fixed.
-The next image-only trial uses `/mewallet-v2-launcher-192.svg`: it embeds the
+The launcher border was still unresolved at that stage.
+The next image-only trial used `/mewallet-v2-launcher-192.svg`: it embedded the
 unchanged 192px PNG and clips only the outer black corners with a rounded rect.
 Both purposes stay `any`; the 512px PNG, theme/background colors, PWA identity,
 and loading renderer stay unchanged. Chromium's legacy shortcut code adds
@@ -62,9 +62,12 @@ The user's working app at https://daily-work-manager.pages.dev/manifest.json
 advertises a pure white path SVG with transparent background first, using
 `sizes: any` and `purpose: any maskable`, followed by two regular PNGs. Its SVG
 contains no embedded bitmap or opaque background. Its favicon and touch icon
-both point to the same PNG. Memoney now trials that structure instead of the
-failed PNG-maskable and rounded embedded-PNG variants. This is a distinct
-device-test hypothesis, not proof that Samsung will behave identically.
+both point to the same PNG. Memoney adopted that structure instead of the failed
+PNG-maskable and rounded embedded-PNG variants in commit `aa0d66f`.
+On 2026-10-06 the user confirmed the current state is satisfactory. Preserve
+this accepted baseline. This is not a guarantee for other devices or logos.
+The mandatory workflow and reusable instruction are in
+[PWA logo conversion guidelines](pwa-logo-guidelines.md).
 
 `scripts/trace-cat-artwork.mjs` automatically extracts five closed alpha contours
 from the original 1280px cat PNG: outline, face opening, two eyes, and mouth.
@@ -77,7 +80,8 @@ Keep the original PNG and canvas loading renderer unchanged. Run both
 `check-vector-artwork.mjs` and `check-loading-rendering.mjs` before publishing.
 Real Samsung checks must cover launcher AND native splash on the same install.
 Progressier reports Samsung Internet adds a white padded box when maskable
-icons are supplied; omitting them is the device-confirmed workaround:
+icons are supplied; the earlier omission workaround fixed the native box but
+left the launcher's white border. It is not the current accepted configuration:
 https://intercom.help/progressier/en/articles/9795029-about-the-splash-screens-of-pwas-installed-from-samsung-internet
 
 Verify on the
