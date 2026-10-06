@@ -4,7 +4,7 @@
 
 ## 현재 진행 상태
 
-0단계 준비 도구를 구현했다. 운영 SQL 백업과 두 로컬 SQLite 복원본 비교를 수행했다. **원격 스테이징 분리·애플리케이션 복원 시험·인증 구현은 아직 완료하지 않았다.** 공개형 앱 전환의 전체 단계와 완료 기준은 [전환 계획](public-app-auth-plan.md)을 따른다.
+0단계 준비 도구를 구현했다. 운영 SQL 백업, 로컬 D1 복원과 읽기 API 검증을 수행했다. **원격 스테이징 분리·화면/쓰기 복원 시험·인증 구현은 아직 완료하지 않았다.** 공개형 앱 전환의 전체 단계와 완료 기준은 [전환 계획](public-app-auth-plan.md)을 따른다.
 
 | 항목 | 확인 결과 / 다음 작업 |
 | --- | --- |
@@ -67,12 +67,35 @@ node scripts/dev-sandbox.mjs
 
 - 포트 5184. 기존 앱 포트 5174와 분리한다. 상태는 `%LOCALAPPDATA%\Memoney\sandbox\<작업폴더 해시>`에 저장하며 기존 `.wrangler`에 접근하지 않는다.
 - 시작 전 실제 DB ID, remote 연결, 추가 바인딩·환경 덮어쓰기를 거부한다. 임의 CLI 옵션도 전달받지 않는다. 실행 도구의 경로를 우회하여 Wrangler를 직접 실행하면 이 보호는 적용되지 않는다.
-- 빈 시험 DB로 시작한다. 현재 API 전체 구조를 사용하려면 확보한 전체 스키마를 이 별도 로컬 DB에 먼저 적용해야 한다. 초기 `schema.sql`과 0001~0007만으로 충분하다고 가정하지 않는다. 이번에는 실행 도구 검증만 수행했고 서버 기동·시험 DB import·화면 검증은 아직 하지 않았다.
+- 처음에는 빈 시험 DB로 시작한다. 현재 API 전체 구조를 사용하려면 확보한 전체 스키마를 이 별도 로컬 DB에 먼저 적용해야 한다. 초기 `schema.sql`과 0001~0007만으로 충분하다고 가정하지 않는다. 아래 후속 시험에서 전체 백업 import와 서버 기동·읽기 API 검증을 수행했다. 화면·쓰기 검증은 아직 하지 않았다.
 - 테스트: `node --test scripts/check-d1-restore.test.mjs scripts/dev-sandbox.test.mjs` 4개 통과. Node SQLite 모듈은 현재 실험적 API라는 경고를 출력한다.
+
+### 로컬 D1 및 API 복원 시험 (후속 단계)
+
+- 복원 전 별도 시험 상태 폴더가 존재하지 않음을 확인하고, 검증된 로컬 전용 설정으로 다음 명령을 실행했다. 이 명령을 데이터가 있는 DB에 재실행하지 않는다.
+
+  ```powershell
+  npx --yes wrangler@4.148.0 d1 execute memoney-sandbox-local --local --config wrangler.sandbox.json --persist-to "$env:LOCALAPPDATA\Memoney\sandbox\4670b876ae30" --file "$env:LOCALAPPDATA\Memoney\backups\phase0-1fa41fa652dd4202b957f75b2d57abd1\baseline.sql"
+  ```
+
+- 로컬 D1에 1,334개 SQL 명령 적용 성공. 운영 D1이나 기존 `.wrangler`로 import하지 않았다. SQL 파일·복원 DB는 Git에 포함하지 않았다.
+- 실제 서버 기동에서 Pages는 사용자 지정 `--config` 경로를 거부했다. 이전 커밋의 실행 도구는 설정 단위 시험만 통과했던 것이며 실제 실행 가능성은 검증되지 않았었다. 원인을 확인하고 보완했다.
+- 보완된 도구는 `%LOCALAPPDATA%\Memoney\sandbox-runtimes\<작업폴더 해시>-<임시값>`에 매번 새 실행 디렉터리를 만들고 표준 `wrangler.json`, 빌드 산출물, 현재 Functions만 복사한다. 운영 설정·`.dev.vars`·브라우저 캐시를 복사하지 않는다. 삭제된 핸들러가 이전 실행 디렉터리에 남아 재사용되는 것도 방지한다. Windows 실행은 Node로 npx CLI를 호출하며 쉘 명령 문자열을 조합하지 않는다.
+- 실제 서버 로그에서 DB 바인딩 모드 `local`, 주소 `http://127.0.0.1:5184` 확인. 기존 5174 서버·브라우저는 조작하지 않았다. 서버는 시험을 계속할 수 있도록 유지했다. 복원본에는 개인 데이터가 있으므로 localhost 포트를 외부에 공개하지 않는다.
+- 로컬 D1 파일은 시험 상태의 `v3/d1/miniflare-D1DatabaseObject/9ba2b04bf514d9facfd57ed57d849e77241a7adc99d1c1545d06688b43d84248.sqlite`. 런타임 버전에 따라 파일명은 달라질 수 있다.
+- 원본 백업 SQLite와 실제 로컬 D1 사이의 11개 테이블·스키마·전체 행 해시 비교에서 차이 없음.
+- `check-sandbox-api.mjs`는 주소를 loopback 5184로 고정하고 GET만 수행한다. 개인 장부 행은 출력하지 않는다. 전체 조회의 활성 거래 415건과 거래 필드 전체, 자산·계획·정기 규칙·삭제 이력·카드 결제·카테고리 건수, `updatedAt`·커서를 대조했다. 자산 등 거래 외 항목은 API의 건수만 검증하며 필드별 비교는 아직 하지 않았다.
+- 변경 이벤트 382건을 페이지 끝까지 조회하여 payload·삭제 이벤트·revision·커서가 DB와 일치함을 확인했다. 빈 마지막 페이지, 잘못된 커서의 400, 정상 조회의 `Cache-Control: no-store`도 검증했다. GET 전후 DB 전체 내용이 동일했다.
+- 이번 검증은 기존 개인용 API의 복원 검증이다. 사용자별 격리·인증·동시 쓰기·복구 실패 대응이 해결됐다는 뜻은 아니다.
+
+  ```powershell
+  node scripts/check-sandbox-api.mjs "$env:LOCALAPPDATA\Memoney\sandbox\4670b876ae30\v3\d1\miniflare-D1DatabaseObject\9ba2b04bf514d9facfd57ed57d849e77241a7adc99d1c1545d06688b43d84248.sqlite"
+  node --test scripts/check-d1-restore.test.mjs scripts/dev-sandbox.test.mjs scripts/check-sandbox-api.test.mjs
+  ```
 
 ## 다음 단계와 중단 기준
 
-- 다음 작업: 시험 DB의 전체 스키마 초기화 및 API 복원 시험 → 원격 스테이징 DB/Pages 바인딩 분리 → 인증 골격 구현. 원격 환경 생성·배포 설정 변경은 아직 실행하지 않았다.
+- 다음 작업: 원격 스테이징 DB/Pages 바인딩 분리 → 인증 골격 구현. 기존 배포의 미리보기 바인딩을 즉시 바꾸지 않고 별도 비공개 시험 배포를 준비한다. 원격 환경 생성·배포 설정 변경은 아직 실행하지 않았다.
 - 인증 착수에 필요한 선택: 최초 로그인 수단/제공자. 기본 설계는 관리형 OIDC이며 비밀번호 직접 저장은 하지 않는다.
 - 운영 이전 전 필요한 선택: 기존 장부의 소유 계정. 첫 가입자에게 자동 귀속하지 않는다.
 - 계정 삭제·내보내기 정책과 공개 가입 시점은 베타 전에 확정한다.

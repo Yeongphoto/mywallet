@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { readFileSync, cpSync, mkdirSync, mkdtempSync, existsSync } from 'node:fs';
+import { resolve, join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -17,23 +17,47 @@ export function validateSandbox(config) {
   if (Object.keys(db).some((key) => !['binding', 'database_name', 'database_id', 'remote'].includes(key))) throw new Error('Unexpected D1 option');
 }
 
+export function sandboxPaths() {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const workspace = createHash('sha256').update(root).digest('hex').slice(0, 12);
+  const base = join(process.env.LOCALAPPDATA || join(homedir(), '.local', 'share'), 'Memoney');
+  return { root, state: join(base, 'sandbox', workspace), runtime: join(base, 'sandbox-runtimes', workspace) };
+}
+
+export function runWrangler(args, cwd) {
+  // Launch npm through Node on Windows, never concatenate paths into cmd.exe.
+  const cli = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js');
+  if (process.platform === 'win32' && !existsSync(cli)) throw new Error('Node installation does not contain npx-cli.js');
+  const result = spawnSync(process.platform === 'win32' ? process.execPath : 'npx',
+    [...(process.platform === 'win32' ? [cli] : []), '--yes', 'wrangler@4.148.0', ...args],
+    { cwd, stdio: 'inherit' });
+  if (result.error || result.status !== 0) throw new Error(`Sandbox command failed (${result.status ?? result.error?.code})`);
+}
+
+export function prepareSandbox() {
+  const paths = sandboxPaths();
+  validateSandbox(JSON.parse(readFileSync(join(paths.root, 'wrangler.sandbox.json'), 'utf8')));
+  if (!existsSync(join(paths.root, 'dist', 'index.html'))) throw new Error('Run npm run build before starting the sandbox');
+  // Generated runtime only. Production config, .dev.vars and local caches are never copied.
+  mkdirSync(dirname(paths.runtime), { recursive: true });
+  // A fresh generation avoids retaining removed handlers or middleware from an older build.
+  paths.runtime = mkdtempSync(`${paths.runtime}-`);
+  cpSync(join(paths.root, 'wrangler.sandbox.json'), join(paths.runtime, 'wrangler.json'));
+  cpSync(join(paths.root, 'dist'), join(paths.runtime, 'dist'), { recursive: true });
+  cpSync(join(paths.root, 'functions'), join(paths.runtime, 'functions'), { recursive: true });
+  return paths;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     if (process.argv.slice(2).some((arg) => arg !== '--check')) throw new Error('Only --check is accepted; remote/config overrides are forbidden');
-    const root = fileURLToPath(new URL('../', import.meta.url));
+    const { root, state } = sandboxPaths();
     const configFile = join(root, 'wrangler.sandbox.json');
     validateSandbox(JSON.parse(readFileSync(configFile, 'utf8')));
-    const workspace = createHash('sha256').update(root).digest('hex').slice(0, 12);
-    const state = join(process.env.LOCALAPPDATA || join(homedir(), '.local', 'share'), 'Memoney', 'sandbox', workspace);
     console.log(`Local-only D1 sandbox validated. Port: 5184. State: ${state}`);
     if (!process.argv.includes('--check')) {
-      const run = (args) => {
-        // Arguments here are fixed, not arbitrary CLI/user input.
-        const result = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
-        if (result.error || result.status !== 0) throw new Error(`Sandbox command failed (${result.status ?? result.error?.code})`);
-      };
-      const argument = (value) => process.platform === 'win32' ? `"${value}"` : value;
-      run(['--yes', 'wrangler@4.148.0', 'pages', 'dev', 'dist', '--config', argument(configFile), '--port', '5184', '--persist-to', argument(state)]);
+      const { runtime } = prepareSandbox();
+      runWrangler(['pages', 'dev', 'dist', '--ip', '127.0.0.1', '--port', '5184', '--persist-to', state], runtime);
     }
   } catch (error) {
     console.error(error.message);
