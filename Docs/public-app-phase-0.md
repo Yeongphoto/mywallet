@@ -4,7 +4,7 @@
 
 ## 현재 진행 상태
 
-0단계 준비 도구를 구현했다. **운영 백업·실제 복원·환경 분리·인증 구현은 아직 완료하지 않았다.** 공개형 앱 전환의 전체 단계와 완료 기준은 [전환 계획](public-app-auth-plan.md)을 따른다.
+0단계 준비 도구를 구현했다. 운영 SQL 백업과 두 로컬 SQLite 복원본 비교를 수행했다. **원격 스테이징 분리·애플리케이션 복원 시험·인증 구현은 아직 완료하지 않았다.** 공개형 앱 전환의 전체 단계와 완료 기준은 [전환 계획](public-app-auth-plan.md)을 따른다.
 
 | 항목 | 확인 결과 / 다음 작업 |
 | --- | --- |
@@ -41,9 +41,38 @@
 
 공식 근거: [D1 내보내기/가져오기](https://developers.cloudflare.com/d1/best-practices/import-export-data/), [Pages D1 바인딩](https://developers.cloudflare.com/pages/functions/bindings/), [Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/).
 
+## 2026-10-07 실행 결과
+
+- 준비 도구 커밋: `b2fec50`.
+- Wrangler `4.148.0`으로 Cloudflare 로그인 및 D1 접근 확인. 기존 프로젝트에 Wrangler가 설치되지 않아 `--no-install` 조회는 실패했으며, 버전 지정 실행으로 해결했다. 의존성 파일은 변경하지 않았다.
+- Pages 프로젝트 `mywallet`: 대시보드 API의 운영 브랜치 설정은 `main`. 운영과 미리보기 모두 D1 `8dfd0da4-d04e-4f57-bc74-4cc567d2de0e`에 연결됨. 사용자가 배포 대상으로 사용하는 agy와 이 설정의 관계는 인증 배포 전 확인해야 한다.
+- 쿠키 없는 `https://mywallet-8mx.pages.dev/api/data` 요청은 `200 application/json`, 리다이렉트 없음. 본문은 출력하지 않고 스트림을 취소했다. 인증 차단은 확인되지 않았으므로 공개 가입을 열 수 없는 상태다. PATCH로 접근 여부를 시험하지 않았다.
+- 전체 SQL 백업 위치: `%LOCALAPPDATA%\Memoney\backups\phase0-1fa41fa652dd4202b957f75b2d57abd1\baseline.sql`. 개인 장부가 포함되므로 공유·Git 등록 금지. 기본 사용자 프로필 권한을 상속하며 별도 암호화·접근 권한 감사는 아직 수행하지 않았다.
+- 백업 SHA-256: `27cebbeb7bb38dc8b5a15e4d6b2ed06b25b7adc12399d6ab343509294bc1be93`.
+- Time Travel bookmark: `00000424-00000000-000050fc-8a7651f5c90db5e746d267327d41079f`. 백업 전과 복원 후 조회에서 동일했다. 실제 Time Travel 복구는 실행하지 않았다.
+- 같은 폴더에 `baseline.sqlite`, `restored.sqlite` 생성. 메모리 SQLite에 전체 SQL을 각각 적용한 뒤 파일로 백업했다. 기존 파일 덮어쓰기와 운영 import는 하지 않았다.
+- 두 복원본의 11개 사용자 테이블 건수·스키마·전체 행 해시가 일치하고 선언된 외래 키 위반은 0. 원격 D1의 각 테이블을 읽기 전용 COUNT로 별도 조회하여 11개 건수 모두 일치했다. 이는 원격의 모든 행을 해시 비교한 검증은 아니다.
+- 건수: 거래 437, 자산 14, 계획 34, 카테고리 23, 설정 8, 정기 규칙 5, 정기 삭제 이력 2, 카드 결제 2, 작업 결과 400, 변경 이력 382, 동기화 그룹 9.
+- 원격 건수 일괄 UNION 조회는 D1의 compound SELECT 제한으로 실패했다. 원인을 확인한 뒤 개별 SELECT로 조회했다. 운영 데이터 변경 없음.
+
+### 분리된 로컬 실행
+
+`wrangler.sandbox.json`은 실제 원격 DB 대신 로컬 전용 placeholder ID와 `remote: false`를 사용한다. 기존 `wrangler.toml`과 기존 개발 명령은 유지한다.
+
+```powershell
+npm run build
+node scripts/dev-sandbox.mjs --check
+node scripts/dev-sandbox.mjs
+```
+
+- 포트 5184. 기존 앱 포트 5174와 분리한다. 상태는 `%LOCALAPPDATA%\Memoney\sandbox\<작업폴더 해시>`에 저장하며 기존 `.wrangler`에 접근하지 않는다.
+- 시작 전 실제 DB ID, remote 연결, 추가 바인딩·환경 덮어쓰기를 거부한다. 임의 CLI 옵션도 전달받지 않는다. 실행 도구의 경로를 우회하여 Wrangler를 직접 실행하면 이 보호는 적용되지 않는다.
+- 빈 시험 DB로 시작한다. 현재 API 전체 구조를 사용하려면 확보한 전체 스키마를 이 별도 로컬 DB에 먼저 적용해야 한다. 초기 `schema.sql`과 0001~0007만으로 충분하다고 가정하지 않는다. 이번에는 실행 도구 검증만 수행했고 서버 기동·시험 DB import·화면 검증은 아직 하지 않았다.
+- 테스트: `node --test scripts/check-d1-restore.test.mjs scripts/dev-sandbox.test.mjs` 4개 통과. Node SQLite 모듈은 현재 실험적 API라는 경고를 출력한다.
+
 ## 다음 단계와 중단 기준
 
-- 다음 작업: 실제 접근 보호/Cloudflare 로그인 상태 확인 → 운영 백업 보관 → 격리 시험 환경 복원 및 원본 대조 → 인증 골격 구현.
+- 다음 작업: 시험 DB의 전체 스키마 초기화 및 API 복원 시험 → 원격 스테이징 DB/Pages 바인딩 분리 → 인증 골격 구현. 원격 환경 생성·배포 설정 변경은 아직 실행하지 않았다.
 - 인증 착수에 필요한 선택: 최초 로그인 수단/제공자. 기본 설계는 관리형 OIDC이며 비밀번호 직접 저장은 하지 않는다.
 - 운영 이전 전 필요한 선택: 기존 장부의 소유 계정. 첫 가입자에게 자동 귀속하지 않는다.
 - 계정 삭제·내보내기 정책과 공개 가입 시점은 베타 전에 확정한다.
