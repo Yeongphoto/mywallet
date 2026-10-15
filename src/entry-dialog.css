@@ -1,4 +1,19 @@
 /* One form layout. Only the screen around it scrolls when a keyboard covers it. */
+html[data-style-theme="default"] {
+  --expense-action-bg: color-mix(in srgb, var(--color-expense) 45%, #7f1d1d);
+  --income-action-bg: color-mix(in srgb, var(--color-income) 45%, #1e3a8a);
+  --transfer-action-bg: color-mix(in srgb, var(--color-transfer) 45%, #4c1d95);
+  --entry-action-ink: #fff;
+}
+[data-entry-type="expense"], .registration-mode-tabs > .expense { --entry-submit-bg: var(--expense-action-bg); }
+[data-entry-type="income"], .registration-mode-tabs > .income { --entry-submit-bg: var(--income-action-bg); }
+[data-entry-type="transfer"], .registration-mode-tabs > .transfer { --entry-submit-bg: var(--transfer-action-bg); }
+[data-entry-type="asset"], .registration-mode-tabs > .asset { --entry-submit-bg: var(--asset-action-bg); }
+html[data-style-theme="default"] .entry-dialog-backdrop :is(.entry-actions, .transaction-edit-actions) > button[type="submit"],
+html[data-style-theme="default"] .registration-mode-tabs > button.active {
+  background: var(--entry-submit-bg) !important;
+  color: var(--entry-action-ink) !important;
+}
 .modal-backdrop.entry-dialog-backdrop {
   inset: 0 !important;
   height: auto !important;
@@ -124,6 +139,27 @@ html[data-style-theme="default"] .entry-title-suggestions {
 }
 .title-suggestions-list { min-height: 0; overscroll-behavior: contain; touch-action: pan-y; }
 .title-suggestion-item { flex: 0 0 auto; min-height: 44px; }
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestions-list {
+  gap: 0;
+  padding: 0;
+}
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestion-item {
+  margin: 0;
+  padding: 10px 12px;
+  border: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-input) 30%, transparent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestion-item:last-child { border-bottom: 0 !important; }
+html[data-style-theme="default"] .entry-title-suggestions .suggestion-badge {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
 html[data-ui-theme="theme1"] .modal-content .content-entry-field.has-suggestions-open,
 html[data-ui-theme="theme1"] .entry-title-suggestions { border-radius: 0 !important; }
 html[data-style-theme="default"] .entry-dialog-backdrop button,

@@ -11488,6 +11488,7 @@ function AssetRegistrationForm({
       <form
         key={editingAsset ? editingAsset.id : 'new'}
         className="entry-form asset-entry-form"
+        data-entry-type="asset"
         onSubmit={async (event) => {
           event.preventDefault();
           const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
@@ -12161,7 +12162,7 @@ function UnifiedEntryForm({
 
   return (
     <>
-      <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
+      <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} data-entry-type={form.type} onSubmit={handleSubmit}>
         {!isQuickAdd && (
           <div className={`entry-form-title ${formColorClass}`}>
             <strong>통합 자산/거래 등록</strong>
@@ -12437,7 +12438,7 @@ function UnifiedEntryForm({
 
         <div className="entry-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
-          <button type="submit" className="primary-button entry-submit" style={{ background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
+          <button type="submit" className="primary-button entry-submit">
             {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
           </button>
         </div>
@@ -12861,7 +12862,7 @@ function TransactionEditForm({
 
   return (
     <>
-      <form className="transaction-edit-form" onSubmit={handleSubmit}>
+      <form className="transaction-edit-form" data-entry-type={transaction.type} onSubmit={handleSubmit}>
         <DateTimeEntryField kind="date" value={date} onOpen={() => setActivePopup('date')} />
         <DateTimeEntryField kind="time" value={time} onOpen={() => setActivePopup('time')} />
         <label
