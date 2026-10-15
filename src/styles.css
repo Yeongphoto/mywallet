@@ -1700,6 +1700,7 @@ html[data-style-theme="doodle"][data-theme="dark"] .calendar-value-badge.no-spen
 /* Option A: Inside Card has NO border, NO margin (Eliminates the double-box) */
 .mobile-ledger-no-spend-card {
   display: flex;
+  min-width: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;

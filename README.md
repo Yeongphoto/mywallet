@@ -1,6 +1,10 @@
-# MyWallet
+# Memoney
 
 React + Vite 기반의 개인 가계부 웹앱입니다.
+
+Android 개발은 [이식 절차](Docs/android-port-plan.md), Google 로그인 설정은 [Memoney Google 설정 안내](Docs/google-cloud-setup.md)를 참고합니다.
+
+현재 Android 개발 앱의 [Google 로그인 화면과 실행 방법](Docs/android-google-login.md)은 별도 인증 시험 서버를 사용합니다.
 
 업로드한 엑셀 가계부의 구조를 참고해 월간 요약, 거래 입력, 거래 장부, 자산 관리 화면을 먼저 잡았습니다.
 

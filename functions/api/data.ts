@@ -521,7 +521,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     if (body.op === 'asset.reorder') {
       const categoryId = String(body.categoryId || '');
-      const assetIds = Array.isArray(body.assetIds) ? body.assetIds.map(String) : [];
+      const assetIds: string[] = Array.isArray(body.assetIds) ? body.assetIds.map(String) : [];
       const expectedRevision = Number(body.expectedRevision);
       const operationId = body.operationId;
       if (!isOperationId(operationId) || !categoryId || !Number.isInteger(expectedRevision) || assetIds.length === 0 || new Set(assetIds).size !== assetIds.length) {
@@ -578,7 +578,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
     if (body.op === 'category.reorder') {
       const type = body.type;
-      const categoryIds = Array.isArray(body.categoryIds) ? body.categoryIds.map(String) : [];
+      const categoryIds: string[] = Array.isArray(body.categoryIds) ? body.categoryIds.map(String) : [];
       const expectedRevision = Number(body.expectedRevision);
       const operationId = body.operationId;
       const labelPatch = body.categoryLabels && typeof body.categoryLabels === 'object' && !Array.isArray(body.categoryLabels)

@@ -1,0 +1,15 @@
+{
+  "sourceSha256": "e9d4e52cbd76b32efcccc278c17aa2c7db40ec0fe81bd74e4b3893816fdf32a8",
+  "sourceSize": [
+    1024,
+    268
+  ],
+  "alphaThreshold": 128,
+  "preservedGlyphs": "M E M O E, plus original signature dots",
+  "newGlyphs": "N Y",
+  "accentGlyph": "central O",
+  "preservedMaskIoU": 1.0,
+  "preservedGlyphAlphaMeanAbsoluteError255": 2.6077,
+  "background": "transparent",
+  "embeddedRaster": false
+}

@@ -1,0 +1,64 @@
+.memoney-signin {
+  box-sizing: border-box;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: inherit;
+}
+.memoney-signin * { box-sizing: border-box; }
+.signin-brand { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; }
+.signin-brand img, .signin-logo { width: 44px; height: 44px; object-fit: contain; }
+.signin-content { width: min(100%, 360px); text-align: center; }
+.signin-content h1 { margin: 0 0 20px; font-size: 20px; line-height: 1.4; font-weight: 750; }
+.signin-description { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+.signin-card { display: grid; gap: 12px; padding: 24px; border: 1px solid var(--border-card); border-radius: 18px; background: var(--bg-card); box-shadow: var(--shadow-sm); }
+.signin-card .secondary-button { width: 100%; min-height: 46px; margin: 0; }
+.signin-google { display: flex; justify-content: center; align-items: center; width: 100%; min-height: 46px; padding: 0; background: var(--bg-input); border: 1px solid var(--border-input); border-radius: 12px; cursor: pointer; }
+.signin-google img { display: block; max-width: 100%; height: 44px; object-fit: contain; }
+.signin-google:disabled { opacity: .55; cursor: default; }
+.signin-google:focus-visible { outline: 3px solid var(--primary); outline-offset: 4px; }
+.signin-feedback { color: var(--text-secondary); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.mememo-signin {
+  --signin-background:#f2f7f4;
+  --signin-ink:#1c2e24;
+  --signin-accent:#2d6a4f;
+  --signin-muted:#587566;
+  gap:36px;
+  background:var(--signin-background);
+  color:var(--signin-ink);
+}
+.mememo-signin[data-tone="dark"] {
+  --signin-background:#111a15;
+  --signin-ink:#e6f0ea;
+  --signin-accent:#74c69d;
+  --signin-muted:#a0b6a8;
+}
+.mememo-signin .signin-brand { flex-direction:column; gap:16px; }
+.mememo-signin .signin-brand img { width:104px; height:104px; object-fit:contain; filter:none; }
+.mememo-signin .signin-wordmark { display:inline-flex; align-items:baseline; font-size:34px; line-height:1.2; letter-spacing:-1.2px; font-weight:800; }
+.mememo-signin .signin-wordmark span:first-child { color:var(--signin-ink); }
+.mememo-signin .signin-wordmark span:last-child { color:var(--signin-accent); }
+.mememo-signin .signin-content { width:min(100%,320px); }
+.mememo-signin .signin-content h1 { color:var(--signin-muted); font-size:16px; font-weight:500; margin:0 0 24px; }
+.mememo-signin .signin-card { gap:12px; padding:0; border:0; background:transparent; box-shadow:none; }
+.mememo-signin .signin-google { min-height:52px; gap:12px; padding:12px; border:1px solid #747775; border-radius:12px; background:#fff; color:#1f1f1f; font:500 14px/20px Arial,sans-serif; box-shadow:none; }
+.mememo-signin .signin-google img { width:20px; height:20px; flex:0 0 20px; }
+.mememo-signin .signin-google:disabled { opacity:.6; }
+.mememo-signin .signin-google:not(:disabled):hover { background:#f8faf9; }
+.mememo-signin .signin-google:focus-visible,
+.mememo-signin .signin-local:focus-visible { outline:2px solid var(--signin-accent); outline-offset:4px; }
+.mememo-signin .signin-local { width:100%; min-height:48px; margin:0; padding:12px; border:0; border-radius:12px; background:transparent; color:var(--signin-accent); font-size:14px; line-height:1.5; font-weight:600; font-family:inherit; box-shadow:none; cursor:pointer; }
+.mememo-signin .signin-local:hover { background:rgb(64 145 108 / 8%); }
+.mememo-signin .signin-feedback { color:var(--signin-muted); }
+@media (max-height:540px) {
+  .mememo-signin { gap:20px; }
+  .mememo-signin .signin-brand { gap:8px; }
+  .mememo-signin .signin-brand img { width:72px; height:72px; }
+}

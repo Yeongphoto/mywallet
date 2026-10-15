@@ -3,6 +3,19 @@ import type { DragEvent, FormEvent, PointerEvent as ReactPointerEvent, ReactNode
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
+import { BrandWordmark } from './BrandWordmark';
+import { useEntryViewport } from './use-entry-viewport';
+import { FloatingTitleSuggestions } from './FloatingTitleSuggestions';
+import { LoadingScreen } from './LoadingScreen';
+import { useLaunchReady } from './auth/use-launch-ready';
+import { ReceivedInvitation } from './auth/ReceivedInvitation';
+import { AccountSettings } from './auth/AccountSettings';
+import { walletFetch as fetch, walletStorageKey, walletContext, isLocalWallet, readWalletContext, selectCloudLedger } from './auth/wallet-scope';
+import { persistLocalView, localSnapshot, MODE_KEY } from './auth/local-wallet';
+import type { LocalSnapshot } from './auth/local-wallet';
+import { saveGuestBackup, exportGuestArchive, parseGuestArchive, restoreGuestArchive } from './auth/local-backup';
+import { appLogoSrc, readAppAppearance, saveAppAppearance } from './auth/app-appearance';
+import './auth/ledger.css';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식', color: '#ef4444' },
@@ -32,14 +45,14 @@ const assetCategories: CategoryOption[] = [
   { id: 'etc', label: '\uAE30\uD0C0', color: '#64748b' },
 ];
 
-const STORAGE_KEY = 'mywallet:v2';
-const THEME_STORAGE_KEY = 'mywallet:theme';
-const STYLE_THEME_STORAGE_KEY = 'mywallet:styleTheme';
-const NO_SPEND_CHALLENGE_STORAGE_KEY = 'mywallet:noSpendChallenge';
-const NO_SPEND_PLEDGES_STORAGE_KEY = 'mywallet:noSpendPledges';
-const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
-const PENDING_TRANSACTION_OPERATIONS_KEY = 'mywallet:v2:pendingTransactionOperations';
-const SYNC_CURSOR_KEY = 'mywallet:v2:syncCursor';
+const STORAGE_KEY = walletStorageKey('mywallet:v2');
+const THEME_STORAGE_KEY = walletStorageKey('mywallet:theme');
+const STYLE_THEME_STORAGE_KEY = walletStorageKey('mywallet:styleTheme');
+const NO_SPEND_CHALLENGE_STORAGE_KEY = walletStorageKey('mywallet:noSpendChallenge');
+const NO_SPEND_PLEDGES_STORAGE_KEY = walletStorageKey('mywallet:noSpendPledges');
+const PENDING_SYNC_KEY = walletStorageKey('mywallet:v2:pendingSyncAt');
+const PENDING_TRANSACTION_OPERATIONS_KEY = walletStorageKey('mywallet:v2:pendingTransactionOperations');
+const SYNC_CURSOR_KEY = walletStorageKey('mywallet:v2:syncCursor');
 const MONTH_PICKER_YEAR_START = 2000;
 const MONTH_PICKER_YEAR_END = 2100;
 const MONTH_PICKER_ROW_HEIGHT = 38;
@@ -66,7 +79,7 @@ type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' 
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'clock' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
-type StyleThemePreference = 'default' | 'doodle' | 'mememo';
+type StyleThemePreference = 'default' | 'theme1' | 'doodle' | 'mememo';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 const SYNC_OVERLAY_MIN_DURATION = 2000;
@@ -137,23 +150,11 @@ function MyWalletLogo({ className = '', style, src = '/logo.png' }: { className?
 }
 
 function getHeaderLogoSrc(styleTheme: StyleThemePreference, resolvedTheme: 'light' | 'dark'): string {
-  if (styleTheme === 'mememo') {
-    return resolvedTheme === 'dark' ? '/images/mememo/mememo-met-mint.png' : '/images/mememo/mememo-met-green.png';
-  }
-  if (styleTheme === 'doodle') {
-    return resolvedTheme === 'dark' ? '/images/logo-cat-cream.png' : '/images/logo-cat-doodle.png';
-  }
-  return resolvedTheme === 'dark' ? '/images/logo-cat-blue.png' : '/images/logo-cat-dark.png';
+  return appLogoSrc(styleTheme, resolvedTheme);
 }
 
 function getSidebarLogoSrc(styleTheme: StyleThemePreference, resolvedTheme: 'light' | 'dark'): string {
-  if (styleTheme === 'mememo') {
-    return '/images/mememo/mememo-met-mint.png';
-  }
-  if (styleTheme === 'doodle') {
-    return resolvedTheme === 'dark' ? '/images/logo-cat-cream.png' : '/images/logo-cat-doodle.png';
-  }
-  return '/images/logo-cat-blue.png';
+  return appLogoSrc(styleTheme, resolvedTheme);
 }
 
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
@@ -1003,9 +1004,6 @@ function MobileLedgerTimeline({
                       <strong className={`no-spend-card-title ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}>
                         {streakInfo.cardTitle}
                       </strong>
-                      <span className="no-spend-card-desc">
-                        {streakInfo.cardDesc}
-                      </span>
                     </div>
                   </div>
                   {isToday && onTogglePledgeToday && (
@@ -2242,6 +2240,7 @@ function normalizeThemePreference(value: unknown): ThemePreference {
 }
 
 function normalizeStyleThemePreference(value: unknown): StyleThemePreference {
+  if (value === 'theme1') return 'theme1';
   if (value === 'doodle') return 'doodle';
   if (value === 'mememo') return 'mememo';
   return 'default';
@@ -2282,12 +2281,14 @@ function loadStoredData() {
     if (rawTheme) localTheme = normalizeThemePreference(rawTheme);
     const rawStyleTheme = window.localStorage.getItem(STYLE_THEME_STORAGE_KEY);
     if (rawStyleTheme) localStyleTheme = normalizeStyleThemePreference(rawStyleTheme);
+    const appearance = readAppAppearance();
+    if (appearance) { localTheme = appearance.theme; localStyleTheme = appearance.styleTheme; }
   } catch {}
 
   try {
     const rawData = window.localStorage.getItem(STORAGE_KEY);
     if (!rawData) {
-      const oldData = window.localStorage.getItem('mywallet:v1');
+      const oldData = window.localStorage.getItem(walletStorageKey('mywallet:v1'));
       if (oldData) {
         const parsed = JSON.parse(oldData);
         return {
@@ -2401,6 +2402,12 @@ function saveLocalStorage(
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+    if (isLocalWallet()) {
+      persistLocalView(walletContext()!.ledger.id, { transactions, assets, budget, theme, styleTheme, plans,
+        customExpenseCategories, customIncomeCategories, customAssetCategories, categoryColors, categoryLabels,
+        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt });
+      return;
+    }
     window.localStorage.setItem(
       STORAGE_KEY, 
       JSON.stringify({ 
@@ -2425,7 +2432,7 @@ function saveLocalStorage(
       })
     );
   } catch {
-    // LocalStorage error fallback
+    if (isLocalWallet()) window.dispatchEvent(new Event('memoney:local-save-failed'));
   }
 }
 
@@ -2478,6 +2485,12 @@ function sumAmount<T extends { amount: number }>(items: T[]) {
 }
 
 function downloadCSV(csvContent: string, fileName: string) {
+  if (isLocalWallet()) {
+    void saveGuestBackup('\uFEFF' + csvContent, fileName, 'text/csv').catch((error) => {
+      if (error?.code !== 'CANCELLED') window.dispatchEvent(new Event('memoney:local-backup-failed'));
+    });
+    return;
+  }
   const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -2768,6 +2781,13 @@ function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
 const globalModalBackHandler = { current: null as (() => boolean) | null };
 
 export default function App() {
+  useEntryViewport();
+  const [cloudLedgers,setCloudLedgers]=useState<Array<{id:string;name:string;kind?:string;role?:string}>>([]);
+  useEffect(()=>{if(!walletContext())return;let disposed=false;
+    void window.fetch('/api/wallet/ledgers',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)})
+      .then(async r=>{if(r.ok){const data=await r.json();if(!disposed&&Array.isArray(data.ledgers))setCloudLedgers(data.ledgers);}}).catch(()=>{});
+    return()=>{disposed=true;};
+  },[]);
   const storedData = useMemo(() => loadStoredData(), []);
   
   // App states
@@ -3252,6 +3272,7 @@ export default function App() {
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
+  useLaunchReady(!isLoading);
   const [loadingOrbitDelay] = useState(() => {
     const elapsed = typeof performance === 'undefined' ? 0 : performance.now() % LOADING_ORBIT_DURATION;
     return `-${elapsed}ms`;
@@ -3644,7 +3665,7 @@ export default function App() {
   }, [selectedAsset]);
 
   useEffect(() => {
-    if (isLoading || !isOnline) return;
+    if (isLoading || !isOnline || isLocalWallet()) return;
     let cancelled = false;
     const syncChanges = () => {
       void synchronizeTransactionState().catch(() => {
@@ -3674,14 +3695,16 @@ export default function App() {
   useEffect(() => {
     const resolvedTheme = theme === 'system' ? systemTheme : theme;
     document.documentElement.setAttribute('data-theme', resolvedTheme);
-    document.documentElement.setAttribute('data-style-theme', styleTheme);
+    document.documentElement.setAttribute('data-style-theme', 'default');
+    document.documentElement.setAttribute('data-ui-theme', styleTheme === 'theme1' ? 'theme1' : 'default');
     document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#9ec5a3' : '#add4af');
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
 
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
       window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+      saveAppAppearance(theme, styleTheme);
       window.localStorage.setItem(NO_SPEND_CHALLENGE_STORAGE_KEY, String(isNoSpendChallengeEnabled));
     } catch {}
   }, [theme, systemTheme, styleTheme, isNoSpendChallengeEnabled]);
@@ -3689,6 +3712,16 @@ export default function App() {
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
     const startTime = Date.now();
+    if (isLocalWallet()) {
+      const local = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}');
+      setCardSettlements(local.cardSettlements || []);
+      assetOrderRevisionsRef.current = local.assetOrderRevisions || {};
+      categoryOrderRevisionsRef.current = local.categoryOrderRevisions || {};
+      isDbLoadedRef.current = true;
+      setRemoteSync({ status: 'synced', message: '이 기기에 저장 중', localUpdatedAt: storedData.updatedAt });
+      setIsLoading(false);
+      return;
+    }
     fetch("/api/data")
       .then((res) => {
         if (!res.ok) throw new Error("API error");
@@ -5512,13 +5545,13 @@ export default function App() {
       tone: 'danger',
       onConfirm: () => {
       // 1. Wipe LocalStorage
-      localStorage.removeItem('mywallet_transactions');
-      localStorage.removeItem('mywallet_assets');
-      localStorage.removeItem('mywallet_recurringRules');
-      localStorage.removeItem('mywallet_deletedRecurringTxs');
-      localStorage.removeItem('mywallet_plans');
-      localStorage.removeItem('mywallet_budget');
-      localStorage.removeItem('mywallet_updatedAt');
+      localStorage.removeItem(walletStorageKey('mywallet_transactions'));
+      localStorage.removeItem(walletStorageKey('mywallet_assets'));
+      localStorage.removeItem(walletStorageKey('mywallet_recurringRules'));
+      localStorage.removeItem(walletStorageKey('mywallet_deletedRecurringTxs'));
+      localStorage.removeItem(walletStorageKey('mywallet_plans'));
+      localStorage.removeItem(walletStorageKey('mywallet_budget'));
+      localStorage.removeItem(walletStorageKey('mywallet_updatedAt'));
       localStorage.removeItem(STORAGE_KEY);
 
       const initialPlans = [
@@ -5530,6 +5563,12 @@ export default function App() {
       setTransactions([]);
       setAssets([]);
       setBudget(1000000);
+      if (isLocalWallet()) {
+        setCardSettlements([]);
+        setHiddenAssets({});
+        assetOrderRevisionsRef.current = {};
+        categoryOrderRevisionsRef.current = {};
+      }
       setCustomExpenseCategories([]);
       setCustomIncomeCategories([]);
       setCustomAssetCategories([]);
@@ -5793,6 +5832,7 @@ export default function App() {
     reader.readAsText(file, 'utf-8');
   }
   async function verifyRemoteSync(showToast = true) {
+    if (isLocalWallet()) { window.dispatchEvent(new Event('memoney:open-local-sync')); return; }
     const syncStartedAt = Date.now();
     let noticeAfterSync: { message: string; title: string; type: NoticeType } | null = null;
     setIsSyncOverlayVisible(true);
@@ -5846,6 +5886,42 @@ export default function App() {
     }
   }
 
+  async function selectWallet(mode: string) {
+    if(mode==='create-shared'||mode==='manage-shared') {
+      saveAppAppearance(theme,styleTheme);
+      window.location.assign(`/sharing?return=${isLocalWallet()?'local':'cloud'}`);return;
+    }
+    if (mode === 'local' && isLocalWallet() || mode === walletContext()?.ledger.id) return;
+    saveAppAppearance(theme, styleTheme);
+    if (mode === 'local') {
+      window.location.assign('/guest#settings');
+      return;
+    }
+    try {
+      if(mode!=='shared-web')selectCloudLedger(mode);
+      await readWalletContext();
+      window.localStorage.setItem(MODE_KEY, 'shared-web');
+      window.location.assign('/wallet#settings');
+    } catch (error) {
+      if ((error as Error).message === 'UNAUTHENTICATED') window.location.assign('/signin?wallet=shared');
+      else showNotice('장부에 연결하지 못했어요.', '장부 선택', 'error');
+    }
+  }
+
+  async function exportLocalArchive() {
+    try { await exportGuestArchive(walletContext()!.ledger.id); showNotice('백업을 저장했어요.', '백업', 'success'); }
+    catch (error) { if ((error as { code?: string }).code !== 'CANCELLED') showNotice('백업을 저장하지 못했어요.', '백업', 'error'); }
+  }
+
+  async function importLocalArchive(file?: File) {
+    if (!file) return;
+    try {
+      const id = walletContext()!.ledger.id, data = parseGuestArchive(await file.text(), id);
+      requestConfirm({ title: '로컬 백업 복원', message: `거래 ${data.transactions.length}건 · 자산 ${data.assets.length}개를 복원할까요?`, confirmLabel: '복원',
+        onConfirm: () => { try { restoreGuestArchive(id, data); } catch { showNotice('백업을 복원하지 못했어요.', '복원', 'error'); } } });
+    } catch { showNotice('백업 파일을 확인해 주세요.', '복원', 'error'); }
+  }
+
   function exportFullCSV() {
     const backupSettings = {
       version: 3,
@@ -5864,6 +5940,9 @@ export default function App() {
       recurringRules,
       deletedRecurringTxs,
       updatedAt,
+      localData: isLocalWallet() ? { ...localSnapshot(window.localStorage, walletContext()!.ledger.id), transactions, assets, plans, cardSettlements,
+        budget, theme, styleTheme, customExpenseCategories, customIncomeCategories, customAssetCategories, categoryColors, categoryLabels,
+        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt } : undefined,
     };
 
     const rows = [
@@ -6497,6 +6576,7 @@ ${sheet4Rows}  </sheetData>
         const assetIds = new Set<string>();
         let invalidRows = 0;
         let importedSettings: Partial<{
+          localData: LocalSnapshot;
           version: number;
           budget: number;
           theme: ThemePreference;
@@ -6598,6 +6678,22 @@ ${sheet4Rows}  </sheetData>
             message: `현재 데이터가 백업 파일 기준으로 교체됩니다. 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건${importedSettings ? ', 설정값 포함' : ''}을 복원할까요?`,
             confirmLabel: '복원',
             onConfirm: () => {
+              if (isLocalWallet() && importedSettings?.localData) {
+                try {
+                  const id = walletContext()!.ledger.id;
+                  const complete = localSnapshot({ getItem: () => JSON.stringify(importedSettings!.localData) }, id);
+                  window.localStorage.setItem(walletStorageKey(`mywallet:v2:pre-restore:${Date.now()}`), window.localStorage.getItem(STORAGE_KEY) || '{}');
+                  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(complete));
+                  window.location.reload();
+                } catch { showNotice('기기 원본을 복원하지 못했습니다. 저장 공간과 백업 파일을 확인해 주세요.', '복원 실패', 'error'); }
+                return;
+              }
+              if (isLocalWallet()) {
+                persistLocalView(walletContext()!.ledger.id, { cardSettlements: [], localOperations: {}, assetOrderRevisions: {}, categoryOrderRevisions: {} });
+                setCardSettlements([]);
+                assetOrderRevisionsRef.current = {};
+                categoryOrderRevisionsRef.current = {};
+              }
               const nextTime = Date.now();
               setTransactions(newTransactions);
               setAssets(newAssets);
@@ -6716,27 +6812,9 @@ ${sheet4Rows}  </sheetData>
 
   return (
     <main className="app-shell">
-      {isLoading && (
-        <div className="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
-          <div className="app-loading-mark" aria-hidden="true">
-            <span className="app-loading-orbit-track" />
-            <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
-            <div className="app-loading-logo">
-              <LoadingGlyph />
-            </div>
-          </div>
-          <div className="app-loading-copy">
-            <h1>
-              <span style={{ color: styleTheme === 'mememo' ? '#74c69d' : '#ffffff' }}>Me</span>
-              <span style={{
-                color: styleTheme === 'mememo' ? '#52b788' : (styleTheme === 'doodle' ? '#ff9f43' : '#38bdf8'),
-                marginLeft: '2px'
-              }}>money</span>
-            </h1>
-          </div>
-        </div>
-      )}
-      {!isLoading && isSyncOverlayVisible && (
+      {isLoading && <LoadingScreen orbitDelay={loadingOrbitDelay} />}
+      {!isLoading && walletContext() && <ReceivedInvitation />}
+      {!isLoading && isSyncOverlayVisible && !document.documentElement.hasAttribute('data-native-mememo') && (
         <div className="app-sync-overlay" role="status" aria-live="polite" aria-label="동기화 중" aria-busy="true">
           <div className="app-loading-mark" aria-hidden="true">
             <span className="app-loading-orbit-track" />
@@ -6753,7 +6831,7 @@ ${sheet4Rows}  </sheetData>
           <div className="brand">
             <MyWalletLogo src={getSidebarLogoSrc(styleTheme, resolvedTheme)} />
             <div>
-              <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
+              <strong className="brand-wordmark"><BrandWordmark /></strong>
             </div>
           </div>
           <nav>
@@ -6844,7 +6922,7 @@ ${sheet4Rows}  </sheetData>
             src={getHeaderLogoSrc(styleTheme, resolvedTheme)}
           />
           <div className="brand-text">
-            <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
+            <strong className="brand-wordmark"><BrandWordmark /></strong>
           </div>
         </div>
 
@@ -6859,8 +6937,8 @@ ${sheet4Rows}  </sheetData>
             type="button"
             className={`sync-mini-indicator ${topSyncStatus}`}
             onClick={() => void verifyRemoteSync(true)}
-            title={!isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
-            aria-label="서버 동기화 상태 확인"
+            title={isLocalWallet() ? '기기에 저장 중 · 동기화 설정' : !isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
+            aria-label={isLocalWallet() ? '로컬 저장 및 동기화 설정' : '서버 동기화 상태 확인'}
           >
             <AppIcon name="refresh" size={18} />
           </button>
@@ -7221,10 +7299,11 @@ ${sheet4Rows}  </sheetData>
                 </div>
                 
                 {/* 필터 칩 선택기 */}
-                <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)', flexShrink: 0 }}>
+                <div className="annual-chart-filters" style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('both')}
+                    aria-pressed={chartFilter === 'both'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7244,6 +7323,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('income')}
+                    aria-pressed={chartFilter === 'income'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7263,6 +7343,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('expense')}
+                    aria-pressed={chartFilter === 'expense'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7282,6 +7363,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('asset')}
+                    aria-pressed={chartFilter === 'asset'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7301,6 +7383,7 @@ ${sheet4Rows}  </sheetData>
                   <button
                     type="button"
                     onClick={() => setChartFilter('assetNet')}
+                    aria-pressed={chartFilter === 'assetNet'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -8645,6 +8728,19 @@ ${sheet4Rows}  </sheetData>
 
             {settingsSection === 'app' && (
               <div className="settings-stack">
+                {walletContext() && <AccountSettings />}
+                {walletContext() && <div className="settings-row ledger-settings-row">
+                  <strong>장부</strong>
+                  <div className="ledger-settings-controls">
+                    <InstantSelect ariaLabel="장부 선택" value={isLocalWallet()?'local':cloudLedgers.length?walletContext()!.ledger.id:'shared-web'} placeholder="장부 선택"
+                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), { value: 'local', label: '로컬 장부' },
+                        cloudLedgers.some(l=>l.kind==='shared')?{value:'manage-shared',label:'공유 장부 관리'}:{value:'create-shared',label:'공유 장부 만들기'}]}
+                      onChange={value => void selectWallet(value)} />
+                    {isLocalWallet()
+                      ? <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>
+                      : <button type="button" className="ledger-connection-action" onClick={() => void selectWallet('local')}>연결 끊기</button>}
+                  </div>
+                </div>}
                 <div className="settings-row theme-settings-row">
                   <div>
                     <strong>화면 모드</strong>
@@ -8665,35 +8761,14 @@ ${sheet4Rows}  </sheetData>
                   </div>
                 </div>
 
+
                 <div className="settings-row theme-settings-row">
                   <div>
-                    <strong>디자인 테마</strong>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      모던, 두들(손그림), 메메모(초록 감성) 스타일을 선택할 수 있습니다.
-                    </div>
+                    <strong>디자인</strong>
                   </div>
                   <div className="theme-toggle" role="group" aria-label="디자인 테마">
-                    <button
-                      type="button"
-                      className={styleTheme === 'default' ? 'active' : ''}
-                      onClick={() => setStyleTheme('default')}
-                    >
-                      ✨ 모던
-                    </button>
-                    <button
-                      type="button"
-                      className={styleTheme === 'doodle' ? 'active' : ''}
-                      onClick={() => setStyleTheme('doodle')}
-                    >
-                      ✏️ 두들
-                    </button>
-                    <button
-                      type="button"
-                      className={styleTheme === 'mememo' ? 'active' : ''}
-                      onClick={() => setStyleTheme('mememo')}
-                    >
-                      🍃 메메모 (Mememo)
-                    </button>
+                    <button type="button" className={styleTheme !== 'theme1' ? 'active' : ''} aria-pressed={styleTheme !== 'theme1'} onClick={() => setStyleTheme('default')}>기본</button>
+                    <button type="button" className={styleTheme === 'theme1' ? 'active' : ''} aria-pressed={styleTheme === 'theme1'} onClick={() => setStyleTheme('theme1')}>테마1</button>
                   </div>
                 </div>
 
@@ -9361,12 +9436,21 @@ ${sheet4Rows}  </sheetData>
                 <button type="button" className={`settings-sync-button ${remoteSync.status}`} onClick={() => void verifyRemoteSync(true)}>
                   <span className="settings-sync-dot" aria-hidden="true" />
                   <span className="settings-sync-copy">
-                    <strong>{remoteSync.message}</strong>
+                    <strong>{isLocalWallet() ? '이 기기에 저장 중' : remoteSync.message}</strong>
                     <small>가장 최근 저장 {formatSyncTime(remoteSync.remoteUpdatedAt || remoteSync.localUpdatedAt || updatedAt)}</small>
                   </span>
-                  <span className="settings-sync-action">서버 확인</span>
+                  <span className="settings-sync-action">{isLocalWallet() ? '동기화 설정' : '서버 확인'}</span>
                 </button>
                 <div className="settings-data-grid">
+                  {isLocalWallet() && <article className="settings-data-card">
+                    <strong>로컬 백업</strong>
+                    <div className="settings-card-actions">
+                      <button type="button" className="primary-button" onClick={() => void exportLocalArchive()}>백업</button>
+                      <label className="secondary-button">복원<input type="file" accept=".json" hidden onChange={event => {
+                        void importLocalArchive(event.target.files?.[0]); event.target.value = '';
+                      }} /></label>
+                    </div>
+                  </article>}
                   <article className="settings-data-card settings-csv-card">
                     <div>
                       <span>CSV DATA</span>
@@ -9757,7 +9841,8 @@ ${sheet4Rows}  </sheetData>
 
       {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div className="modal-backdrop" onClick={() => setEditingTransaction(null)}>
+        <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setEditingTransaction(null)}>
+          <div className="entry-dialog-viewport">
           <div className="modal-content transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>거래 내역 수정</h3>
@@ -9784,6 +9869,7 @@ ${sheet4Rows}  </sheetData>
                 onNotify={showNotice}
               />
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -10238,10 +10324,12 @@ ${sheet4Rows}  </sheetData>
 
       {/* 통합 자산/거래 등록 모달 */}
       {isEntryModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsEntryModalOpen(false)}>
+        <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setIsEntryModalOpen(false)}>
+          <div className="entry-dialog-viewport">
           <div className={`modal-content entry-modal${registrationMode === 'asset' ? ' asset-entry-modal' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
+              <button type="button" className="close-btn" aria-label="등록 창 닫기" onClick={() => setIsEntryModalOpen(false)}>×</button>
             </div>
             <div className="registration-mode-tabs" aria-label="등록 종류">
               <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => switchRegistrationMode('asset')}>자산</button>
@@ -10298,6 +10386,7 @@ ${sheet4Rows}  </sheetData>
                 />
             )}
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -10800,7 +10889,7 @@ function InstantSelect({
   ariaLabel: string;
   value: string | number;
   placeholder: string;
-  options: Array<{ value: string | number; label: string }>;
+  options: Array<{ value: string | number; label: string; detail?:string }>;
   onChange: (value: string) => void;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onSelectNext?: () => void;
@@ -10808,6 +10897,7 @@ function InstantSelect({
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
+  const selectedDetail = options.find((option) => String(option.value) === String(value))?.detail;
   const selectOption = (option: { value: string | number }) => {
     onChange(String(option.value));
     setIsOpen(false);
@@ -10849,7 +10939,7 @@ function InstantSelect({
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
+        <span className={selectedLabel ? 'instant-select-label' : 'instant-select-placeholder'}>{selectedLabel || placeholder}{selectedDetail&&<small>{selectedDetail}</small>}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (
@@ -10863,7 +10953,7 @@ function InstantSelect({
               key={`${String(option.value)}-${index}`}
               onClick={() => selectOption(option)}
             >
-              <span>{option.label}</span>
+              <span className="instant-select-label">{option.label}{option.detail&&<small>{option.detail}</small>}</span>
               {String(option.value) === String(value) && (
                 <span className="instant-select-option-check" aria-hidden="true">✓</span>
               )}
@@ -11789,6 +11879,7 @@ function UnifiedEntryForm({
     if (!isTitleSuggestionsOpen) return;
 
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (e.target instanceof Element && e.target.closest('.entry-title-suggestions')) return;
       if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
         setIsTitleSuggestionsOpen(false);
       }
@@ -12310,15 +12401,17 @@ function UnifiedEntryForm({
               </button>
             )}
             {isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 && (
-              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+              <FloatingTitleSuggestions anchorRef={contentFieldRef}>
                 <div className="title-suggestions-list">
                   {titleSuggestions.map((item) => (
                     <button
                       key={item.title}
                       type="button"
                       className="title-suggestion-item"
-                      onMouseDown={(e) => {
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setForm((prev) => ({
                           ...prev,
                           title: item.title,
@@ -12337,7 +12430,7 @@ function UnifiedEntryForm({
                     </button>
                   ))}
                 </div>
-              </div>
+              </FloatingTitleSuggestions>
             )}
           </label>
         </div>
@@ -12555,6 +12648,7 @@ function TransactionEditForm({
     if (!isTitleSuggestionsOpen) return;
 
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (e.target instanceof Element && e.target.closest('.entry-title-suggestions')) return;
       if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
         setIsTitleSuggestionsOpen(false);
       }
@@ -12826,7 +12920,8 @@ function TransactionEditForm({
               type="button"
               className="content-clear-btn"
               aria-label="내용 지우기"
-              onMouseDown={(e) => {
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={(e) => {
                 e.preventDefault();
                 setTitle('');
                 setIsTitleSuggestionsOpen(false);
@@ -12837,15 +12932,17 @@ function TransactionEditForm({
             </button>
           )}
           {isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 && (
-            <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+            <FloatingTitleSuggestions anchorRef={contentFieldRef}>
               <div className="title-suggestions-list">
                 {titleSuggestions.map((item) => (
                   <button
                     key={item.title}
                     type="button"
                     className="title-suggestion-item"
-                    onMouseDown={(e) => {
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setTitle(item.title);
                       setIsTitleSuggestionsOpen(false);
                       titleRef.current?.blur();
@@ -12860,7 +12957,7 @@ function TransactionEditForm({
                   </button>
                 ))}
               </div>
-            </div>
+            </FloatingTitleSuggestions>
           )}
         </label>
 

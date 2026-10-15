@@ -1,0 +1,100 @@
+.settings-row.ledger-settings-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  min-height: 80px;
+}
+.ledger-settings-row > strong { flex: 0 0 auto; white-space: nowrap; }
+.ledger-settings-controls {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  max-width: 320px;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+}
+.ledger-settings-controls .instant-select { position: relative; flex: 1; min-width: 0; }
+.ledger-settings-controls .instant-select-trigger,
+.ledger-settings-controls .ledger-connection-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 46px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ledger-settings-controls .instant-select-trigger {
+  width: 100%;
+  justify-content: space-between;
+  border-radius: 11px 0 0 11px;
+}
+.ledger-settings-controls .instant-select-trigger > span[aria-hidden] { color: var(--text-secondary); }
+.ledger-settings-controls .ledger-connection-action {
+  border-left: 1px solid var(--border-card);
+  border-radius: 0 11px 11px 0;
+  color: var(--primary);
+  min-width: 76px;
+  font-size: 13px;
+}
+.ledger-settings-controls button:hover { background: var(--bg-input); }
+.ledger-settings-controls button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.ledger-settings-controls .instant-select-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -1px;
+  width: max(100%, 164px);
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+}
+.ledger-settings-controls .instant-select-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ledger-settings-controls .instant-select-menu button.selected,
+.ledger-settings-controls .instant-select-menu button:hover { background: var(--bg-input); }
+.ledger-settings-controls .instant-select-option-check { color: var(--primary); }
+.ledger-settings-controls .instant-select { min-width:0; }
+.ledger-settings-controls .instant-select-label { display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left; }
+.ledger-settings-controls .instant-select-label small { display:block; font-size:11px; line-height:1.4; color:var(--text-secondary); margin-top:2px; font-weight:400; }
+.ledger-settings-controls .instant-select-menu { box-sizing:border-box; max-height:320px; overflow-y:auto; }
+.ledger-settings-controls .instant-select-menu button { white-space:normal; text-align:left; }
+.ledger-settings-controls .instant-select-menu .instant-select-label { overflow-wrap:anywhere; }
+@media (max-width: 500px) {
+  .settings-row.ledger-settings-row { gap: 12px; }
+  .ledger-settings-row > strong { font-size: 14px; }
+  .ledger-settings-controls .instant-select-trigger,
+  .ledger-settings-controls .ledger-connection-action { padding-inline: 12px; }
+}

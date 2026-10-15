@@ -1,5 +1,5 @@
 {
-  "name": "mywallet",
+  "name": "memoney",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,21 +10,34 @@
     "check:pwa": "node scripts/check-pwa-branding.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "dev:d1": "npm run dev"
+    "dev:d1": "npm run dev",
+    "android:server": "npm run auth:server",
+    "android:ledger-server": "npm run build && node scripts/android-sandbox.mjs",
+    "android:sync": "npm run build && cap sync android",
+    "android:build": "npm run android:sync && node scripts/android-dev.mjs build",
+    "android:run": "npm run android:build && node scripts/android-dev.mjs run",
+    "android:connect": "node scripts/android-connect.mjs",
+    "android:unfolded": "node scripts/android-unfolded.mjs",
+    "auth:server": "npm run build && node scripts/auth-sandbox.mjs",
+    "check:auth": "tsc -p tsconfig.auth.json && node --test scripts/auth-foundation.test.mjs scripts/auth-client.test.mjs scripts/shared-wallet.test.mjs scripts/wallet-scope.test.mjs scripts/local-wallet.test.mjs scripts/ledger-invitations.test.mjs scripts/personal-test-wallet.test.mjs scripts/shared-creation.test.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
     "@vitejs/plugin-react": "5.0.4",
+    "jose": "6.2.12",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "typescript": "5.9.2",
     "vite": "7.1.7"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "@types/react": "19.1.13",
     "@types/react-dom": "19.1.9",
     "puppeteer-core": "^25.9.0"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.0.0"
   }
 }

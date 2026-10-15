@@ -21,3 +21,8 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Workspace-local Android build tools and signing material
+.android-tools/
+*.jks
+*.keystore

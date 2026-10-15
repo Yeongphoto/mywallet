@@ -1410,6 +1410,24 @@ html[data-style-theme="doodle"] .row-action-delete {
   .app-header .month-navigation {
     --month-label-width: 102px;
     --month-nav-button-size: 34px;
+    --month-label-font-size: 13px;
+  }
+
+  .app-header .month-picker-wrap {
+    padding: 0 2px;
+  }
+
+  .app-header .month-picker-display {
+    min-height: var(--month-label-height);
+    gap: 4px;
+    font-weight: 750;
+    letter-spacing: 0;
+  }
+
+  .app-header .month-picker-display .app-icon {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
   }
 
   .app-header .month-nav-button {

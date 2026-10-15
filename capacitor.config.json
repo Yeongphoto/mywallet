@@ -1,0 +1,20 @@
+{
+  "appId": "com.mywallet.dev",
+  "appName": "Memoney Dev",
+  "webDir": "dist",
+  "loggingBehavior": "none",
+  "android": {
+    "appendUserAgent": "MemoneyAndroid"
+  },
+  "plugins": {
+    "MemoneyGoogleAuth": {
+      "webClientId": "367615872651-ln2adrilfm9c9ofk12pl5jip1so1ra08.apps.googleusercontent.com",
+      "androidClientId": "367615872651-q007dfm9n7hf0q3jj62mepc50bhsoc4h.apps.googleusercontent.com"
+    }
+  },
+  "server": {
+    "url": "https://memoney-android-test.pages.dev/signin",
+    "errorPath": "android-unavailable.html",
+    "cleartext": false
+  }
+}

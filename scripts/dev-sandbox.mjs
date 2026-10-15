@@ -45,6 +45,11 @@ export function prepareSandbox() {
   cpSync(join(paths.root, 'wrangler.sandbox.json'), join(paths.runtime, 'wrangler.json'));
   cpSync(join(paths.root, 'dist'), join(paths.runtime, 'dist'), { recursive: true });
   cpSync(join(paths.root, 'functions'), join(paths.runtime, 'functions'), { recursive: true });
+  // Auth Functions import server modules and jose; copy only these known sources/dependency.
+  if (existsSync(join(paths.root, 'server'))) {
+    cpSync(join(paths.root, 'server'), join(paths.runtime, 'server'), { recursive: true });
+    cpSync(join(paths.root, 'node_modules', 'jose'), join(paths.runtime, 'node_modules', 'jose'), { recursive: true });
+  }
   return paths;
 }
 
