@@ -154,6 +154,19 @@ html[data-style-theme="default"] .app-header .brand-text { display: flex !import
   color: #2e3a37;
   flex: 0 0 auto;
 }
+.memoney-wordmark-rounded {
+  position: relative;
+  aspect-ratio: 2172 / 410;
+  overflow: hidden;
+}
+html .memoney-wordmark.memoney-wordmark-rounded > img {
+  position: absolute;
+  top: -36.585366%;
+  left: 0;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
 html[data-theme="dark"] .memoney-wordmark { color: #f7eedb; }
 .memoney-wordmark-pixel { display: none; }
 html[data-ui-theme="theme1"] .memoney-wordmark-rounded { display: none; }
