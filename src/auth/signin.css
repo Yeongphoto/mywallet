@@ -57,6 +57,12 @@
 .mememo-signin .signin-local { width:100%; min-height:48px; margin:0; padding:12px; border:0; border-radius:12px; background:transparent; color:var(--signin-accent); font-size:14px; line-height:1.5; font-weight:600; font-family:inherit; box-shadow:none; cursor:pointer; }
 .mememo-signin .signin-local:hover { background:rgb(64 145 108 / 8%); }
 .mememo-signin .signin-feedback { color:var(--signin-muted); }
+.mememo-signin .signin-content > .signin-feedback {
+  display: grid;
+  align-content: start;
+  min-height: 4.8em;
+  margin: 16px 0 0;
+}
 @media (max-height:540px) {
   .mememo-signin { gap:20px; }
   .mememo-signin .signin-brand { gap:8px; }

@@ -137,14 +137,14 @@ export default function SignInScreen() {
               </button>
             </>
           )}
-          {(busy || loading || notice) && <div className="signin-feedback" role="status" aria-live="polite">
-            {busy ? (user ? '로그아웃하고 있어요…' : 'Google 계정을 확인하고 있어요…') : loading ? '로그인 상태를 확인하고 있어요…' : notice}
-          </div>}
           {!enabled && !loading && <button className="secondary-button" disabled={busy} onClick={() => void refresh()}>다시 확인</button>}
           <button className="signin-local" disabled={busy} onClick={() => {
             try { activeGuestId(); window.localStorage.setItem(MODE_KEY, 'local'); window.location.replace('/guest'); }
             catch { setNotice('기기에 저장할 수 없어요. 저장 공간을 확인해 주세요.'); }
           }}>로그인 없이 이용하기</button>
+        </div>
+        <div className="signin-feedback" role="status" aria-live="polite">
+          {busy ? (user ? '로그아웃하고 있어요…' : 'Google 계정을 확인하고 있어요…') : loading ? '로그인 상태를 확인하고 있어요…' : notice}
         </div>
       </section>
     </main>
