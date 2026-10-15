@@ -1,28 +1,29 @@
 /* Mememo family: pastel window frames, ink outlines, and flat offset shadows. */
 html[data-style-theme="default"] {
-  --primary: #326449;
-  --primary-hover: #244e37;
-  --primary-rgb: 50, 100, 73;
-  --primary-light: #a5d2ad;
-  --primary-soft: #d8ecd9;
-  --brand-highlight: #326449;
-  --bg-app: #f9eee3;
-  --bg-sidebar: #fffaf0;
-  --bg-card: #fffdf7;
+  --primary: #36785b;
+  --primary-hover: #285d45;
+  --primary-rgb: 54, 120, 91;
+  --primary-light: #abe8c3;
+  --primary-soft: #dff4e7;
+  --brand-highlight: #36785b;
+  --bg-app: #eef7f0;
+  --bg-sidebar: #f5fbf6;
+  --bg-card: #fcfef9;
   --bg-input: #ffffff;
-  --bg-balance-light: #f0f2e5;
-  --text-primary: #3c302a;
-  --text-secondary: #6d5d50;
-  --border-card: #60483c;
-  --border-input: #806a5c;
-  --surface-inverse: #326449;
-  --family-ink: #60483c;
-  --family-shadow: #60483c;
-  --family-mint: #add4af;
+  --bg-balance-light: #e6f4e9;
+  --text-primary: #293e35;
+  --text-secondary: #596e63;
+  --border-card: #557563;
+  --border-input: #6c8577;
+  --surface-inverse: #36785b;
+  --family-ink: #557563;
+  --family-shadow: #557563;
+  --family-mint: #abe8c3;
+  --family-toolbar: #e1f5e8;
   --family-blue: #bad9e5;
   --family-peach: #f5c5a1;
   --family-yellow: #f4df9a;
-  --family-title-ink: #34352b;
+  --family-title-ink: #233e31;
   --shadow-sm: 1px 1px 0 var(--family-shadow);
   --shadow-md: 1px 1px 0 var(--family-shadow);
   --shadow-lg: 2px 2px 0 var(--family-shadow);
@@ -39,18 +40,19 @@ html[data-style-theme="default"][data-theme="dark"] {
   --primary-light: #afd8b3;
   --primary-soft: #3d5542;
   --brand-highlight: #afd8b3;
-  --bg-app: #232b25;
-  --bg-sidebar: #303b31;
-  --bg-card: #303b31;
-  --bg-input: #253027;
-  --bg-balance-light: #3c493d;
-  --text-primary: #f7eedb;
-  --text-secondary: #c4c7b2;
-  --border-card: #a4b49b;
-  --border-input: #a4b49b;
-  --family-ink: #a4b49b;
+  --bg-app: #192923;
+  --bg-sidebar: #20372d;
+  --bg-card: #243b31;
+  --bg-input: #1c3027;
+  --bg-balance-light: #304b3d;
+  --text-primary: #edf7ef;
+  --text-secondary: #bacfc0;
+  --border-card: #91b6a1;
+  --border-input: #91b6a1;
+  --family-ink: #91b6a1;
   --family-shadow: #101b14;
-  --family-mint: #9ec5a3;
+  --family-mint: #8ec7aa;
+  --family-toolbar: #294638;
   --family-blue: #b0c9d7;
   --family-peach: #e8bb9b;
   --family-yellow: #e5d093;
@@ -197,8 +199,12 @@ html[data-style-theme="default"][data-theme] :is(.app-header, .sidebar, .brand) 
   object-fit: contain;
   filter: none !important;
 }
-html[data-style-theme="default"][data-theme="dark"] .sidebar .mywallet-logo-frame .mywallet-logo {
+html[data-style-theme="default"][data-theme="dark"] :is(.app-header, .sidebar) .mywallet-logo-frame .mywallet-logo {
   content: url('/images/mememo/mememo-met-mint.png') !important;
+}
+html[data-style-theme="default"][data-theme="light"] :is(.app-header, .sidebar) .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="default"][data-theme="light"] .mememo-signin .signin-brand > img {
+  filter: brightness(1.35) saturate(.8) !important;
 }
 html[data-style-theme="default"] .app-header :is(.mywallet-logo-frame, .mywallet-logo-frame .mywallet-logo) {
   width: 24px;
@@ -374,6 +380,12 @@ html[data-style-theme="default"] .annual-chart-filters button {
 html[data-style-theme="default"] .asset-detail-toggle { position: relative; }
 html[data-style-theme="default"] .asset-detail-toggle input { width: 1px; height: 1px; left: 0; top: 0; }
 html[data-style-theme="default"] :is(.mememo-signin, .account-page, .sharing-page) { background: var(--bg-app); color: var(--text-primary); }
+html[data-style-theme="default"] .mememo-signin {
+  --signin-ink: var(--text-primary);
+  --signin-accent: var(--primary);
+  --signin-muted: var(--text-secondary);
+}
+html[data-style-theme="default"] .app-header .header-actions { background: var(--family-toolbar); }
 html[data-style-theme="default"] .mememo-signin :is(.signin-google, .signin-local) {
   min-height: 52px;
   padding: 12px 16px;
@@ -405,6 +417,6 @@ html[data-style-theme="default"] :is(button, a, input, select, textarea):focus-v
     padding-top: var(--safe-top) !important;
     background: var(--family-mint) !important;
   }
-  html[data-style-theme="default"] .app-header .header-actions { background: var(--bg-card); }
+  html[data-style-theme="default"] .app-header .header-actions { background: var(--family-toolbar); }
   html[data-style-theme="default"] .app-header .header-actions { grid-template-columns: 40px 40px minmax(0, 1fr) 40px; }
 }

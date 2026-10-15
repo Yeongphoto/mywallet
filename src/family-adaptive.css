@@ -73,7 +73,7 @@
     right: 0;
     height: var(--header-height);
     padding-top: var(--safe-top) !important;
-    background: var(--bg-card) !important;
+    background: var(--family-toolbar) !important;
     grid-template-rows: 55px;
   }
   html[data-style-theme="default"] .app-header .header-brand { display: none !important; }
@@ -81,7 +81,7 @@
     grid-row: 1;
     grid-template-columns: 40px 40px minmax(0, 220px) 40px;
     justify-content: end;
-    background: var(--bg-card);
+    background: var(--family-toolbar);
   }
   html[data-style-theme="default"] .content {
     position: fixed !important;

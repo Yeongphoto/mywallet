@@ -21,7 +21,7 @@ export function useAppAppearance() {
     document.documentElement.setAttribute('data-style-theme', 'default');
     document.documentElement.setAttribute('data-ui-theme', appearance.style);
     document.documentElement.style.colorScheme = appearance.resolved === 'light' ? 'only light' : 'dark light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', appearance.resolved === 'dark' ? '#9ec5a3' : '#add4af');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--family-mint').trim());
   }, [appearance]);
   return appearance;
 }

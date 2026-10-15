@@ -3698,7 +3698,7 @@ export default function App() {
     document.documentElement.setAttribute('data-style-theme', 'default');
     document.documentElement.setAttribute('data-ui-theme', styleTheme === 'theme1' ? 'theme1' : 'default');
     document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#9ec5a3' : '#add4af');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--family-mint').trim());
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
 
     try {
