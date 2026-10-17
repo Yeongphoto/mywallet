@@ -1,4 +1,39 @@
 /* Adapt to available CSS width, including unfolded phones and split windows. */
+html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-name-edit {
+  grid-template-columns: minmax(100px, 1fr) minmax(120px, max-content) auto auto;
+}
+html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-name-edit select {
+  box-sizing: border-box;
+  min-width: 120px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 28px 6px 10px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-input);
+}
+@media (max-width: 992px) {
+  html[data-style-theme="default"] .content .managed-category-card[data-category-scope="asset"] .category-row:has(.category-name-edit) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 8px !important;
+  }
+  html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-row:has(.category-name-edit) > .category-row-main { grid-column: 1 !important; min-width: 0; width: 100%; }
+  html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-row:has(.category-name-edit) > :is(.category-drag-handle, .category-color-menu) { display: none !important; }
+  html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-name-edit {
+    grid-template-columns: minmax(120px, 1fr) 40px 40px;
+    gap: 6px;
+  }
+  html[data-style-theme="default"] .managed-category-card[data-category-scope="asset"] .category-name-edit input { grid-column: 1 / -1; min-height: 40px; }
+  html[data-style-theme="default"] .content .managed-category-card[data-category-scope="asset"] .category-name-edit .category-row-action {
+    width: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+}
 @media (min-width: 600px) {
   html[data-style-theme="default"] {
     --family-nav-width: 88px;
