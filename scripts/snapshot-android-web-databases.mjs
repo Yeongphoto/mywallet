@@ -4,13 +4,14 @@ import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DatabaseSync, backup } from 'node:sqlite';
 
-// Explicitly read/export the four known stores. No import, deployment, or financial writes.
+// Export the three canonical stores. The retired legacy DB is retained only in
+// existing private backups. No import, deployment, or financial writes.
 if (process.argv.length !== 3 || process.argv[2] !== '--backup') throw Error('Usage: node scripts/snapshot-android-web-databases.mjs --backup');
 const base = join(process.env.LOCALAPPDATA, 'Memoney', 'backups');
 mkdirSync(base, { recursive: true });
 const directory = mkdtempSync(join(base, 'android-web-'));
 const npx = join(dirname(process.execPath), 'node_modules/npm/bin/npx-cli.js');
-const names = ['mywallet-db', 'memoney-android-test-auth', 'memoney-android-test-personal', 'memoney-android-test-shared'];
+const names = ['memoney-android-test-auth', 'memoney-android-test-personal', 'memoney-android-test-shared'];
 const records = [];
 for (const name of names) {
   const sqlFile = join(directory, `${name}.sql`);

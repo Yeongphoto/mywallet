@@ -2,6 +2,15 @@
 
 2026-10-18 · agy · 웹 기능 이식 `a838938`의 후속 작업
 
+## 미사용 DB 정리
+
+2026-10-18 사용자 요청으로 이전 원격 `mywallet-db`(`8dfd0da4-d04e-4f57-bc74-4cc567d2de0e`)를 삭제했다. 삭제 직전에 모든 Pages 프로젝트의 현재 운영·미리보기 설정과 Worker binding에서 사용하지 않음을 확인했고, 최신 SQL 백업 체크섬 및 복원본과 원격 11개 테이블의 전체 행 일치를 검증했다. 과거 배포에는 이 DB 참조가 남으므로 그 배포의 금융 API는 더 이상 사용할 수 없으며, 이전 코드로의 롤백도 자동 복구가 아니다.
+
+- 백업·복원본·삭제 검증 기록: `%LOCALAPPDATA%\Memoney\backups\android-web-LSJjls`. 삭제된 DB 데이터는 이 SQL 백업을 통해 복원할 수 있으나, 새 DB를 만들면 binding 재설정이 필요하다. 백업을 삭제하거나 공개하지 않는다.
+- 현재 사용하는 DB는 인증 `memoney-android-test-auth`, 개인장부 `memoney-android-test-personal`, 공유장부 `memoney-android-test-shared` 세 개다. 정식 공용 DB이며 테스트용 복사본이 아니다.
+- `test` 제거를 위해 인증 DB에 이름만 바꾸는 PATCH를 요청했지만 Cloudflare가 `Unrecognized key(s) in object: 'name'`으로 거부했다. 이름 변경은 적용되지 않았다. 표시 이름을 위해 운영 DB를 새로 만들거나 데이터를 복사하지 않았고 기존 DB ID를 유지했다. 서버 주소·환경변수의 `test`도 이번 작업에서 변경하지 않았다.
+- 현행 백업 스크립트는 남아 있는 세 DB만 내보낸다. 아래 과거 병합 스크립트의 원격 재실행은 삭제된 원본 DB가 필요하므로 사용하지 않는다. 과거 백업과 감사 이력은 보존한다.
+
 ## 정식 공용 DB 전환 완료
 
 - 사용자의 최종 지시에 따라 **Android에서 사용 중인 세 DB를 웹·Android의 정식 공용 DB로 채택했다.** 이름에 `test`가 남아 있지만 별도의 신규 DB나 복사본으로 이전하지 않았다. 임의로 이름·ID·장부 식별자를 바꾸지 않는다.
