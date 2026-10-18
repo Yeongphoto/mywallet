@@ -3,6 +3,10 @@ import type { DragEvent, FormEvent, PointerEvent as ReactPointerEvent, ReactNode
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
+import { AccountSettings } from './auth/AccountSettings';
+import { ReceivedInvitation } from './auth/ReceivedInvitation';
+import { walletFetch as fetch, walletStorageKey, walletContext, selectCloudLedger } from './auth/wallet-scope';
+import './auth/ledger.css';
 
 const expenseCategories: CategoryOption[] = [
   { id: 'food', label: '음식', color: '#ef4444' },
@@ -32,14 +36,14 @@ const assetCategories: CategoryOption[] = [
   { id: 'etc', label: '\uAE30\uD0C0', color: '#64748b' },
 ];
 
-const STORAGE_KEY = 'mywallet:v2';
-const THEME_STORAGE_KEY = 'mywallet:theme';
-const STYLE_THEME_STORAGE_KEY = 'mywallet:styleTheme';
-const NO_SPEND_CHALLENGE_STORAGE_KEY = 'mywallet:noSpendChallenge';
-const NO_SPEND_PLEDGES_STORAGE_KEY = 'mywallet:noSpendPledges';
-const PENDING_SYNC_KEY = 'mywallet:v2:pendingSyncAt';
-const PENDING_TRANSACTION_OPERATIONS_KEY = 'mywallet:v2:pendingTransactionOperations';
-const SYNC_CURSOR_KEY = 'mywallet:v2:syncCursor';
+const STORAGE_KEY = walletStorageKey('mywallet:v2');
+const THEME_STORAGE_KEY = walletStorageKey('mywallet:theme');
+const STYLE_THEME_STORAGE_KEY = walletStorageKey('mywallet:styleTheme');
+const NO_SPEND_CHALLENGE_STORAGE_KEY = walletStorageKey('mywallet:noSpendChallenge');
+const NO_SPEND_PLEDGES_STORAGE_KEY = walletStorageKey('mywallet:noSpendPledges');
+const PENDING_SYNC_KEY = walletStorageKey('mywallet:v2:pendingSyncAt');
+const PENDING_TRANSACTION_OPERATIONS_KEY = walletStorageKey('mywallet:v2:pendingTransactionOperations');
+const SYNC_CURSOR_KEY = walletStorageKey('mywallet:v2:syncCursor');
 const MONTH_PICKER_YEAR_START = 2000;
 const MONTH_PICKER_YEAR_END = 2100;
 const MONTH_PICKER_ROW_HEIGHT = 38;
@@ -2287,7 +2291,7 @@ function loadStoredData() {
   try {
     const rawData = window.localStorage.getItem(STORAGE_KEY);
     if (!rawData) {
-      const oldData = window.localStorage.getItem('mywallet:v1');
+      const oldData = window.localStorage.getItem(walletStorageKey('mywallet:v1'));
       if (oldData) {
         const parsed = JSON.parse(oldData);
         return {
@@ -2768,6 +2772,14 @@ function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
 const globalModalBackHandler = { current: null as (() => boolean) | null };
 
 export default function App() {
+  const [cloudLedgers, setCloudLedgers] = useState<Array<{ id: string; name: string; kind?: string; role?: string }>>([]);
+  useEffect(() => {
+    if (!walletContext()) return;
+    let disposed = false;
+    void window.fetch('/api/wallet/ledgers', { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) })
+      .then(async response => { if (response.ok) { const data = await response.json(); if (!disposed && Array.isArray(data.ledgers)) setCloudLedgers(data.ledgers); } }).catch(() => {});
+    return () => { disposed = true; };
+  }, []);
   const storedData = useMemo(() => loadStoredData(), []);
   
   // App states
@@ -5512,13 +5524,13 @@ export default function App() {
       tone: 'danger',
       onConfirm: () => {
       // 1. Wipe LocalStorage
-      localStorage.removeItem('mywallet_transactions');
-      localStorage.removeItem('mywallet_assets');
-      localStorage.removeItem('mywallet_recurringRules');
-      localStorage.removeItem('mywallet_deletedRecurringTxs');
-      localStorage.removeItem('mywallet_plans');
-      localStorage.removeItem('mywallet_budget');
-      localStorage.removeItem('mywallet_updatedAt');
+      localStorage.removeItem(walletStorageKey('mywallet_transactions'));
+      localStorage.removeItem(walletStorageKey('mywallet_assets'));
+      localStorage.removeItem(walletStorageKey('mywallet_recurringRules'));
+      localStorage.removeItem(walletStorageKey('mywallet_deletedRecurringTxs'));
+      localStorage.removeItem(walletStorageKey('mywallet_plans'));
+      localStorage.removeItem(walletStorageKey('mywallet_budget'));
+      localStorage.removeItem(walletStorageKey('mywallet_updatedAt'));
       localStorage.removeItem(STORAGE_KEY);
 
       const initialPlans = [
@@ -6716,6 +6728,7 @@ ${sheet4Rows}  </sheetData>
 
   return (
     <main className="app-shell">
+      {walletContext() && <ReceivedInvitation />}
       {isLoading && (
         <div className="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
           <div className="app-loading-mark" aria-hidden="true">
@@ -8645,6 +8658,18 @@ ${sheet4Rows}  </sheetData>
 
             {settingsSection === 'app' && (
               <div className="settings-stack">
+                {walletContext() ? <>
+                  <AccountSettings />
+                  <div className="settings-row ledger-settings-row"><strong>장부</strong>
+                    <InstantSelect ariaLabel="장부 선택" value={walletContext()!.ledger.id} placeholder="장부 선택"
+                      options={[...cloudLedgers.map(ledger => ({ value: ledger.id, label: ledger.name, detail: ledger.kind === 'shared' ? (ledger.role === 'owner' ? '호스트' : '게스트') : undefined })),
+                        { value: 'manage-sharing', label: cloudLedgers.some(ledger => ledger.kind === 'shared' && ledger.role === 'owner') ? '공유 장부 관리' : '공유 장부 만들기' }]}
+                      onChange={value => {
+                        if (value === 'manage-sharing') { window.location.assign('/sharing?return=cloud'); return; }
+                        selectCloudLedger(value); window.location.assign('/wallet#settings');
+                      }} />
+                  </div>
+                </> : <div className="settings-row"><strong>개인·공유 장부</strong><a href="/signin">Google 로그인</a></div>}
                 <div className="settings-row theme-settings-row">
                   <div>
                     <strong>화면 모드</strong>
@@ -10800,7 +10825,7 @@ function InstantSelect({
   ariaLabel: string;
   value: string | number;
   placeholder: string;
-  options: Array<{ value: string | number; label: string }>;
+  options: Array<{ value: string | number; label: string; detail?:string }>;
   onChange: (value: string) => void;
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onSelectNext?: () => void;
@@ -10808,6 +10833,7 @@ function InstantSelect({
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const selectedLabel = options.find((option) => String(option.value) === String(value))?.label;
+  const selectedDetail = options.find((option) => String(option.value) === String(value))?.detail;
   const selectOption = (option: { value: string | number }) => {
     onChange(String(option.value));
     setIsOpen(false);
@@ -10849,7 +10875,7 @@ function InstantSelect({
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <span className={selectedLabel ? '' : 'instant-select-placeholder'}>{selectedLabel || placeholder}</span>
+        <span className={selectedLabel ? 'instant-select-label' : 'instant-select-placeholder'}>{selectedLabel || placeholder}{selectedDetail&&<small>{selectedDetail}</small>}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (
@@ -10863,7 +10889,7 @@ function InstantSelect({
               key={`${String(option.value)}-${index}`}
               onClick={() => selectOption(option)}
             >
-              <span>{option.label}</span>
+              <span className="instant-select-label">{option.label}{option.detail&&<small>{option.detail}</small>}</span>
               {String(option.value) === String(value) && (
                 <span className="instant-select-option-check" aria-hidden="true">✓</span>
               )}

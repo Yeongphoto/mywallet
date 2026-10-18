@@ -1,6 +1,4 @@
-const D1_CACHE_STORAGE_KEY = 'mywallet:v2';
-const D1_CACHE_BACKUP_KEY = 'mywallet:v2:pre-d1-backup';
-const D1_CACHE_BACKUP_PREFIX = 'mywallet:v2:backup:';
+import { walletFetch, walletStorageKey, walletContext } from './auth/wallet-scope.ts';
 
 type WalletPayload = {
   transactions?: unknown[];
@@ -49,6 +47,9 @@ function hasLocalWalletData(raw: string | null) {
 }
 
 function backupCurrentLocalCache() {
+  const D1_CACHE_STORAGE_KEY = walletStorageKey('mywallet:v2');
+  const D1_CACHE_BACKUP_KEY = walletStorageKey('mywallet:v2:pre-d1-backup');
+  const D1_CACHE_BACKUP_PREFIX = walletStorageKey('mywallet:v2:backup:');
   const current = window.localStorage.getItem(D1_CACHE_STORAGE_KEY);
   if (!hasLocalWalletData(current)) return;
 
@@ -62,8 +63,18 @@ function backupCurrentLocalCache() {
 export async function preloadD1Cache() {
   if (typeof window === 'undefined') return;
 
+  const D1_CACHE_STORAGE_KEY = walletStorageKey('mywallet:v2');
+  // Pending edits stay with their authenticated account and ledger for normal sync.
+  if (walletContext() && Number(window.localStorage.getItem(walletStorageKey('mywallet:v2:pendingSyncAt'))) > 0) return;
+  if (walletContext()) {
+    try {
+      const operations = JSON.parse(window.localStorage.getItem(walletStorageKey('mywallet:v2:pendingTransactionOperations')) || '[]');
+      if (Array.isArray(operations) && operations.length > 0) return;
+    } catch { /* The normal pending-operation loader handles invalid recovery data. */ }
+  }
+
   try {
-    const response = await window.fetch('/api/data', {
+    const response = await walletFetch('/api/data', {
       method: 'GET',
       cache: 'no-store',
       headers: {
@@ -72,14 +83,22 @@ export async function preloadD1Cache() {
       },
     });
 
-    if (!response.ok) return;
+    if (!response.ok) {
+      if (walletContext()) throw new Error('WALLET_UNAVAILABLE');
+      return;
+    }
     const data = await response.json() as WalletPayload;
-    if (!data || data.error || !hasRemoteWalletData(data)) return;
+    if (!data || data.error) {
+      if (walletContext()) throw new Error('WALLET_UNAVAILABLE');
+      return;
+    }
+    if (!walletContext() && !hasRemoteWalletData(data)) return;
 
     backupCurrentLocalCache();
     window.localStorage.setItem(D1_CACHE_STORAGE_KEY, JSON.stringify(data));
     window.dispatchEvent(new CustomEvent('mywallet:d1-cache-preloaded', { detail: data }));
-  } catch {
+  } catch (error) {
+    if (walletContext()) throw error;
     // Local cache remains available when offline or when D1 is temporarily unreachable.
   }
 }

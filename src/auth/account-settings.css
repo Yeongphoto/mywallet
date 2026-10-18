@@ -1,0 +1,6 @@
+.settings-row.account-settings-row { flex-direction: row; align-items: center; gap: 16px; }
+.account-settings-label { display: grid; gap: 6px; min-width: 0; }
+.account-settings-label > span { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; line-height: 1.4; }
+.account-settings-action { flex: 0 0 auto; min-height: 44px; min-width: 88px; padding: 10px 12px; border: 1px solid var(--border-card); border-radius: 10px; background: var(--bg-card); color: var(--primary); font-family: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.account-settings-action:disabled { opacity: .5; cursor: default; }
+.account-settings-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

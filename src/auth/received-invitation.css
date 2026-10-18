@@ -1,0 +1,8 @@
+.received-invitation-backdrop { position: fixed; inset: 0; z-index: 100001; display: grid; place-items: center; padding: 20px; background: rgb(0 0 0 / 45%); }
+.received-invitation-card { width: min(100%, 360px); box-sizing: border-box; padding: 24px; border: 1px solid var(--border-card); border-radius: 20px; background: var(--bg-card); color: var(--text-primary); box-shadow: 0 16px 48px rgb(0 0 0 / 20%); }
+.received-invitation-card h2 { margin: 0 0 24px; font-size: 18px; }
+.received-invitation-details { display: grid; gap: 8px; margin-bottom: 24px; }
+.received-invitation-details strong { font-size: 16px; }
+.received-invitation-details span, .received-invitation-card p { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.received-invitation-actions { display: flex; gap: 12px; }
+.received-invitation-actions button { flex: 1; min-width: 0; min-height: 46px; margin: 0; padding: 10px 12px; font-family: inherit; font-size: 14px; white-space: nowrap; }
