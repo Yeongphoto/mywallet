@@ -2,6 +2,8 @@
 
 MyWallet의 기준 저장소는 Cloudflare D1이다. 브라우저 localStorage와 Wrangler 로컬 D1은 검토와 복구를 위한 캐시일 뿐이며, 기준 데이터로 간주하지 않는다.
 
+2026-10-18부터 웹과 Android는 Android에서 사용하던 인증·개인장부·공유장부 D1을 정식으로 공유한다. `wrangler.toml`과 `wrangler.android-data.json`의 DB ID가 운영 연결 기준이다. 이전 `mywallet-db`나 웹의 기존 전역 캐시를 이 DB 위에 덮어쓰거나 자동 병합하지 않는다. 상세 전환 이력은 [Android 데이터와 웹 연결](android-web-data-connection.md)에 기록한다.
+
 ## 기준
 
 - 원격 D1의 `settings.updatedAt`이 서버 데이터의 기준 시각이다.
