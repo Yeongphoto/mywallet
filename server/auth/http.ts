@@ -12,6 +12,7 @@ export interface AuthEnvironment {
   AUTH_LOCAL_DEV?: string;
   AUTH_LEDGER_INVITES?: string;
   AUTH_WEB_WALLETS?: string;
+  AUTH_ANDROID_DATA_COMPAT?: string;
 }
 function settings(env: AuthEnvironment, request: Request) {
   if (env.AUTH_ENABLED !== 'true' || !env.AUTH_GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') || !env.AUTH_ORIGIN) return null;
@@ -66,7 +67,7 @@ async function boundedJsonText(request: Request) {
 export async function handleAuth(request: Request, env: AuthEnvironment, action: string, verify: IdentityVerifier = verifyIdentity) {
   const config = settings(env, request);
   if (action === 'config' && request.method === 'GET') {
-    return response({ enabled: Boolean(config), required: env.AUTH_ENABLED === 'true' || env.AUTH_WEB_WALLETS === 'true', clientId: config?.clientId ?? null });
+    return response({ enabled: Boolean(config), required: env.AUTH_ENABLED === 'true' || env.AUTH_WEB_WALLETS === 'true' || env.AUTH_ANDROID_DATA_COMPAT === 'true', clientId: config?.clientId ?? null });
   }
   if (!config) return response({ error: 'AUTH_NOT_CONFIGURED' }, 503);
   const methods: Record<string, string> = { challenge: 'POST', google: 'POST', session: 'GET', logout: 'POST' };

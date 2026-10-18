@@ -24,7 +24,8 @@ export default function SignInScreen() {
         const force = new URLSearchParams(location.search).get('reauth') === '1';
         if (!force && await webAuth.session()) {
           if (disposed) return;
-          await readWalletContext();
+          try { await readWalletContext(); }
+          catch (error) { if ((error as Error).message === 'LEDGER_ACCESS_DENIED') { if (!disposed) location.replace('/sharing'); return; } throw error; }
           if (!disposed) location.replace('/wallet');
           return;
         }
@@ -38,7 +39,8 @@ export default function SignInScreen() {
             inFlight = true; setBusy(true); setNotice('Google 계정을 확인하고 있어요…'); host.inert = true;
             void webAuth.finishSignIn({ idToken: response.credential }).then(async () => {
               if (disposed) return;
-              await readWalletContext();
+              try { await readWalletContext(); }
+              catch (error) { if ((error as Error).message === 'LEDGER_ACCESS_DENIED') { if (!disposed) location.replace('/sharing'); return; } throw error; }
               if (!disposed) location.replace('/wallet');
             }).catch(() => {
               if (!disposed) { setNotice('로그인 또는 장부 연결에 실패했어요. 다시 시도해 주세요.'); host.replaceChildren(); }

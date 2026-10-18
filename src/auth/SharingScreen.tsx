@@ -6,6 +6,7 @@ import { clearInvitation, invitationToken, pendingInvitation, rememberInvitation
 import { useAppAppearance } from './use-app-appearance';
 import { useLaunchReady } from './use-launch-ready';
 import { LoadingScreen } from '../LoadingScreen';
+import { ReceivedInvitation } from './ReceivedInvitation';
 import './sharing.css';
 
 type SharingState = { user: { id: string; email: string | null }; ledger: { id: string; name?:string; role: string } | null;
@@ -73,6 +74,7 @@ export default function SharingScreen() {
   function login() { const token = invitationToken(inviteInput); if (token) rememberInvitation(token); location.assign('/signin?join=1&reauth=1'); }
   if (loading) return <LoadingScreen />;
   return <main className="sharing-page">
+    {state && <ReceivedInvitation />}
     <header className="sharing-header"><button type="button" aria-label="뒤로" onClick={() => location.assign(state?.ledger || state?.personalLedger ? '/wallet#settings' : '/signin')}>‹</button>
       <h1>{state?.ledger?'공유 장부 관리':'공유 장부 만들기'}</h1><img src={appearance.logo} alt="Memoney" /></header>
     {state && <div className="sharing-account"><span>{state.user.email || 'Google 계정'}</span>

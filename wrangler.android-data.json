@@ -1,0 +1,20 @@
+{
+  "name": "mywallet",
+  "compatibility_date": "2024-01-01",
+  "pages_build_output_dir": "dist",
+  "d1_databases": [
+    { "binding": "DB", "database_name": "memoney-android-test-auth", "database_id": "682e0f02-132f-4812-80c6-4815e5cc3c07" },
+    { "binding": "TEST_FINANCE", "database_name": "memoney-android-test-personal", "database_id": "1f8e7054-bdd8-4032-b19e-b12a56ac2777" },
+    { "binding": "TEST_SHARED_FINANCE", "database_name": "memoney-android-test-shared", "database_id": "1189c109-320b-4822-9f4e-7d1844527e63" }
+  ],
+  "vars": {
+    "AUTH_ENABLED": "true",
+    "AUTH_ANDROID_DATA_COMPAT": "true",
+    "AUTH_GOOGLE_CLIENT_ID": "367615872651-ln2adrilfm9c9ofk12pl5jip1so1ra08.apps.googleusercontent.com",
+    "AUTH_ORIGIN": "https://mywallet-8mx.pages.dev",
+    "AUTH_LEDGER_INVITES": "true",
+    "AUTH_SHARED_WALLET_LEDGER_ID": "82da5edc-6a2b-4fd7-972c-8e31962a9fd8",
+    "AUTH_TEST_PERSONAL_LEDGER": "true",
+    "AUTH_TEST_MULTI_LEDGER": "true"
+  }
+}

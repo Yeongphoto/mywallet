@@ -6,8 +6,10 @@ import { availableLedgers, isolatedSharedReady } from './shared-creation.ts';
 import { scopedFinance } from './scoped-finance.ts';
 import { webConfiguration } from './web-personal.ts';
 import { webReferencesValid } from './web-references.ts';
+import { androidDataConnection } from './android-data.ts';
 
 export interface SharedWalletEnvironment extends AuthEnvironment {
+  AUTH_ANDROID_DATA_COMPAT?: string;
   AUTH_WEB_WALLETS?: string;
   WEB_FINANCE?: D1Database;
   AUTH_SHARED_WALLET_ORIGIN?: string;
@@ -28,10 +30,12 @@ export function sharedWalletConfiguration(env: SharedWalletEnvironment) {
   const local = env.AUTH_LOCAL_DEV === 'true' && env.AUTH_ORIGIN === 'http://localhost:5187';
   const hosted = env.AUTH_SHARED_TEST_DEPLOYMENT === 'true' && env.AUTH_LOCAL_DEV !== 'true' &&
     env.AUTH_ORIGIN === 'https://memoney-android-test.pages.dev';
-  if ((!local && !hosted) ||
+  const connected = androidDataConnection(env);
+  if (env.AUTH_ANDROID_DATA_COMPAT === 'true' && !connected) return null;
+  if ((!local && !hosted && !connected) ||
       !uuid.test(env.AUTH_SHARED_WALLET_LEDGER_ID || '')) return null;
   if (env.AUTH_TEST_PERSONAL_LEDGER === 'true') {
-    if (!hosted || !env.TEST_FINANCE || env.AUTH_SHARED_WALLET_ORIGIN) return null;
+    if ((!hosted && !connected) || !env.TEST_FINANCE || env.AUTH_SHARED_WALLET_ORIGIN) return null;
     return { origin: '', ledgerId: env.AUTH_SHARED_WALLET_LEDGER_ID! };
   }
   try {
