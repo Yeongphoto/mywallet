@@ -1,0 +1,14 @@
+{
+  "auth": {
+    "name": "memoney-auth",
+    "id": "ec28198a-6040-4074-a142-1cf6f76c7f15"
+  },
+  "personal": {
+    "name": "memoney-personal",
+    "id": "a4113709-d951-4b50-aa78-cc80eb7cda9f"
+  },
+  "shared": {
+    "name": "memoney-shared",
+    "id": "0a69096e-4d87-423e-b4a2-6afc0fb94698"
+  }
+}

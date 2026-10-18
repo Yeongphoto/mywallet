@@ -1,0 +1,53 @@
+# Memoney 공통 운영 DB
+
+2026-10-18 사용자가 기존 앱 DB를 앞으로의 메인 DB로 사용하도록 요청했다. 추후 iOS·웹에서도 같은 서비스를 사용할 수 있도록 DB 이름에서 `test`와 `android`를 모두 제거한다.
+
+## 현재 연결 대상
+
+| 역할 | D1 이름 | D1 ID | 기존 binding |
+| --- | --- | --- | --- |
+| 인증·사용자·세션·장부 권한 | `memoney-auth` | `ec28198a-6040-4074-a142-1cf6f76c7f15` | `DB` |
+| 개인 장부 금융 기록 | `memoney-personal` | `a4113709-d951-4b50-aa78-cc80eb7cda9f` | `TEST_FINANCE` |
+| 공유 장부 금융 기록·복사 진행 정보 | `memoney-shared` | `0a69096e-4d87-423e-b4a2-6afc0fb94698` | `TEST_SHARED_FINANCE` |
+
+연결 원본은 [hosted-databases.json](../scripts/hosted-databases.json)이다. `prepare-hosted-test.mjs`는 이 파일과 기기별 개인 장부 연결 메타데이터를 검증해서 runtime을 생성한다. `.android-tools/personal-test-wallet.json`의 DB ID·이름도 현재 대상으로 변경한다.
+
+`TEST_FINANCE` 등의 내부 binding·검사 표식은 호환성을 위해 유지한다. 이름이 test여도 위 표의 공통 DB를 가리킨다. 인증된 개인·공유 장부의 저장 정책, 장부 UUID, 사용자 UUID, 소유권, 로컬 장부 namespace는 변경하지 않는다.
+
+이번 범위는 DB 이름과 연결 전환이다. 설치된 앱이 사용하는 `memoney-android-test.pages.dev` 주소, Pages 프로젝트 이름, 앱 식별자·로그인 클라이언트는 변경하지 않는다. DB 이름을 공통화한 것과 iOS 앱·배포·로그인 설정을 구현한 것은 구분한다.
+
+## 이전 방식과 보존
+
+Cloudflare는 [공식 문서](https://developers.cloudflare.com/d1/reference/migrations/)에서 D1 데이터베이스 이름을 변경할 수 없다고 명시한다. 따라서 새 이름의 DB를 만들고 데이터를 보존해 옮긴 뒤 배포 binding을 전환한다.
+
+이전 원본:
+
+- `memoney-android-test-auth`: `682e0f02-132f-4812-80c6-4815e5cc3c07`
+- `memoney-android-test-personal`: `1f8e7054-bdd8-4032-b19e-b12a56ac2777`
+- `memoney-android-test-shared`: `1189c109-320b-4822-9f4e-7d1844527e63`
+
+절차는 사전 내보내기 → 기존 API 점검 응답으로 신규 변경 중지 → 최종 내보내기 → 새 DB 가져오기 → 전체 행·스키마 대조 → 새 binding 배포 → 인증·장부 읽기 확인이다. 원본 DB는 복구용으로 유지하며 새 앱 배포에서는 사용하지 않는다. 인증 세션도 함께 보존한다.
+
+공유 장부 복사 이력의 큰 `snapshot_json`은 D1의 개별 SQL 길이 제한 때문에 작은 문자열 단위로 가져온 뒤 원문과 대조한다. 한글·이모지 경계를 보존하고 골드·멧 데이터 등 다른 앱 DB는 건드리지 않는다.
+
+SQL 원본·검증 산출물·이전 전 연결 메타데이터는 `android/build/db-main-transition-20261018-223651/`에 보관한다. 이 폴더는 Git에서 제외된다. 금융 기록·세션 값·백업 SQL을 문서나 커밋에 넣지 않는다. 오래된 초기화 SQL과 seed는 재실행하지 않는다.
+
+## 기존 mywallet DB
+
+사용자가 삭제 요청한 `mywallwt-db`와 기존 설정의 `mywallet-db`는 2026-10-18 연결된 Cloudflare 계정의 DB 목록에 없었다. 따라서 이 이름의 DB를 이번 작업에서 삭제했다고 보고하지 않는다. 다른 이름의 DB를 대신 삭제하지 않는다.
+
+루트 `wrangler.toml`은 기존 웹앱의 과거 연결 설정이다. 현재 앱을 이 설정으로 직접 배포하지 않는다. 현재 앱의 재배포는 기존과 같이 `npm run build`와 `node scripts/prepare-hosted-test.mjs`로 생성한 runtime의 설정을 사용한다.
+
+## 확인 범위
+
+전환 결과: 인증 9개 테이블·26행, 개인 장부 12개 테이블·1,483행, 공유 장부 13개 테이블·614행을 보존했다. 테이블별 모든 값과 테이블·인덱스·트리거·뷰의 스키마를 대조해 일치를 확인했다. 사용자 데이터에 신규 시험 기록은 만들지 않았다.
+
+Cloudflare의 실제 배포 binding이 세 공통 DB ID를 가리키는 것을 확인했다. 점검 응답은 해제되었으며 인증 설정 조회는 200, 로그인하지 않은 금융 조회는 401로 응답한다. 인증·로컬·공유 장부 회귀 검사 47건이 통과했다. 현재 에뮬레이터가 offline 상태여서 실제 기기의 기존 로그인 세션을 이용한 조회는 수행하지 못했다.
+
+- 인증·개인 장부·공유 장부를 분리한 구조와 데이터 계약 유지.
+- 원본과 대상의 테이블별 전체 행·컬럼 값·스키마 대조.
+- 사용자·Google 신원·세션·초대·장부·복사 진행 상태 보존.
+- 기존 웹 장부나 MEMEMO DB로의 자동 연결·데이터 합치기 없음.
+- 원본 test DB의 후속 삭제는 복구 필요성과 연결 상태를 별도 확인한 후 수행.
+
+기존 테스트 구성 문서는 이전 시점의 기록으로 보존하며, 현재 DB 연결 대상은 이 문서를 우선한다. 데이터 정책은 [동기화 규칙](sync-rules.md)을 따른다.

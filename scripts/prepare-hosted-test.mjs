@@ -2,19 +2,24 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { resolve, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
-// Explicitly separate test deployment. Never copy the production Wrangler config or secrets.
+// Hosted app deployment. Database names are platform-neutral; keep the installed
+// app origin and legacy isolation bindings stable. Never use the old web config.
 const root = resolve('.'), origin = 'https://memoney-android-test.pages.dev';
-const databaseId = '682e0f02-132f-4812-80c6-4815e5cc3c07';
+const databases = JSON.parse(readFileSync('scripts/hosted-databases.json','utf8'));
+const databaseId = databases.auth.id;
 const connection = JSON.parse(readFileSync('.android-tools/shared-wallet.json','utf8'));
 const personalPath = '.android-tools/personal-test-wallet.json';
 // Missing isolation configuration must stop deployment, never restore the web bridge.
 const personal = JSON.parse(readFileSync(personalPath,'utf8'));
 const native = JSON.parse(readFileSync('capacitor.config.json','utf8'));
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+for (const role of ['auth','personal','shared']) {
+  if (!uuid.test(databases[role]?.id) || databases[role]?.name !== `memoney-${role}`) throw Error('Unexpected hosted database configuration');
+}
 if (connection.origin !== 'https://mywallet-8mx.pages.dev' || !uuid.test(connection.ownerUserId) || !uuid.test(connection.ledgerId) ||
     native.server.url !== `${origin}/signin`) throw Error('Unexpected test deployment target');
-if (personal && (personal.databaseId !== '1f8e7054-bdd8-4032-b19e-b12a56ac2777' ||
-    personal.databaseName !== 'memoney-android-test-personal' || !uuid.test(personal.ledgerId) ||
+if (personal && (personal.databaseId !== databases.personal.id ||
+    personal.databaseName !== databases.personal.name || !uuid.test(personal.ledgerId) ||
     personal.ledgerId === connection.ledgerId || personal.ownerUserId !== connection.ownerUserId)) throw Error('Unexpected personal test database');
 mkdirSync('android/build',{recursive:true});
 const runtime = mkdtempSync(resolve('android/build/hosted-test-'));
@@ -31,7 +36,7 @@ cpSync('node_modules/jose',join(runtime,'node_modules/jose'),{recursive:true});
 writeFileSync(join(runtime,'functions/api/data.ts'), "import { sharedWalletData } from '../../server/wallet/shared-web.ts';\nexport const onRequest = (context) => sharedWalletData(context.request, context.env);\n",'utf8');
 writeFileSync(join(runtime,'functions/api/android-development.ts'), "export const onRequestGet = () => Response.json({environment:'memoney-android-test'});\n",'utf8');
 const config = { name:'memoney-android-test', compatibility_date:'2024-01-01', pages_build_output_dir:'dist',
-  d1_databases:[{binding:'DB',database_name:'memoney-android-test-auth',database_id:databaseId}],
+  d1_databases:[{binding:'DB',database_name:databases.auth.name,database_id:databaseId}],
   vars:{AUTH_ENABLED:'true',AUTH_GOOGLE_CLIENT_ID:native.plugins.MemoneyGoogleAuth.webClientId,
     AUTH_GOOGLE_ANDROID_CLIENT_ID:native.plugins.MemoneyGoogleAuth.androidClientId,AUTH_ORIGIN:origin,
     AUTH_LEDGER_INVITES:'true',AUTH_SHARED_TEST_DEPLOYMENT:'true',AUTH_SHARED_WALLET_ORIGIN:connection.origin,
@@ -40,7 +45,7 @@ if (personal) {
   config.d1_databases.push({binding:'TEST_FINANCE',database_name:personal.databaseName,database_id:personal.databaseId});
   config.vars.AUTH_TEST_PERSONAL_LEDGER='true';
   config.vars.AUTH_TEST_MULTI_LEDGER='true';
-  config.d1_databases.push({binding:'TEST_SHARED_FINANCE',database_name:'memoney-android-test-shared',database_id:'1189c109-320b-4822-9f4e-7d1844527e63'});
+  config.d1_databases.push({binding:'TEST_SHARED_FINANCE',database_name:databases.shared.name,database_id:databases.shared.id});
   config.vars.AUTH_SHARED_WALLET_LEDGER_ID=personal.ledgerId;
   delete config.vars.AUTH_SHARED_WALLET_ORIGIN;
 }
