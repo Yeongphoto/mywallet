@@ -21,6 +21,10 @@
   max-width: none;
   height: auto;
 }
+.wallet-connection-screen[data-state="complete"] .wallet-connection-met > img {
+  /* Meow's first-frame floor is 8 source pixels below sleep (527 vs 519). */
+  top: -71.25%;
+}
 html[data-native-mememo] .wallet-connection-met {
   width: min(184px, calc(100vw - 48px));
 }
