@@ -181,20 +181,23 @@ html[data-style-theme="default"] .sidebar .memoney-wordmark { width: 104px; }
 .memoney-wordmark-main {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4%;
   aspect-ratio: 124 / 26;
   filter: invert(24%) sepia(55%) saturate(700%) hue-rotate(100deg) brightness(92%) contrast(90%);
 }
 .memoney-brand-cat, .memoney-brand-name { position: relative; display: block; overflow: hidden; flex-shrink: 0; }
-.memoney-brand-cat { width: 25%; aspect-ratio: 1104 / 888; }
+.memoney-brand-cat { width: 21%; aspect-ratio: 1104 / 888; }
 .memoney-brand-name { width: 71%; aspect-ratio: 2078 / 316; }
 html .memoney-wordmark-main :is(.memoney-brand-cat, .memoney-brand-name) > img {
   position: absolute;
   max-width: none;
-  height: auto;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  image-rendering: auto;
 }
-html .memoney-wordmark-main .memoney-brand-cat > img { width: 114.673913%; left: -7.246377%; top: -23.536036%; }
-html .memoney-wordmark-main .memoney-brand-name > img { width: 104.427334%; left: -2.358037%; top: -70.253165%; }
 html[data-style-theme="default"] .app-header .memoney-wordmark-main { width: 124px; }
 html:not([data-ui-theme="theme1"]) .header-brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
 @media (min-width: 840px) {
