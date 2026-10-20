@@ -6831,7 +6831,7 @@ ${sheet4Rows}  </sheetData>
           <div className="brand">
             <MyWalletLogo src={getSidebarLogoSrc(styleTheme, resolvedTheme)} />
             <div>
-              <strong className="brand-wordmark"><BrandWordmark /></strong>
+              <strong className="brand-wordmark"><BrandWordmark main /></strong>
             </div>
           </div>
           <nav>
@@ -6922,7 +6922,7 @@ ${sheet4Rows}  </sheetData>
             src={getHeaderLogoSrc(styleTheme, resolvedTheme)}
           />
           <div className="brand-text">
-            <strong className="brand-wordmark"><BrandWordmark /></strong>
+            <strong className="brand-wordmark"><BrandWordmark main /></strong>
           </div>
         </div>
 
