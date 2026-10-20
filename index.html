@@ -100,8 +100,14 @@
         html[data-native-mememo] #root > .app-loading-screen .app-loading-orbit { background:conic-gradient(from -65deg,transparent 0deg 38deg,#52b788 74deg,#2d6a4f 126deg,transparent 164deg 360deg) !important; }
         html[data-native-mememo] #root > .app-loading-screen .app-loading-copy h1 span:first-child { color:#74c69d !important; }
         html[data-native-mememo] #root > .app-loading-screen .app-loading-copy h1 span:last-child { color:#52b788 !important; }
+        .app-loading-met { display:none;position:relative;width:min(184px,calc(100vw - 48px));aspect-ratio:1;overflow:hidden; }
+        .app-loading-met > img { position:absolute;left:-30%;top:-68.75%;width:160%;max-width:none;height:auto; }
+        html[data-native-mememo] #root > .app-loading-screen { background:var(--bg-app,#eef7f0) !important; }
+        html[data-native-mememo] #root > .app-loading-screen > .app-loading-mark { display:none; }
+        html[data-native-mememo] .app-loading-met { display:block; }
       </style>
       <main class="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
+        <div class="app-loading-met" aria-hidden="true"><img id="initial-met-sleep" width="512" height="670" alt="" /></div>
         <div class="app-loading-mark" aria-hidden="true">
           <span class="app-loading-orbit-track"></span>
           <span class="app-loading-orbit"></span>
@@ -117,6 +123,7 @@
       </main>
     </div>
     <script>
+      if (document.documentElement.hasAttribute('data-native-mememo')) document.getElementById('initial-met-sleep').src = '/images/met-sleep.gif';
       window.addEventListener('error', function (event) {
         var root = document.getElementById('root');
         if (!root) return;

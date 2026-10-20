@@ -20,3 +20,6 @@
   max-width: none;
   height: auto;
 }
+html[data-native-mememo] .wallet-connection-met {
+  width: min(184px, calc(100vw - 48px));
+}

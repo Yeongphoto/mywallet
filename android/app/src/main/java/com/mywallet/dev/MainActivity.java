@@ -22,6 +22,6 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MemoneyGoogleAuthPlugin.class);
         registerPlugin(MemoneyLocalBackupPlugin.class);
         super.onCreate(savedInstanceState);
-        if (getBridge() != null) getBridge().getWebView().setBackgroundColor(android.graphics.Color.rgb(10, 19, 14));
+        if (getBridge() != null) getBridge().getWebView().setBackgroundColor(getResources().getColor(R.color.memoney_launch_background, getTheme()));
     }
 }
