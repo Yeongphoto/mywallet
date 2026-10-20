@@ -177,18 +177,30 @@ html[data-ui-theme="theme1"] .memoney-wordmark-pixel { display: block; }
 html[data-style-theme="default"] .app-header .memoney-wordmark { color: #2e3a37; }
 .mememo-signin .signin-wordmark .memoney-wordmark { width: min(272px, 70vw); }
 html[data-style-theme="default"] .sidebar .memoney-wordmark { width: 104px; }
-/* Keep the supplied combined artwork intact; frame its transparent margins. */
-.memoney-wordmark-main { aspect-ratio: 2172 / 480; }
-html .memoney-wordmark.memoney-wordmark-main > img {
-  top: -25%;
+/* Compose the original assets at their own aspect ratios, framing only transparent margins. */
+.memoney-wordmark-main {
+  display: flex;
+  align-items: center;
+  gap: 4%;
+  aspect-ratio: 124 / 26;
   filter: invert(24%) sepia(55%) saturate(700%) hue-rotate(100deg) brightness(92%) contrast(90%);
 }
+.memoney-brand-cat, .memoney-brand-name { position: relative; display: block; overflow: hidden; flex-shrink: 0; }
+.memoney-brand-cat { width: 25%; aspect-ratio: 1104 / 888; }
+.memoney-brand-name { width: 71%; aspect-ratio: 2078 / 316; }
+html .memoney-wordmark-main :is(.memoney-brand-cat, .memoney-brand-name) > img {
+  position: absolute;
+  max-width: none;
+  height: auto;
+}
+html .memoney-wordmark-main .memoney-brand-cat > img { width: 114.673913%; left: -7.246377%; top: -23.536036%; }
+html .memoney-wordmark-main .memoney-brand-name > img { width: 104.427334%; left: -2.358037%; top: -70.253165%; }
 html[data-style-theme="default"] .app-header .memoney-wordmark-main { width: 124px; }
 html:not([data-ui-theme="theme1"]) .header-brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
 @media (min-width: 840px) {
   html[data-style-theme="default"] .sidebar .memoney-wordmark-main { width: 144px; }
   html:not([data-ui-theme="theme1"]) .sidebar .brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
-  html[data-theme="dark"] .sidebar .memoney-wordmark-main > img {
+  html[data-theme="dark"] .sidebar .memoney-wordmark-main {
     filter: invert(72%) sepia(24%) saturate(550%) hue-rotate(100deg) brightness(102%) contrast(90%);
   }
 }
