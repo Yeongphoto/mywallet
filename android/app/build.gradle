@@ -1,6 +1,6 @@
 apply plugin: 'com.android.application'
 
-// This branch currently produces only a localhost development shell.
+// Keep this debug app's identity stable for updates and Google sign-in.
 gradle.taskGraph.whenReady { graph ->
     if (graph.allTasks.any { it.name.toLowerCase().contains('release') }) {
         throw new GradleException('Release disabled: finish authentication, ownership isolation and production API configuration first.')
@@ -14,8 +14,8 @@ android {
         applicationId "com.mywallet.dev"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
-        versionName "0.3.3-test"
+        versionCode 9
+        versionName "0.3.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
