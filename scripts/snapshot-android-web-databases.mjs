@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DatabaseSync, backup } from 'node:sqlite';
+import { readWebDatabaseConfig } from './web-database-config.mjs';
 
 // Export the three canonical stores. The retired legacy DB is retained only in
 // existing private backups. No import, deployment, or financial writes.
@@ -11,7 +12,7 @@ const base = join(process.env.LOCALAPPDATA, 'Memoney', 'backups');
 mkdirSync(base, { recursive: true });
 const directory = mkdtempSync(join(base, 'android-web-'));
 const npx = join(dirname(process.execPath), 'node_modules/npm/bin/npx-cli.js');
-const names = ['memoney-android-test-auth', 'memoney-android-test-personal', 'memoney-android-test-shared'];
+const names = readWebDatabaseConfig().d1_databases.map(db => db.database_name);
 const records = [];
 for (const name of names) {
   const sqlFile = join(directory, `${name}.sql`);

@@ -15,6 +15,7 @@ export default function SignInScreen() {
     let disposed = false, inFlight = false;
     let renew: number | undefined;
     const host = button.current!;
+    host.inert = false;
     host.replaceChildren();
     async function open() {
       try {
