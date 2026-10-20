@@ -14,7 +14,7 @@
 .memoney-signin * { box-sizing: border-box; }
 .wallet-connection-status {
   position: fixed;
-  z-index: 200000;
+  z-index: 200002;
   left: 16px;
   right: 16px;
   bottom: max(24px, env(safe-area-inset-bottom, 0px));

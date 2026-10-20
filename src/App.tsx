@@ -2780,7 +2780,7 @@ function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
 
 const globalModalBackHandler = { current: null as (() => boolean) | null };
 
-export default function App() {
+export default function App({ onReady }: { onReady?: () => void } = {}) {
   useEntryViewport();
   const [cloudLedgers,setCloudLedgers]=useState<Array<{id:string;name:string;kind?:string;role?:string}>>([]);
   useEffect(()=>{if(!walletContext())return;let disposed=false;
@@ -3273,6 +3273,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
   useLaunchReady(!isLoading);
+  useEffect(() => { if (!isLoading) onReady?.(); }, [isLoading, onReady]);
   const [loadingOrbitDelay] = useState(() => {
     const elapsed = typeof performance === 'undefined' ? 0 : performance.now() % LOADING_ORBIT_DURATION;
     return `-${elapsed}ms`;
@@ -6812,7 +6813,7 @@ ${sheet4Rows}  </sheetData>
 
   return (
     <main className="app-shell">
-      {isLoading && <LoadingScreen orbitDelay={loadingOrbitDelay} />}
+      {isLoading && !onReady && <LoadingScreen orbitDelay={loadingOrbitDelay} />}
       {!isLoading && walletContext() && <ReceivedInvitation />}
       {!isLoading && isSyncOverlayVisible && !document.documentElement.hasAttribute('data-native-mememo') && (
         <div className="app-sync-overlay" role="status" aria-live="polite" aria-label="동기화 중" aria-busy="true">

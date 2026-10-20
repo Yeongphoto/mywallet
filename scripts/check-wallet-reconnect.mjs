@@ -58,17 +58,37 @@ async function fixture(mode='ok'){
 }
 try{
  for(const mode of ['network','server']){
-  const f=await fixture(mode);await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-status');
-  assert.equal(await f.page.$('.app-header'),null);assert(!await f.page.$eval('.wallet-connection-status',e=>e.textContent.includes('로그인')));
-  f.state.mode='ok';await f.page.evaluate(()=>window.dispatchEvent(new Event('online')));await f.page.waitForSelector('.app-header');await f.page.waitForSelector('.app-loading-screen',{hidden:true});
+  const f=await fixture(mode);await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-screen[data-state="sleep"]');await sleep(150);
+  assert.equal(await f.page.$('.app-header'),null);assert.equal(await f.page.$('.wallet-connection-status'),null);
+  assert.equal(await f.page.$eval('.wallet-connection-screen',e=>e.innerText),'');
+  assert((await f.page.$eval('.wallet-connection-met img',e=>e.src)).endsWith('/met-sleep.gif'));
+  if(process.argv.includes('--screenshots')&&mode==='network'){
+   await f.page.waitForFunction(()=>document.querySelector('.wallet-connection-met img')?.naturalWidth===512);
+   for(const [name,width,height] of [['phone',411,900],['fold',1080,810]]){
+    await f.page.setViewport({width,height});
+    for(const tone of ['light','dark']){
+     await f.page.evaluate(value=>document.documentElement.setAttribute('data-theme',value),tone);
+     await f.page.screenshot({path:`android/build/connection-sleep-${name}-${tone}.png`});
+    }
+   }
+   await f.page.setViewport({width:411,height:900});await f.page.evaluate(()=>document.documentElement.setAttribute('data-theme','light'));
+  }
+  f.state.mode='ok';await f.page.evaluate(()=>window.dispatchEvent(new Event('online')));await f.page.waitForSelector('.wallet-connection-screen[data-state="complete"]');
+  const completedAt=Date.now();
+  assert.equal(await f.page.$eval('.app-header',e=>getComputedStyle(e).visibility),'hidden');
+  assert((await f.page.$eval('.wallet-connection-met img',e=>e.src)).endsWith('/met-meow.gif'));
+  if(process.argv.includes('--screenshots')&&mode==='network')await f.page.screenshot({path:'android/build/connection-meow-phone.png'});
+  await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});
+  const duration=Date.now()-completedAt;assert(duration>=500&&duration<1300,`Completion display duration: ${duration}ms`);
+  assert.equal(await f.page.$eval('.app-header',e=>getComputedStyle(e).visibility),'visible');
   assert(new URL(f.page.url()).pathname==='/wallet');assert.equal(f.state.writes,0);checks++;await f.close();
  }
  {
-  const f=await fixture();f.state.dataFails=2;await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-status');assert.equal(await f.page.$('.app-header'),null);
-  f.state.dataFails=0;await f.page.evaluate(()=>window.dispatchEvent(new Event('online')));await f.page.waitForSelector('.app-header');assert.equal(f.state.writes,0);checks++;await f.close();
+  const f=await fixture();f.state.dataFails=2;await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-screen[data-state="sleep"]');await sleep(150);assert.equal(await f.page.$('.app-header'),null);
+  f.state.dataFails=0;await f.page.evaluate(()=>window.dispatchEvent(new Event('online')));await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});assert.equal(f.state.writes,0);checks++;await f.close();
  }
  {
-  const f=await fixture();await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.app-header');await f.page.waitForSelector('.app-loading-screen',{hidden:true});
+  const f=await fixture();await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.app-header');await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});
   await f.page.click('.mobile-primary-action');await f.page.waitForSelector('.entry-modal');await f.page.type('.content-entry-field input','아직 저장하지 않은 내용');
   await f.page.evaluate(()=>window.originalEntry=document.querySelector('.entry-modal'));
   f.state.mode='network';f.state.delay=150;f.state.peak=0;
@@ -77,6 +97,7 @@ try{
   await sleep(500);assert(f.state.calls>before);assert.equal(f.state.peak,1);
   assert(await f.page.evaluate(()=>document.querySelector('.entry-modal')===window.originalEntry));
   assert.equal(await f.page.$eval('.content-entry-field input',e=>e.value),'아직 저장하지 않은 내용');
+  assert.equal(await f.page.$('.wallet-connection-screen'),null);
   const successful=f.state.successful;f.state.mode='ok';await sleep(1700);assert(f.state.successful>successful);
   assert(await f.page.evaluate(()=>document.querySelector('.entry-modal')===window.originalEntry));
   assert.equal(f.state.writes,0);
@@ -89,10 +110,10 @@ try{
   const f=await fixture('expired');await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.signin-local');assert.equal(new URL(f.page.url()).pathname,'/signin');assert.equal(await f.page.$('.app-header'),null);checks++;await f.close();
  }
  {
-  const f=await fixture();await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.app-header');f.state.logoutFails=true;
+  const f=await fixture();await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.app-header');await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});f.state.logoutFails=true;
   await f.page.evaluate(()=>window.dispatchEvent(new Event('memoney:wallet-logout')));await f.page.waitForSelector('.wallet-connection-status');
   assert(await f.page.$eval('.wallet-connection-status',e=>e.textContent.includes('로그아웃')));assert.equal(await f.page.$('.app-header'),null);
   f.state.logoutFails=false;await f.page.click('.wallet-connection-status button');await f.page.waitForSelector('.signin-local');assert.equal(f.state.writes,2);checks++;await f.close();
  }
- console.log(JSON.stringify({checks,transientRecovery:true,unsavedFormPreserved:true,expiredSessionRequiresLogin:true,financialWrites:0}));
+ console.log(JSON.stringify({checks,transientRecovery:true,sleepThenMeow:true,completionDelayMs:700,unsavedFormPreserved:true,expiredSessionRequiresLogin:true,financialWrites:0}));
 }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { registerPlugin } from '@capacitor/core';
 import { preloadD1Cache } from '../d1-cache-preload';
@@ -7,17 +7,19 @@ import type { NativeGoogle } from './auth-client';
 import { activateWalletScope, isWalletAccessDenied, lockWalletScope, readWalletContext, walletContext } from './wallet-scope';
 import './signin.css';
 import { useAppAppearance } from './use-app-appearance';
-import { LoadingScreen } from '../LoadingScreen';
+import { WalletConnectionScreen } from './WalletConnectionScreen';
 import { useLaunchReady } from './use-launch-ready';
 
 const auth = createAuthClient(registerPlugin<NativeGoogle>('MemoneyGoogleAuth'));
 export default function WalletScreen() {
   useAppAppearance();
-  const [App, setApp] = useState<ComponentType | null>(null);
+  const [App, setApp] = useState<ComponentType<{ onReady?: () => void }> | null>(null);
+  const [stage, setStage] = useState<'sleep' | 'complete' | 'ready'>('sleep');
+  const appReady = useCallback(() => setStage('complete'), []);
+  const enterApp = useCallback(() => setStage('ready'), []);
   const [error, setError] = useState('');
   useLaunchReady(!!error);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [connecting, setConnecting] = useState(false);
   const [signInRequired, setSignInRequired] = useState(false);
   const retry = useRef<() => void>(() => {});
   useEffect(() => {
@@ -37,7 +39,6 @@ export default function WalletScreen() {
     async function connect() {
       if (disposed || closing || redirecting || inFlight || document.visibilityState !== 'visible') return;
       clearRetry(); inFlight = true;
-      if (!opened) setConnecting(true);
       try {
         const scope = await readWalletContext();
         if (disposed || closing || redirecting) return;
@@ -63,22 +64,20 @@ export default function WalletScreen() {
         if (isWalletAccessDenied(cause)) { loseAccess(); return; }
         // A suspended WebView or an unavailable network does not revoke a session.
         // Keep App mounted so an open form and unsaved input remain untouched.
-        if (!opened) setError('연결을 다시 확인하고 있어요. 네트워크가 연결되면 자동으로 계속합니다.');
         retryTimer = window.setTimeout(() => { void connect(); }, Math.min(1000 * 2 ** Math.min(failures++, 4), 15000));
       } finally {
         inFlight = false;
-        if (!disposed) setConnecting(false);
       }
     }
     function loseAccess() {
       if (disposed || closing || redirecting) return;
-      redirecting = true; clearRetry(); lockWalletScope(); setApp(null);
+      redirecting = true; clearRetry(); lockWalletScope(); setApp(null); setStage('sleep');
       setSignInRequired(true);
     }
     async function logout() {
       if (disposed || logoutInFlight || redirecting) return;
       closing = true; logoutInFlight = true; clearRetry();
-      lockWalletScope(); setApp(null); setLoggingOut(true); setError('');
+      lockWalletScope(); setApp(null); setStage('sleep'); setLoggingOut(true); setError('');
       try { await auth.logout(); if (!disposed) setSignInRequired(true); }
       catch { if (!disposed) setError('로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.'); }
       finally { logoutInFlight = false; if (!disposed) setLoggingOut(false); }
@@ -102,9 +101,10 @@ export default function WalletScreen() {
       window.removeEventListener('memoney:wallet-logout', signOut);
     };
   }, []);
-  if (App) return <App />;
-  return <><LoadingScreen />{error && <section className="wallet-connection-status" aria-live="polite">
+  return <><div inert={stage !== 'ready'} aria-hidden={stage !== 'ready'} style={{ visibility: stage === 'ready' ? 'visible' : 'hidden' }}>
+    {App && <App onReady={appReady} />}
+  </div>{stage !== 'ready' && <WalletConnectionScreen complete={stage === 'complete'} onComplete={enterApp} />}{error && <section className="wallet-connection-status" aria-live="polite">
     <p>{error}</p>
-    <button className="secondary-button" disabled={connecting || loggingOut} onClick={() => retry.current()}>다시 시도</button>
+    <button className="secondary-button" disabled={loggingOut} onClick={() => retry.current()}>다시 시도</button>
   </section>}</>;
 }

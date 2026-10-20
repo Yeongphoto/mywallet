@@ -1,0 +1,22 @@
+.wallet-connection-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200001;
+  display: grid;
+  place-items: center;
+  background: var(--bg-app);
+}
+.wallet-connection-met {
+  position: relative;
+  width: clamp(168px, 42vw, 208px);
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+.wallet-connection-met > img {
+  position: absolute;
+  left: -30%;
+  top: -68.75%;
+  width: 160%;
+  max-width: none;
+  height: auto;
+}
