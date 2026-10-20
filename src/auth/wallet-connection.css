@@ -11,6 +11,7 @@
   width: clamp(168px, 42vw, 208px);
   aspect-ratio: 1;
   overflow: hidden;
+  transform: scale(.3);
 }
 .wallet-connection-met > img {
   position: absolute;

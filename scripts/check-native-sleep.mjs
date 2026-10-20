@@ -34,8 +34,8 @@ try{
    await page.waitForSelector(selector,{visible:true});
    await page.waitForFunction(selector=>document.querySelector(selector)?.naturalWidth===512,{},selector);
    const result=await page.$eval(selector,img=>({src:img.src,width:img.parentElement.getBoundingClientRect().width,top:img.parentElement.getBoundingClientRect().top,visible:getComputedStyle(img).visibility}));
-   assert(result.src.endsWith('/met-sleep.gif'));assert.equal(result.width,184);
-   assert.equal(result.visible,'visible');assert(Math.abs(result.top-(900-184)/2)<1);
+   assert(result.src.endsWith('/met-sleep.gif'));assert(Math.abs(result.width-55.2)<.1);
+   assert.equal(result.visible,'visible');assert(Math.abs(result.top-(900-55.2)/2)<1);
    if(initial)assert.equal(await page.$eval('.app-loading-mark',e=>getComputedStyle(e).display),'none');
    else assert.equal(await page.$('.app-loading-screen'),null);
   }else{

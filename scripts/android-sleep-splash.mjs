@@ -7,7 +7,7 @@ import {createServer} from 'node:http';
 // Decode frame zero of the supplied GIF. Preserve its pixels and transparency;
 // only trim empty margins and resize for Android's splash density buckets.
 const source=readFileSync('public/images/met-sleep.gif');
-const browser=await puppeteer.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+const browser=await puppeteer.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,timeout:5000});
 const server=createServer((_,response)=>response.end('<!doctype html><title>Local artwork conversion</title>'));
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 try{
@@ -19,7 +19,9 @@ try{
    const {image}=await decoder.decode({frameIndex:0});
    const canvas=document.createElement('canvas');canvas.width=canvas.height=288*scale;
    const context=canvas.getContext('2d');context.imageSmoothingQuality='high';
-   context.drawImage(image,96,220,320,320,52*scale,52*scale,184*scale,184*scale);
+   const artworkSize=184*.3*scale;
+   const offset=(canvas.width-artworkSize)/2;
+   context.drawImage(image,96,220,320,320,offset,offset,artworkSize,artworkSize);
    image.close();decoder.close();
    const data=context.getImageData(0,0,canvas.width,canvas.height).data;
    let outside=0;
