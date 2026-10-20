@@ -179,13 +179,18 @@ html[data-style-theme="default"] .app-header .memoney-wordmark { color: #2e3a37;
 html[data-style-theme="default"] .sidebar .memoney-wordmark { width: 104px; }
 /* Keep the supplied combined artwork intact; frame its transparent margins. */
 .memoney-wordmark-main { aspect-ratio: 2172 / 480; }
-html .memoney-wordmark.memoney-wordmark-main > img { top: -25%; }
+html .memoney-wordmark.memoney-wordmark-main > img {
+  top: -25%;
+  filter: invert(24%) sepia(55%) saturate(700%) hue-rotate(100deg) brightness(92%) contrast(90%);
+}
 html[data-style-theme="default"] .app-header .memoney-wordmark-main { width: 124px; }
 html:not([data-ui-theme="theme1"]) .header-brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
 @media (min-width: 840px) {
   html[data-style-theme="default"] .sidebar .memoney-wordmark-main { width: 144px; }
   html:not([data-ui-theme="theme1"]) .sidebar .brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
-  html[data-theme="dark"] .sidebar .memoney-wordmark-main > img { filter: invert(1); }
+  html[data-theme="dark"] .sidebar .memoney-wordmark-main > img {
+    filter: invert(72%) sepia(24%) saturate(550%) hue-rotate(100deg) brightness(102%) contrast(90%);
+  }
 }
 html[data-style-theme="default"] :is(.brand-wordmark, .signin-wordmark) {
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
