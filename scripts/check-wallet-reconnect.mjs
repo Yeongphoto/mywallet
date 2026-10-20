@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 
 // Only local fixture responses are used. No account or financial server is contacted.
 const root=path.resolve('dist');
-const types={'.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.json':'application/json','.webmanifest':'application/manifest+json'};
+const types={'.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.gif':'image/gif','.json':'application/json','.webmanifest':'application/manifest+json'};
 const server=createServer((req,res)=>{
  const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
  let file=path.resolve(root,'.'+pathname);
@@ -29,11 +29,11 @@ async function fixture(mode='ok'){
  console.log(`Checking fixture: ${mode}`);
  const context=await browser.createBrowserContext(),page=await context.newPage();await page.setViewport({width:411,height:900});
  page.setDefaultTimeout(10000);
- const state={mode,dataFails:0,calls:0,active:0,peak:0,writes:0,expired:false,logoutFails:false,delay:0,successful:0};
+ const state={mode,dataFails:0,calls:0,active:0,peak:0,writes:0,expired:false,logoutFails:false,delay:0,successful:0,meowDelay:0};
  await page.setRequestInterception(true);
  page.on('request',async request=>{
   const url=new URL(request.url());if(url.origin!==origin){await request.abort();return;}
-  if(!url.pathname.startsWith('/api/')){await request.continue();return;}
+  if(!url.pathname.startsWith('/api/')){if(url.pathname==='/images/met-meow.gif'&&state.meowDelay)await sleep(state.meowDelay);await request.continue();return;}
   let data={},status=200;
   if(request.method()!=='GET')state.writes++;
   if(url.pathname==='/api/wallet/context'){
@@ -57,6 +57,29 @@ async function fixture(mode='ok'){
  return {page,state,close:()=>context.close()};
 }
 try{
+ {
+  const f=await fixture();f.state.meowDelay=4500;
+  await f.page.goto(origin+'/wallet');
+  await f.page.waitForFunction(()=>document.querySelector('.wallet-connection-met img')?.naturalWidth===512);
+  await f.page.evaluate(()=>{
+   window.metFrames=[];
+   function sample(){
+    const screen=document.querySelector('.wallet-connection-screen');if(!screen)return;
+    const visible=[...screen.querySelectorAll('img')].filter(img=>getComputedStyle(img).visibility==='visible'&&getComputedStyle(img).display!=='none');
+    window.metFrames.push({state:screen.dataset.state,visible:visible.length,painted:visible.filter(img=>img.complete&&img.naturalWidth>0).length});
+    requestAnimationFrame(sample);
+   }sample();
+  });
+  await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});
+  const frames=await f.page.evaluate(()=>window.metFrames);
+  const blank=frames.filter(frame=>frame.painted===0).length;
+  const overlap=frames.filter(frame=>frame.visible>1).length;
+  console.log(JSON.stringify({transitionFrames:frames.length,blankFrames:blank,overlapFrames:overlap}));
+  assert(frames.some(frame=>frame.state==='sleep')&&frames.some(frame=>frame.state==='complete'));
+  assert.equal(blank,0,'Keep sleep visible until meow has decoded');assert.equal(overlap,0,'Never display two characters in the same frame');
+  assert.equal(f.state.writes,0);checks++;await f.close();
+ }
+ if(!process.argv.includes('--transition-only')){
  for(const mode of ['network','server']){
   const f=await fixture(mode);await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-screen[data-state="sleep"]');await sleep(150);
   assert.equal(await f.page.$('.app-header'),null);assert.equal(await f.page.$('.wallet-connection-status'),null);
@@ -76,7 +99,7 @@ try{
   f.state.mode='ok';await f.page.evaluate(()=>window.dispatchEvent(new Event('online')));await f.page.waitForSelector('.wallet-connection-screen[data-state="complete"]');
   const completedAt=Date.now();
   assert.equal(await f.page.$eval('.app-header',e=>getComputedStyle(e).visibility),'hidden');
-  assert((await f.page.$eval('.wallet-connection-met img',e=>e.src)).endsWith('/met-meow.gif'));
+  assert((await f.page.$eval('.wallet-connection-met img:not([style*="hidden"])',e=>e.src)).endsWith('/met-meow.gif'));
   if(process.argv.includes('--screenshots')&&mode==='network')await f.page.screenshot({path:'android/build/connection-meow-phone.png'});
   await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});
   const duration=Date.now()-completedAt;assert(duration>=500&&duration<1300,`Completion display duration: ${duration}ms`);
@@ -114,6 +137,7 @@ try{
   await f.page.evaluate(()=>window.dispatchEvent(new Event('memoney:wallet-logout')));await f.page.waitForSelector('.wallet-connection-status');
   assert(await f.page.$eval('.wallet-connection-status',e=>e.textContent.includes('로그아웃')));assert.equal(await f.page.$('.app-header'),null);
   f.state.logoutFails=false;await f.page.click('.wallet-connection-status button');await f.page.waitForSelector('.signin-local');assert.equal(f.state.writes,2);checks++;await f.close();
+ }
  }
  console.log(JSON.stringify({checks,transientRecovery:true,sleepThenMeow:true,completionDelayMs:700,unsavedFormPreserved:true,expiredSessionRequiresLogin:true,financialWrites:0}));
 }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
