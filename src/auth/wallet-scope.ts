@@ -5,6 +5,13 @@ let context: WalletContext | null = null;
 let locked = false;
 export const SELECTED_LEDGER_KEY='memoney:selected-cloud-ledger:v1';
 export function selectCloudLedger(id:string) { if(uuid.test(id))window.localStorage.setItem(SELECTED_LEDGER_KEY,id); }
+export class WalletContextError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
+}
+export function isWalletAccessDenied(error: unknown) {
+  return error instanceof WalletContextError && [401, 403].includes(error.status);
+}
 
 export async function readWalletContext(): Promise<WalletContext> {
   const selected=window.localStorage.getItem(SELECTED_LEDGER_KEY);
@@ -12,8 +19,10 @@ export async function readWalletContext(): Promise<WalletContext> {
     headers:id?{'X-Memoney-Ledger':id}:{},redirect: 'error', signal: AbortSignal.timeout(10000) });
   let response=await get(selected);
   if(response.status===403&&selected){window.localStorage.removeItem(SELECTED_LEDGER_KEY);response=await get(null);}
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'WALLET_UNAVAILABLE');
+  let data;
+  try { data = await response.json(); }
+  catch { throw new WalletContextError('WALLET_UNAVAILABLE', response.status); }
+  if (!response.ok) throw new WalletContextError(data?.error || 'WALLET_UNAVAILABLE', response.status);
   if (!uuid.test(data.user?.id) || !uuid.test(data.ledger?.id) ||
       !['owner', 'editor', 'viewer'].includes(data.ledger?.role) || data.mode !== 'shared-web') throw new Error('WALLET_UNAVAILABLE');
   selectCloudLedger(data.ledger.id);

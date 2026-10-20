@@ -1,11 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { activateWalletScope, walletStorageKey, walletFetch, lockWalletScope } from '../src/auth/wallet-scope.ts';
+import { activateWalletScope, walletStorageKey, walletFetch, lockWalletScope, readWalletContext, isWalletAccessDenied } from '../src/auth/wallet-scope.ts';
 import { preloadD1Cache } from '../src/d1-cache-preload.ts';
 function scope(){return {user:{id:randomUUID()},ledger:{id:randomUUID(),role:'owner'},mode:'shared-web'};}
 function browser(fetch){const values=new Map(),events=[];return {values,events,fetch,dispatchEvent:event=>events.push(event.type),
   localStorage:{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)}};}
+
+test('context access denial is distinguished from transient network and server failures',async()=>{
+  for(const status of [401,403,429,503]){
+    globalThis.window=browser(async()=>Response.json({error:'UNAUTHENTICATED'},{status}));
+    await assert.rejects(readWalletContext(),error=>isWalletAccessDenied(error)===[401,403].includes(status));
+  }
+  globalThis.window=browser(async()=>{throw new TypeError('Failed to fetch');});
+  await assert.rejects(readWalletContext(),error=>!isWalletAccessDenied(error));
+  globalThis.window=browser(async()=>new Response('not JSON',{status:401}));
+  await assert.rejects(readWalletContext(),isWalletAccessDenied);
+  delete globalThis.window;
+});
 
 test('legacy web keys are preserved and authenticated ledger caches never import global records',async()=>{
   assert.equal(walletStorageKey('mywallet:v2'),'mywallet:v2');

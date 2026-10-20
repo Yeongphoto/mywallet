@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { registerPlugin } from '@capacitor/core';
 import { preloadD1Cache } from '../d1-cache-preload';
 import { createAuthClient } from './auth-client';
 import type { NativeGoogle } from './auth-client';
-import { activateWalletScope, lockWalletScope, readWalletContext, walletContext } from './wallet-scope';
+import { activateWalletScope, isWalletAccessDenied, lockWalletScope, readWalletContext, walletContext } from './wallet-scope';
 import './signin.css';
 import { useAppAppearance } from './use-app-appearance';
 import { LoadingScreen } from '../LoadingScreen';
@@ -12,63 +12,99 @@ import { useLaunchReady } from './use-launch-ready';
 
 const auth = createAuthClient(registerPlugin<NativeGoogle>('MemoneyGoogleAuth'));
 export default function WalletScreen() {
-  const appearance = useAppAppearance();
+  useAppAppearance();
   const [App, setApp] = useState<ComponentType | null>(null);
   const [error, setError] = useState('');
   useLaunchReady(!!error);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [signInRequired, setSignInRequired] = useState(false);
+  const retry = useRef<() => void>(() => {});
+  useEffect(() => {
+    // Let App finish its modal/history cleanup before navigating.
+    if (signInRequired) window.location.replace('/signin');
+  }, [signInRequired]);
   useEffect(() => {
     let disposed = false;
-    async function open() {
+    let opened = false;
+    let inFlight = false;
+    let closing = false;
+    let logoutInFlight = false;
+    let redirecting = false;
+    let failures = 0;
+    let retryTimer = 0;
+    const clearRetry = () => { window.clearTimeout(retryTimer); retryTimer = 0; };
+    async function connect() {
+      if (disposed || closing || redirecting || inFlight || document.visibilityState !== 'visible') return;
+      clearRetry(); inFlight = true;
+      if (!opened) setConnecting(true);
       try {
         const scope = await readWalletContext();
-        if (disposed) return;
+        if (disposed || closing || redirecting) return;
+        if (opened) {
+          const current = walletContext();
+          if (scope.user.id !== current?.user.id || scope.ledger.id !== current?.ledger.id || scope.ledger.role !== current?.ledger.role) {
+            // Module-level ledger keys must be initialized again for a new scope.
+            redirecting = true; lockWalletScope(); window.location.reload();
+          }
+          failures = 0;
+          return;
+        }
         activateWalletScope(scope);
         await preloadD1Cache();
-        if (disposed) return;
+        if (disposed || closing || redirecting) return;
         // Set the account and ledger namespace before App's module constants initialize.
         const { default: component } = await import('../App');
-        if (!disposed) setApp(() => component);
-      } catch {
-        if (!disposed) { lockWalletScope(); setError('가계부에 연결할 수 없어요. 로그인과 연결 상태를 다시 확인해주세요.'); }
+        if (!disposed && !closing && !redirecting) {
+          opened = true; failures = 0; setError(''); setApp(() => component);
+        }
+      } catch (cause) {
+        if (disposed || closing || redirecting) return;
+        if (isWalletAccessDenied(cause)) { loseAccess(); return; }
+        // A suspended WebView or an unavailable network does not revoke a session.
+        // Keep App mounted so an open form and unsaved input remain untouched.
+        if (!opened) setError('연결을 다시 확인하고 있어요. 네트워크가 연결되면 자동으로 계속합니다.');
+        retryTimer = window.setTimeout(() => { void connect(); }, Math.min(1000 * 2 ** Math.min(failures++, 4), 15000));
+      } finally {
+        inFlight = false;
+        if (!disposed) setConnecting(false);
       }
     }
-    async function revalidate() {
-      if (document.visibilityState !== 'visible' || !walletContext()) return;
-      try {
-        const next = await readWalletContext(), current = walletContext();
-        if (next.user.id !== current?.user.id || next.ledger.id !== current?.ledger.id || next.ledger.role !== current?.ledger.role) loseAccess();
-      } catch { loseAccess(); }
-    }
     function loseAccess() {
-      if (disposed) return;
-      lockWalletScope(); setApp(null);
-      window.location.replace('/signin');
+      if (disposed || closing || redirecting) return;
+      redirecting = true; clearRetry(); lockWalletScope(); setApp(null);
+      setSignInRequired(true);
     }
     async function logout() {
+      if (disposed || logoutInFlight || redirecting) return;
+      closing = true; logoutInFlight = true; clearRetry();
       lockWalletScope(); setApp(null); setLoggingOut(true); setError('');
-      try { await auth.logout(); window.location.replace('/signin'); }
-      catch { setError('로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.'); }
-      finally { if (!disposed) setLoggingOut(false); }
+      try { await auth.logout(); if (!disposed) setSignInRequired(true); }
+      catch { if (!disposed) setError('로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.'); }
+      finally { logoutInFlight = false; if (!disposed) setLoggingOut(false); }
     }
-    void open();
-    const resume = () => { void revalidate(); };
+    retry.current = () => { if (closing) void logout(); else void connect(); };
+    void connect();
+    const resume = () => { if (document.visibilityState === 'visible') void connect(); else clearRetry(); };
     const signOut = () => { void logout(); };
     document.addEventListener('visibilitychange', resume);
+    window.addEventListener('online', resume);
+    window.addEventListener('pageshow', resume);
     window.addEventListener('memoney:wallet-access-lost', loseAccess);
     window.addEventListener('memoney:wallet-logout', signOut);
     const timer = window.setInterval(resume, 60000);
     return () => {
-      disposed = true; window.clearInterval(timer);
+      disposed = true; clearRetry(); window.clearInterval(timer); retry.current = () => {};
       document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('online', resume);
+      window.removeEventListener('pageshow', resume);
       window.removeEventListener('memoney:wallet-access-lost', loseAccess);
       window.removeEventListener('memoney:wallet-logout', signOut);
     };
   }, []);
   if (App) return <App />;
-  if (!error) return <LoadingScreen />;
-  return <main className="memoney-signin"><section className="signin-content">
-    <img className="signin-logo" src={appearance.logo} alt="Memoney" /><p className="signin-description" role="status">{error || (loggingOut ? '로그아웃 중…' : '장부를 불러오는 중…')}</p>
-    {error && <button className="secondary-button" onClick={() => window.location.replace('/signin')}>로그인</button>}
-  </section></main>;
+  return <><LoadingScreen />{error && <section className="wallet-connection-status" aria-live="polite">
+    <p>{error}</p>
+    <button className="secondary-button" disabled={connecting || loggingOut} onClick={() => retry.current()}>다시 시도</button>
+  </section>}</>;
 }
