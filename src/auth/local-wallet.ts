@@ -1,3 +1,4 @@
+import { dateInTimeZone, dueRecurringTransactions } from '../recurring.ts';
 // The guest ledger is authoritative only in explicitly selected local mode.
 // Account caches and the legacy web keys are never read or migrated here.
 export const GUEST_ID_KEY = 'memoney:guest:active-id';
@@ -223,6 +224,16 @@ async function localWalletFetchUnlocked(id: string, input: RequestInfo | URL, in
     if (method === 'GET') return Response.json(url.searchParams.has('after') ? { changes: [], nextCursor: Number(url.searchParams.get('after')) || 0 } : data);
     requireValue(method === 'PATCH');
     const body = JSON.parse(String(init?.body));
+    if(body.op==='recurring.generate'){
+      if(typeof body.timeZone!=='string'||body.timeZone.length>100)throw new LocalError('INVALID_TIME_ZONE');
+      let today:string;try{today=dateInTimeZone(body.timeZone);}catch{throw new LocalError('INVALID_TIME_ZONE');}
+      const transactions=dueRecurringTransactions(data.recurringRules as any,data.transactions as any,data.deletedRecurringTxs,today);
+      if(!transactions.length)return Response.json({success:true,generated:0,transactions:[],more:false});
+      const now=Date.now(),saved=transactions.map(t=>({...t,revision:1,createdAt:now}));
+      data.transactions.push(...saved);data.updatedAt=now;
+      storage.setItem(guestKey(id),JSON.stringify(data));
+      return Response.json({success:true,generated:saved.length,transactions:saved,more:saved.length===40});
+    }
     const request = stable(body), receipts = data.localOperations || {};
     if (body.operationId && receipts[body.operationId]) {
       const previous = receipts[body.operationId];

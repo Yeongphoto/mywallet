@@ -11,6 +11,7 @@
     "check:recovery": "tsc -p tsconfig.auth.json && node --test scripts/ledger-recovery.test.mjs",
     "check:browser-login": "tsc -p tsconfig.auth.json && node --test scripts/browser-login.test.mjs",
     "check:onboarding": "tsc -p tsconfig.auth.json && node --test scripts/personal-onboarding.test.mjs",
+    "check:recurring": "tsc -p tsconfig.auth.json && node --test scripts/recurring.test.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "dev:d1": "npm run dev",

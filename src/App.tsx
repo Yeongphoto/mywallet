@@ -5,6 +5,7 @@ import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
 import { BrandWordmark } from './BrandWordmark';
 import { JellyToggle } from './JellyToggle';
+import { dueRecurringTransactions } from './recurring';
 import { LedgerRecovery } from './auth/LedgerRecovery';
 import { useEntryViewport } from './use-entry-viewport';
 import { FloatingTitleSuggestions } from './FloatingTitleSuggestions';
@@ -3923,117 +3924,49 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Migrate legacy non-recurring ID formats for transactions matching active rules
+  const [recurringCheck, setRecurringCheck] = useState(0);
+  const recurringSnapshotRef = useRef(transactions);
+  recurringSnapshotRef.current = transactions;
   useEffect(() => {
-    if (isLoading || recurringRules.length === 0) return;
+    const check = () => { if (document.visibilityState === 'visible') setRecurringCheck(n => n + 1); };
+    const timer = window.setInterval(check, 60000);
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('online', check);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', check); window.removeEventListener('online', check); };
+  }, []);
 
-    setTransactions((prev) => {
-      let migrated = false;
-      const next = prev.map((tx) => {
-        const txMonth = tx.date.slice(0, 7);
-        if (!tx.recurringRuleId && !tx.id.startsWith('rec_')) {
-          return tx;
-        }
-
-        const matchingRule = recurringRules.find((rule) => {
-          const matchInfo = rule.type === tx.type &&
-                            rule.title === tx.title &&
-                            rule.amount === tx.amount &&
-                            rule.category === tx.category;
-          const matchDate = rule.startMonth <= txMonth &&
-                            (!rule.endMonth || rule.endMonth >= txMonth);
-          return matchInfo && matchDate;
-        });
-
-        if (matchingRule) {
-          const hasLegacyId = !tx.id.startsWith('rec_');
-          const hasMissingProp = !tx.recurringRuleId || tx.recurringRuleId !== matchingRule.id;
-          
-          if (hasLegacyId || hasMissingProp) {
-            migrated = true;
-            return {
-              ...tx,
-              id: `rec_${matchingRule.id}_${txMonth}`,
-              recurringRuleId: matchingRule.id,
-            };
-          }
-        }
-        return tx;
-      });
-
-      return migrated ? next : prev;
-    });
-  }, [isLoading, recurringRules]);
-
-  // Auto-generate recurring transactions based on recurringRules (only when date is today or past)
+  // Persist due occurrences before showing them. Never rename an existing transaction.
   useEffect(() => {
-    if (isLoading || recurringRules.length === 0) return;
-
-    const todayStr = getToday();
-    const [todayYr, todayMo] = todayStr.split('-').map(Number);
-
-    setTransactions((prev) => {
-      const newTxs: Transaction[] = [];
-
-      recurringRules.forEach((rule) => {
-        let [startYear, startMonth] = rule.startMonth.split('-').map(Number);
-        const [endYear, endMonth] = rule.endMonth ? rule.endMonth.split('-').map(Number) : [9999, 12];
-
-        let yr = startYear;
-        let mo = startMonth;
-
-        while (yr < todayYr || (yr === todayYr && mo <= todayMo)) {
-          if (yr > endYear || (yr === endYear && mo > endMonth)) {
-            break;
-          }
-
-          const moStr = String(mo).padStart(2, '0');
-          const lastDay = new Date(yr, mo, 0).getDate();
-          const targetDay = Math.min(rule.day, lastDay);
-          const dayStr = String(targetDay).padStart(2, '0');
-          const ruleDateStr = `${yr}-${moStr}-${dayStr}`;
-
-          // Skip future dates
-          if (ruleDateStr > todayStr) {
-            mo++;
-            if (mo > 12) {
-              mo = 1;
-              yr++;
+    if (isLoading || (!isLocalWallet() && !isOnline) || !dueRecurringTransactions(recurringRules, recurringSnapshotRef.current, deletedRecurringTxs, getToday(), 1).length) return;
+    let disposed = false;
+    void (async () => {
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      for (let page = 0; page < 20; page++) {
+        const response = await fetch('/api/data', {method:'PATCH',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({op:'recurring.generate',timeZone})});
+        if (!response.ok) throw Error('RECURRING_GENERATION_FAILED');
+        const result = await response.json() as {transactions?:Transaction[];more?:boolean};
+        if (disposed) return;
+        const saved = result.transactions || [];
+        if (saved.length) {
+          skipNextPersistenceRef.current = true;
+          setTransactions(previous => {
+            const next = [...previous];
+            for (const transaction of saved) {
+              const index = next.findIndex(t => t.id === transaction.id);
+              if (index < 0) next.push(transaction);
+              else if ((next[index].revision || 1) <= (transaction.revision || 1)) next[index] = transaction;
             }
-            continue;
-          }
-
-          const txId = `rec_${rule.id}_${yr}-${moStr}`;
-
-          const exists = prev.some((t) => t.id === txId);
-          const isDeleted = deletedRecurringTxs.includes(txId);
-          if (!exists && !isDeleted) {
-            newTxs.push({
-              id: txId,
-              type: rule.type,
-              date: ruleDateStr,
-              time: normalizeTransactionTime(rule.time),
-              createdAt: Date.now(),
-              amount: rule.amount,
-              title: rule.title,
-              category: rule.category,
-              assetId: rule.assetId || null,
-              toAssetId: rule.toAssetId || null,
-              recurringRuleId: rule.id
-            });
-          }
-
-          mo++;
-          if (mo > 12) {
-            mo = 1;
-            yr++;
-          }
+            return next;
+          });
         }
-      });
-
-      return newTxs.length > 0 ? [...prev, ...newTxs] : prev;
+        if (!result.more) break;
+      }
+    })().catch(() => {
+      if (!disposed) setRemoteSync(previous => ({...previous,status:'error',message:'정기 기록을 저장하지 못했어요. 연결되면 다시 시도합니다.'}));
     });
-  }, [recurringRules, deletedRecurringTxs, isLoading]);
+    return () => { disposed = true; };
+  }, [recurringRules, deletedRecurringTxs, isLoading, isOnline, recurringCheck]);
 
   // Sync calendar when selectedMonth changes
   useEffect(() => {

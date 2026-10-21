@@ -263,6 +263,10 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   }
 
   try {
+    if(body.op==='recurring.generate'){
+      const {generateRecurring}=await import('../../server/wallet/recurring.ts');
+      return await generateRecurring(db,body.timeZone);
+    }
     if (body.op === 'transaction.create' || body.op === 'transaction.createBatch') {
       const transactions = body.op === 'transaction.createBatch' ? body.transactions : [body.transaction];
       const operationId = body.operationId;
@@ -782,7 +786,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         return apiError('VALIDATION_ERROR', 422);
       }
       await db.prepare(
-        "INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET type = excluded.type, day = excluded.day, amount = excluded.amount, title = excluded.title, category = excluded.category, asset_id = excluded.asset_id, to_asset_id = excluded.to_asset_id, startMonth = excluded.startMonth, endMonth = excluded.endMonth"
+        "INSERT INTO recurring_rules (id, type, day, amount, title, category, asset_id, to_asset_id, startMonth, endMonth, transaction_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET type = excluded.type, day = excluded.day, amount = excluded.amount, title = excluded.title, category = excluded.category, asset_id = excluded.asset_id, to_asset_id = excluded.to_asset_id, startMonth = excluded.startMonth, endMonth = excluded.endMonth, transaction_time=excluded.transaction_time"
       ).bind(
         String(rule.id),
         String(rule.type),
@@ -793,7 +797,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         rule.assetId ? String(rule.assetId) : null,
         rule.toAssetId ? String(rule.toAssetId) : null,
         String(rule.startMonth),
-        rule.endMonth ? String(rule.endMonth) : null
+        rule.endMonth ? String(rule.endMonth) : null,
+        rule.time ? String(rule.time) : null
       ).run();
 
       return new Response(JSON.stringify({ success: true, rule }), {
@@ -806,7 +811,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       if (!rule?.id) return apiError('BAD_REQUEST', 400);
 
       await db.prepare(
-        "UPDATE recurring_rules SET type = ?, day = ?, amount = ?, title = ?, category = ?, asset_id = ?, to_asset_id = ?, startMonth = ?, endMonth = ? WHERE id = ?"
+        "UPDATE recurring_rules SET type = ?, day = ?, amount = ?, title = ?, category = ?, asset_id = ?, to_asset_id = ?, startMonth = ?, endMonth = ?, transaction_time=? WHERE id = ?"
       ).bind(
         String(rule.type),
         Number(rule.day) || 1,
@@ -817,6 +822,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
         rule.toAssetId ? String(rule.toAssetId) : null,
         String(rule.startMonth),
         rule.endMonth ? String(rule.endMonth) : null,
+        rule.time ? String(rule.time) : null,
         String(rule.id)
       ).run();
 
