@@ -2,11 +2,11 @@
 
 ## 현재 구성 (2026-10-21)
 
-기본·테마1 모두 같은 로고를 사용한다. 메인 화면은 `public/images/logo-cat-high.png`와 `public/images/mememo/memony-wordmark.png`의 조합이며, 로그인 화면은 기존 젤리 로고를 두 테마에서 동일하게 표시한다. 테마별 픽셀 SVG 전환과 별도 캐릭터의 중복 표시는 제거했다.
+기본·테마1 모두 같은 로고를 사용한다. 메인 화면은 `public/images/logo-cat.png`와 `public/images/mememo/memony-wordmark.png`의 조합이며, 로그인 화면은 기존 젤리 로고를 두 테마에서 동일하게 표시한다. 테마별 픽셀 SVG 전환과 별도 캐릭터의 중복 표시는 제거했다.
 
-메인 화면에서는 `scripts/prepare-main-brand.mjs`로 만드는 화면 배율별 PNG를 사용한다. 캐릭터는 `main-cat-smooth-v2-{1,2,3}x.png`, 글자는 `main-name-smooth-v1-{1,2,3}x.png`다. 원본 비율과 투명 영역을 유지하며 단계적으로 축소한다. `logo-cat-high`와 이전 `logo-cat`의 해상도는 모두 1266×1242이며, 형태·광택이 서로 다르다.
+메인 화면에서는 `scripts/prepare-main-brand.mjs`로 만드는 화면 배율별 PNG를 사용한다. 캐릭터는 `main-cat-smooth-v2-{1,2,3}x.png`, 글자는 `main-name-smooth-v1-{1,2,3}x.png`다. 원본 비율과 투명 영역을 유지하며 단계적으로 축소한다. 사용자가 제공한 `logo-cat-high.png`를 `logo-cat.png`로 이름을 바꿔 기존 원본을 대체했다. 현재 원본 해상도는 1266×1242다.
 
-사용하지 않는 픽셀 v1·v2, 둥근 SVG v1~v9, 이전 합본 PNG와 캐릭터 v1 축소본은 삭제했다. 사용자가 제공한 원본 이미지는 보존한다. 아래 내용은 과거 제작 이력이며 현재 배포 파일 목록이 아니다. 과거 파일은 Git 이력에서 확인할 수 있다.
+사용하지 않는 픽셀 v1·v2, 둥근 SVG v1~v9, 이전 합본 PNG와 캐릭터 v1 축소본은 삭제했다. 후속 정리 요청에 따라 미사용 `mecon-256.png`, `mememo-wordmark-source.png`, 픽셀 변환 스크립트와 측정 JSON도 삭제했다. 현재 로고 원본과 실제로 사용하는 멧 이미지는 유지한다. 아래 내용은 과거 제작 이력이며 현재 배포 파일 목록이 아니다. 과거 파일은 Git 이력에서 확인할 수 있다.
 
 ## 과거 제작 이력
 

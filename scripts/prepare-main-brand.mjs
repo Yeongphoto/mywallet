@@ -7,7 +7,7 @@ const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Googl
 try {
   const page = await browser.newPage();
   for (const [name, version, source, crop, width] of [
-    ['cat', 2, 'public/images/logo-cat-high.png', [55, 198, 1159, 905], 32],
+    ['cat', 2, 'public/images/logo-cat.png', [55, 198, 1159, 905], 32],
     ['name', 1, 'public/images/mememo/memony-wordmark.png', [49, 222, 2078, 316], 104],
   ]) {
     const sourceUrl = `data:image/png;base64,${readFileSync(source).toString('base64')}`;
