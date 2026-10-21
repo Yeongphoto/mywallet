@@ -10969,6 +10969,17 @@ function HighlightedSuggestionTitle({ title, query }: { title: string; query: st
   );
 }
 
+function AmountPreviewValue({ value }: { value: string }) {
+  return (
+    <span className="picker-popup-amount-text">
+      <span key={value || '0'} className="picker-popup-amount-digits">
+        {value ? formatNumberInput(parseNumberInput(value)) : '0'}
+      </span>
+      <span>원</span>
+    </span>
+  );
+}
+
 function AmountNumberKeypad({
   value,
   onChange,
@@ -11056,9 +11067,9 @@ function AmountNumberKeypad({
 
   return (
     <div className="amount-keypad-grid">
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('1')}>1</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('2')}>2</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('3')}>3</button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('1')}><span>1</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('2')}><span>2</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('3')}><span>3</span></button>
       <button type="button" className="keypad-btn keypad-action-btn" onClick={handleBackspace} aria-label="지우기">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
@@ -11067,35 +11078,35 @@ function AmountNumberKeypad({
         </svg>
       </button>
 
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('4')}>4</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('5')}>5</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('6')}>6</button>
-      <button type="button" className="keypad-btn keypad-quick-btn" onClick={handleToggleMinus} aria-label="음수 기호">-</button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('4')}><span>4</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('5')}><span>5</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('6')}><span>6</span></button>
+      <button type="button" className="keypad-btn keypad-quick-btn" onClick={handleToggleMinus} aria-label="음수 기호"><span>-</span></button>
 
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('7')}>7</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('8')}>8</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('9')}>9</button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('7')}><span>7</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('8')}><span>8</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('9')}><span>9</span></button>
       {quickActionLabel && onQuickAction ? (
         <button
           type="button"
           className="keypad-btn keypad-quick-btn keypad-mode-btn"
           onClick={onQuickAction}
         >
-          {quickActionLabel}
+          <span>{quickActionLabel}</span>
         </button>
       ) : (
-        <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}>+1만</button>
+        <button type="button" className="keypad-btn keypad-quick-btn" onClick={() => handleAddAmount(10000)}><span>+1만</span></button>
       )}
 
-      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('00')}>00</button>
-      <button type="button" className="keypad-btn" onClick={() => handleDigit('0')}>0</button>
-      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('000')}>000</button>
+      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('00')}><span>00</span></button>
+      <button type="button" className="keypad-btn" onClick={() => handleDigit('0')}><span>0</span></button>
+      <button type="button" className="keypad-btn keypad-alt-btn" onClick={() => handleDigit('000')}><span>000</span></button>
       <button
         type="button"
         className={`keypad-btn keypad-submit-btn ${submitTone}`}
         onClick={onComplete}
       >
-        {submitLabel}
+        <span>{submitLabel}</span>
       </button>
     </div>
   );
@@ -11544,7 +11555,7 @@ function AssetRegistrationForm({
               <strong>기초 잔액 입력</strong>
               <div className="picker-popup-header-right">
                 <span className={`picker-popup-amount-preview ${amount?.startsWith('-') ? 'negative' : ''}`}>
-                  {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
+                  <AmountPreviewValue value={amount} />
                 </span>
                 <button type="button" className="picker-popup-close-btn" onClick={() => setActivePopup('none')}>×</button>
               </div>
@@ -12407,7 +12418,7 @@ function UnifiedEntryForm({
               <strong>금액 입력</strong>
               <div className="picker-popup-header-right">
                 <div className={`picker-popup-amount-preview has-clear ${form.amount?.startsWith('-') ? 'negative' : ''}`}>
-                  <span>{form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}</span>
+                  <AmountPreviewValue value={form.amount} />
                   <button
                     type="button"
                     className="picker-popup-amount-clear"
@@ -13057,7 +13068,7 @@ function TransactionEditForm({
               <strong>금액 수정</strong>
               <div className="picker-popup-header-right">
                 <div className={`picker-popup-amount-preview has-clear ${amount?.startsWith('-') ? 'negative' : ''}`}>
-                  <span>{amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}</span>
+                  <AmountPreviewValue value={amount} />
                   <button
                     type="button"
                     className="picker-popup-amount-clear"

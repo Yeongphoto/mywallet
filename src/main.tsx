@@ -16,6 +16,7 @@ import './theme1.css';
 import './annual-chart-toggle.css';
 import './bottom-nav-jelly.css';
 import './settings-controls.css';
+import './picker-jelly.css';
 
 const rootElement = document.getElementById('root');
 
