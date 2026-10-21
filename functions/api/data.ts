@@ -1,8 +1,13 @@
 interface Env {
   DB: D1Database;
+  AUTH_PERSONAL_ONBOARDING?: string;
 }
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
+  if(context.env.AUTH_PERSONAL_ONBOARDING==='true'){
+    const {sharedWalletData}=await import('../../server/wallet/shared-web.ts');
+    return sharedWalletData(context.request,context.env as unknown as import('../../server/wallet/shared-web.ts').SharedWalletEnvironment);
+  }
   const db = context.env.DB;
   if (!db) {
     return new Response(JSON.stringify({ error: "D1 Binding not found" }), { status: 500 });
@@ -243,6 +248,10 @@ async function transactionFailureResponse(db: D1Database, transactionId: string)
 }
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
+  if(context.env.AUTH_PERSONAL_ONBOARDING==='true'){
+    const {sharedWalletData}=await import('../../server/wallet/shared-web.ts');
+    return sharedWalletData(context.request,context.env as unknown as import('../../server/wallet/shared-web.ts').SharedWalletEnvironment);
+  }
   const db = context.env.DB;
   if (!db) return new Response(JSON.stringify({ error: 'D1 Binding not found' }), { status: 500 });
   let body: any;

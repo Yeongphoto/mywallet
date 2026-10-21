@@ -68,6 +68,13 @@ async function bootstrap() {
     createRoot(appRootElement).render(<StrictMode><WalletScreen /></StrictMode>);
     return;
   }
+  // With account onboarding enabled, an anonymous root visit must stay device-local.
+  const configuration = await fetch('/api/auth/config', {cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).catch(()=>null);
+  if (configuration?.personalOnboarding === true) {
+    const session = await fetch('/api/auth/session', {cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)}).catch(()=>null);
+    window.location.replace(session?.ok && window.localStorage.getItem('memoney:wallet-mode') !== 'local' ? '/wallet' : '/guest');
+    return;
+  }
   const { default: App } = await import('./App');
   await preloadD1Cache();
   registerPwaServiceWorker();

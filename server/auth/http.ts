@@ -13,6 +13,7 @@ export interface AuthEnvironment {
   AUTH_LOCAL_DEV?: string;
   AUTH_LEDGER_INVITES?: string;
   AUTH_BROWSER_LOGIN?: string;
+  AUTH_PERSONAL_ONBOARDING?: string;
 }
 function settings(env: AuthEnvironment, request: Request) {
   if (env.AUTH_ENABLED !== 'true' || !env.AUTH_GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') || !env.AUTH_ORIGIN) return null;
@@ -24,7 +25,7 @@ function settings(env: AuthEnvironment, request: Request) {
       ['localhost', '127.0.0.1', '[::1]'].includes(origin.hostname);
     if (origin.origin !== env.AUTH_ORIGIN || new URL(request.url).origin !== origin.origin ||
       (origin.protocol !== 'https:' && !local)) return null;
-    return { clientId: env.AUTH_GOOGLE_CLIENT_ID, origin: origin.origin, local,
+    return { clientId: env.AUTH_GOOGLE_CLIENT_ID, origin: origin.origin, local, personalOnboarding: env.AUTH_PERSONAL_ONBOARDING === 'true',
       authorizedParties: env.AUTH_GOOGLE_ANDROID_CLIENT_ID ? [env.AUTH_GOOGLE_ANDROID_CLIENT_ID] : [],
       sessionCookie: local ? 'mywallet-dev-session' : '__Host-mywallet-session',
       challengeCookie: local ? 'mywallet-dev-login-state' : '__Host-mywallet-login-state' };
@@ -67,7 +68,7 @@ async function boundedJsonText(request: Request) {
 export async function handleAuth(request: Request, env: AuthEnvironment, action: string, verify: IdentityVerifier = verifyIdentity) {
   const config = settings(env, request);
   if (action === 'config' && request.method === 'GET') {
-    return response({ enabled: Boolean(config), clientId: config?.clientId ?? null, ...(config&&env.AUTH_BROWSER_LOGIN==='true'?{browserLogin:true}:{}) });
+    return response({ enabled: Boolean(config), clientId: config?.clientId ?? null, ...(config&&env.AUTH_BROWSER_LOGIN==='true'?{browserLogin:true}:{}), ...(config?.personalOnboarding?{personalOnboarding:true}:{}) });
   }
   if (!config) return response({ error: 'AUTH_NOT_CONFIGURED' }, 503);
   const methods: Record<string, string> = { challenge: 'POST', google: 'POST', session: 'GET', logout: 'POST',...Object.fromEntries(env.AUTH_BROWSER_LOGIN==='true'?['browser-start','browser-preview','browser-approve','browser-poll','browser-claim'].map(action=>[action,'POST']):[]) };
@@ -104,7 +105,7 @@ export async function handleAuth(request: Request, env: AuthEnvironment, action:
       }
       const oldSession = cookieValue(request, config.sessionCookie);
       await revokeSession(env.DB, oldSession);
-      const session = await createSession(env.DB, userId);
+      const session = await createSession(env.DB, userId, Date.now(), config.personalOnboarding);
       return response({ user: { id: userId } }, 200, [
         cookie(config.sessionCookie, session.token, session.maxAge, config.local),
         cookie(config.challengeCookie, '', 0, config.local),

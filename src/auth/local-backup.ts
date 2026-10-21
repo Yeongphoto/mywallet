@@ -20,8 +20,6 @@ export function parseGuestArchive(text: string, id: string): LocalSnapshot {
 export async function restoreGuestArchive(id: string, snapshot: LocalSnapshot) {
   return withGuestLock(id,()=>{
   assertGuestGeneration(id);
-  const job = window.localStorage.getItem(guestKey(id, 'sync-job'));
-  if (job && !JSON.parse(job).completed) throw new Error('SYNC_IN_PROGRESS');
   const current = localSnapshot(window.localStorage, id);
   window.localStorage.setItem(guestKey(id, `pre-restore:${Date.now()}`), JSON.stringify(current));
   window.localStorage.setItem(guestKey(id), JSON.stringify(snapshot));

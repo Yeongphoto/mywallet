@@ -47,8 +47,6 @@ export function persistLocalView(id: string, view: Row, storage = window.localSt
   return withGuestLock(id,()=>{
   assertGuestGeneration(id,storage);
   const current = localSnapshot(storage, id);
-  const job = storage.getItem(guestKey(id, 'sync-job'));
-  if (job && !JSON.parse(job).completed) return;
   // Keep settlements, order revisions and completed operation receipts which App's view does not contain.
   const changed = Object.keys(view).some(k => !['updatedAt', 'theme', 'styleTheme'].includes(k) && stable(view[k]) !== stable(current[k]));
   const updatedAt = Math.max(current.updatedAt || 0, view.updatedAt || 0, changed ? Date.now() : 0);
@@ -224,8 +222,6 @@ async function localWalletFetchUnlocked(id: string, input: RequestInfo | URL, in
     const data = localSnapshot(storage, id);
     if (method === 'GET') return Response.json(url.searchParams.has('after') ? { changes: [], nextCursor: Number(url.searchParams.get('after')) || 0 } : data);
     requireValue(method === 'PATCH');
-    const pending = storage.getItem(guestKey(id, 'sync-job'));
-    if (pending && !JSON.parse(pending).completed) throw new LocalError('LOCAL_SYNC_IN_PROGRESS', 409);
     const body = JSON.parse(String(init?.body));
     const request = stable(body), receipts = data.localOperations || {};
     if (body.operationId && receipts[body.operationId]) {

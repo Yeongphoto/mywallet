@@ -5,6 +5,7 @@ import { onRequestGet, onRequestPatch } from '../../functions/api/data.ts';
 import { availableLedgers, isolatedSharedReady } from './shared-creation.ts';
 import { scopedFinance } from './scoped-finance.ts';
 import { generationDatabase, recoveryState } from './recovery-store.ts';
+import { ensurePersonalLedger, personalFinance, personalOnboardingComplete } from './personal.ts';
 
 export interface SharedWalletEnvironment extends AuthEnvironment {
   AUTH_SHARED_WALLET_ORIGIN?: string;
@@ -21,6 +22,10 @@ function reply(error: string, status: number) {
   return Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store', 'Vary': 'Cookie' } });
 }
 export function sharedWalletConfiguration(env: SharedWalletEnvironment) {
+  if(env.AUTH_PERSONAL_ONBOARDING==='true') {
+    if(!env.TEST_FINANCE||!env.TEST_SHARED_FINANCE||env.AUTH_SHARED_WALLET_ORIGIN)return null;
+    return {origin:'',ledgerId:env.AUTH_SHARED_WALLET_LEDGER_ID||''};
+  }
   // Explicit test deployments only. Never enabled implicitly in the existing web deployment.
   const local = env.AUTH_LOCAL_DEV === 'true' && env.AUTH_ORIGIN === 'http://localhost:5187';
   const hosted = env.AUTH_SHARED_TEST_DEPLOYMENT === 'true' && env.AUTH_LOCAL_DEV !== 'true' &&
@@ -46,6 +51,17 @@ export async function access(request: Request, env: SharedWalletEnvironment, wri
   if (!config) return { response: reply('LEDGER_CONNECTION_PENDING', 503) };
   const data = await session.json() as { user: { id: string } };
   try {
+    if(env.AUTH_PERSONAL_ONBOARDING==='true'){
+      const personal=await ensurePersonalLedger(env,data.user.id);
+      if(!await personalOnboardingComplete(env,personal))return {response:reply('PERSONAL_ONBOARDING_REQUIRED',425)};
+      const selected=request.headers.get('X-Memoney-Ledger')||personal.id;
+      const choices=await availableLedgers(env,data.user.id);
+      const choice=choices.find(l=>l.id===selected);
+      if(!choice||(write&&choice.role==='viewer'))return {response:reply('LEDGER_ACCESS_DENIED',403)};
+      const ledger=await ledgerAccess(env.DB,data.user.id,choice.id,write?'write':'view');
+      if(!ledger)return {response:reply('LEDGER_ACCESS_DENIED',403)};
+      return {config,user:data.user,ledger:{...ledger,kind:choice.kind,name:choice.name},finance:choice.kind==='personal'?personalFinance(env,personal):scopedFinance(env.TEST_SHARED_FINANCE!,choice.id)};
+    }
     if(env.AUTH_TEST_MULTI_LEDGER==='true') {
       if(!await isolatedSharedReady(env))return {response:reply('SHARING_NOT_CONFIGURED',503)};
       const ledgers=await availableLedgers(env,data.user.id);
@@ -75,7 +91,7 @@ export async function access(request: Request, env: SharedWalletEnvironment, wri
 export async function sharedWalletContext(request: Request, env: SharedWalletEnvironment) {
   const result = await access(request, env);
   if (result.response) return result.response;
-  const ledger = env.AUTH_TEST_MULTI_LEDGER === 'true' ? result.ledger : env.AUTH_TEST_PERSONAL_LEDGER === 'true'
+  const ledger = env.AUTH_PERSONAL_ONBOARDING==='true'||env.AUTH_TEST_MULTI_LEDGER === 'true' ? result.ledger : env.AUTH_TEST_PERSONAL_LEDGER === 'true'
     ? { ...result.ledger, kind: 'personal', name: '개인 장부' } : result.ledger;
   const recovery = env.AUTH_LEDGER_RECOVERY==='true' ? await recoveryState(result.finance||env.TEST_FINANCE!,result.ledger!.id) : null;
   return Response.json({ user: result.user, ledger: {...ledger,...(recovery?{generation:recovery.generation,recoveryStatus:recovery.status,recoveryExpiresAt:recovery.expires_at}:{})}, mode: 'shared-web' },
@@ -91,7 +107,7 @@ export async function sharedWalletData(request: Request, env: SharedWalletEnviro
   const after = source.searchParams.get('after');
   if ([...source.searchParams.keys()].some(key => key !== 'after') ||
       (after !== null && (!/^\d+$/.test(after) || !Number.isSafeInteger(Number(after))))) return reply('INVALID_CURSOR', 400);
-  if (env.AUTH_TEST_PERSONAL_LEDGER === 'true') {
+  if (env.AUTH_PERSONAL_ONBOARDING==='true'||env.AUTH_TEST_PERSONAL_LEDGER === 'true') {
     if (request.method === 'PATCH' && !request.headers.get('Content-Type')?.startsWith('application/json')) return reply('BAD_REQUEST', 400);
     // Run the existing revision/operation handler directly against the explicitly
     // bound test database. This branch never contacts the production web API.

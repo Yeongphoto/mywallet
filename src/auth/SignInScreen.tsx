@@ -11,6 +11,7 @@ import { BrandWordmark } from '../BrandWordmark';
 import { LoadingScreen } from '../LoadingScreen';
 import { useLaunchReady } from './use-launch-ready';
 import { BrowserLoginButton } from './BrowserLogin';
+import { preparePersonalLogin } from './local-sync';
 
 const native = registerPlugin<NativeGoogle>('MemoneyGoogleAuth');
 const auth = createAuthClient(native);
@@ -47,20 +48,16 @@ export default function SignInScreen() {
 
   useEffect(() => {
     if (!user) return;
-    if (new URLSearchParams(window.location.search).get('account') === 'local') {
-      window.location.replace('/guest#settings'); return;
-    }
     let disposed = false;
-    void readWalletContext().then(() => {
+    void preparePersonalLogin().then(() => readWalletContext()).then(() => {
       if (!disposed && !inFlight.current) {
-        const syncing = new URLSearchParams(window.location.search).get('sync') === 'local';
-        if (!syncing) window.localStorage.setItem(MODE_KEY, 'shared-web');
-        window.location.replace(syncing ? '/guest?sync=1#settings' : new URLSearchParams(window.location.search).get('wallet') === 'shared' ? '/wallet#settings' : '/wallet');
+        window.localStorage.setItem(MODE_KEY, 'shared-web');
+        window.location.replace(new URLSearchParams(window.location.search).has('account') || new URLSearchParams(window.location.search).has('sync') || new URLSearchParams(window.location.search).get('wallet') === 'shared' ? '/wallet#settings' : '/wallet');
       }
     }).catch(error => {
       if (disposed) return;
       if (error.message === 'LEDGER_ACCESS_DENIED') { window.localStorage.setItem(MODE_KEY, 'local'); window.location.replace('/guest'); }
-      else setWalletUnavailable(true);
+      else {setWalletUnavailable(true);setNotice(error.message==='PERSONAL_ONBOARDING_WAITING'?'다른 기기에서 처음 연결하고 있어요. 잠시 후 다시 시도해 주세요.':'개인 장부를 준비하지 못했어요. 기기 기록은 그대로 보관됩니다.');}
     });
     return () => { disposed = true; };
   }, [user]);

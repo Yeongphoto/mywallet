@@ -2,7 +2,7 @@ import {createSession,hashToken,opaqueToken,resolveUser,revokeSession} from './s
 import type {AuthDatabase} from './store.ts';
 import type {GoogleIdentity} from './google.ts';
 
-type Config={clientId:string;origin:string;local:boolean;sessionCookie:string};
+type Config={clientId:string;origin:string;local:boolean;sessionCookie:string;personalOnboarding?:boolean};
 type Row={token_hash:string;approval_hash:string;nonce:string;code:string;user_id:string|null;email:string|null;expires_at:number};
 const reply=(data:unknown,status=200,cookies:string[]=[])=>{
   const headers=new Headers({'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'});
@@ -60,7 +60,7 @@ export async function browserLogin(request:Request,db:AuthDatabase,config:Config
       if(!active)return reply({error:'ACCOUNT_UNAVAILABLE'},403);
       const consumed=await db.prepare('DELETE FROM auth_browser_logins WHERE token_hash=? AND user_id=? AND expires_at>? RETURNING user_id').bind(row.token_hash,row.user_id,Date.now()).first();
       if(!consumed)return reply({error:'LOGIN_CHALLENGE_EXPIRED'},410);
-      await revokeSession(db,cookieToken(request,config.sessionCookie));const session=await createSession(db,row.user_id);
+      await revokeSession(db,cookieToken(request,config.sessionCookie));const session=await createSession(db,row.user_id,Date.now(),config.personalOnboarding);
       return reply({user:{id:row.user_id}},200,[cookie(config.sessionCookie,session.token,session.maxAge,config.local),cookie(name,'',0,config.local)]);
     }
     return reply({error:'NOT_FOUND'},404);

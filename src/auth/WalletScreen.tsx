@@ -76,6 +76,11 @@ export default function WalletScreen() {
       } catch (cause) {
         if (disposed || closing || redirecting) return;
         if (isWalletAccessDenied(cause)) { loseAccess(); return; }
+        if(!opened && /^(PERSONAL_ONBOARDING_|INITIAL_IMPORT_|INVALID_LOCAL_SNAPSHOT|LOCAL_STORAGE_)/.test((cause as Error).message)) {
+          setError((cause as Error).message==='PERSONAL_ONBOARDING_WAITING'
+            ? '다른 기기에서 처음 연결하고 있어요. 잠시만 기다려 주세요.'
+            : '개인 장부를 준비하지 못했어요. 기기 기록은 그대로 보관됩니다.');
+        }
         // A suspended WebView or an unavailable network does not revoke a session.
         // Keep App mounted so an open form and unsaved input remain untouched.
         retryTimer = window.setTimeout(() => { void connect(); }, Math.min(1000 * 2 ** Math.min(failures++, 4), 15000));
@@ -126,5 +131,6 @@ export default function WalletScreen() {
   </div>{stage !== 'ready' && <WalletConnectionScreen complete={stage === 'complete'} onComplete={enterApp} />}{error && <section className="wallet-connection-status" aria-live="polite">
     <p>{error}</p>
     <button className="secondary-button" disabled={loggingOut} onClick={() => retry.current()}>다시 시도</button>
+    {!loggingOut && <button className="secondary-button" onClick={() => window.location.assign('/guest')}>로컬 장부 열기</button>}
   </section>}</>;
 }

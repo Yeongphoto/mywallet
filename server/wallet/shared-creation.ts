@@ -3,16 +3,18 @@ import { ledgerAccess } from '../auth/ledger-access.ts';
 import { hashToken } from '../auth/store.ts';
 import type { SharedWalletEnvironment } from './shared-web.ts';
 import { copyTables, scopedFinance, schemaStatements } from './scoped-finance.ts';
+import { ensurePersonalLedger, personalFinance, personalOnboardingComplete } from './personal.ts';
 
 export type Creation = {ledger_id:string;owner_user_id:string;operation_id:string;request_hash:string;source:string;status:string};
 type CopyRow = {table:string;values:Record<string,unknown>};
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','Vary':'Cookie'}});
 export async function isolatedSharedReady(env:SharedWalletEnvironment) {
-  if(env.AUTH_TEST_MULTI_LEDGER!=='true'||env.AUTH_ORIGIN!=='https://memoney-android-test.pages.dev'||
+  if(env.AUTH_TEST_MULTI_LEDGER!=='true'||(env.AUTH_PERSONAL_ONBOARDING!=='true'&&env.AUTH_ORIGIN!=='https://memoney-android-test.pages.dev')||
     env.AUTH_SHARED_TEST_DEPLOYMENT!=='true'||!env.TEST_SHARED_FINANCE||env.AUTH_SHARED_WALLET_ORIGIN) return false;
   return !!await env.TEST_SHARED_FINANCE.prepare('SELECT id FROM memoney_shared_test_database WHERE id=?').bind('memoney-android-test-shared').first();
 }
 export async function personalLedger(env:SharedWalletEnvironment,userId:string) {
+  if(env.AUTH_PERSONAL_ONBOARDING==='true')return ensurePersonalLedger(env,userId);
   const access=await ledgerAccess(env.DB,userId,env.AUTH_SHARED_WALLET_LEDGER_ID!);
   return access?.role==='owner'?{id:access.id,name:'개인 장부',kind:'personal',role:'owner'}:null;
 }
@@ -36,6 +38,7 @@ export async function handleLedgers(request:Request,env:SharedWalletEnvironment)
     const session=await handleAuth(new Request(new URL('/api/auth/session',request.url),{headers:request.headers}),env,'session');
     if(!session.ok)return reply({error:'UNAUTHENTICATED'},session.status);
     const {user}=await session.json() as {user:{id:string}};
+    if(env.AUTH_PERSONAL_ONBOARDING==='true'&&!await personalOnboardingComplete(env,await ensurePersonalLedger(env,user.id)))return reply({error:'PERSONAL_ONBOARDING_REQUIRED'},425);
     let creation=await env.DB.prepare('SELECT * FROM created_shared_ledgers WHERE owner_user_id=?').bind(user.id).first<Creation>();
     if(request.method==='GET')return reply({ledgers:await availableLedgers(env,user.id),creation:creation?await progress(env,creation):null});
     if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply({error:'BAD_REQUEST'},400);
@@ -71,11 +74,18 @@ export async function handleLedgers(request:Request,env:SharedWalletEnvironment)
     if(!job) {
       let rows:CopyRow[]=[];
       if(creation!.source==='personal') {
+        let source=env.TEST_FINANCE!;
+        if(env.AUTH_PERSONAL_ONBOARDING==='true'){
+          const personal=await ensurePersonalLedger(env,user.id);
+          if(!await personalOnboardingComplete(env,personal))return reply({error:'PERSONAL_ONBOARDING_REQUIRED'},425);
+          source=personalFinance(env,personal);
+        } else {
+          const marker=await env.TEST_FINANCE!.prepare('SELECT ledger_id FROM memoney_test_database WHERE id=?').bind('memoney-android-test-personal').first<{ledger_id:string}>();
+          if(marker?.ledger_id!==env.AUTH_SHARED_WALLET_LEDGER_ID)return reply({error:'TEST_DATABASE_MISMATCH'},503);
+          if(!await personalLedger(env,user.id))return reply({error:'LEDGER_ACCESS_DENIED'},403);
+        }
         // All SELECTs run in one D1 batch transaction, freezing one source snapshot.
-        const marker=await env.TEST_FINANCE!.prepare('SELECT ledger_id FROM memoney_test_database WHERE id=?').bind('memoney-android-test-personal').first<{ledger_id:string}>();
-        if(marker?.ledger_id!==env.AUTH_SHARED_WALLET_LEDGER_ID)return reply({error:'TEST_DATABASE_MISMATCH'},503);
-        if(!await personalLedger(env,user.id))return reply({error:'LEDGER_ACCESS_DENIED'},403);
-        const result=await env.TEST_FINANCE!.batch(copyTables.map(table=>env.TEST_FINANCE!.prepare(`SELECT * FROM ${table} ORDER BY rowid`)));
+        const result=await source.batch(copyTables.map(table=>source.prepare(`SELECT * FROM ${table} ORDER BY rowid`)));
         rows=copyTables.flatMap((table,index)=>(result[index].results||[]).filter(row=>table!=='settings'||!['theme','styleTheme'].includes(String(row.key)))
           .map(row=>({table,values:table==='transactions'?{...row,last_operation_id:null}:row})));
       }

@@ -1,4 +1,4 @@
-import { assertGuestGeneration, guestGeneration, guestKey, localSnapshot, withGuestLock } from './local-wallet';
+import { assertGuestGeneration, guestGeneration, localSnapshot, withGuestLock } from './local-wallet';
 import { staleArchiveDatabase } from './recovery-client';
 import type { RecoveryInfo } from './recovery-client';
 const retention=7*24*60*60*1000;
@@ -31,8 +31,6 @@ export async function localRecoveryAction(id:string,body:Record<string,unknown>)
   if(!navigator.locks)throw Error('LOCAL_RECOVERY_UNSUPPORTED');
   return withGuestLock(id,async()=>{
     assertGuestGeneration(id);
-    const job=window.localStorage.getItem(guestKey(id,'sync-job'));
-    if(job&&!JSON.parse(job).completed)throw Error('PENDING_WRITES');
     const snapshot=JSON.stringify(localSnapshot(window.localStorage,id)),generation=guestGeneration(id),now=Date.now();
     const db=await staleArchiveDatabase();
     try {
@@ -48,8 +46,6 @@ export async function localRecoveryAction(id:string,body:Record<string,unknown>)
       const checked=(await records(db)).find(r=>r.id===record.id);
       if(!checked||await hash(checked.snapshot)!==record.hash)throw Error('RECOVERY_CORRUPTED');
       assertGuestGeneration(id);
-      const currentJob=window.localStorage.getItem(guestKey(id,'sync-job'));
-      if(currentJob&&!JSON.parse(currentJob).completed)throw Error('PENDING_WRITES');
       if(JSON.stringify(localSnapshot(window.localStorage,id))!==snapshot)throw Error('RECOVERY_CHANGED');
       const nextSnapshot=target?localSnapshot({getItem:()=>target.snapshot},id):localSnapshot({getItem:()=>null},id);
       nextSnapshot.updatedAt=Date.now();

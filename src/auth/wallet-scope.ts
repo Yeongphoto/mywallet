@@ -1,4 +1,5 @@
 import { activeGuestId, guestKey, localWalletFetch, MODE_KEY, pinGuestGeneration } from './local-wallet.ts';
+import { completePersonalOnboarding } from './local-sync.ts';
 export type WalletContext = { user: { id: string }; ledger: { id: string; role: 'owner' | 'editor' | 'viewer'; kind?: 'personal' | 'shared'; name?: string; generation?: string; recoveryStatus?: string; recoveryExpiresAt?: number }; mode: 'shared-web' | 'local' };
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 let context: WalletContext | null = null;
@@ -24,6 +25,10 @@ export async function readWalletContext(): Promise<WalletContext> {
   const get=(id:string|null)=>window.fetch('/api/wallet/context', { credentials: 'same-origin', cache: 'no-store',
     headers:id?{'X-Memoney-Ledger':id}:{},redirect: 'error', signal: AbortSignal.timeout(10000) });
   let response=await get(selected);
+  if(response.status===425 && (await response.clone().json().catch(()=>({}))).error==='PERSONAL_ONBOARDING_REQUIRED'){
+    const result=await completePersonalOnboarding();
+    response=await get(result.ledger.id);
+  }
   if(response.status===403&&selected){window.localStorage.removeItem(SELECTED_LEDGER_KEY);response=await get(null);}
   let data;
   try { data = await response.json(); }

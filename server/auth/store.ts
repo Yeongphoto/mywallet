@@ -49,10 +49,18 @@ export async function resolveUser(db: AuthDatabase, identity: GoogleIdentity, no
   if (!user || user.status !== 'active') throw new Error('ACCOUNT_UNAVAILABLE');
   return user.id;
 }
-export async function createSession(db: AuthDatabase, userId: string, now = Date.now()) {
+export async function createSession(db: AuthDatabase, userId: string, now = Date.now(), personalOnboarding = false) {
   const token = opaqueToken();
-  await db.prepare('INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
-    .bind(await hashToken(token), userId, now, now + sessionLifetime * 1000).run();
+  const hash = await hashToken(token);
+  const session = db.prepare('INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(hash, userId, now, now + sessionLifetime * 1000);
+  if (personalOnboarding) await db.batch([
+    // Immutable first-login owner. Re-login, another device and ledger reset never reopen it.
+    db.prepare('INSERT OR IGNORE INTO personal_onboarding_accounts(user_id,first_session_hash,first_login_at,expires_at) VALUES(?,?,?,?)')
+      .bind(userId, hash, now, now + 300000),
+    session,
+  ]);
+  else await session.run();
   return { token, maxAge: sessionLifetime };
 }
 export async function sessionUser(db: AuthDatabase, token: string, now = Date.now()) {
