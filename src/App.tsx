@@ -8756,7 +8756,7 @@ ${sheet4Rows}  </sheetData>
                       다크 모드 또는 라이트 모드를 설정합니다.
                     </div>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="화면 모드">
+                  <JellyToggle value={theme} className="theme-toggle" role="group" aria-label="화면 모드">
                     <button type="button" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
                       시스템 설정
                     </button>
@@ -8766,7 +8766,7 @@ ${sheet4Rows}  </sheetData>
                     <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
                       다크
                     </button>
-                  </div>
+                  </JellyToggle>
                 </div>
 
 
@@ -8774,10 +8774,10 @@ ${sheet4Rows}  </sheetData>
                   <div>
                     <strong>디자인</strong>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="디자인 테마">
+                  <JellyToggle value={styleTheme === 'theme1' ? 'theme1' : 'default'} className="theme-toggle" role="group" aria-label="디자인 테마">
                     <button type="button" className={styleTheme !== 'theme1' ? 'active' : ''} aria-pressed={styleTheme !== 'theme1'} onClick={() => setStyleTheme('default')}>기본</button>
                     <button type="button" className={styleTheme === 'theme1' ? 'active' : ''} aria-pressed={styleTheme === 'theme1'} onClick={() => setStyleTheme('theme1')}>테마1</button>
-                  </div>
+                  </JellyToggle>
                 </div>
 
                 <div className="settings-row theme-settings-row">
@@ -8787,7 +8787,7 @@ ${sheet4Rows}  </sheetData>
                       지출이 0원인 날을 캘린더에 🍀 무지출 도장으로 표시합니다.
                     </div>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="무지출 챌린지">
+                  <JellyToggle value={isNoSpendChallengeEnabled ? 'on' : 'off'} className="theme-toggle" role="group" aria-label="무지출 챌린지">
                     <button
                       type="button"
                       className={isNoSpendChallengeEnabled ? 'active' : ''}
@@ -8802,7 +8802,7 @@ ${sheet4Rows}  </sheetData>
                     >
                       꺼짐
                     </button>
-                  </div>
+                  </JellyToggle>
                 </div>
               </div>
             )}

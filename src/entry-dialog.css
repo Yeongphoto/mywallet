@@ -43,6 +43,18 @@ html[data-style-theme="default"] .registration-mode-tabs > button.active {
 }
 .entry-dialog-viewport::-webkit-scrollbar { display: none; }
 .entry-dialog-viewport::after { content: ''; grid-row: 2; pointer-events: none; }
+/* Run once on mount; no retained transform or animation during keyboard input. */
+html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal {
+  animation: entry-jelly-arrive 280ms ease-out !important;
+}
+@keyframes entry-jelly-arrive {
+  from { translate: 0 10px; scale: .985 .97; }
+  65% { translate: 0 -1px; scale: 1.002 1.004; }
+  to { translate: none; scale: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal { animation: none !important; }
+}
 .entry-dialog-viewport > .modal-content:is(.entry-modal, .transaction-edit-modal) {
   --entry-field-height: 48px;
   --registration-field-gap: 8px;
