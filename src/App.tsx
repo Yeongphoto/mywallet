@@ -4,6 +4,7 @@ import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFor
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
 import { BrandWordmark } from './BrandWordmark';
+import { JellyToggle } from './JellyToggle';
 import { useEntryViewport } from './use-entry-viewport';
 import { FloatingTitleSuggestions } from './FloatingTitleSuggestions';
 import { LoadingScreen } from './LoadingScreen';
@@ -7300,7 +7301,7 @@ ${sheet4Rows}  </sheetData>
                 </div>
                 
                 {/* 필터 칩 선택기 */}
-                <div className="annual-chart-filters" style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
+                <JellyToggle value={chartFilter} className="annual-chart-filters" style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('both')}
@@ -7401,7 +7402,7 @@ ${sheet4Rows}  </sheetData>
                   >
                     자산(부채포함)
                   </button>
-                </div>
+                </JellyToggle>
                 {(chartFilter === 'asset' || chartFilter === 'assetNet') && latestTrackedAsset && latestTrackedAsset.asset !== null && (
                   <span className="yearly-asset-current" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
                     {chartFilter === 'asset' ? '자산' : '자산(부채포함)'} {displayCurrency(chartFilter === 'asset' ? latestTrackedAsset.grossAsset! : latestTrackedAsset.asset)}
@@ -7850,11 +7851,11 @@ ${sheet4Rows}  </sheetData>
         {/* Ledger List Tab */}
         {activeTab === 'ledger' && (
           <section className="ledger-workspace">
-            <div className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
+            <JellyToggle value={ledgerView} className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
               <button type="button" className={ledgerView === 'daily' ? 'active' : ''} onClick={() => setLedgerView('daily')}>일일</button>
               <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
               <button type="button" className={ledgerView === 'monthly' ? 'active' : ''} onClick={() => setLedgerView('monthly')}>월별</button>
-            </div>
+            </JellyToggle>
             <div className="ledger-header settlement-summary-top">
               <h2 className="settlement-summary-title"><AppIcon name="ledger" size={19} /> 거래 장부 목록</h2>
               {ledgerView === 'daily' && <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>}
@@ -8250,7 +8251,7 @@ ${sheet4Rows}  </sheetData>
         {/* Plans Tab */}
         {activeTab === 'plan' && (
           <>
-            <div className="ledger-view-toggle plan-view-toggle" role="tablist" aria-label="계획 보기 전환">
+            <JellyToggle value={planView} className="ledger-view-toggle plan-view-toggle" role="tablist" aria-label="계획 보기 전환">
               <button
                 type="button"
                 className={planView === 'budget' ? 'active' : ''}
@@ -8265,7 +8266,7 @@ ${sheet4Rows}  </sheetData>
               >
                 결산
               </button>
-            </div>
+            </JellyToggle>
 
             {planView === 'budget' && (
               <div className="plans-workspace">
