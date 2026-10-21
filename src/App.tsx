@@ -5910,7 +5910,12 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
       if(mode!=='shared-web')selectCloudLedger(mode);
       await readWalletContext();
       window.localStorage.setItem(MODE_KEY, 'shared-web');
-      window.location.assign('/wallet#settings');
+      if (window.location.pathname === '/wallet') {
+        // Assigning the current hash URL only performs same-document navigation.
+        // Reload so module-level storage keys initialize for the selected ledger.
+        window.history.replaceState(window.history.state, '', '/wallet#settings');
+        window.location.reload();
+      } else window.location.assign('/wallet#settings');
     } catch (error) {
       if ((error as Error).message === 'UNAUTHENTICATED') window.location.assign('/signin?wallet=shared');
       else showNotice('장부에 연결하지 못했어요.', '장부 선택', 'error');
