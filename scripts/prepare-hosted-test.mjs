@@ -45,6 +45,7 @@ if (personal) {
   config.d1_databases.push({binding:'TEST_FINANCE',database_name:personal.databaseName,database_id:personal.databaseId});
   config.vars.AUTH_TEST_PERSONAL_LEDGER='true';
   config.vars.AUTH_TEST_MULTI_LEDGER='true';
+  config.vars.AUTH_LEDGER_RECOVERY='true';
   config.d1_databases.push({binding:'TEST_SHARED_FINANCE',database_name:databases.shared.name,database_id:databases.shared.id});
   config.vars.AUTH_SHARED_WALLET_LEDGER_ID=personal.ledgerId;
   delete config.vars.AUTH_SHARED_WALLET_ORIGIN;

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { activateWalletScope, walletStorageKey, walletFetch, lockWalletScope, readWalletContext, isWalletAccessDenied } from '../src/auth/wallet-scope.ts';
+import { activateWalletScope, walletStorageKey, walletFetch, lockWalletScope, readWalletContext, isWalletAccessDenied, beginWalletMaintenance } from '../src/auth/wallet-scope.ts';
 import { preloadD1Cache } from '../src/d1-cache-preload.ts';
 function scope(){return {user:{id:randomUUID()},ledger:{id:randomUUID(),role:'owner'},mode:'shared-web'};}
 function browser(fetch){const values=new Map(),events=[];return {values,events,fetch,dispatchEvent:event=>events.push(event.type),
@@ -61,4 +61,17 @@ test('access loss locks further financial requests while retaining account pendi
   await assert.rejects(walletFetch('/api/data'),/WALLET_LOCKED/);assert.equal(calls,1);
   lockWalletScope();assert.equal(state.values.get(walletStorageKey('mywallet:v2:pendingSyncAt')),'123');
   delete globalThis.window;
+});
+test('generation changes never adopt pending edits or silently advance a mounted wallet',async()=>{
+ const next=scope();next.ledger.generation='new';
+ const state=browser(async()=>Response.json({transactions:[]},{headers:{'X-Memoney-Generation':'new'}}));globalThis.window=state;activateWalletScope(next);
+ const key=walletStorageKey('mywallet:v2');state.values.set(key,JSON.stringify({transactions:[{id:'keep'}]}));state.values.set(key+':generation','old');state.values.set(key+':pendingSyncAt','123');
+ await assert.rejects(()=>walletFetch('/api/data'),/LEDGER_GENERATION_CHANGED/);assert(state.events.includes('memoney:wallet-generation-changed'));assert.equal(JSON.parse(state.values.get(key)).transactions[0].id,'keep');
+ await assert.rejects(()=>walletFetch('/api/data',{method:'PATCH',body:'{}'}),/LEDGER_GENERATION_CHANGED/);
+ delete globalThis.window;
+});
+test('maintenance waits for in-flight financial writes and blocks additional writes until released',async()=>{
+ let complete;const state=browser(()=>new Promise(resolve=>complete=resolve));globalThis.window=state;activateWalletScope(scope());
+ const writing=walletFetch('/api/data',{method:'PATCH',body:'{}'});assert.throws(beginWalletMaintenance,/PENDING_WRITES/);complete(Response.json({success:true}));await writing;
+ const release=beginWalletMaintenance();await assert.rejects(()=>walletFetch('/api/data',{method:'PATCH',body:'{}'}),/WALLET_MAINTENANCE/);release();delete globalThis.window;
 });

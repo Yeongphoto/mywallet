@@ -3,7 +3,7 @@ import type { LocalSnapshot, Row } from './local-wallet.ts';
 import type { WalletContext } from './wallet-scope.ts';
 
 export type ImportStep = { body: Row; kind: string; id: string; expected?: Row };
-export type ImportJob = { version: 1; guestId: string; target: WalletContext; snapshot: LocalSnapshot; steps: ImportStep[]; next: number; completed: boolean };
+export type ImportJob = { version: 1; guestId: string; target: WalletContext; snapshot: LocalSnapshot; steps: ImportStep[]; next: number; completed: boolean; generation?: string };
 const same = (a: any, b: any) => JSON.stringify(a) === JSON.stringify(b);
 
 export function buildImportSteps(source: LocalSnapshot, prefix: string): ImportStep[] {
@@ -126,9 +126,16 @@ function matches(step: ImportStep, row: Row) {
 }
 export async function runImportJob(job: ImportJob, getContext: () => Promise<WalletContext>, requestFetch: typeof fetch = window.fetch.bind(window), storage = window.localStorage, progress: (n: number, total: number) => void = () => {}) {
   if (job.completed) return;
-  const scopedFetch:typeof fetch=(input,init)=>{
+  const scopedFetch:typeof fetch=async(input,init)=>{
     const headers=new Headers(init?.headers);headers.set('X-Memoney-Ledger',job.target.ledger.id);
-    return requestFetch(input,{...init,headers});
+    if(job.generation)headers.set('X-Memoney-Generation',job.generation);
+    const response=await requestFetch(input,{...init,headers});
+    const generation=response.headers.get('X-Memoney-Generation');
+    if(generation) {
+      if(job.generation&&job.generation!==generation||!job.generation&&job.next>0&&generation!=='initial')throw Error('SYNC_GENERATION_CHANGED');
+      if(!job.generation){job.generation=generation;storage.setItem(guestKey(job.guestId,'sync-job'),JSON.stringify(job));}
+    }
+    return response;
   };
   const verify = async () => {
     const target = await getContext();

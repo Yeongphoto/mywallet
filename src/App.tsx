@@ -5,6 +5,7 @@ import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
 import { BrandWordmark } from './BrandWordmark';
 import { JellyToggle } from './JellyToggle';
+import { LedgerRecovery } from './auth/LedgerRecovery';
 import { useEntryViewport } from './use-entry-viewport';
 import { FloatingTitleSuggestions } from './FloatingTitleSuggestions';
 import { LoadingScreen } from './LoadingScreen';
@@ -2401,9 +2402,9 @@ function saveLocalStorage(
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
     if (isLocalWallet()) {
-      persistLocalView(walletContext()!.ledger.id, { transactions, assets, budget, theme, styleTheme, plans,
+      void Promise.resolve(persistLocalView(walletContext()!.ledger.id, { transactions, assets, budget, theme, styleTheme, plans,
         customExpenseCategories, customIncomeCategories, customAssetCategories, categoryColors, categoryLabels,
-        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt });
+        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt })).catch(()=>window.dispatchEvent(new Event('memoney:local-save-failed')));
       return;
     }
     window.localStorage.setItem(
@@ -5926,7 +5927,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     try {
       const id = walletContext()!.ledger.id, data = parseGuestArchive(await file.text(), id);
       requestConfirm({ title: '로컬 백업 복원', message: `거래 ${data.transactions.length}건 · 자산 ${data.assets.length}개를 복원할까요?`, confirmLabel: '복원',
-        onConfirm: () => { try { restoreGuestArchive(id, data); } catch { showNotice('백업을 복원하지 못했어요.', '복원', 'error'); } } });
+        onConfirm: () => { void restoreGuestArchive(id, data).catch(() => showNotice('백업을 복원하지 못했어요.', '복원', 'error')); } });
     } catch { showNotice('백업 파일을 확인해 주세요.', '복원', 'error'); }
   }
 
@@ -9450,6 +9451,7 @@ ${sheet4Rows}  </sheetData>
                   <span className="settings-sync-action">{isLocalWallet() ? '동기화 설정' : '서버 확인'}</span>
                 </button>
                 <div className="settings-data-grid">
+                  <LedgerRecovery />
                   {isLocalWallet() && <article className="settings-data-card">
                     <strong>로컬 백업</strong>
                     <div className="settings-card-actions">

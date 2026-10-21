@@ -1,5 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { guestKey, localSnapshot } from './local-wallet';
+import { guestKey, localSnapshot, assertGuestGeneration, withGuestLock } from './local-wallet';
 import type { LocalSnapshot } from './local-wallet';
 const files = registerPlugin<{ save(options: { content: string; name: string; mimeType: string }): Promise<void> }>('MemoneyLocalBackup');
 export async function saveGuestBackup(content: string, name: string, mimeType = 'application/json') {
@@ -17,11 +17,14 @@ export function parseGuestArchive(text: string, id: string): LocalSnapshot {
   if (backup.format !== 'memoney-local' || backup.version !== 1) throw new Error('INVALID_BACKUP');
   return localSnapshot({ getItem: () => JSON.stringify(backup.data) }, id);
 }
-export function restoreGuestArchive(id: string, snapshot: LocalSnapshot) {
+export async function restoreGuestArchive(id: string, snapshot: LocalSnapshot) {
+  return withGuestLock(id,()=>{
+  assertGuestGeneration(id);
   const job = window.localStorage.getItem(guestKey(id, 'sync-job'));
   if (job && !JSON.parse(job).completed) throw new Error('SYNC_IN_PROGRESS');
   const current = localSnapshot(window.localStorage, id);
   window.localStorage.setItem(guestKey(id, `pre-restore:${Date.now()}`), JSON.stringify(current));
   window.localStorage.setItem(guestKey(id), JSON.stringify(snapshot));
   window.location.replace('/guest#settings');
+  });
 }
