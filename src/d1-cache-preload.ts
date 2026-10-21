@@ -49,14 +49,22 @@ function hasLocalWalletData(raw: string | null) {
 function backupCurrentLocalCache() {
   const D1_CACHE_STORAGE_KEY = walletStorageKey('mywallet:v2');
   const D1_CACHE_BACKUP_KEY = walletStorageKey('mywallet:v2:pre-d1-backup');
-  const D1_CACHE_BACKUP_PREFIX = walletStorageKey('mywallet:v2:backup:');
   const current = window.localStorage.getItem(D1_CACHE_STORAGE_KEY);
   if (!hasLocalWalletData(current)) return;
 
   const previousBackup = window.localStorage.getItem(D1_CACHE_BACKUP_KEY);
   if (previousBackup !== current) {
     window.localStorage.setItem(D1_CACHE_BACKUP_KEY, current!);
-    window.localStorage.setItem(`${D1_CACHE_BACKUP_PREFIX}${Date.now()}`, current!);
+  }
+}
+
+function writeOptionalCache(write: () => void) {
+  try { write(); }
+  catch (error) {
+    // A valid server response still permits entry when this recovery cache is
+    // full. App performs its normal authoritative D1 read before becoming ready.
+    // Preserve all existing backups and pending edits; never clear storage here.
+    if (!(error instanceof DOMException) || !['QuotaExceededError', 'NS_ERROR_DOM_QUOTA_REACHED'].includes(error.name)) throw error;
   }
 }
 
@@ -94,9 +102,11 @@ export async function preloadD1Cache() {
     }
     if (!walletContext() && !hasRemoteWalletData(data)) return;
 
-    backupCurrentLocalCache();
-    window.localStorage.setItem(D1_CACHE_STORAGE_KEY, JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent('mywallet:d1-cache-preloaded', { detail: data }));
+    writeOptionalCache(backupCurrentLocalCache);
+    writeOptionalCache(() => {
+      window.localStorage.setItem(D1_CACHE_STORAGE_KEY, JSON.stringify(data));
+      window.dispatchEvent(new CustomEvent('mywallet:d1-cache-preloaded', { detail: data }));
+    });
   } catch (error) {
     if (walletContext()) throw error;
     // Local cache remains available when offline or when D1 is temporarily unreachable.

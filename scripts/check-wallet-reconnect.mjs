@@ -47,7 +47,7 @@ async function fixture(mode='ok'){
    state.active--;
   }else if(url.pathname==='/api/data'){
    if(state.dataFails-->0){status=503;data={error:'WALLET_UNAVAILABLE'};}
-   else data={transactions:[],assets:[],plans:[],recurringRules:[],deletedRecurringTxs:[],budget:500000,updatedAt:1234};
+   else data=state.payload||{transactions:[],assets:[],plans:[],recurringRules:[],deletedRecurringTxs:[],budget:500000,updatedAt:1234};
   }else if(url.pathname==='/api/auth/config')data={enabled:true,clientId:'fixture.apps.googleusercontent.com'};
   else if(url.pathname==='/api/auth/session'){status=state.expired?401:200;data=state.expired?{error:'UNAUTHENTICATED'}:{user:scope.user};}
   else if(url.pathname==='/api/auth/logout'){status=state.logoutFails?503:200;data={success:status===200};if(status===200)state.expired=true;}
@@ -80,6 +80,27 @@ try{
   assert.equal(f.state.writes,0);checks++;await f.close();
  }
  if(!process.argv.includes('--transition-only')){
+ for(const quota of ['backup','snapshot']){
+  const f=await fixture();
+  f.state.payload={transactions:[],assets:[],plans:[],customExpenseCategories:[{id:'fixture-category',label:'Fixture'}],recurringRules:[],deletedRecurringTxs:[],budget:500000,updatedAt:1234};
+  await f.page.evaluateOnNewDocument(({scope,quota})=>{
+   const key=`memoney:user:${scope.user.id}:ledger:${scope.ledger.id}:mywallet:v2`;
+   localStorage.setItem(key,JSON.stringify({transactions:[],assets:[],budget:123,updatedAt:1}));
+   localStorage.setItem(key+':backup:existing','preserved-backup');
+   window.quotaFailures=0;
+   const original=Storage.prototype.setItem;
+   Storage.prototype.setItem=function(k,v){
+    if(k===(quota==='backup'?key+':pre-d1-backup':key)){window.quotaFailures++;throw new DOMException('Fixture storage full','QuotaExceededError');}
+    return original.call(this,k,v);
+   };
+  },{scope,quota});
+  await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-screen',{hidden:true});
+  assert(await f.page.$('.app-header'));assert.equal(f.state.calls,1,'Storage quota must not cause a reconnect loop');
+  const result=await f.page.evaluate(()=>({failures:window.quotaFailures,backups:Object.keys(localStorage).filter(k=>k.includes(':backup:')).map(k=>localStorage.getItem(k)),snapshot:JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.endsWith(':mywallet:v2'))))}));
+  assert(result.failures>0);assert.deepEqual(result.backups,['preserved-backup'],'Keep existing backups without adding timestamp copies');
+  if(quota==='backup')assert.equal(result.snapshot.budget,500000,'A backup quota failure must not prevent caching authoritative data');
+  assert.equal(f.state.writes,0);checks++;await f.close();
+ }
  for(const mode of ['network','server']){
   const f=await fixture(mode);await f.page.goto(origin+'/wallet');await f.page.waitForSelector('.wallet-connection-screen[data-state="sleep"]');await sleep(150);
   assert.equal(await f.page.$('.app-header'),null);assert.equal(await f.page.$('.wallet-connection-status'),null);
