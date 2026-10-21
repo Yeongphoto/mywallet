@@ -49,6 +49,11 @@ async function bootstrap() {
     createRoot(appRootElement).render(<StrictMode><SharingScreen /></StrictMode>);
     return;
   }
+  if (window.location.pathname === '/browser-login') {
+    const { default: BrowserApprovalScreen } = await import('./auth/BrowserLogin');
+    createRoot(appRootElement).render(<StrictMode><BrowserApprovalScreen /></StrictMode>);
+    return;
+  }
   if (window.location.pathname === '/signin') {
     if (!window.location.search && window.localStorage.getItem('memoney:wallet-mode') === 'local') {
       window.location.replace('/guest');

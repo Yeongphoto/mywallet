@@ -1,5 +1,6 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, statSync } from 'node:fs';
+import { resolve, join, relative } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
 
 // Hosted app deployment. Database names are platform-neutral; keep the installed
@@ -23,7 +24,12 @@ if (personal && (personal.databaseId !== databases.personal.id ||
     personal.ledgerId === connection.ledgerId || personal.ownerUserId !== connection.ownerUserId)) throw Error('Unexpected personal test database');
 mkdirSync('android/build',{recursive:true});
 const runtime = mkdtempSync(resolve('android/build/hosted-test-'));
-cpSync('dist',join(runtime,'dist'),{recursive:true});
+const publicFiles=new Set(execFileSync('git',['ls-files','-z','--','public'],{encoding:'utf8'}).split('\0').filter(Boolean).map(file=>file.slice('public/'.length)));
+// A user's untracked documents in public/ must never become a hosted app asset.
+cpSync('dist',join(runtime,'dist'),{recursive:true,filter(source){
+  const file=relative(resolve('dist'),resolve(source)).replaceAll('\\','/'),original=join('public',file);
+  return !existsSync(original)||!statSync(original).isFile()||publicFiles.has(file);
+}});
 cpSync('functions/api/auth',join(runtime,'functions/api/auth'),{recursive:true});
 cpSync('functions/api/wallet',join(runtime,'functions/api/wallet'),{recursive:true});
 cpSync('server',join(runtime,'server'),{recursive:true});
@@ -46,6 +52,7 @@ if (personal) {
   config.vars.AUTH_TEST_PERSONAL_LEDGER='true';
   config.vars.AUTH_TEST_MULTI_LEDGER='true';
   config.vars.AUTH_LEDGER_RECOVERY='true';
+  config.vars.AUTH_BROWSER_LOGIN='true';
   config.d1_databases.push({binding:'TEST_SHARED_FINANCE',database_name:databases.shared.name,database_id:databases.shared.id});
   config.vars.AUTH_SHARED_WALLET_LEDGER_ID=personal.ledgerId;
   delete config.vars.AUTH_SHARED_WALLET_ORIGIN;

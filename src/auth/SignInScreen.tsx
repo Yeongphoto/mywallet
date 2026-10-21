@@ -10,6 +10,7 @@ import { appLogoSrc } from './app-appearance';
 import { BrandWordmark } from '../BrandWordmark';
 import { LoadingScreen } from '../LoadingScreen';
 import { useLaunchReady } from './use-launch-ready';
+import { BrowserLoginButton } from './BrowserLogin';
 
 const native = registerPlugin<NativeGoogle>('MemoneyGoogleAuth');
 const auth = createAuthClient(native);
@@ -34,6 +35,7 @@ export default function SignInScreen() {
   const appearance = useAppAppearance();
   const [user, setUser] = useState<User | null>(null);
   const [enabled, setEnabled] = useState(false);
+  const [browserEnabled,setBrowserEnabled]=useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -75,6 +77,7 @@ export default function SignInScreen() {
       const session = configuration.enabled && !requireGoogle ? await auth.session() : null;
       if (version !== generation.current) return;
       setEnabled(configuration.enabled);
+      setBrowserEnabled(configuration.browserLogin===true);
       setUser(session);
       if (!configuration.enabled) setNotice('로그인 설정을 준비하고 있어요.');
     } catch (error) {
@@ -129,7 +132,7 @@ export default function SignInScreen() {
             <>
               <button className="secondary-button" disabled={busy} onClick={() => void refresh()}>다시 연결</button>
             </>
-          ) : (
+          ) : !isAndroid&&enabled&&browserEnabled ? <BrowserLoginButton onAuthenticated={setUser} /> : (
             <>
               <button className="signin-google" aria-label="Google로 계속하기" disabled={!enabled || !isAndroid || loading || busy} onClick={() => void perform('signin')}>
                 <img src="/google-g.png" alt="" aria-hidden="true" />

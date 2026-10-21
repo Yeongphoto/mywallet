@@ -37,7 +37,7 @@
     transition-duration: 85ms !important;
   }
 }
-@media (max-width: 599px) {
+@media (min-width: 0px) {
   html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action),
   html[data-style-theme="default"] .sidebar nav > a.active,
   html[data-style-theme="default"][data-ui-theme="theme1"] .sidebar nav > a.active,
@@ -103,7 +103,7 @@
     transition: none !important;
   }
 }
-@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
   html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action)::before,
   html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action):active::before,
   html[data-style-theme="default"] .sidebar nav > a > span,

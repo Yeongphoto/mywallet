@@ -1,0 +1,10 @@
+.browser-login-controls { display:flex; flex-direction:column; gap:12px; width:100%; }
+.browser-login-controls a.signin-google { display:flex; align-items:center; justify-content:center; text-decoration:none; box-sizing:border-box; }
+.browser-login-controls a[aria-disabled="true"] { opacity:.55; cursor:wait; }
+.browser-login-code { margin:0; color:var(--text-secondary); text-align:center; font-size:.85rem; line-height:1.6; }
+.browser-login-code strong { display:block; color:var(--text-primary); font-size:1.4rem; letter-spacing:.18em; font-variant-numeric:tabular-nums; }
+.browser-login-help p,.browser-login-controls [role="alert"],.browser-approval p { margin:0; font-size:.85rem; line-height:1.6; color:var(--text-secondary); }
+.browser-account { margin:0; overflow-wrap:anywhere; text-align:center; }
+.browser-code-confirm { display:flex; align-items:center; gap:10px; font-size:.9rem; line-height:1.6; padding:18px 0; }
+.browser-code-confirm input { width:20px; height:20px; flex-shrink:0; accent-color:var(--primary); }
+.browser-google-slot { display:flex; justify-content:center; min-height:44px; }

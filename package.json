@@ -9,6 +9,7 @@
     "build": "npm run check:pwa && tsc -b && vite build",
     "check:pwa": "node scripts/check-pwa-branding.mjs",
     "check:recovery": "tsc -p tsconfig.auth.json && node --test scripts/ledger-recovery.test.mjs",
+    "check:browser-login": "tsc -p tsconfig.auth.json && node --test scripts/browser-login.test.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "dev:d1": "npm run dev",

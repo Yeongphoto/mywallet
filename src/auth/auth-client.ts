@@ -37,13 +37,13 @@ export function createAuthClient(native: NativeGoogle, request: typeof fetch = f
     }
   }
   return {
-    async configuration(): Promise<{ enabled: boolean; clientId: string | null }> {
+    async configuration(): Promise<{ enabled: boolean; clientId: string | null; browserLogin?: boolean }> {
       const data = await api('config');
       if (data.enabled !== true) return { enabled: false, clientId: null };
       if (typeof data.clientId !== 'string' || !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(data.clientId)) {
         throw new AuthError('AUTH_UNAVAILABLE');
       }
-      return { enabled: true, clientId: data.clientId };
+      return { enabled: true, clientId: data.clientId, ...(data.browserLogin===true?{browserLogin:true}:{}) };
     },
     session,
     async signIn(): Promise<User> {

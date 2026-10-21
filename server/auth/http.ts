@@ -2,6 +2,7 @@ import { verifyGoogleIdentity } from './google.ts';
 import type { GoogleIdentity } from './google.ts';
 import { createChallenge, readChallenge, consumeChallenge, resolveUser, createSession, sessionUser, revokeSession } from './store.ts';
 import type { AuthDatabase } from './store.ts';
+import { browserLogin } from './browser-login.ts';
 
 export interface AuthEnvironment {
   DB: AuthDatabase;
@@ -11,6 +12,7 @@ export interface AuthEnvironment {
   AUTH_ORIGIN?: string;
   AUTH_LOCAL_DEV?: string;
   AUTH_LEDGER_INVITES?: string;
+  AUTH_BROWSER_LOGIN?: string;
 }
 function settings(env: AuthEnvironment, request: Request) {
   if (env.AUTH_ENABLED !== 'true' || !env.AUTH_GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') || !env.AUTH_ORIGIN) return null;
@@ -65,16 +67,17 @@ async function boundedJsonText(request: Request) {
 export async function handleAuth(request: Request, env: AuthEnvironment, action: string, verify: IdentityVerifier = verifyIdentity) {
   const config = settings(env, request);
   if (action === 'config' && request.method === 'GET') {
-    return response({ enabled: Boolean(config), clientId: config?.clientId ?? null });
+    return response({ enabled: Boolean(config), clientId: config?.clientId ?? null, ...(config&&env.AUTH_BROWSER_LOGIN==='true'?{browserLogin:true}:{}) });
   }
   if (!config) return response({ error: 'AUTH_NOT_CONFIGURED' }, 503);
-  const methods: Record<string, string> = { challenge: 'POST', google: 'POST', session: 'GET', logout: 'POST' };
+  const methods: Record<string, string> = { challenge: 'POST', google: 'POST', session: 'GET', logout: 'POST',...Object.fromEntries(env.AUTH_BROWSER_LOGIN==='true'?['browser-start','browser-preview','browser-approve','browser-poll','browser-claim'].map(action=>[action,'POST']):[]) };
   if (!methods[action]) return response({ error: 'NOT_FOUND' }, 404);
   if (request.method !== methods[action]) return response({ error: 'METHOD_NOT_ALLOWED' }, 405);
   if (request.method === 'POST' && request.headers.get('Origin') !== config.origin) {
     return response({ error: 'ORIGIN_REJECTED' }, 403);
   }
   try {
+    if(action.startsWith('browser-'))return browserLogin(request,env.DB,config,action,verify);
     if (action === 'challenge') {
       const challenge = await createChallenge(env.DB);
       return response({ nonce: challenge.nonce, clientId: config.clientId }, 200,
