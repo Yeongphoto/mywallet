@@ -1,0 +1,79 @@
+/* All settings segments divide the row equally, whatever their button count. */
+.settings-hub .theme-toggle {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.settings-hub .theme-toggle > button { min-width: 0; width: auto; }
+
+/* The selector and connection action are separate controls, never one frame. */
+html[data-style-theme="default"] .ledger-settings-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .ledger-settings-controls .instant-select-trigger,
+html[data-style-theme="default"] .ledger-settings-controls .ledger-connection-action {
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-input) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .ledger-settings-controls .instant-select-trigger { background: var(--bg-input) !important; }
+html[data-style-theme="default"] .ledger-settings-controls .ledger-connection-action {
+  background: var(--primary-soft) !important;
+  color: var(--text-primary) !important;
+  font-weight: 700;
+}
+html[data-style-theme="default"][data-ui-theme="theme1"] .ledger-settings-controls :is(.instant-select-trigger, .ledger-connection-action) { border-radius: 0 !important; }
+
+/* Compact checkbox switches use the same mint jelly and elastic travel. */
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) { position: relative; }
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input {
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  left: 0;
+}
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input + span {
+  width: 32px;
+  height: 18px;
+  flex: 0 0 32px;
+  box-sizing: border-box;
+  border: 1px solid rgb(var(--primary-rgb), .35);
+  border-radius: 999px;
+  background: var(--bg-input);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 12%);
+  transition: background 160ms ease !important;
+}
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input + span::after {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  left: 2px;
+  border: 1px solid var(--primary);
+  background: linear-gradient(145deg, #ffffff, #d7eee0);
+  box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(0 0 0 / 20%);
+  transform: translate(0, -50%);
+  transition: transform 240ms cubic-bezier(.2, .85, .3, 1.08) !important;
+}
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input:checked + span {
+  background: linear-gradient(145deg, var(--jelly-top), var(--jelly-bottom));
+  border-color: var(--jelly-edge);
+}
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input:checked + span::after {
+  transform: translate(14px, -50%);
+  background: linear-gradient(145deg, var(--primary-light), var(--primary));
+}
+html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input + span,
+  html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input + span::after { transition: none !important; }
+}

@@ -1335,9 +1335,6 @@ function MonthlyTransactionSubpage({
           </button>
           <div className="subpage-title-group">
             <h2>{isIncome ? '🔵 이번 달 수입 내역' : '🔴 이번 달 지출 내역'}</h2>
-            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              ({monthTitle})
-            </span>
           </div>
         </div>
       </div>
@@ -1438,7 +1435,7 @@ function MonthlyTransactionSubpage({
           value={filterCategory}
           placeholder="카테고리 선택"
           options={[
-            { value: 'all', label: `모든 ${isIncome ? '수입' : '지출'} 카테고리` },
+            { value: 'all', label: '모든 카테고리' },
             ...allCategories.map((category) => ({ value: category.id, label: category.label })),
           ]}
           onChange={setFilterCategory}
@@ -5888,6 +5885,15 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     }
   }
 
+  function requestDisconnectWallet() {
+    requestConfirm({
+      title: '장부 연결 끊기',
+      message: '이 기기를 로컬 장부로 전환할까요?\nGoogle 계정의 개인·공유 장부와 참여 권한은 그대로 보존됩니다. 장부 선택에서 언제든 다시 연결할 수 있어요.',
+      confirmLabel: '로컬로 전환',
+      onConfirm: () => { void selectWallet('local'); },
+    });
+  }
+
   async function selectWallet(mode: string) {
     if(mode==='create-shared'||mode==='manage-shared') {
       saveAppAppearance(theme,styleTheme);
@@ -8740,7 +8746,7 @@ ${sheet4Rows}  </sheetData>
                       onChange={value => void selectWallet(value)} />
                     {isLocalWallet()
                       ? <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>
-                      : <button type="button" className="ledger-connection-action" onClick={() => void selectWallet('local')}>연결 끊기</button>}
+                      : <button type="button" className="ledger-connection-action" onClick={requestDisconnectWallet}>연결 끊기</button>}
                   </div>
                 </div>}
                 <div className="settings-row theme-settings-row">
