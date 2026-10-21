@@ -11,12 +11,15 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "dev:d1": "npm run dev",
-    "check:auth": "tsc -p tsconfig.auth.json && node --test scripts/auth-foundation.test.mjs scripts/auth-client.test.mjs scripts/shared-wallet.test.mjs scripts/wallet-scope.test.mjs scripts/ledger-invitations.test.mjs scripts/personal-test-wallet.test.mjs scripts/shared-creation.test.mjs scripts/web-wallet.test.mjs",
+    "check:auth": "tsc -p tsconfig.auth.json && node --test scripts/auth-foundation.test.mjs scripts/auth-client.test.mjs scripts/shared-wallet.test.mjs scripts/wallet-scope.test.mjs scripts/local-wallet.test.mjs scripts/ledger-invitations.test.mjs scripts/personal-test-wallet.test.mjs scripts/shared-creation.test.mjs scripts/browser-login.test.mjs scripts/ledger-recovery.test.mjs",
+    "check:recovery": "tsc -p tsconfig.auth.json && node --test scripts/ledger-recovery.test.mjs",
+    "check:browser-login": "tsc -p tsconfig.auth.json && node --test scripts/browser-login.test.mjs",
     "web:server": "npm run build && node scripts/web-auth-sandbox.mjs"
   },
   "dependencies": {
-    "jose": "6.2.12",
+    "@capacitor/core": "8.5.3",
     "@vitejs/plugin-react": "5.0.4",
+    "jose": "6.2.12",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "typescript": "5.9.2",

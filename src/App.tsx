@@ -3,9 +3,20 @@ import type { DragEvent, FormEvent, PointerEvent as ReactPointerEvent, ReactNode
 import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFormState, EntryType, TransactionType, CategoryPlan, RecurringRule } from './types';
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
-import { AccountSettings } from './auth/AccountSettings';
+import { BrandWordmark } from './BrandWordmark';
+import { JellyToggle } from './JellyToggle';
+import { LedgerRecovery } from './auth/LedgerRecovery';
+import { useEntryViewport } from './use-entry-viewport';
+import { FloatingTitleSuggestions } from './FloatingTitleSuggestions';
+import { LoadingScreen } from './LoadingScreen';
+import { useLaunchReady } from './auth/use-launch-ready';
 import { ReceivedInvitation } from './auth/ReceivedInvitation';
-import { walletFetch as fetch, walletStorageKey, walletContext, selectCloudLedger } from './auth/wallet-scope';
+import { AccountSettings } from './auth/AccountSettings';
+import { walletFetch as fetch, walletStorageKey, walletContext, isLocalWallet, readWalletContext, selectCloudLedger } from './auth/wallet-scope';
+import { persistLocalView, localSnapshot, MODE_KEY } from './auth/local-wallet';
+import type { LocalSnapshot } from './auth/local-wallet';
+import { saveGuestBackup, exportGuestArchive, parseGuestArchive, restoreGuestArchive } from './auth/local-backup';
+import { appLogoSrc, readAppAppearance, saveAppAppearance } from './auth/app-appearance';
 import './auth/ledger.css';
 
 const expenseCategories: CategoryOption[] = [
@@ -70,7 +81,7 @@ type AppTab = 'summary' | 'asset' | 'plan' | 'calendar' | 'ledger' | 'settings' 
 type AppIconName = 'dashboard' | 'asset' | 'plan' | 'calendar' | 'clock' | 'ledger' | 'settings' | 'plus' | 'edit' | 'chevronLeft' | 'chevronRight' | 'eye' | 'eyeOff' | 'refresh';
 type RemoteSyncStatus = 'checking' | 'pending' | 'saving' | 'synced' | 'stale' | 'error';
 type ThemePreference = 'system' | 'light' | 'dark';
-type StyleThemePreference = 'default' | 'doodle' | 'mememo';
+type StyleThemePreference = 'default' | 'theme1' | 'doodle' | 'mememo';
 type FlowSegment = { id: string; label: string; value: number; color: string };
 
 const SYNC_OVERLAY_MIN_DURATION = 2000;
@@ -141,23 +152,11 @@ function MyWalletLogo({ className = '', style, src = '/logo.png' }: { className?
 }
 
 function getHeaderLogoSrc(styleTheme: StyleThemePreference, resolvedTheme: 'light' | 'dark'): string {
-  if (styleTheme === 'mememo') {
-    return resolvedTheme === 'dark' ? '/images/mememo/mememo-met-mint.png' : '/images/mememo/mememo-met-green.png';
-  }
-  if (styleTheme === 'doodle') {
-    return resolvedTheme === 'dark' ? '/images/logo-cat-cream.png' : '/images/logo-cat-doodle.png';
-  }
-  return resolvedTheme === 'dark' ? '/images/logo-cat-blue.png' : '/images/logo-cat-dark.png';
+  return appLogoSrc(styleTheme, resolvedTheme);
 }
 
 function getSidebarLogoSrc(styleTheme: StyleThemePreference, resolvedTheme: 'light' | 'dark'): string {
-  if (styleTheme === 'mememo') {
-    return '/images/mememo/mememo-met-mint.png';
-  }
-  if (styleTheme === 'doodle') {
-    return resolvedTheme === 'dark' ? '/images/logo-cat-cream.png' : '/images/logo-cat-doodle.png';
-  }
-  return '/images/logo-cat-blue.png';
+  return appLogoSrc(styleTheme, resolvedTheme);
 }
 
 const currencyFormatter = new Intl.NumberFormat('ko-KR', {
@@ -1007,9 +1006,6 @@ function MobileLedgerTimeline({
                       <strong className={`no-spend-card-title ${streak >= 2 ? 'streak' : ''} ${isPledged ? 'pledged' : ''}`}>
                         {streakInfo.cardTitle}
                       </strong>
-                      <span className="no-spend-card-desc">
-                        {streakInfo.cardDesc}
-                      </span>
                     </div>
                   </div>
                   {isToday && onTogglePledgeToday && (
@@ -1340,9 +1336,6 @@ function MonthlyTransactionSubpage({
           </button>
           <div className="subpage-title-group">
             <h2>{isIncome ? '🔵 이번 달 수입 내역' : '🔴 이번 달 지출 내역'}</h2>
-            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              ({monthTitle})
-            </span>
           </div>
         </div>
       </div>
@@ -1443,7 +1436,7 @@ function MonthlyTransactionSubpage({
           value={filterCategory}
           placeholder="카테고리 선택"
           options={[
-            { value: 'all', label: `모든 ${isIncome ? '수입' : '지출'} 카테고리` },
+            { value: 'all', label: '모든 카테고리' },
             ...allCategories.map((category) => ({ value: category.id, label: category.label })),
           ]}
           onChange={setFilterCategory}
@@ -2246,6 +2239,7 @@ function normalizeThemePreference(value: unknown): ThemePreference {
 }
 
 function normalizeStyleThemePreference(value: unknown): StyleThemePreference {
+  if (value === 'theme1') return 'theme1';
   if (value === 'doodle') return 'doodle';
   if (value === 'mememo') return 'mememo';
   return 'default';
@@ -2286,6 +2280,8 @@ function loadStoredData() {
     if (rawTheme) localTheme = normalizeThemePreference(rawTheme);
     const rawStyleTheme = window.localStorage.getItem(STYLE_THEME_STORAGE_KEY);
     if (rawStyleTheme) localStyleTheme = normalizeStyleThemePreference(rawStyleTheme);
+    const appearance = readAppAppearance();
+    if (appearance) { localTheme = appearance.theme; localStyleTheme = appearance.styleTheme; }
   } catch {}
 
   try {
@@ -2405,6 +2401,12 @@ function saveLocalStorage(
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+    if (isLocalWallet()) {
+      void Promise.resolve(persistLocalView(walletContext()!.ledger.id, { transactions, assets, budget, theme, styleTheme, plans,
+        customExpenseCategories, customIncomeCategories, customAssetCategories, categoryColors, categoryLabels,
+        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt })).catch(()=>window.dispatchEvent(new Event('memoney:local-save-failed')));
+      return;
+    }
     window.localStorage.setItem(
       STORAGE_KEY, 
       JSON.stringify({ 
@@ -2429,7 +2431,7 @@ function saveLocalStorage(
       })
     );
   } catch {
-    // LocalStorage error fallback
+    if (isLocalWallet()) window.dispatchEvent(new Event('memoney:local-save-failed'));
   }
 }
 
@@ -2482,6 +2484,12 @@ function sumAmount<T extends { amount: number }>(items: T[]) {
 }
 
 function downloadCSV(csvContent: string, fileName: string) {
+  if (isLocalWallet()) {
+    void saveGuestBackup('\uFEFF' + csvContent, fileName, 'text/csv').catch((error) => {
+      if (error?.code !== 'CANCELLED') window.dispatchEvent(new Event('memoney:local-backup-failed'));
+    });
+    return;
+  }
   const blob = new Blob([new Uint8Array([0xef, 0xbb, 0xbf]), csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -2771,15 +2779,14 @@ function compareTransactionsByDateTime(a: Transaction, b: Transaction) {
 
 const globalModalBackHandler = { current: null as (() => boolean) | null };
 
-export default function App() {
-  const [cloudLedgers, setCloudLedgers] = useState<Array<{ id: string; name: string; kind?: string; role?: string }>>([]);
-  useEffect(() => {
-    if (!walletContext()) return;
-    let disposed = false;
-    void window.fetch('/api/wallet/ledgers', { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) })
-      .then(async response => { if (response.ok) { const data = await response.json(); if (!disposed && Array.isArray(data.ledgers)) setCloudLedgers(data.ledgers); } }).catch(() => {});
-    return () => { disposed = true; };
-  }, []);
+export default function App({ onReady }: { onReady?: () => void } = {}) {
+  useEntryViewport();
+  const [cloudLedgers,setCloudLedgers]=useState<Array<{id:string;name:string;kind?:string;role?:string}>>([]);
+  useEffect(()=>{if(!walletContext())return;let disposed=false;
+    void window.fetch('/api/wallet/ledgers',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(10000)})
+      .then(async r=>{if(r.ok){const data=await r.json();if(!disposed&&Array.isArray(data.ledgers))setCloudLedgers(data.ledgers);}}).catch(()=>{});
+    return()=>{disposed=true;};
+  },[]);
   const storedData = useMemo(() => loadStoredData(), []);
   
   // App states
@@ -3264,6 +3271,8 @@ export default function App() {
   const [paletteDraftColor, setPaletteDraftColor] = useState('#64748b');
 
   const [isLoading, setIsLoading] = useState(true);
+  useLaunchReady(!isLoading);
+  useEffect(() => { if (!isLoading) onReady?.(); }, [isLoading, onReady]);
   const [loadingOrbitDelay] = useState(() => {
     const elapsed = typeof performance === 'undefined' ? 0 : performance.now() % LOADING_ORBIT_DURATION;
     return `-${elapsed}ms`;
@@ -3656,7 +3665,7 @@ export default function App() {
   }, [selectedAsset]);
 
   useEffect(() => {
-    if (isLoading || !isOnline) return;
+    if (isLoading || !isOnline || isLocalWallet()) return;
     let cancelled = false;
     const syncChanges = () => {
       void synchronizeTransactionState().catch(() => {
@@ -3686,14 +3695,16 @@ export default function App() {
   useEffect(() => {
     const resolvedTheme = theme === 'system' ? systemTheme : theme;
     document.documentElement.setAttribute('data-theme', resolvedTheme);
-    document.documentElement.setAttribute('data-style-theme', styleTheme);
+    document.documentElement.setAttribute('data-style-theme', 'default');
+    document.documentElement.setAttribute('data-ui-theme', styleTheme === 'theme1' ? 'theme1' : 'default');
     document.documentElement.style.colorScheme = resolvedTheme === 'light' ? 'only light' : 'dark light';
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolvedTheme === 'dark' ? '#172033' : '#f5f7fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--family-mint').trim());
     document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolvedTheme === 'light' ? 'only light' : 'dark light');
 
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
       window.localStorage.setItem(STYLE_THEME_STORAGE_KEY, styleTheme);
+      saveAppAppearance(theme, styleTheme);
       window.localStorage.setItem(NO_SPEND_CHALLENGE_STORAGE_KEY, String(isNoSpendChallengeEnabled));
     } catch {}
   }, [theme, systemTheme, styleTheme, isNoSpendChallengeEnabled]);
@@ -3701,6 +3712,16 @@ export default function App() {
   // Load data from D1 on mount (Timestamp 조율 DB-First & Local-First 하이브리드)
   useEffect(() => {
     const startTime = Date.now();
+    if (isLocalWallet()) {
+      const local = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}');
+      setCardSettlements(local.cardSettlements || []);
+      assetOrderRevisionsRef.current = local.assetOrderRevisions || {};
+      categoryOrderRevisionsRef.current = local.categoryOrderRevisions || {};
+      isDbLoadedRef.current = true;
+      setRemoteSync({ status: 'synced', message: '이 기기에 저장 중', localUpdatedAt: storedData.updatedAt });
+      setIsLoading(false);
+      return;
+    }
     fetch("/api/data")
       .then((res) => {
         if (!res.ok) throw new Error("API error");
@@ -5542,6 +5563,12 @@ export default function App() {
       setTransactions([]);
       setAssets([]);
       setBudget(1000000);
+      if (isLocalWallet()) {
+        setCardSettlements([]);
+        setHiddenAssets({});
+        assetOrderRevisionsRef.current = {};
+        categoryOrderRevisionsRef.current = {};
+      }
       setCustomExpenseCategories([]);
       setCustomIncomeCategories([]);
       setCustomAssetCategories([]);
@@ -5805,6 +5832,7 @@ export default function App() {
     reader.readAsText(file, 'utf-8');
   }
   async function verifyRemoteSync(showToast = true) {
+    if (isLocalWallet()) { window.dispatchEvent(new Event('memoney:open-local-sync')); return; }
     const syncStartedAt = Date.now();
     let noticeAfterSync: { message: string; title: string; type: NoticeType } | null = null;
     setIsSyncOverlayVisible(true);
@@ -5858,6 +5886,56 @@ export default function App() {
     }
   }
 
+  function requestDisconnectWallet() {
+    requestConfirm({
+      title: '장부 연결 끊기',
+      message: '이 기기를 로컬 장부로 전환할까요?\nGoogle 계정의 개인·공유 장부와 참여 권한은 그대로 보존됩니다. 장부 선택에서 언제든 다시 연결할 수 있어요.',
+      confirmLabel: '로컬로 전환',
+      onConfirm: () => { void selectWallet('local'); },
+    });
+  }
+
+  async function selectWallet(mode: string) {
+    if(mode==='create-shared'||mode==='manage-shared') {
+      saveAppAppearance(theme,styleTheme);
+      window.location.assign(`/sharing?return=${isLocalWallet()?'local':'cloud'}`);return;
+    }
+    if (mode === 'local' && isLocalWallet() || mode === walletContext()?.ledger.id) return;
+    saveAppAppearance(theme, styleTheme);
+    if (mode === 'local') {
+      window.location.assign('/guest#settings');
+      return;
+    }
+    try {
+      if(mode!=='shared-web')selectCloudLedger(mode);
+      await readWalletContext();
+      window.localStorage.setItem(MODE_KEY, 'shared-web');
+      if (window.location.pathname === '/wallet') {
+        // Assigning the current hash URL only performs same-document navigation.
+        // Reload so module-level storage keys initialize for the selected ledger.
+        window.history.replaceState(window.history.state, '', '/wallet#settings');
+        window.location.reload();
+      } else window.location.assign('/wallet#settings');
+    } catch (error) {
+      if ((error as Error).message === 'UNAUTHENTICATED') window.location.assign('/signin?wallet=shared');
+      else showNotice('장부에 연결하지 못했어요.', '장부 선택', 'error');
+    }
+  }
+
+  async function exportLocalArchive() {
+    try { await exportGuestArchive(walletContext()!.ledger.id); showNotice('백업을 저장했어요.', '백업', 'success'); }
+    catch (error) { if ((error as { code?: string }).code !== 'CANCELLED') showNotice('백업을 저장하지 못했어요.', '백업', 'error'); }
+  }
+
+  async function importLocalArchive(file?: File) {
+    if (!file) return;
+    try {
+      const id = walletContext()!.ledger.id, data = parseGuestArchive(await file.text(), id);
+      requestConfirm({ title: '로컬 백업 복원', message: `거래 ${data.transactions.length}건 · 자산 ${data.assets.length}개를 복원할까요?`, confirmLabel: '복원',
+        onConfirm: () => { void restoreGuestArchive(id, data).catch(() => showNotice('백업을 복원하지 못했어요.', '복원', 'error')); } });
+    } catch { showNotice('백업 파일을 확인해 주세요.', '복원', 'error'); }
+  }
+
   function exportFullCSV() {
     const backupSettings = {
       version: 3,
@@ -5876,6 +5954,9 @@ export default function App() {
       recurringRules,
       deletedRecurringTxs,
       updatedAt,
+      localData: isLocalWallet() ? { ...localSnapshot(window.localStorage, walletContext()!.ledger.id), transactions, assets, plans, cardSettlements,
+        budget, theme, styleTheme, customExpenseCategories, customIncomeCategories, customAssetCategories, categoryColors, categoryLabels,
+        categoryBudgetExcluded, categoryOrder, hiddenCategories, hiddenAssets, recurringRules, deletedRecurringTxs, updatedAt } : undefined,
     };
 
     const rows = [
@@ -6509,6 +6590,7 @@ ${sheet4Rows}  </sheetData>
         const assetIds = new Set<string>();
         let invalidRows = 0;
         let importedSettings: Partial<{
+          localData: LocalSnapshot;
           version: number;
           budget: number;
           theme: ThemePreference;
@@ -6610,6 +6692,22 @@ ${sheet4Rows}  </sheetData>
             message: `현재 데이터가 백업 파일 기준으로 교체됩니다. 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건${importedSettings ? ', 설정값 포함' : ''}을 복원할까요?`,
             confirmLabel: '복원',
             onConfirm: () => {
+              if (isLocalWallet() && importedSettings?.localData) {
+                try {
+                  const id = walletContext()!.ledger.id;
+                  const complete = localSnapshot({ getItem: () => JSON.stringify(importedSettings!.localData) }, id);
+                  window.localStorage.setItem(walletStorageKey(`mywallet:v2:pre-restore:${Date.now()}`), window.localStorage.getItem(STORAGE_KEY) || '{}');
+                  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(complete));
+                  window.location.reload();
+                } catch { showNotice('기기 원본을 복원하지 못했습니다. 저장 공간과 백업 파일을 확인해 주세요.', '복원 실패', 'error'); }
+                return;
+              }
+              if (isLocalWallet()) {
+                persistLocalView(walletContext()!.ledger.id, { cardSettlements: [], localOperations: {}, assetOrderRevisions: {}, categoryOrderRevisions: {} });
+                setCardSettlements([]);
+                assetOrderRevisionsRef.current = {};
+                categoryOrderRevisionsRef.current = {};
+              }
               const nextTime = Date.now();
               setTransactions(newTransactions);
               setAssets(newAssets);
@@ -6728,28 +6826,9 @@ ${sheet4Rows}  </sheetData>
 
   return (
     <main className="app-shell">
-      {walletContext() && <ReceivedInvitation />}
-      {isLoading && (
-        <div className="app-loading-screen" role="status" aria-live="polite" aria-busy="true">
-          <div className="app-loading-mark" aria-hidden="true">
-            <span className="app-loading-orbit-track" />
-            <span className="app-loading-orbit" style={{ animationDelay: loadingOrbitDelay }} />
-            <div className="app-loading-logo">
-              <LoadingGlyph />
-            </div>
-          </div>
-          <div className="app-loading-copy">
-            <h1>
-              <span style={{ color: styleTheme === 'mememo' ? '#74c69d' : '#ffffff' }}>Me</span>
-              <span style={{
-                color: styleTheme === 'mememo' ? '#52b788' : (styleTheme === 'doodle' ? '#ff9f43' : '#38bdf8'),
-                marginLeft: '2px'
-              }}>money</span>
-            </h1>
-          </div>
-        </div>
-      )}
-      {!isLoading && isSyncOverlayVisible && (
+      {isLoading && !onReady && <LoadingScreen orbitDelay={loadingOrbitDelay} />}
+      {!isLoading && walletContext() && <ReceivedInvitation />}
+      {!isLoading && isSyncOverlayVisible && !document.documentElement.hasAttribute('data-native-mememo') && (
         <div className="app-sync-overlay" role="status" aria-live="polite" aria-label="동기화 중" aria-busy="true">
           <div className="app-loading-mark" aria-hidden="true">
             <span className="app-loading-orbit-track" />
@@ -6766,7 +6845,7 @@ ${sheet4Rows}  </sheetData>
           <div className="brand">
             <MyWalletLogo src={getSidebarLogoSrc(styleTheme, resolvedTheme)} />
             <div>
-              <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
+              <strong className="brand-wordmark"><BrandWordmark main /></strong>
             </div>
           </div>
           <nav>
@@ -6857,7 +6936,7 @@ ${sheet4Rows}  </sheetData>
             src={getHeaderLogoSrc(styleTheme, resolvedTheme)}
           />
           <div className="brand-text">
-            <strong className="brand-wordmark"><span>Me</span><span>money</span></strong>
+            <strong className="brand-wordmark"><BrandWordmark main /></strong>
           </div>
         </div>
 
@@ -6872,8 +6951,8 @@ ${sheet4Rows}  </sheetData>
             type="button"
             className={`sync-mini-indicator ${topSyncStatus}`}
             onClick={() => void verifyRemoteSync(true)}
-            title={!isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
-            aria-label="서버 동기화 상태 확인"
+            title={isLocalWallet() ? '기기에 저장 중 · 동기화 설정' : !isOnline ? '인터넷 연결 없음' : `${remoteSync.message} - 서버 확인`}
+            aria-label={isLocalWallet() ? '로컬 저장 및 동기화 설정' : '서버 동기화 상태 확인'}
           >
             <AppIcon name="refresh" size={18} />
           </button>
@@ -7234,10 +7313,11 @@ ${sheet4Rows}  </sheetData>
                 </div>
                 
                 {/* 필터 칩 선택기 */}
-                <div style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)', flexShrink: 0 }}>
+                <JellyToggle value={chartFilter} className="annual-chart-filters" style={{ display: 'inline-flex', gap: '3px', background: 'var(--bg-input)', padding: '2px 3px', borderRadius: '10px', border: '1px solid var(--border-input)' }}>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('both')}
+                    aria-pressed={chartFilter === 'both'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7257,6 +7337,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('income')}
+                    aria-pressed={chartFilter === 'income'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7276,6 +7357,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('expense')}
+                    aria-pressed={chartFilter === 'expense'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7295,6 +7377,7 @@ ${sheet4Rows}  </sheetData>
                   <button 
                     type="button" 
                     onClick={() => setChartFilter('asset')}
+                    aria-pressed={chartFilter === 'asset'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7314,6 +7397,7 @@ ${sheet4Rows}  </sheetData>
                   <button
                     type="button"
                     onClick={() => setChartFilter('assetNet')}
+                    aria-pressed={chartFilter === 'assetNet'}
                     style={{
                       padding: '5px 9px',
                       fontSize: '0.75rem',
@@ -7330,7 +7414,7 @@ ${sheet4Rows}  </sheetData>
                   >
                     자산(부채포함)
                   </button>
-                </div>
+                </JellyToggle>
                 {(chartFilter === 'asset' || chartFilter === 'assetNet') && latestTrackedAsset && latestTrackedAsset.asset !== null && (
                   <span className="yearly-asset-current" style={{ whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
                     {chartFilter === 'asset' ? '자산' : '자산(부채포함)'} {displayCurrency(chartFilter === 'asset' ? latestTrackedAsset.grossAsset! : latestTrackedAsset.asset)}
@@ -7779,11 +7863,11 @@ ${sheet4Rows}  </sheetData>
         {/* Ledger List Tab */}
         {activeTab === 'ledger' && (
           <section className="ledger-workspace">
-            <div className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
+            <JellyToggle value={ledgerView} className="ledger-view-toggle" role="tablist" aria-label="장부 보기 전환">
               <button type="button" className={ledgerView === 'daily' ? 'active' : ''} onClick={() => setLedgerView('daily')}>일일</button>
               <button type="button" className={ledgerView === 'calendar' ? 'active' : ''} onClick={() => setLedgerView('calendar')}>달력</button>
               <button type="button" className={ledgerView === 'monthly' ? 'active' : ''} onClick={() => setLedgerView('monthly')}>월별</button>
-            </div>
+            </JellyToggle>
             <div className="ledger-header settlement-summary-top">
               <h2 className="settlement-summary-title"><AppIcon name="ledger" size={19} /> 거래 장부 목록</h2>
               {ledgerView === 'daily' && <span className="record-count">{filteredLedgerTransactions.length}건 검색됨</span>}
@@ -8179,7 +8263,7 @@ ${sheet4Rows}  </sheetData>
         {/* Plans Tab */}
         {activeTab === 'plan' && (
           <>
-            <div className="ledger-view-toggle plan-view-toggle" role="tablist" aria-label="계획 보기 전환">
+            <JellyToggle value={planView} className="ledger-view-toggle plan-view-toggle" role="tablist" aria-label="계획 보기 전환">
               <button
                 type="button"
                 className={planView === 'budget' ? 'active' : ''}
@@ -8194,7 +8278,7 @@ ${sheet4Rows}  </sheetData>
               >
                 결산
               </button>
-            </div>
+            </JellyToggle>
 
             {planView === 'budget' && (
               <div className="plans-workspace">
@@ -8658,18 +8742,19 @@ ${sheet4Rows}  </sheetData>
 
             {settingsSection === 'app' && (
               <div className="settings-stack">
-                {walletContext() ? <>
-                  <AccountSettings />
-                  <div className="settings-row ledger-settings-row"><strong>장부</strong>
-                    <InstantSelect ariaLabel="장부 선택" value={walletContext()!.ledger.id} placeholder="장부 선택"
-                      options={[...cloudLedgers.map(ledger => ({ value: ledger.id, label: ledger.name, detail: ledger.kind === 'shared' ? (ledger.role === 'owner' ? '호스트' : '게스트') : undefined })),
-                        { value: 'manage-sharing', label: cloudLedgers.some(ledger => ledger.kind === 'shared' && ledger.role === 'owner') ? '공유 장부 관리' : '공유 장부 만들기' }]}
-                      onChange={value => {
-                        if (value === 'manage-sharing') { window.location.assign('/sharing?return=cloud'); return; }
-                        selectCloudLedger(value); window.location.assign('/wallet#settings');
-                      }} />
+                {walletContext() && <AccountSettings />}
+                {walletContext() && <div className="settings-row ledger-settings-row">
+                  <strong>장부</strong>
+                  <div className="ledger-settings-controls">
+                    <InstantSelect ariaLabel="장부 선택" value={isLocalWallet()?'local':cloudLedgers.length?walletContext()!.ledger.id:'shared-web'} placeholder="장부 선택"
+                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), { value: 'local', label: '로컬 장부' },
+                        cloudLedgers.some(l=>l.kind==='shared')?{value:'manage-shared',label:'공유 장부 관리'}:{value:'create-shared',label:'공유 장부 만들기'}]}
+                      onChange={value => void selectWallet(value)} />
+                    {isLocalWallet()
+                      ? <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>
+                      : <button type="button" className="ledger-connection-action" onClick={requestDisconnectWallet}>연결 끊기</button>}
                   </div>
-                </> : <div className="settings-row"><strong>개인·공유 장부</strong><a href="/signin">Google 로그인</a></div>}
+                </div>}
                 <div className="settings-row theme-settings-row">
                   <div>
                     <strong>화면 모드</strong>
@@ -8677,7 +8762,7 @@ ${sheet4Rows}  </sheetData>
                       다크 모드 또는 라이트 모드를 설정합니다.
                     </div>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="화면 모드">
+                  <JellyToggle value={theme} className="theme-toggle" role="group" aria-label="화면 모드">
                     <button type="button" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
                       시스템 설정
                     </button>
@@ -8687,39 +8772,18 @@ ${sheet4Rows}  </sheetData>
                     <button type="button" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
                       다크
                     </button>
-                  </div>
+                  </JellyToggle>
                 </div>
+
 
                 <div className="settings-row theme-settings-row">
                   <div>
-                    <strong>디자인 테마</strong>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      모던, 두들(손그림), 메메모(초록 감성) 스타일을 선택할 수 있습니다.
-                    </div>
+                    <strong>디자인</strong>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="디자인 테마">
-                    <button
-                      type="button"
-                      className={styleTheme === 'default' ? 'active' : ''}
-                      onClick={() => setStyleTheme('default')}
-                    >
-                      ✨ 모던
-                    </button>
-                    <button
-                      type="button"
-                      className={styleTheme === 'doodle' ? 'active' : ''}
-                      onClick={() => setStyleTheme('doodle')}
-                    >
-                      ✏️ 두들
-                    </button>
-                    <button
-                      type="button"
-                      className={styleTheme === 'mememo' ? 'active' : ''}
-                      onClick={() => setStyleTheme('mememo')}
-                    >
-                      🍃 메메모 (Mememo)
-                    </button>
-                  </div>
+                  <JellyToggle value={styleTheme === 'theme1' ? 'theme1' : 'default'} className="theme-toggle" role="group" aria-label="디자인 테마">
+                    <button type="button" className={styleTheme !== 'theme1' ? 'active' : ''} aria-pressed={styleTheme !== 'theme1'} onClick={() => setStyleTheme('default')}>기본</button>
+                    <button type="button" className={styleTheme === 'theme1' ? 'active' : ''} aria-pressed={styleTheme === 'theme1'} onClick={() => setStyleTheme('theme1')}>테마1</button>
+                  </JellyToggle>
                 </div>
 
                 <div className="settings-row theme-settings-row">
@@ -8729,7 +8793,7 @@ ${sheet4Rows}  </sheetData>
                       지출이 0원인 날을 캘린더에 🍀 무지출 도장으로 표시합니다.
                     </div>
                   </div>
-                  <div className="theme-toggle" role="group" aria-label="무지출 챌린지">
+                  <JellyToggle value={isNoSpendChallengeEnabled ? 'on' : 'off'} className="theme-toggle" role="group" aria-label="무지출 챌린지">
                     <button
                       type="button"
                       className={isNoSpendChallengeEnabled ? 'active' : ''}
@@ -8744,7 +8808,7 @@ ${sheet4Rows}  </sheetData>
                     >
                       꺼짐
                     </button>
-                  </div>
+                  </JellyToggle>
                 </div>
               </div>
             )}
@@ -9386,12 +9450,22 @@ ${sheet4Rows}  </sheetData>
                 <button type="button" className={`settings-sync-button ${remoteSync.status}`} onClick={() => void verifyRemoteSync(true)}>
                   <span className="settings-sync-dot" aria-hidden="true" />
                   <span className="settings-sync-copy">
-                    <strong>{remoteSync.message}</strong>
+                    <strong>{isLocalWallet() ? '이 기기에 저장 중' : remoteSync.message}</strong>
                     <small>가장 최근 저장 {formatSyncTime(remoteSync.remoteUpdatedAt || remoteSync.localUpdatedAt || updatedAt)}</small>
                   </span>
-                  <span className="settings-sync-action">서버 확인</span>
+                  <span className="settings-sync-action">{isLocalWallet() ? '동기화 설정' : '서버 확인'}</span>
                 </button>
                 <div className="settings-data-grid">
+                  <LedgerRecovery />
+                  {isLocalWallet() && <article className="settings-data-card">
+                    <strong>로컬 백업</strong>
+                    <div className="settings-card-actions">
+                      <button type="button" className="primary-button" onClick={() => void exportLocalArchive()}>백업</button>
+                      <label className="secondary-button">복원<input type="file" accept=".json" hidden onChange={event => {
+                        void importLocalArchive(event.target.files?.[0]); event.target.value = '';
+                      }} /></label>
+                    </div>
+                  </article>}
                   <article className="settings-data-card settings-csv-card">
                     <div>
                       <span>CSV DATA</span>
@@ -9782,7 +9856,8 @@ ${sheet4Rows}  </sheetData>
 
       {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div className="modal-backdrop" onClick={() => setEditingTransaction(null)}>
+        <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setEditingTransaction(null)}>
+          <div className="entry-dialog-viewport">
           <div className="modal-content transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>거래 내역 수정</h3>
@@ -9809,6 +9884,7 @@ ${sheet4Rows}  </sheetData>
                 onNotify={showNotice}
               />
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -10263,10 +10339,12 @@ ${sheet4Rows}  </sheetData>
 
       {/* 통합 자산/거래 등록 모달 */}
       {isEntryModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsEntryModalOpen(false)}>
+        <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setIsEntryModalOpen(false)}>
+          <div className="entry-dialog-viewport">
           <div className={`modal-content entry-modal${registrationMode === 'asset' ? ' asset-entry-modal' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
+              <button type="button" className="close-btn" aria-label="등록 창 닫기" onClick={() => setIsEntryModalOpen(false)}>×</button>
             </div>
             <div className="registration-mode-tabs" aria-label="등록 종류">
               <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => switchRegistrationMode('asset')}>자산</button>
@@ -10323,6 +10401,7 @@ ${sheet4Rows}  </sheetData>
                 />
             )}
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -11424,6 +11503,7 @@ function AssetRegistrationForm({
       <form
         key={editingAsset ? editingAsset.id : 'new'}
         className="entry-form asset-entry-form"
+        data-entry-type="asset"
         onSubmit={async (event) => {
           event.preventDefault();
           const name = (event.currentTarget.elements.namedItem('asset-name') as HTMLInputElement).value.trim();
@@ -11815,6 +11895,7 @@ function UnifiedEntryForm({
     if (!isTitleSuggestionsOpen) return;
 
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (e.target instanceof Element && e.target.closest('.entry-title-suggestions')) return;
       if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
         setIsTitleSuggestionsOpen(false);
       }
@@ -12096,7 +12177,7 @@ function UnifiedEntryForm({
 
   return (
     <>
-      <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} onSubmit={handleSubmit}>
+      <form className={isQuickAdd ? 'entry-form' : 'glass-panel entry-form'} data-entry-type={form.type} onSubmit={handleSubmit}>
         {!isQuickAdd && (
           <div className={`entry-form-title ${formColorClass}`}>
             <strong>통합 자산/거래 등록</strong>
@@ -12336,15 +12417,17 @@ function UnifiedEntryForm({
               </button>
             )}
             {isTitleSuggestionsOpen && form.title.trim().length > 0 && titleSuggestions.length > 0 && (
-              <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+              <FloatingTitleSuggestions anchorRef={contentFieldRef}>
                 <div className="title-suggestions-list">
                   {titleSuggestions.map((item) => (
                     <button
                       key={item.title}
                       type="button"
                       className="title-suggestion-item"
-                      onMouseDown={(e) => {
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         setForm((prev) => ({
                           ...prev,
                           title: item.title,
@@ -12363,14 +12446,14 @@ function UnifiedEntryForm({
                     </button>
                   ))}
                 </div>
-              </div>
+              </FloatingTitleSuggestions>
             )}
           </label>
         </div>
 
         <div className="entry-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>취소</button>
-          <button type="submit" className="primary-button entry-submit" style={{ background: form.type === 'expense' ? 'var(--color-expense)' : form.type === 'income' ? 'var(--color-income)' : 'var(--color-transfer)' }}>
+          <button type="submit" className="primary-button entry-submit">
             {form.type === 'expense' ? '지출 등록' : form.type === 'income' ? '수입 등록' : '이체 등록'}
           </button>
         </div>
@@ -12581,6 +12664,7 @@ function TransactionEditForm({
     if (!isTitleSuggestionsOpen) return;
 
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (e.target instanceof Element && e.target.closest('.entry-title-suggestions')) return;
       if (contentFieldRef.current && !contentFieldRef.current.contains(e.target as Node)) {
         setIsTitleSuggestionsOpen(false);
       }
@@ -12793,7 +12877,7 @@ function TransactionEditForm({
 
   return (
     <>
-      <form className="transaction-edit-form" onSubmit={handleSubmit}>
+      <form className="transaction-edit-form" data-entry-type={transaction.type} onSubmit={handleSubmit}>
         <DateTimeEntryField kind="date" value={date} onOpen={() => setActivePopup('date')} />
         <DateTimeEntryField kind="time" value={time} onOpen={() => setActivePopup('time')} />
         <label
@@ -12852,7 +12936,8 @@ function TransactionEditForm({
               type="button"
               className="content-clear-btn"
               aria-label="내용 지우기"
-              onMouseDown={(e) => {
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={(e) => {
                 e.preventDefault();
                 setTitle('');
                 setIsTitleSuggestionsOpen(false);
@@ -12863,15 +12948,17 @@ function TransactionEditForm({
             </button>
           )}
           {isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 && (
-            <div className="title-suggestions-dropdown" onClick={(e) => e.stopPropagation()}>
+            <FloatingTitleSuggestions anchorRef={contentFieldRef}>
               <div className="title-suggestions-list">
                 {titleSuggestions.map((item) => (
                   <button
                     key={item.title}
                     type="button"
                     className="title-suggestion-item"
-                    onMouseDown={(e) => {
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       setTitle(item.title);
                       setIsTitleSuggestionsOpen(false);
                       titleRef.current?.blur();
@@ -12886,7 +12973,7 @@ function TransactionEditForm({
                   </button>
                 ))}
               </div>
-            </div>
+            </FloatingTitleSuggestions>
           )}
         </label>
 

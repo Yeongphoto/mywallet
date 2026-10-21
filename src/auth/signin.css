@@ -7,11 +7,28 @@
   align-items: center;
   gap: 28px;
   padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-  background: var(--bg-app, var(--bg-primary));
+  background: var(--bg-app);
   color: var(--text-primary);
   font-family: inherit;
 }
 .memoney-signin * { box-sizing: border-box; }
+.wallet-connection-status {
+  position: fixed;
+  z-index: 200002;
+  left: 16px;
+  right: 16px;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  width: min(320px, calc(100% - 32px));
+  margin-inline: auto;
+  padding: 16px;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  text-align: center;
+}
+.wallet-connection-status p { margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
+.wallet-connection-status button { width: 100%; min-height: 44px; margin: 0; }
 .signin-brand { display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 800; }
 .signin-brand img, .signin-logo { width: 44px; height: 44px; object-fit: contain; }
 .signin-content { width: min(100%, 360px); text-align: center; }

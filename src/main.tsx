@@ -1,6 +1,5 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { preloadD1Cache } from './d1-cache-preload';
 import { registerPwaServiceWorker } from './pwa-register';
 import './styles.css';
 import './mobile.css';
@@ -9,6 +8,13 @@ import './app-behavior.css';
 import './category-mobile-unify.css';
 import './bottom-bars-sync.css';
 import './loading-scale.css';
+import './memoney-family.css';
+import './family-adaptive.css';
+import './entry-dialog.css';
+import './theme1.css';
+import './annual-chart-toggle.css';
+import './bottom-nav-jelly.css';
+import './settings-controls.css';
 
 const rootElement = document.getElementById('root');
 
@@ -19,41 +25,52 @@ if (!rootElement) {
 const appRootElement = rootElement;
 
 async function bootstrap() {
-  const path = window.location.pathname;
-  if (path === '/signin') {
-    const { default: Screen } = await import('./auth/SignInScreen');
-    createRoot(appRootElement).render(<Screen />); return;
+  registerPwaServiceWorker();
+  if (document.documentElement.hasAttribute('data-native-mememo') && window.MewalletLoadingArtwork?.variant !== 'mememo-native-v2') {
+    // The existing web renderer URL is immutable. Refresh only the Android variant.
+    await new Promise<void>(resolve => {
+      const script = document.createElement('script');
+      script.src = '/mewallet-loading-v2.js?native=mememo-v2';
+      script.onload = () => resolve(); script.onerror = () => resolve();
+      document.head.appendChild(script);
+    });
   }
-  if (path === '/sharing') {
+  if (window.location.pathname === '/guest') {
+    const { default: GuestScreen } = await import('./auth/GuestScreen');
+    createRoot(appRootElement).render(<StrictMode><GuestScreen /></StrictMode>);
+    return;
+  }
+  if (window.location.pathname === '/sharing') {
     if (new URLSearchParams(window.location.hash.slice(1)).has('invite')) {
       const { pendingInvitation } = await import('./auth/invitation-client');
       pendingInvitation(); window.location.replace('/signin?join=1'); return;
     }
-    const { default: Screen } = await import('./auth/SharingScreen');
-    createRoot(appRootElement).render(<StrictMode><Screen /></StrictMode>); return;
-  }
-  if (path === '/wallet') {
-    const { default: Screen } = await import('./auth/WalletScreen');
-    createRoot(appRootElement).render(<StrictMode><Screen /></StrictMode>); return;
-  }
-  try {
-    const response = await fetch('/api/auth/config', { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000) });
-    if (!response.ok) throw Error('AUTH_CONFIG_UNAVAILABLE');
-    const configuration = await response.json();
-    if (configuration.required || configuration.enabled) { window.location.replace('/signin'); return; }
-  } catch {
-    createRoot(appRootElement).render(<main role="alert"><p>로그인 설정을 확인할 수 없어요. 연결 상태를 확인한 뒤 다시 시도해 주세요.</p><button onClick={() => location.reload()}>다시 시도</button></main>);
+    const { default: SharingScreen } = await import('./auth/SharingScreen');
+    createRoot(appRootElement).render(<StrictMode><SharingScreen /></StrictMode>);
     return;
   }
-  const { default: App } = await import('./App');
-  await preloadD1Cache();
-  registerPwaServiceWorker();
-
-  createRoot(appRootElement).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
+  if (window.location.pathname === '/browser-login') {
+    const { default: BrowserApprovalScreen } = await import('./auth/BrowserLogin');
+    createRoot(appRootElement).render(<StrictMode><BrowserApprovalScreen /></StrictMode>);
+    return;
+  }
+  if (window.location.pathname === '/signin') {
+    if (!window.location.search && window.localStorage.getItem('memoney:wallet-mode') === 'local') {
+      window.location.replace('/guest');
+      return;
+    }
+    const { default: SignInScreen } = await import('./auth/SignInScreen');
+    createRoot(appRootElement).render(<StrictMode><SignInScreen /></StrictMode>);
+    return;
+  }
+  if (window.location.pathname === '/wallet') {
+    const { default: WalletScreen } = await import('./auth/WalletScreen');
+    createRoot(appRootElement).render(<StrictMode><WalletScreen /></StrictMode>);
+    return;
+  }
+  // Installed PWA start_url remains '/'. Initialize an explicit cloud/local
+  // wallet before App evaluates its module-level storage keys.
+  window.location.replace(window.localStorage.getItem('memoney:wallet-mode') === 'local' ? '/guest' : '/signin');
 }
 
 void bootstrap();

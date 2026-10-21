@@ -1,0 +1,27 @@
+.ledger-recovery { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; min-width: 0; }
+.ledger-recovery :is(button,a.secondary-button),
+.settings-data-card.ledger-recovery :is(button,a.secondary-button) {
+  flex: none !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.recovery-record > div { min-width: 0; }
+.ledger-recovery .settings-card-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ledger-recovery p { margin: 0; color: var(--text-secondary); line-height: 1.6; font-size: .85rem; }
+.ledger-recovery > button, .ledger-recovery > a { align-self: flex-start; }
+.recovery-record { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-card); }
+.recovery-record small { display: block; margin-top: 4px; color: var(--text-secondary); line-height: 1.5; }
+.recovery-record button { flex-shrink: 0; }
+.recovery-confirm { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--border-card); padding-top: 12px; }
+.recovery-confirm label { display: flex; flex-direction: column; gap: 8px; font-size: .85rem; }
+.recovery-confirm input { width: 100%; box-sizing: border-box; min-height: 44px; }
+.recovery-gate { min-height: 100dvh; box-sizing: border-box; padding: max(32px, env(safe-area-inset-top)) 20px 32px; display: grid; place-content: center; background: var(--bg-app); }
+.recovery-gate > * { width: min(100%, 520px); box-sizing: border-box; }

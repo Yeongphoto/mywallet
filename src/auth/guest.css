@@ -1,0 +1,10 @@
+.guest-sync-backdrop { position: fixed; inset: 0; z-index: 20000; background: #0008; display: grid; place-items: center; padding: 20px; }
+.guest-sync-card { box-sizing: border-box; display: grid; gap: 20px; width: min(100%, 380px); max-height: 88svh; overflow-y: auto; border-radius: 18px; padding: 22px; background: var(--bg-input); color: var(--text-primary); box-shadow: var(--shadow-xl); border: 1px solid var(--border-card); font-family: inherit; }
+.guest-sync-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.guest-sync-header h2 { margin: 0; font-size: 20px; }
+.guest-sync-close { width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--text-secondary); font-size: 25px; cursor: pointer; }
+.guest-sync-close:disabled { opacity: .4; cursor: default; }
+.guest-sync-counts { color: var(--text-secondary); font-size: 13px; }
+.guest-sync-card .primary-button { width: 100%; min-height: 44px; margin: 0; }
+.guest-sync-feedback { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.guest-save-error { position: fixed; top: 0; inset-inline: 0; z-index: 21000; background: var(--bg-expense-light); color: var(--text-primary); border-bottom: 2px solid var(--color-expense); padding: 15px; font-size: 14px; }

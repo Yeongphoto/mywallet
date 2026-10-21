@@ -1,0 +1,450 @@
+/* Mememo family: pastel window frames, ink outlines, and flat offset shadows. */
+html[data-style-theme="default"] {
+  --primary: #36785b;
+  --primary-hover: #285d45;
+  --primary-rgb: 54, 120, 91;
+  --primary-light: #abe8c3;
+  --primary-soft: #dff4e7;
+  --brand-highlight: #36785b;
+  --bg-app: #eef7f0;
+  --bg-sidebar: #f5fbf6;
+  --bg-card: #fcfef9;
+  --bg-input: #ffffff;
+  --bg-balance-light: #e6f4e9;
+  --text-primary: #293e35;
+  --text-secondary: #596e63;
+  --border-card: #557563;
+  --border-input: #6c8577;
+  --surface-inverse: #36785b;
+  --family-ink: #557563;
+  --family-shadow: #557563;
+  --family-mint: #abe8c3;
+  --family-toolbar: #e1f5e8;
+  --family-blue: #bad9e5;
+  --family-peach: #f5c5a1;
+  --family-yellow: #f4df9a;
+  --family-title-ink: #233e31;
+  --shadow-sm: 1px 1px 0 var(--family-shadow);
+  --shadow-md: 1px 1px 0 var(--family-shadow);
+  --shadow-lg: 2px 2px 0 var(--family-shadow);
+  --shadow-xl: 2px 2px 0 var(--family-shadow);
+  --glass-bg: var(--bg-card);
+  --glass-blur: none;
+  --glass-border: var(--border-card);
+}
+
+html[data-style-theme="default"][data-theme="dark"] {
+  --primary: #afd8b3;
+  --primary-hover: #cee9ce;
+  --primary-rgb: 175, 216, 179;
+  --primary-light: #afd8b3;
+  --primary-soft: #3d5542;
+  --brand-highlight: #afd8b3;
+  --bg-app: #192923;
+  --bg-sidebar: #20372d;
+  --bg-card: #243b31;
+  --bg-input: #1c3027;
+  --bg-balance-light: #304b3d;
+  --text-primary: #edf7ef;
+  --text-secondary: #bacfc0;
+  --border-card: #91b6a1;
+  --border-input: #91b6a1;
+  --family-ink: #91b6a1;
+  --family-shadow: #101b14;
+  --family-mint: #8ec7aa;
+  --family-toolbar: #294638;
+  --family-blue: #b0c9d7;
+  --family-peach: #e8bb9b;
+  --family-yellow: #e5d093;
+}
+
+html[data-style-theme="default"] :is(.glass-panel, .mobile-ledger-day, .confirm-panel, .account-card, .sharing-card, .summary-card, .ledger-month-summary, .app-toast) {
+  border: 2px solid var(--family-ink);
+  border-radius: 10px !important;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: none;
+}
+
+html[data-style-theme="default"] .mobile-ledger-day-header {
+  background: var(--bg-balance-light);
+  border-bottom: 1px solid var(--family-ink);
+}
+
+html[data-style-theme="default"] :is(.header-settings-btn, .privacy-toggle, .sync-mini-indicator, .secondary-button, .primary-button, .mobile-primary-action, .desktop-registration-action > button, .no-spend-pledge-action-btn, .month-picker-confirm, .account-settings-action, .ledger-connection-action) {
+  border: 2px solid var(--family-ink) !important;
+  border-radius: 7px !important;
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 1px 1px 0 var(--family-shadow) !important;
+}
+
+html[data-style-theme="default"] :is(.primary-button, .no-spend-pledge-action-btn, .month-picker-confirm) {
+  background: var(--family-mint) !important;
+  color: var(--family-title-ink) !important;
+}
+
+html[data-style-theme="default"] .mobile-primary-action {
+  background: var(--family-yellow) !important;
+  color: var(--family-title-ink) !important;
+}
+
+html[data-style-theme="default"] :is(.theme-toggle, .settings-segment, .ledger-view-toggle) {
+  border-radius: 8px !important;
+  background: var(--bg-card) !important;
+  box-shadow: none;
+}
+
+html[data-style-theme="default"] :is(.theme-toggle button, .settings-segment button, .ledger-view-toggle button, .view-toggle-btn, .registration-mode-tabs > button) {
+  border: 2px solid transparent;
+  border-radius: 6px !important;
+  box-shadow: none;
+}
+
+html[data-style-theme="default"] :is(.theme-toggle button.active, .settings-segment button.active, .ledger-view-toggle button.active, .view-toggle-btn.active) {
+  border-color: var(--family-ink);
+  background: var(--family-mint) !important;
+  color: var(--family-title-ink) !important;
+  box-shadow: none !important;
+}
+
+html[data-style-theme="default"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea, .instant-select-trigger) {
+  border-radius: 6px !important;
+  border-color: var(--border-input);
+  box-shadow: none !important;
+}
+
+html[data-style-theme="default"] :is(.instant-select-menu, .month-picker-popover, .ledger-settings-controls) {
+  border: 2px solid var(--family-ink);
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style-theme="default"] .app-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 32px 55px;
+  height: 88px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--family-ink) !important;
+  border-radius: 0;
+  background: var(--bg-card) !important;
+  box-shadow: none !important;
+  align-items: stretch;
+  gap: 0;
+  backdrop-filter: none;
+}
+
+html[data-style-theme="default"] .app-header .header-brand {
+  display: flex !important;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  gap: 7px;
+  justify-content: center;
+  padding: 2px 10px;
+  background: var(--family-mint);
+  color: var(--family-title-ink);
+  border-bottom: 1px solid var(--family-ink);
+}
+
+html[data-style-theme="default"] .app-header .brand-text { display: flex !important; }
+.memoney-wordmark {
+  display: block;
+  width: 124px;
+  height: auto;
+  color: #2e3a37;
+  flex: 0 0 auto;
+}
+.memoney-wordmark-rounded {
+  position: relative;
+  aspect-ratio: 2172 / 410;
+  overflow: hidden;
+}
+html .memoney-wordmark.memoney-wordmark-rounded > img {
+  position: absolute;
+  top: -36.585366%;
+  left: 0;
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+html[data-theme="dark"] .memoney-wordmark { color: #f7eedb; }
+html[data-style-theme="default"] .app-header .memoney-wordmark { color: #2e3a37; }
+.mememo-signin .signin-wordmark .memoney-wordmark { width: min(272px, 70vw); }
+html[data-style-theme="default"] .sidebar .memoney-wordmark { width: 104px; }
+/* Compose the original assets at their own aspect ratios, framing only transparent margins. */
+.memoney-wordmark-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  aspect-ratio: 124 / 26;
+  filter: invert(24%) sepia(55%) saturate(700%) hue-rotate(100deg) brightness(92%) contrast(90%);
+}
+.memoney-brand-cat, .memoney-brand-name { position: relative; display: block; overflow: hidden; flex-shrink: 0; }
+.memoney-brand-cat { width: 21%; aspect-ratio: 1159 / 905; }
+.memoney-brand-name { width: 71%; aspect-ratio: 2078 / 316; }
+html .memoney-wordmark-main :is(.memoney-brand-cat, .memoney-brand-name) > img {
+  position: absolute;
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  image-rendering: auto;
+}
+html[data-style-theme="default"] .app-header .memoney-wordmark-main { width: 124px; }
+.header-brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
+@media (min-width: 840px) {
+  html[data-style-theme="default"] .sidebar .memoney-wordmark-main { width: 144px; }
+  .sidebar .brand:has(.memoney-wordmark-main) > .mywallet-logo-frame { display: none !important; }
+  html[data-theme="dark"] .sidebar .memoney-wordmark-main {
+    filter: invert(72%) sepia(24%) saturate(550%) hue-rotate(100deg) brightness(102%) contrast(90%);
+  }
+}
+html[data-style-theme="default"] :is(.brand-wordmark, .signin-wordmark) {
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-weight: 900;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+html[data-style-theme="default"] .brand-wordmark span { color: var(--text-primary) !important; }
+html[data-style-theme="default"] .app-header .brand-wordmark span {
+  color: var(--family-title-ink) !important;
+  font-size: 14px;
+}
+
+html[data-style-theme="default"] :is(.header-brand, .brand) .mywallet-logo-frame {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"][data-theme] :is(.app-header, .sidebar, .brand) .mywallet-logo-frame .mywallet-logo {
+  content: url('/images/mememo/mememo-met-green.png') !important;
+  object-fit: contain;
+  filter: none !important;
+}
+html[data-style-theme="default"][data-theme="dark"] :is(.app-header, .sidebar) .mywallet-logo-frame .mywallet-logo {
+  content: url('/images/mememo/mememo-met-mint.png') !important;
+}
+html[data-style-theme="default"][data-theme="light"] :is(.app-header, .sidebar) .mywallet-logo-frame .mywallet-logo,
+html[data-style-theme="default"][data-theme="light"] .mememo-signin .signin-brand > img {
+  filter: brightness(1.35) saturate(.8) !important;
+}
+html[data-style-theme="default"] .app-header :is(.mywallet-logo-frame, .mywallet-logo-frame .mywallet-logo) {
+  width: 24px;
+  height: 24px;
+}
+
+html[data-style-theme="default"] .app-header .header-actions {
+  display: grid;
+  grid-template-columns: 40px 40px minmax(0, 220px) 40px;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  justify-content: end;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+html[data-style-theme="default"] .app-header :is(.header-settings-btn, .privacy-toggle, .sync-mini-indicator) {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+}
+html[data-style-theme="default"] .app-header .month-navigation {
+  display: grid;
+  grid-template-columns: 28px minmax(0, max-content) 28px;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  background: var(--bg-card) !important;
+  border: 2px solid var(--family-ink) !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .app-header .month-picker-wrap {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+html[data-style-theme="default"] .app-header .month-picker-display {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+html[data-style-theme="default"] .app-header .month-nav-button {
+  width: 28px;
+  height: 36px;
+  padding: 0;
+}
+html[data-style-theme="default"] .app-header :is(.month-picker-wrap, .month-picker-display, .month-nav-button) {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  font-family: inherit;
+}
+
+html[data-style-theme="default"] :is(.sidebar, .fixed-bottom-bar) {
+  background: var(--bg-sidebar) !important;
+  border-color: var(--family-ink) !important;
+  box-shadow: 0 -1px 0 var(--family-ink) !important;
+  backdrop-filter: none;
+}
+html[data-style-theme="default"] .sidebar nav a {
+  border: 2px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+html[data-style-theme="default"] .sidebar nav a.active {
+  border-color: var(--family-ink) !important;
+  background: var(--family-mint) !important;
+  color: var(--family-title-ink) !important;
+  box-shadow: 1px 1px 0 var(--family-shadow) !important;
+}
+html[data-style-theme="default"] .sidebar nav a.active .app-icon { color: var(--family-title-ink) !important; }
+html[data-style-theme="default"] :is(.sidebar nav a, .sidebar .mobile-primary-action, .fixed-bottom-bar-btn),
+html[data-style-theme="default"] :is(.sidebar nav a, .sidebar .mobile-primary-action, .fixed-bottom-bar-btn):is(:hover, :active) {
+  transform: none !important;
+  transition: none !important;
+}
+
+html[data-style-theme="default"] .sidebar nav a:not(.active):hover {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] :is(button, .sidebar nav a),
+html[data-style-theme="default"] :is(button, .sidebar nav a) * {
+  transition: none !important;
+}
+html[data-style-theme="default"] .sidebar nav a * { animation: none !important; }
+
+html[data-style-theme="default"] .modal-content {
+  border: 2px solid var(--family-ink);
+  border-radius: 10px !important;
+  padding: 0;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-xl);
+}
+html[data-style-theme="default"] .modal-header {
+  padding: 6px 10px !important;
+  min-height: 48px;
+  flex-shrink: 0;
+  border-bottom: 2px solid var(--family-ink);
+  background: var(--family-mint);
+  color: var(--family-title-ink);
+}
+html[data-style-theme="default"] .modal-header :is(h2, h3) {
+  color: var(--family-title-ink);
+  font-family: inherit;
+}
+html[data-style-theme="default"] .modal-header .close-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 2px solid var(--family-ink);
+  border-radius: 5px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 1px 1px 0 var(--family-shadow);
+  line-height: 1;
+}
+html[data-style-theme="default"] .modal-content :is(.form-grid > label:not(.recurring-toggle), .form-group) {
+  border: 1px solid var(--border-input);
+  border-radius: 8px !important;
+  background: var(--bg-input);
+  box-shadow: none;
+}
+html[data-style-theme="default"] .modal-content .form-grid :is(input:not([type="checkbox"]), select, textarea, .instant-select-trigger) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .no-spend-card-badge { border-radius: 8px; box-shadow: none; }
+html[data-style-theme="default"] .annual-chart-panel > .panel-header {
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+}
+html[data-style-theme="default"] .annual-chart-filters {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 2px !important;
+}
+html[data-style-theme="default"] .annual-chart-panel .panel-header h2 { font-size: 14px; }
+html[data-style-theme="default"] .annual-chart-filters::-webkit-scrollbar { display: none; }
+html[data-style-theme="default"] .annual-chart-filters button {
+  flex: 0 0 auto;
+  padding: 5px 4px !important;
+  font-size: 11px !important;
+}
+html[data-style-theme="default"] .asset-detail-toggle { position: relative; }
+html[data-style-theme="default"] .asset-detail-toggle input { width: 1px; height: 1px; left: 0; top: 0; }
+html[data-style-theme="default"] :is(.mememo-signin, .account-page, .sharing-page) { background: var(--bg-app); color: var(--text-primary); }
+html[data-style-theme="default"] .mememo-signin {
+  --signin-ink: var(--text-primary);
+  --signin-accent: var(--primary);
+  --signin-muted: var(--text-secondary);
+}
+html[data-style-theme="default"] .app-header .header-actions { background: var(--family-toolbar); }
+html[data-style-theme="default"] .mememo-signin :is(.signin-google, .signin-local) {
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 2px solid var(--family-ink);
+  border-radius: 7px;
+  box-shadow: var(--shadow-sm);
+}
+html[data-style-theme="default"] .mememo-signin .signin-google {
+  background: #ffffff;
+  color: #1f1f1f;
+}
+html[data-style-theme="default"] .mememo-signin .signin-local {
+  background: var(--family-mint);
+  color: var(--family-title-ink);
+}
+html[data-style-theme="default"] button:active:not(:disabled) { box-shadow: none !important; }
+html[data-style-theme="default"] :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+
+@media (min-width: 993px) {
+  html[data-style-theme="default"] .content { padding-top: 104px; }
+}
+@media (max-width: 992px) {
+  html[data-style-theme="default"] {
+    --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    --header-height: calc(88px + var(--safe-top));
+  }
+  html[data-style-theme="default"] .app-header {
+    height: var(--header-height);
+    padding-top: var(--safe-top) !important;
+    background: var(--family-mint) !important;
+  }
+  html[data-style-theme="default"] .app-header .header-actions { background: var(--family-toolbar); }
+  html[data-style-theme="default"] .app-header .header-actions { grid-template-columns: 40px 40px minmax(0, 1fr) 40px; }
+}

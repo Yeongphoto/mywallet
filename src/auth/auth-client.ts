@@ -36,36 +36,19 @@ export function createAuthClient(native: NativeGoogle, request: typeof fetch = f
       throw error;
     }
   }
-  async function prepareSignIn() {
-    const challenge = await api('challenge', 'POST');
-    if (typeof challenge.nonce !== 'string' || !/^[a-f0-9]{64}$/.test(challenge.nonce)
-      || typeof challenge.clientId !== 'string' || !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(challenge.clientId)) throw new AuthError('AUTH_UNAVAILABLE');
-    return { clientId: challenge.clientId as string, nonce: challenge.nonce as string };
-  }
-  async function finishSignIn(credential: { idToken: string }): Promise<User> {
-    try {
-      if (typeof credential.idToken !== 'string' || !credential.idToken || credential.idToken.length > 16384) throw new AuthError('INVALID_ID_TOKEN');
-      await api('google', 'POST', { idToken: credential.idToken });
-    } finally { credential.idToken = ''; }
-    const authenticated = await session();
-    if (!authenticated) throw new AuthError('SESSION_NOT_SAVED');
-    return authenticated;
-  }
   return {
-    prepareSignIn,
-    finishSignIn,
-    async configuration(): Promise<{ enabled: boolean; clientId: string | null }> {
+    async configuration(): Promise<{ enabled: boolean; clientId: string | null; browserLogin?: boolean }> {
       const data = await api('config');
       if (data.enabled !== true) return { enabled: false, clientId: null };
       if (typeof data.clientId !== 'string' || !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(data.clientId)) {
         throw new AuthError('AUTH_UNAVAILABLE');
       }
-      return { enabled: true, clientId: data.clientId };
+      return { enabled: true, clientId: data.clientId, ...(data.browserLogin===true?{browserLogin:true}:{}) };
     },
     session,
     async signIn(): Promise<User> {
       // Every attempt gets a fresh nonce. The challenge cookie stays in the WebView.
-      const challenge = await prepareSignIn();
+      const challenge = await api('challenge', 'POST');
       if (typeof challenge.nonce !== 'string' || !/^[a-f0-9]{64}$/.test(challenge.nonce)
         || typeof challenge.clientId !== 'string' || !challenge.clientId.endsWith('.apps.googleusercontent.com')) {
         throw new AuthError('AUTH_UNAVAILABLE');

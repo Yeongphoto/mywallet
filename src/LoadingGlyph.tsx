@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 
 declare global {
   interface Window {
-    MewalletLoadingArtwork?: { draw: (canvas: HTMLCanvasElement) => () => void };
+    MewalletLoadingArtwork?: { draw: (canvas: HTMLCanvasElement) => () => void; variant?: string };
   }
 }
 

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { selectCloudLedger, SELECTED_LEDGER_KEY } from './wallet-scope';
 import { MODE_KEY } from './local-wallet';
-import { webAuth as auth } from './google-web';
+import { registerPlugin } from '@capacitor/core';
+import { createAuthClient } from './auth-client';
+import type { NativeGoogle } from './auth-client';
 import { clearInvitation, invitationToken, pendingInvitation, rememberInvitation } from './invitation-client';
 import { useAppAppearance } from './use-app-appearance';
 import { useLaunchReady } from './use-launch-ready';
 import { LoadingScreen } from '../LoadingScreen';
-import { ReceivedInvitation } from './ReceivedInvitation';
 import './sharing.css';
 
 type SharingState = { user: { id: string; email: string | null }; ledger: { id: string; name?:string; role: string } | null;
@@ -22,6 +23,7 @@ const messages: Record<string, string> = {
   PERSONAL_SAVE_PENDING:'개인 장부에 저장 중인 기록이 있어요. 개인 장부에서 저장을 완료한 뒤 복사해 주세요.',
   INVALID_INVITATION: 'Gmail 주소와 권한을 확인해 주세요.', LEDGER_ACCESS_DENIED: '장부 소유자만 관리할 수 있어요.',
 };
+const auth = createAuthClient(registerPlugin<NativeGoogle>('MemoneyGoogleAuth'));
 let managedLedgerId='';
 async function api(body?: unknown) {
   const selected=localStorage.getItem(SELECTED_LEDGER_KEY);
@@ -74,8 +76,7 @@ export default function SharingScreen() {
   function login() { const token = invitationToken(inviteInput); if (token) rememberInvitation(token); location.assign('/signin?join=1&reauth=1'); }
   if (loading) return <LoadingScreen />;
   return <main className="sharing-page">
-    {state && <ReceivedInvitation />}
-    <header className="sharing-header"><button type="button" aria-label="뒤로" onClick={() => location.assign(state?.ledger || state?.personalLedger ? '/wallet#settings' : '/signin')}>‹</button>
+    <header className="sharing-header"><button type="button" aria-label="뒤로" onClick={() => location.assign(new URLSearchParams(location.search).get('return')==='local'?'/guest#settings':state?.ledger || state?.personalLedger ? '/wallet#settings' : '/guest#settings')}>‹</button>
       <h1>{state?.ledger?'공유 장부 관리':'공유 장부 만들기'}</h1><img src={appearance.logo} alt="Memoney" /></header>
     {state && <div className="sharing-account"><span>{state.user.email || 'Google 계정'}</span>
       <button type="button" disabled={busy} onClick={() => void perform(async () => { await auth.logout(); login(); })}>계정 변경</button></div>}

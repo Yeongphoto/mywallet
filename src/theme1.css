@@ -1,0 +1,97 @@
+/* Theme 1: square paper panels and crisp pixel borders over the family palette. */
+html[data-style-theme="default"][data-ui-theme="theme1"] {
+  --theme1-edge-light: rgb(255 255 255 / 65%);
+  --theme1-edge-shade: rgb(60 48 42 / 24%);
+  --theme1-raised: inset 1px 1px 0 var(--theme1-edge-light), 1px 1px 0 var(--family-shadow);
+  --theme1-pressed: inset 1px 1px 0 var(--theme1-edge-shade), inset -1px -1px 0 var(--theme1-edge-light);
+  --theme1-dots: linear-gradient(to right, var(--text-secondary) 0 4px, transparent 4px 8px, var(--text-secondary) 8px 12px, transparent 12px 16px, #68cfa2 16px 20px);
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"][data-theme="dark"] {
+  --theme1-edge-light: rgb(255 255 255 / 20%);
+  --theme1-edge-shade: rgb(0 0 0 / 38%);
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] :is(
+  button, input, select, textarea,
+  .glass-panel, .mobile-ledger-day, .modal-content, .confirm-panel,
+  .summary-card, .ledger-month-summary, .app-toast, .sharing-card, .account-card,
+  .theme-toggle, .settings-segment, .ledger-view-toggle, .month-navigation,
+  .instant-select-trigger, .instant-select-menu, .ledger-settings-controls,
+  .month-picker-popover, .no-spend-card-badge, .sidebar nav a,
+  .annual-chart-filters, .summary-column, .summary-column h3,
+  .calendar-cell, .calendar-control, .calendar-value-badge,
+  .modal-content .form-grid > label:not(.recurring-toggle), .modal-content .form-group
+) {
+  border-radius: 0 !important;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] :is(
+  .glass-panel, .summary-card, .ledger-month-summary, .sharing-card, .account-card
+) {
+  border-width: 1px;
+  box-shadow: var(--theme1-raised);
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] :is(
+  .primary-button, .secondary-button, .header-settings-btn, .privacy-toggle,
+  .sync-mini-indicator, .mobile-primary-action, .signin-google, .signin-local,
+  .desktop-registration-action > button, .no-spend-pledge-action-btn,
+  .month-picker-confirm, .account-settings-action, .ledger-connection-action,
+  .instant-select-trigger, .calendar-control,
+  .modal-header .close-btn
+) {
+  border-width: 1px !important;
+  box-shadow: var(--theme1-raised) !important;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] button:active:not(:disabled) {
+  box-shadow: var(--theme1-pressed) !important;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] .glass-panel > .panel-header {
+  border-bottom: 1px solid var(--border-card);
+  padding-bottom: 8px;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] :is(
+  .sidebar nav a.active,
+  .theme-toggle button.active, .ledger-view-toggle button.active,
+  .settings-segment button.active, .registration-mode-tabs > button.active,
+  .annual-chart-filters button[aria-pressed="true"]
+) {
+  box-shadow: inset 0 -2px 0 var(--family-title-ink), var(--theme1-pressed) !important;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] .modal-header {
+  border-bottom-width: 1px;
+}
+
+/* Three square marks, like the wordmark: decorative and outside text flow. */
+html[data-style-theme="default"][data-ui-theme="theme1"] .glass-panel:not(.annual-chart-panel) > .panel-header {
+  position: relative;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] .glass-panel:not(.annual-chart-panel) > .panel-header::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  bottom: -2px;
+  width: 20px;
+  height: 4px;
+  background: var(--theme1-dots);
+  outline: 4px solid var(--bg-card);
+  pointer-events: none;
+}
+
+html[data-style-theme="default"][data-ui-theme="theme1"] :is(
+  .mobile-ledger-empty, .empty-note, .recurring-rules-empty, .asset-card-detail-empty
+)::before {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 4px;
+  margin: 0 auto 12px;
+  background: var(--theme1-dots);
+  pointer-events: none;
+}

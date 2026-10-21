@@ -1,0 +1,241 @@
+/* One form layout. Only the screen around it scrolls when a keyboard covers it. */
+html[data-style-theme="default"] {
+  --expense-action-bg: color-mix(in srgb, var(--color-expense) 45%, #7f1d1d);
+  --income-action-bg: color-mix(in srgb, var(--color-income) 45%, #1e3a8a);
+  --transfer-action-bg: color-mix(in srgb, var(--color-transfer) 45%, #4c1d95);
+  --entry-action-ink: #fff;
+}
+[data-entry-type="expense"], .registration-mode-tabs > .expense { --entry-submit-bg: var(--expense-action-bg); }
+[data-entry-type="income"], .registration-mode-tabs > .income { --entry-submit-bg: var(--income-action-bg); }
+[data-entry-type="transfer"], .registration-mode-tabs > .transfer { --entry-submit-bg: var(--transfer-action-bg); }
+[data-entry-type="asset"], .registration-mode-tabs > .asset { --entry-submit-bg: var(--asset-action-bg); }
+html[data-style-theme="default"] .entry-dialog-backdrop :is(.entry-actions, .transaction-edit-actions) > button[type="submit"],
+html[data-style-theme="default"] .registration-mode-tabs > button.active {
+  background: var(--entry-submit-bg) !important;
+  color: var(--entry-action-ink) !important;
+}
+.modal-backdrop.entry-dialog-backdrop {
+  inset: 0 !important;
+  height: auto !important;
+  min-height: var(--entry-screen-height, 100%);
+  padding: 0 !important;
+  background: var(--bg-app) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+.entry-dialog-viewport {
+  position: absolute;
+  inset: var(--entry-viewport-top, 0px) 0 auto;
+  height: var(--entry-screen-height, 100dvh);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(var(--entry-screen-height, 100dvh), max-content) var(--entry-keyboard-inset, 0px);
+  align-content: start;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  scroll-behavior: auto;
+  padding: 0;
+}
+.entry-dialog-viewport::-webkit-scrollbar { display: none; }
+.entry-dialog-viewport::after { content: ''; grid-row: 2; pointer-events: none; }
+/* Run once on mount; no retained transform or animation during keyboard input. */
+html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal {
+  animation: entry-jelly-arrive 280ms ease-out !important;
+}
+@keyframes entry-jelly-arrive {
+  from { translate: 0 10px; scale: .985 .97; }
+  65% { translate: 0 -1px; scale: 1.002 1.004; }
+  to { translate: none; scale: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal { animation: none !important; }
+}
+.entry-dialog-viewport > .modal-content:is(.entry-modal, .transaction-edit-modal) {
+  --entry-field-height: 48px;
+  --registration-field-gap: 8px;
+  --edit-field-height: 48px;
+  --edit-field-gap: 8px;
+  position: relative !important;
+  inset: auto !important;
+  width: min(640px, 100%) !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0;
+  margin: 0 auto;
+  grid-row: 1;
+  align-self: center;
+  overflow: hidden;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+.entry-modal .registration-mode-tabs { padding: 10px 16px 8px !important; gap: 6px; }
+.modal-content.entry-modal .registration-mode-tabs > button { height: 40px; min-height: 40px; font-size: .875rem; padding: 6px 10px; }
+.modal-content.entry-modal .entry-form .form-grid > label:not(.recurring-toggle) { font-size: .78rem; }
+.modal-content.entry-modal .entry-form .form-grid > label:not(.recurring-toggle) :is(input, .instant-select-trigger) { font-size: 1rem !important; }
+.modal-content.entry-modal .entry-form .currency-suffix { font-size: .92rem; }
+.modal-content:is(.entry-modal, .transaction-edit-modal) .modal-body {
+  display: block !important;
+  flex: none;
+  min-height: 0;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 8px 12px 12px !important;
+}
+.modal-content.entry-modal .modal-body .entry-form,
+.modal-content.entry-modal .modal-body .entry-form .form-grid,
+.modal-content.transaction-edit-modal .transaction-edit-form {
+  flex: none !important;
+  height: auto !important;
+  min-height: 0;
+  max-height: none !important;
+  overflow: visible !important;
+  gap: 8px !important;
+}
+.modal-content.entry-modal .modal-body .entry-form .form-grid,
+.modal-content.transaction-edit-modal .transaction-edit-form {
+  grid-auto-rows: max-content;
+  align-content: start;
+}
+.modal-content:is(.entry-modal, .transaction-edit-modal) :is(.entry-actions, .transaction-edit-actions) {
+  position: static;
+  flex: none;
+  height: var(--entry-field-height);
+  min-height: var(--entry-field-height);
+  padding-top: 0 !important;
+  margin-top: 8px;
+  background: none;
+}
+.modal-content:is(.entry-modal, .transaction-edit-modal) :is(.entry-actions, .transaction-edit-actions) > button {
+  box-sizing: border-box;
+  height: var(--entry-field-height);
+  min-height: var(--entry-field-height) !important;
+  font-size: 1rem !important;
+}
+html[data-style-theme="default"] .modal-content .content-entry-field,
+html[data-style-theme="default"] .modal-content .content-entry-field:focus-within {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-input) !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+.modal-content :is(.form-grid, .transaction-edit-form) > .content-entry-field.has-suggestions-open {
+  height: var(--entry-field-height, 48px) !important;
+  border: 1px solid var(--border-input) !important;
+  border-radius: 8px !important;
+  z-index: auto;
+}
+.modal-content .content-entry-field > input { min-height: 30px !important; padding-right: 30px !important; }
+.modal-content .content-entry-field > :is(.input-clear-btn, .content-clear-btn) {
+  position: absolute;
+  inset: calc((var(--entry-field-height, 48px) - 24px) / 2) 10px auto auto;
+  transform: none !important;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+}
+html[data-style-theme="default"] .entry-title-suggestions {
+  box-sizing: border-box;
+  margin: 0;
+  right: auto;
+  bottom: auto;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  background: var(--bg-card);
+  box-shadow: 1px 1px 0 var(--family-shadow);
+  backdrop-filter: none;
+  animation: none;
+  overflow: hidden;
+}
+.title-suggestions-list { min-height: 0; overscroll-behavior: contain; touch-action: pan-y; }
+.title-suggestion-item { flex: 0 0 auto; min-height: 44px; }
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestions-list {
+  gap: 0;
+  padding: 0;
+}
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestion-item {
+  margin: 0;
+  padding: 10px 12px;
+  border: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-input) 30%, transparent) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html[data-style-theme="default"] .entry-title-suggestions .title-suggestion-item:last-child { border-bottom: 0 !important; }
+html[data-style-theme="default"] .entry-title-suggestions .suggestion-badge {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-ui-theme="theme1"] .modal-content .content-entry-field.has-suggestions-open,
+html[data-ui-theme="theme1"] .entry-title-suggestions { border-radius: 0 !important; }
+html[data-style-theme="default"] .entry-dialog-backdrop button,
+html[data-style-theme="default"] .entry-dialog-backdrop button:active,
+html[data-style-theme="default"] .entry-title-suggestions button:active {
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+@media (min-width: 769px) {
+  .entry-dialog-viewport > .modal-content:is(.entry-modal, .transaction-edit-modal) {
+    width: min(640px, calc(100% - 32px)) !important;
+  }
+}
+@media (max-width: 768px) {
+  .entry-dialog-backdrop::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto;
+    height: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    background: var(--bg-app);
+    z-index: 2;
+    pointer-events: none;
+  }
+  html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal {
+    --entry-field-height: clamp(52px, calc(var(--entry-screen-height, 100svh) * .095), 88px);
+    --edit-field-height: var(--entry-field-height);
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    width: 100% !important;
+    min-height: var(--entry-screen-height, 100svh);
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--bg-app);
+    padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  }
+  html[data-style-theme="default"] .entry-dialog-viewport .modal-content.entry-modal .modal-body {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .modal-body .entry-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 !important;
+    gap: 12px !important;
+  }
+  html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .entry-form .form-grid { gap: 12px !important; }
+  html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .entry-actions {
+    margin-top: auto;
+    padding-top: 12px !important;
+    height: calc(var(--entry-field-height) + 12px);
+    min-height: calc(var(--entry-field-height) + 12px);
+  }
+}

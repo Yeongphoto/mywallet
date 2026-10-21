@@ -7,7 +7,19 @@ export type LocalSnapshot = Record<string, any> & {
   transactions: Row[]; assets: Row[]; plans: Row[]; recurringRules: Row[];
   deletedRecurringTxs: string[]; cardSettlements: Row[];
 };
-export function guestKey(id: string, key = 'mywallet:v2') { return `memoney:guest:${id}:${key}`; }
+const generations=new Map<string,string>();
+export function guestGeneration(id:string,storage=window.localStorage) { return storage.getItem(`memoney:guest:${id}:recovery-generation`)||'initial'; }
+export function pinGuestGeneration(id:string,storage=window.localStorage) {generations.set(id,guestGeneration(id,storage));}
+export function assertGuestGeneration(id:string,storage=window.localStorage) {
+  if(generations.has(id)&&generations.get(id)!==guestGeneration(id,storage))throw Error('LOCAL_GENERATION_CHANGED');
+}
+export function guestKey(id: string, key = 'mywallet:v2') {
+  const generation=generations.get(id);
+  return `memoney:guest:${id}:${key}`+(key==='mywallet:v2'&&generation&&generation!=='initial'?`:generation:${generation}`:'');
+}
+export function withGuestLock<T>(id:string,action:()=>T):T|Promise<T> {
+  return typeof navigator!=='undefined'&&navigator.locks?navigator.locks.request(`memoney-local:${id}`,action):action();
+}
 export function activeGuestId(storage = window.localStorage) {
   let id = storage.getItem(GUEST_ID_KEY);
   if (!id) { id = crypto.randomUUID(); storage.setItem(GUEST_ID_KEY, id); }
@@ -32,6 +44,8 @@ export function localSnapshot(storage: Pick<Storage, 'getItem'>, id: string): Lo
   return { ...empty, ...data };
 }
 export function persistLocalView(id: string, view: Row, storage = window.localStorage) {
+  return withGuestLock(id,()=>{
+  assertGuestGeneration(id,storage);
   const current = localSnapshot(storage, id);
   const job = storage.getItem(guestKey(id, 'sync-job'));
   if (job && !JSON.parse(job).completed) return;
@@ -39,6 +53,7 @@ export function persistLocalView(id: string, view: Row, storage = window.localSt
   const changed = Object.keys(view).some(k => !['updatedAt', 'theme', 'styleTheme'].includes(k) && stable(view[k]) !== stable(current[k]));
   const updatedAt = Math.max(current.updatedAt || 0, view.updatedAt || 0, changed ? Date.now() : 0);
   storage.setItem(guestKey(id), JSON.stringify({ ...current, ...view, updatedAt }));
+  });
 }
 class LocalError extends Error {
   status: number; current: unknown;
@@ -197,11 +212,15 @@ function stable(value: any): string {
   return JSON.stringify(value);
 }
 export async function localWalletFetch(id: string, input: RequestInfo | URL, init?: RequestInit, storage = window.localStorage): Promise<Response> {
+  return withGuestLock(id,()=>localWalletFetchUnlocked(id,input,init,storage));
+}
+async function localWalletFetchUnlocked(id: string, input: RequestInfo | URL, init: RequestInit|undefined, storage:Storage): Promise<Response> {
   const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, 'http://localhost');
   // Explicitly reject every endpoint other than the guest data adapter. Never fall through to a cloud request.
   if (url.pathname !== '/api/data' || url.origin !== 'http://localhost') throw new Error('LOCAL_ENDPOINT_UNAVAILABLE');
   const method = (init?.method || 'GET').toUpperCase();
   try {
+    assertGuestGeneration(id,storage);
     const data = localSnapshot(storage, id);
     if (method === 'GET') return Response.json(url.searchParams.has('after') ? { changes: [], nextCursor: Number(url.searchParams.get('after')) || 0 } : data);
     requireValue(method === 'PATCH');

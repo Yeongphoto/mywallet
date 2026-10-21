@@ -3,6 +3,31 @@
   gap: 33px;
 }
 
+html[data-native-mememo] .app-loading-glyph:not([data-painted="true"]) {
+  background: transparent url('/images/mememo/mememo-met-mint.png') center / contain no-repeat !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+}
+
+html[data-native-mememo] .app-loading-glyph[data-painted="true"] {
+  background: none !important;
+  -webkit-mask: none !important;
+  mask: none !important;
+}
+html[data-native-mememo] .app-loading-screen {
+  background: #0a130e !important;
+  gap: 0;
+}
+html[data-native-mememo] .app-loading-screen > .app-loading-mark { width: 194px; height: 194px; transform: none; }
+html[data-native-mememo] #root .app-loading-screen .app-loading-logo { width: 194px; height: 194px; }
+html[data-native-mememo] .app-loading-screen .app-loading-orbit-track,
+html[data-native-mememo] .app-loading-screen .app-loading-orbit,
+html[data-native-mememo] .app-loading-screen .app-loading-copy { display: none; }
+html[data-native-mememo] .app-loading-screen .app-loading-orbit-track { border-color: rgb(82 183 136 / 22%) !important; }
+html[data-native-mememo] .app-loading-screen .app-loading-orbit { background: conic-gradient(from -65deg, transparent 0deg 38deg, #52b788 74deg, #2d6a4f 126deg, transparent 164deg 360deg) !important; }
+html[data-native-mememo] .app-loading-screen .app-loading-copy h1 span:first-child { color: #74c69d !important; }
+html[data-native-mememo] .app-loading-screen .app-loading-copy h1 span:last-child { color: #52b788 !important; }
+
 .app-loading-screen > .app-loading-mark,
 .app-loading-screen > .app-loading-copy,
 .app-sync-overlay > .app-loading-mark {
