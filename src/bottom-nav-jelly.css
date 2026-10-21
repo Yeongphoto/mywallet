@@ -1,0 +1,63 @@
+/* Press and rebound inside fixed hit targets; the navigation never slides. */
+@media (max-width: 599px) {
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action),
+  html[data-style-theme="default"] .sidebar nav > a.active,
+  html[data-style-theme="default"][data-ui-theme="theme1"] .sidebar nav > a.active,
+  html[data-style-theme="default"][data-ui-theme="theme1"] .sidebar nav > :is(a.active, .mobile-primary-action) {
+    position: relative;
+    isolation: isolate;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  html[data-style-theme="default"] .sidebar nav > a.active,
+  html[data-style-theme="default"] .sidebar nav > a.active .app-icon,
+  html[data-style-theme="default"] .sidebar nav > .mobile-primary-action {
+    color: var(--text-primary) !important;
+  }
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action)::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 1px solid var(--jelly-edge);
+    border-radius: inherit;
+    background: radial-gradient(ellipse at 28% 5%, rgb(255 255 255 / 55%), transparent 65%),
+      linear-gradient(145deg, var(--jelly-top), var(--jelly-bottom));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 65%), inset 0 -2px 2px rgb(0 0 0 / 10%), 0 1px 2px rgb(var(--primary-rgb), .16);
+    opacity: 0;
+    transform: translateY(0) scale(1);
+    transition: transform 280ms cubic-bezier(.18, .9, .32, 1.45), opacity 100ms ease !important;
+  }
+  html[data-style-theme="default"] .sidebar nav > :is(a.active, .mobile-primary-action)::before { opacity: 1; }
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action) > * { position: relative; z-index: 1; }
+  html[data-style-theme="default"] .sidebar nav > a > span,
+  html[data-style-theme="default"] .sidebar nav > .mobile-primary-action > :is(svg, span) {
+    transform: translateY(0) scale(1);
+    transition: transform 280ms cubic-bezier(.18, .9, .32, 1.45) !important;
+  }
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action):active::before {
+    opacity: 1;
+    transform: translateY(2px) scale(.94, .88);
+    transition: transform 85ms ease-out, opacity 60ms ease !important;
+  }
+  html[data-style-theme="default"] .sidebar nav > a:active > span,
+  html[data-style-theme="default"] .sidebar nav > .mobile-primary-action:active > :is(svg, span) {
+    transform: translateY(1px) scale(.9);
+    transition: transform 85ms ease-out !important;
+  }
+}
+@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action)::before,
+  html[data-style-theme="default"] .sidebar nav > :is(a, .mobile-primary-action):active::before,
+  html[data-style-theme="default"] .sidebar nav > a > span,
+  html[data-style-theme="default"] .sidebar nav > a:active > span,
+  html[data-style-theme="default"] .sidebar nav > .mobile-primary-action > :is(svg, span),
+  html[data-style-theme="default"] .sidebar nav > .mobile-primary-action:active > :is(svg, span) {
+    transform: none !important;
+    transition: none !important;
+  }
+}
