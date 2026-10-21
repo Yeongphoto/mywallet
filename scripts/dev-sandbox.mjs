@@ -1,8 +1,8 @@
-import { readFileSync, cpSync, mkdirSync, mkdtempSync, existsSync } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
+import { readFileSync, cpSync, mkdirSync, mkdtempSync, existsSync, statSync } from 'node:fs';
+import { resolve, join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
 export function validateSandbox(config) {
@@ -43,7 +43,12 @@ export function prepareSandbox() {
   // A fresh generation avoids retaining removed handlers or middleware from an older build.
   paths.runtime = mkdtempSync(`${paths.runtime}-`);
   cpSync(join(paths.root, 'wrangler.sandbox.json'), join(paths.runtime, 'wrangler.json'));
-  cpSync(join(paths.root, 'dist'), join(paths.runtime, 'dist'), { recursive: true });
+  const publicFiles = new Set(execFileSync('git', ['ls-files', '-z', '--', 'public'], { cwd: paths.root, encoding: 'utf8' }).split('\0').filter(Boolean).map(file => file.slice('public/'.length)));
+  cpSync(join(paths.root, 'dist'), join(paths.runtime, 'dist'), { recursive: true, filter(source) {
+    const file = relative(join(paths.root, 'dist'), source).replaceAll('\\', '/');
+    const original = join(paths.root, 'public', file);
+    return !existsSync(original) || !statSync(original).isFile() || publicFiles.has(file);
+  } });
   cpSync(join(paths.root, 'functions'), join(paths.runtime, 'functions'), { recursive: true });
   if (existsSync(join(paths.root, 'server'))) {
     cpSync(join(paths.root, 'server'), join(paths.runtime, 'server'), { recursive: true });

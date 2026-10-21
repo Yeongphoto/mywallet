@@ -63,7 +63,7 @@ export default function BrowserApprovalScreen(){
     return()=>{active=false;};
   },[info,confirmed,complete]);
   return <main className="memoney-signin mememo-signin browser-approval"><header className="signin-brand"><BrandWordmark /></header><section className="signin-content"><h1>{complete?'계정 확인 완료':'브라우저 로그인'}</h1>
-    {complete?<p role="status">오르카로 돌아가 연결할 계정을 확인해 주세요. 이 창은 닫아도 됩니다.</p>:<>
-      {info&&<><p className="browser-login-code">연결 코드 <strong>{info.code}</strong></p><label className="browser-code-confirm"><input type="checkbox" checked={confirmed} disabled={busy} onChange={e=>setConfirmed(e.target.checked)} />오르카 화면과 연결 코드가 같아요</label><div ref={button} className="browser-google-slot" />{busy&&<p role="status">계정을 확인하고 있어요…</p>}</>}
+    {complete?<p role="status">원래 로그인 화면으로 돌아가 연결할 계정을 확인해 주세요. 이 창은 닫아도 됩니다.</p>:<>
+      {info&&<><p className="browser-login-code">연결 코드 <strong>{info.code}</strong></p><label className="browser-code-confirm"><input type="checkbox" checked={confirmed} disabled={busy} onChange={e=>setConfirmed(e.target.checked)} />원래 로그인 화면과 연결 코드가 같아요</label><div ref={button} className="browser-google-slot" />{busy&&<p role="status">계정을 확인하고 있어요…</p>}</>}
     </>}{error&&<p role="alert">{error}</p>}</section></main>;
 }

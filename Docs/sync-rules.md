@@ -4,6 +4,10 @@ MyWallet의 기준 저장소는 Cloudflare D1이다. 브라우저 localStorage�
 
 2026-10-18부터 웹과 Android는 Android에서 사용하던 인증·개인장부·공유장부 D1을 정식으로 공유한다. `wrangler.toml`과 `wrangler.android-data.json`의 DB ID가 운영 연결 기준이다. 이전 `mywallet-db`나 웹의 기존 전역 캐시를 이 DB 위에 덮어쓰거나 자동 병합하지 않는다. 상세 전환 이력은 [Android 데이터와 웹 연결](android-web-data-connection.md)에 기록한다.
 
+`android_dev@d161074` 전체 기능 통합으로 웹에서도 사용자가 명시적으로 선택한 `/guest` 로컬 장부는 예외적으로 해당 브라우저의 `memoney:guest:<id>:` 저장소를 기준으로 한다. Google 로그인만으로 이 기록을 공통 DB에 업로드하지 않는다. 계정·대상 장부·ID 매핑과 원본을 보관한 명시적 이관만 허용하고, 중단 후 재시도도 같은 작업 ID를 사용한다. 기존 클라우드 장부의 예산·기본 계획·설정을 자동 덮어쓰지 않는다.
+
+같은 통합의 7일 복구 기능은 전체 열·해시 검증, 소유자·최근 재인증·Origin 검사, 동일 금융 DB 트랜잭션의 세대 guard를 거쳐서만 초기화·복구·공유 삭제 예약을 수행한다. 다른 세대의 보류 변경은 기기에 별도 보관하고 자동 재전송하지 않는다. 로컬 복구는 IndexedDB·Web Locks·세대 포인터를 사용하며 사이트 데이터 삭제나 기기 분실까지 서버처럼 보호한다고 주장하지 않는다. 상세 검증과 연결 범위는 [전체 통합 기록](android-web-full-integration.md)을 따른다.
+
 ## 기준
 
 - 원격 D1의 `settings.updatedAt`이 서버 데이터의 기준 시각이다.

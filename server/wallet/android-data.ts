@@ -10,6 +10,6 @@ export function androidDataConnection(env: SharedWalletEnvironment) {
     const origin = new URL(env.AUTH_ORIGIN || '');
     return origin.origin === env.AUTH_ORIGIN && (
       origin.protocol === 'https:' && (origin.hostname === 'mywallet-8mx.pages.dev' || origin.hostname.endsWith('.mywallet-8mx.pages.dev')) ||
-      env.AUTH_LOCAL_DEV === 'true' && origin.origin === 'http://localhost:5187');
+      env.AUTH_LOCAL_DEV === 'true' && ['http://localhost:5187', 'http://localhost:5189'].includes(origin.origin));
   } catch { return false; }
 }

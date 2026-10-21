@@ -4,16 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build && npx wrangler pages dev dist --compatibility-date=2024-01-01 --port=5174",
+    "dev": "npm run web:server",
     "dev:vite": "vite",
     "build": "npm run check:pwa && tsc -b && vite build",
     "check:pwa": "node scripts/check-pwa-branding.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "dev:d1": "npm run dev",
-    "check:auth": "tsc -p tsconfig.auth.json && node --test scripts/auth-foundation.test.mjs scripts/auth-client.test.mjs scripts/shared-wallet.test.mjs scripts/wallet-scope.test.mjs scripts/local-wallet.test.mjs scripts/ledger-invitations.test.mjs scripts/personal-test-wallet.test.mjs scripts/shared-creation.test.mjs scripts/browser-login.test.mjs scripts/ledger-recovery.test.mjs",
+    "check:auth": "tsc -p tsconfig.auth.json && node --test scripts/auth-foundation.test.mjs scripts/auth-client.test.mjs scripts/shared-wallet.test.mjs scripts/wallet-scope.test.mjs scripts/local-wallet.test.mjs scripts/ledger-invitations.test.mjs scripts/personal-test-wallet.test.mjs scripts/shared-creation.test.mjs scripts/browser-login.test.mjs scripts/ledger-recovery.test.mjs scripts/web-wallet.test.mjs",
     "check:recovery": "tsc -p tsconfig.auth.json && node --test scripts/ledger-recovery.test.mjs",
     "check:browser-login": "tsc -p tsconfig.auth.json && node --test scripts/browser-login.test.mjs",
+    "check:web-connection": "node scripts/check-web-connection.mjs",
+    "check:web-ui": "node scripts/check-web-auth-ui.mjs && node scripts/check-wallet-reconnect.mjs",
     "web:server": "npm run build && node scripts/web-auth-sandbox.mjs"
   },
   "dependencies": {
