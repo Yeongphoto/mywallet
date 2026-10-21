@@ -58,13 +58,20 @@
 
 .picker-popup-amount-text {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: .22em;
   white-space: nowrap;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.picker-popup-amount-text > span {
+  line-height: 1;
 }
 
 .picker-popup-amount-digits {
   display: inline-block;
+  line-height: 1;
   transform-origin: right center;
   animation: picker-amount-fill 190ms ease-out;
 }
