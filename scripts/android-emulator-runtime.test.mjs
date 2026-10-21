@@ -1,6 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ensureMedium} from './android-emulator-runtime.mjs';
+import {ensureMedium,runtimeKey,run} from './android-emulator-runtime.mjs';
+
+test('desktop restart requires a fresh attach even when the daemon survives',()=>{
+ const status=pid=>({ok:true,result:{app:{running:true,pid},runtime:{reachable:true,runtimeId:'same-daemon'}}});
+ assert.notEqual(runtimeKey(status(100)),runtimeKey(status(200)));
+});
+test('a live daemon without a desktop is not an emulator attach target',()=>{
+ assert.equal(runtimeKey({ok:true,result:{app:{running:false},runtime:{reachable:true,runtimeId:'daemon'}}}),null);
+});
+test('a failed CLI preserves its JSON diagnostic on stdout',()=>{
+ assert.throws(()=>run(process.execPath,['-e',"console.log('runtime_not_running: desktop is not ready');process.exit(1)"]),/runtime_not_running: desktop is not ready/);
+});
 function fixture({ready=false,existing=[],becomesReadyAt=Infinity,refuseStop=false,failStart=false}={}){
  let clock=0,started=false,processes=[...existing];
  const calls={stops:[],starts:0};

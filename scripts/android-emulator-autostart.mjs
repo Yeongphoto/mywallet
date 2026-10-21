@@ -19,7 +19,7 @@ const log=message=>appendFileSync(join(folder,'emulator-autoconnect.log'),`${new
 let attachedRuntime=null,attachedSerial=null,retryAt=0,repairAt=0,lastError='';
 const report=error=>{if(error.message!==lastError){log(error.message);lastError=error.message;}};
 try{
-  log('Auto-connect started. Waiting for Orca.');
+  log(`Auto-connect started (PID ${process.pid}). Waiting for Orca.`);
   do{
     if(existsSync(stop))break;
     let runtime=null;
@@ -29,6 +29,7 @@ try{
       try{
         const current=readyMedium();
         if(runtime!==attachedRuntime||!current||current!==attachedSerial){
+          if(runtime!==attachedRuntime)log(`Desktop session detected: ${runtime}; device=${current||'not ready'}.`);
           if(current||Date.now()>=repairAt){
             if(!current)repairAt=Date.now()+5*60*1000;
             const serial=current||await ensureMedium({log});

@@ -1,5 +1,5 @@
 import {existsSync,mkdirSync,openSync,closeSync} from 'node:fs';
-import {join,resolve} from 'node:path';
+import {basename,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn,spawnSync} from 'node:child_process';
 
@@ -13,12 +13,17 @@ export const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export function run(command,args,timeout=6000){
   const result=spawnSync(command,args,{encoding:'utf8',windowsHide:true,timeout,cwd:root,maxBuffer:1024*1024});
   if(result.error)throw result.error;
-  if(result.status!==0)throw Error(result.stderr?.trim()||`Command failed (${result.status})`);
+  if(result.status!==0)throw Error(`${basename(command)} ${args.slice(0,2).join(' ')} failed (${result.status}): ${(result.stderr?.trim()||result.stdout?.trim()||'No diagnostic output').slice(0,1200)}`);
   return result.stdout.trim();
 }
+export function runtimeKey(status){
+  if(!status.ok||!status.result?.app?.running||!status.result?.runtime?.reachable)return null;
+  // The daemon can survive a forced desktop exit. Its ID alone does not tell
+  // us whether the desktop (and its emulator pane) needs to be attached again.
+  return `${status.result.runtime.runtimeId}:${status.result.app.pid}`;
+}
 export function runtimeStatus(){
-  const status=JSON.parse(run(orca,['status','--json'],5000));
-  return status.ok&&status.result?.runtime?.reachable?status.result.runtime.runtimeId:null;
+  return runtimeKey(JSON.parse(run(orca,['status','--json'],5000)));
 }
 export function mediumProcesses(){
   return JSON.parse(run('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',processHelper,'-Action','list']));
