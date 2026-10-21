@@ -12406,18 +12406,18 @@ function UnifiedEntryForm({
             <div className="picker-popup-header">
               <strong>금액 입력</strong>
               <div className="picker-popup-header-right">
-                <span className={`picker-popup-amount-preview ${form.amount?.startsWith('-') ? 'negative' : ''}`}>
-                  {form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}
-                </span>
-                <button
-                  type="button"
-                  className="picker-popup-close-btn"
-                  aria-label="금액 초기화"
-                  title="금액 초기화"
-                  onClick={() => setForm((prev) => ({ ...prev, amount: '' }))}
-                >
-                  ×
-                </button>
+                <div className={`picker-popup-amount-preview has-clear ${form.amount?.startsWith('-') ? 'negative' : ''}`}>
+                  <span>{form.amount ? `${formatNumberInput(parseNumberInput(form.amount))} 원` : '0 원'}</span>
+                  <button
+                    type="button"
+                    className="picker-popup-amount-clear"
+                    aria-label="금액 초기화"
+                    title="금액 초기화"
+                    onClick={() => setForm((prev) => ({ ...prev, amount: '' }))}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
             <AmountNumberKeypad
@@ -13056,18 +13056,18 @@ function TransactionEditForm({
             <div className="picker-popup-header">
               <strong>금액 수정</strong>
               <div className="picker-popup-header-right">
-                <span className={`picker-popup-amount-preview ${amount?.startsWith('-') ? 'negative' : ''}`}>
-                  {amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}
-                </span>
-                <button
-                  type="button"
-                  className="picker-popup-close-btn"
-                  aria-label="금액 초기화"
-                  title="금액 초기화"
-                  onClick={() => setAmount('')}
-                >
-                  ×
-                </button>
+                <div className={`picker-popup-amount-preview has-clear ${amount?.startsWith('-') ? 'negative' : ''}`}>
+                  <span>{amount ? `${formatNumberInput(parseNumberInput(amount))} 원` : '0 원'}</span>
+                  <button
+                    type="button"
+                    className="picker-popup-amount-clear"
+                    aria-label="금액 초기화"
+                    title="금액 초기화"
+                    onClick={() => setAmount('')}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
             <AmountNumberKeypad

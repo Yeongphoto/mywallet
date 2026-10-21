@@ -7027,6 +7027,35 @@ body.asset-handle-drag-active {
   border-color: color-mix(in srgb, var(--color-expense) 22%, transparent);
 }
 
+.picker-popup-amount-preview.has-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 3px;
+}
+
+.picker-popup-amount-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.picker-popup-amount-clear:hover {
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+  color: var(--text-primary);
+}
+
 .picker-popup-close-btn {
   background: var(--bg-input);
   border: 1px solid var(--border-card);
