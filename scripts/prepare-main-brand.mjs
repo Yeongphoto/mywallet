@@ -6,9 +6,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const browser = await puppeteer.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
 try {
   const page = await browser.newPage();
-  for (const [name, source, crop, width] of [
-    ['cat', 'public/images/logo-cat.png', [80, 209, 1104, 888], 32],
-    ['name', 'public/images/mememo/memony-wordmark.png', [49, 222, 2078, 316], 104],
+  for (const [name, version, source, crop, width] of [
+    ['cat', 2, 'public/images/logo-cat-high.png', [55, 198, 1159, 905], 32],
+    ['name', 1, 'public/images/mememo/memony-wordmark.png', [49, 222, 2078, 316], 104],
   ]) {
     const sourceUrl = `data:image/png;base64,${readFileSync(source).toString('base64')}`;
     for (const density of [1, 2, 3]) {
@@ -29,7 +29,7 @@ try {
         }
         return canvas.toDataURL('image/png').split(',')[1];
       }, { sourceUrl, crop, width, density });
-      const output = `public/images/mememo/main-${name}-smooth-v1-${density}x.png`;
+      const output = `public/images/mememo/main-${name}-smooth-v${version}-${density}x.png`;
       writeFileSync(output, Buffer.from(png, 'base64'));
       console.log(output);
     }
