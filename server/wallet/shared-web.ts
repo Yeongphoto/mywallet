@@ -4,13 +4,10 @@ import { ledgerAccess } from '../auth/ledger-access.ts';
 import { onRequestGet, onRequestPatch } from './legacy-data.ts';
 import { availableLedgers, isolatedSharedReady } from './shared-creation.ts';
 import { scopedFinance } from './scoped-finance.ts';
-import { webConfiguration } from './web-personal.ts';
-import { webReferencesValid } from './web-references.ts';
+import { generationDatabase, recoveryState } from './recovery-store.ts';
 import { androidDataConnection } from './android-data.ts';
 
 export interface SharedWalletEnvironment extends AuthEnvironment {
-  AUTH_ANDROID_DATA_COMPAT?: string;
-  AUTH_WEB_WALLETS?: string;
   WEB_FINANCE?: D1Database;
   AUTH_SHARED_WALLET_ORIGIN?: string;
   AUTH_SHARED_WALLET_LEDGER_ID?: string;
@@ -19,13 +16,13 @@ export interface SharedWalletEnvironment extends AuthEnvironment {
   TEST_FINANCE?: D1Database;
   AUTH_TEST_MULTI_LEDGER?: string;
   TEST_SHARED_FINANCE?: D1Database;
+  AUTH_LEDGER_RECOVERY?: string;
 }
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 function reply(error: string, status: number) {
   return Response.json({ error }, { status, headers: { 'Cache-Control': 'no-store', 'Vary': 'Cookie' } });
 }
 export function sharedWalletConfiguration(env: SharedWalletEnvironment) {
-  if (env.AUTH_WEB_WALLETS === 'true') return webConfiguration(env) ? { origin: '', ledgerId: '' } : null;
   // Explicit test deployments only. Never enabled implicitly in the existing web deployment.
   const local = env.AUTH_LOCAL_DEV === 'true' && env.AUTH_ORIGIN === 'http://localhost:5187';
   const hosted = env.AUTH_SHARED_TEST_DEPLOYMENT === 'true' && env.AUTH_LOCAL_DEV !== 'true' &&
@@ -45,7 +42,7 @@ export function sharedWalletConfiguration(env: SharedWalletEnvironment) {
     return { origin: origin.origin, ledgerId: env.AUTH_SHARED_WALLET_LEDGER_ID! };
   } catch { return null; }
 }
-async function access(request: Request, env: SharedWalletEnvironment, write = false) {
+export async function access(request: Request, env: SharedWalletEnvironment, write = false) {
   const sessionRequest = new Request(new URL('/api/auth/session', request.url), { headers: request.headers });
   const session = await handleAuth(sessionRequest, env, 'session');
   if (!session.ok) return { response: reply(session.status === 401 ? 'UNAUTHENTICATED' : 'AUTH_UNAVAILABLE', session.status) };
@@ -53,7 +50,7 @@ async function access(request: Request, env: SharedWalletEnvironment, write = fa
   if (!config) return { response: reply('LEDGER_CONNECTION_PENDING', 503) };
   const data = await session.json() as { user: { id: string } };
   try {
-    if(env.AUTH_WEB_WALLETS==='true'||env.AUTH_TEST_MULTI_LEDGER==='true') {
+    if(env.AUTH_TEST_MULTI_LEDGER==='true') {
       if(!await isolatedSharedReady(env))return {response:reply('SHARING_NOT_CONFIGURED',503)};
       const ledgers=await availableLedgers(env,data.user.id);
       const selected=request.headers.get('X-Memoney-Ledger');
@@ -61,12 +58,11 @@ async function access(request: Request, env: SharedWalletEnvironment, write = fa
       if(!choice||(write&&choice.role==='viewer'))return {response:reply('LEDGER_ACCESS_DENIED',403)};
       const ledger=await ledgerAccess(env.DB,data.user.id,choice.id,write?'write':'view');
       if(!ledger)return {response:reply('LEDGER_ACCESS_DENIED',403)};
-      if(choice.kind==='personal' && env.AUTH_WEB_WALLETS!=='true') {
+      if(choice.kind==='personal') {
         const marker=await env.TEST_FINANCE!.prepare('SELECT ledger_id FROM memoney_test_database WHERE id=?').bind('memoney-android-test-personal').first<{ledger_id:string}>();
         if(marker?.ledger_id!==choice.id)return {response:reply('TEST_DATABASE_MISMATCH',503)};
       }
-      const finance = env.AUTH_WEB_WALLETS==='true' ? scopedFinance(env.WEB_FINANCE!,choice.id) : choice.kind==='personal'?env.TEST_FINANCE!:scopedFinance(env.TEST_SHARED_FINANCE!,choice.id);
-      return {config,user:data.user,ledger:{...ledger,kind:choice.kind,name:choice.name},finance};
+      return {config,user:data.user,ledger:{...ledger,kind:choice.kind,name:choice.name},finance:choice.kind==='personal'?env.TEST_FINANCE!:scopedFinance(env.TEST_SHARED_FINANCE!,choice.id)};
     }
     const ledger = await ledgerAccess(env.DB, data.user.id, config.ledgerId, write ? 'write' : 'view');
     if (!ledger) return { response: reply('LEDGER_ACCESS_DENIED', 403) };
@@ -83,9 +79,10 @@ async function access(request: Request, env: SharedWalletEnvironment, write = fa
 export async function sharedWalletContext(request: Request, env: SharedWalletEnvironment) {
   const result = await access(request, env);
   if (result.response) return result.response;
-  const ledger = env.AUTH_WEB_WALLETS === 'true' || env.AUTH_TEST_MULTI_LEDGER === 'true' ? result.ledger : env.AUTH_TEST_PERSONAL_LEDGER === 'true'
+  const ledger = env.AUTH_TEST_MULTI_LEDGER === 'true' ? result.ledger : env.AUTH_TEST_PERSONAL_LEDGER === 'true'
     ? { ...result.ledger, kind: 'personal', name: '개인 장부' } : result.ledger;
-  return Response.json({ user: result.user, ledger, mode: 'shared-web' },
+  const recovery = env.AUTH_LEDGER_RECOVERY==='true' ? await recoveryState(result.finance||env.TEST_FINANCE!,result.ledger!.id) : null;
+  return Response.json({ user: result.user, ledger: {...ledger,...(recovery?{generation:recovery.generation,recoveryStatus:recovery.status,recoveryExpiresAt:recovery.expires_at}:{})}, mode: 'shared-web' },
     { headers: { 'Cache-Control': 'no-store', 'Vary': 'Cookie' } });
 }
 
@@ -98,18 +95,28 @@ export async function sharedWalletData(request: Request, env: SharedWalletEnviro
   const after = source.searchParams.get('after');
   if ([...source.searchParams.keys()].some(key => key !== 'after') ||
       (after !== null && (!/^\d+$/.test(after) || !Number.isSafeInteger(Number(after))))) return reply('INVALID_CURSOR', 400);
-  if (env.AUTH_WEB_WALLETS === 'true' || env.AUTH_TEST_PERSONAL_LEDGER === 'true') {
+  if (env.AUTH_TEST_PERSONAL_LEDGER === 'true') {
     if (request.method === 'PATCH' && !request.headers.get('Content-Type')?.startsWith('application/json')) return reply('BAD_REQUEST', 400);
-    if (env.AUTH_WEB_WALLETS === 'true' && request.method === 'PATCH') {
-      try { if (!await webReferencesValid(request, result.finance!)) return reply('LEDGER_REFERENCE_INVALID', 422); }
-      catch { return reply('BAD_REQUEST', 400); }
-    }
     // Run the existing revision/operation handler directly against the explicitly
     // bound test database. This branch never contacts the production web API.
-    const response = await (request.method === 'GET' ? onRequestGet : onRequestPatch)({ request, env: { DB: result.finance || env.TEST_FINANCE! } });
+    let db=result.finance||env.TEST_FINANCE!;
+    const state=env.AUTH_LEDGER_RECOVERY==='true'?await recoveryState(db,result.ledger!.id):null;
+    if(state) {
+      if(state.status!=='active')return reply('LEDGER_ARCHIVED',423);
+      const generation=request.headers.get('X-Memoney-Generation');
+      if((request.method==='PATCH' || after!==null) && (generation||'initial')!==state.generation)return reply('LEDGER_GENERATION_CHANGED',409);
+      db=generationDatabase(db,result.ledger!.id,state.generation);
+    }
+    const response = await (request.method === 'GET' ? onRequestGet : onRequestPatch)({ request, env: { DB: db } });
+    if(state&&!response.ok) {
+      const latest=await recoveryState(result.finance||env.TEST_FINANCE!,result.ledger!.id);
+      if(latest.status!=='active')return reply('LEDGER_ARCHIVED',423);
+      if(latest.generation!==state.generation)return reply('LEDGER_GENERATION_CHANGED',409);
+    }
     return new Response(response.body, { status: response.status, headers: {
       'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Vary': 'Cookie',
       'X-Content-Type-Options': 'nosniff',
+      ...(state?{'X-Memoney-Generation':state.generation}:{}),
     } });
   }
   const url = new URL('/api/data', result.config!.origin);

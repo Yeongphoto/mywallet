@@ -14,7 +14,7 @@ const fail = (error: string, status: number) => reply({ error }, status);
 // Financial requests retain the existing bridge, membership, and revision behavior.
 export async function handleSharing(request: Request, env: SharedWalletEnvironment, now = Date.now()) {
   if (env.AUTH_LEDGER_INVITES !== 'true' || !sharedWalletConfiguration(env) ||
-      (env.AUTH_WEB_WALLETS !== 'true' && !uuid.test(env.AUTH_SHARED_WALLET_LEDGER_ID || ''))) return fail('SHARING_NOT_CONFIGURED', 503);
+      !uuid.test(env.AUTH_SHARED_WALLET_LEDGER_ID || '')) return fail('SHARING_NOT_CONFIGURED', 503);
   if (!['GET', 'POST'].includes(request.method)) return fail('METHOD_NOT_ALLOWED', 405);
   if (request.method === 'POST' && request.headers.get('Origin') !== env.AUTH_ORIGIN) return fail('ORIGIN_REJECTED', 403);
   const session = await handleAuth(new Request(new URL('/api/auth/session', request.url), { headers: request.headers }), env, 'session');
@@ -23,7 +23,7 @@ export async function handleSharing(request: Request, env: SharedWalletEnvironme
   const db = env.DB; let ledgerId = env.AUTH_SHARED_WALLET_LEDGER_ID!;
   try {
     let scopedBody: Record<string,unknown> | null=null;
-    const multi=env.AUTH_WEB_WALLETS==='true'||env.AUTH_TEST_MULTI_LEDGER==='true';
+    const multi=env.AUTH_TEST_MULTI_LEDGER==='true';
     if(multi) {
       if(!await isolatedSharedReady(env))return fail('SHARING_NOT_CONFIGURED',503);
       if(request.method==='POST') {

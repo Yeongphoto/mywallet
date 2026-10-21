@@ -3,21 +3,18 @@ import { ledgerAccess } from '../auth/ledger-access.ts';
 import { hashToken } from '../auth/store.ts';
 import type { SharedWalletEnvironment } from './shared-web.ts';
 import { copyTables, scopedFinance, schemaStatements } from './scoped-finance.ts';
-import { webReady, webPersonalLedger } from './web-personal.ts';
 import { androidDataConnection } from './android-data.ts';
 
 export type Creation = {ledger_id:string;owner_user_id:string;operation_id:string;request_hash:string;source:string;status:string};
 type CopyRow = {table:string;values:Record<string,unknown>};
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','Vary':'Cookie'}});
 export async function isolatedSharedReady(env:SharedWalletEnvironment) {
-  if (env.AUTH_WEB_WALLETS === 'true') return webReady(env);
   if (env.AUTH_ANDROID_DATA_COMPAT === 'true' && !androidDataConnection(env)) return false;
-  if (!androidDataConnection(env) && (env.AUTH_TEST_MULTI_LEDGER!=='true'||env.AUTH_ORIGIN!=='https://memoney-android-test.pages.dev'||
+  if(!androidDataConnection(env) && (env.AUTH_TEST_MULTI_LEDGER!=='true'||env.AUTH_ORIGIN!=='https://memoney-android-test.pages.dev'||
     env.AUTH_SHARED_TEST_DEPLOYMENT!=='true'||!env.TEST_SHARED_FINANCE||env.AUTH_SHARED_WALLET_ORIGIN)) return false;
   return !!await env.TEST_SHARED_FINANCE!.prepare('SELECT id FROM memoney_shared_test_database WHERE id=?').bind('memoney-android-test-shared').first();
 }
 export async function personalLedger(env:SharedWalletEnvironment,userId:string) {
-  if (env.AUTH_WEB_WALLETS === 'true') return webPersonalLedger(env,userId);
   const access=await ledgerAccess(env.DB,userId,env.AUTH_SHARED_WALLET_LEDGER_ID!);
   return access?.role==='owner'?{id:access.id,name:'개인 장부',kind:'personal',role:'owner'}:null;
 }
@@ -28,7 +25,7 @@ export async function availableLedgers(env:SharedWalletEnvironment,userId:string
   return [...(personal?[personal]:[]),...JSON.parse(rows?.rows||'[]')];
 }
 async function progress(env:SharedWalletEnvironment,creation:Creation) {
-  const job=await (env.WEB_FINANCE || env.TEST_SHARED_FINANCE!).prepare('SELECT next_row,total_rows,status FROM shared_creation_jobs WHERE ledger_id=?').bind(creation.ledger_id)
+  const job=await env.TEST_SHARED_FINANCE!.prepare('SELECT next_row,total_rows,status FROM shared_creation_jobs WHERE ledger_id=?').bind(creation.ledger_id)
     .first<{next_row:number;total_rows:number;status:string}>();
   return {id:creation.ledger_id,operationId:creation.operation_id,source:creation.source,status:creation.status,
     completed:job?.next_row||0,total:job?.total_rows||0,percent:creation.status==='ready'?100:job?.total_rows?Math.min(99,Math.floor(job.next_row/job.total_rows*100)):0};
@@ -70,21 +67,17 @@ export async function handleLedgers(request:Request,env:SharedWalletEnvironment)
       }
     } else if(body.action!=='continue'||!creation||body.ledgerId!==creation.ledger_id)return reply({error:'BAD_REQUEST'},400);
     if(creation!.status==='ready')return reply({creation:await progress(env,creation!)});
-    const db=env.WEB_FINANCE || env.TEST_SHARED_FINANCE!,ledgerId=creation!.ledger_id;
+    const db=env.TEST_SHARED_FINANCE!,ledgerId=creation!.ledger_id;
     let job=await db.prepare('SELECT snapshot_json,next_row,total_rows,status FROM shared_creation_jobs WHERE ledger_id=?').bind(ledgerId)
       .first<{snapshot_json:string;next_row:number;total_rows:number;status:string}>();
     if(!job) {
       let rows:CopyRow[]=[];
       if(creation!.source==='personal') {
         // All SELECTs run in one D1 batch transaction, freezing one source snapshot.
-        const personal = await personalLedger(env,user.id);
-        if(!personal)return reply({error:'LEDGER_ACCESS_DENIED'},403);
-        if (env.AUTH_WEB_WALLETS !== 'true') {
-          const marker=await env.TEST_FINANCE!.prepare('SELECT ledger_id FROM memoney_test_database WHERE id=?').bind('memoney-android-test-personal').first<{ledger_id:string}>();
-          if(marker?.ledger_id!==env.AUTH_SHARED_WALLET_LEDGER_ID)return reply({error:'TEST_DATABASE_MISMATCH'},503);
-        }
-        const source = env.AUTH_WEB_WALLETS === 'true' ? scopedFinance(env.WEB_FINANCE!,personal.id) : env.TEST_FINANCE!;
-        const result=await source.batch(copyTables.map(table=>source.prepare(`SELECT * FROM ${table} ORDER BY rowid`)));
+        const marker=await env.TEST_FINANCE!.prepare('SELECT ledger_id FROM memoney_test_database WHERE id=?').bind('memoney-android-test-personal').first<{ledger_id:string}>();
+        if(marker?.ledger_id!==env.AUTH_SHARED_WALLET_LEDGER_ID)return reply({error:'TEST_DATABASE_MISMATCH'},503);
+        if(!await personalLedger(env,user.id))return reply({error:'LEDGER_ACCESS_DENIED'},403);
+        const result=await env.TEST_FINANCE!.batch(copyTables.map(table=>env.TEST_FINANCE!.prepare(`SELECT * FROM ${table} ORDER BY rowid`)));
         rows=copyTables.flatMap((table,index)=>(result[index].results||[]).filter(row=>table!=='settings'||!['theme','styleTheme'].includes(String(row.key)))
           .map(row=>({table,values:table==='transactions'?{...row,last_operation_id:null}:row})));
       }

@@ -39,26 +39,6 @@ async function fixture(){const auth=new DatabaseSync(':memory:'),personal=new Da
     while(job.status!=='ready'){response=await call({action:'continue',ledgerId:job.id},user);assert.equal(response.status,200);job=(await response.json()).creation;percents.push(job.percent);}return {job,body,percents};};
   return {auth,personal,shared,owner,guest,other,ledger,env,req,call,create,close(){auth.close();personal.close();shared.close();}};
 }
-
-test('web compatibility reuses Android IDs/data and native changes without copying or changing membership',async()=>{
-  const f=await fixture();try {
-    const android={...f.env};
-    f.env.AUTH_ORIGIN='https://mywallet-8mx.pages.dev';f.env.AUTH_ANDROID_DATA_COMPAT='true';
-    const before=f.auth.prepare('SELECT COUNT(*) n FROM ledger_memberships').get().n;
-    const context=await sharedWalletContext(f.req(null),f.env);assert.equal(context.status,200);
-    assert.equal((await context.json()).ledger.id,f.ledger);
-    let snapshot=await (await sharedWalletData(f.req(null),f.env)).json();assert.equal(snapshot.transactions.length,85);
-    const tx=snapshot.transactions.find(t=>t.id==='t1');
-    const updated=await sharedWalletData(f.req({op:'transaction.update',operationId:randomUUID(),expectedRevision:tx.revision,transaction:{...tx,amount:101}},f.owner,undefined,'PATCH'),f.env);
-    assert.equal(updated.status,200);
-    const native=new Request(android.AUTH_ORIGIN+'/api/data',{headers:{Cookie:f.req(null).headers.get('Cookie')}});
-    snapshot=await (await sharedWalletData(native,android)).json();assert.equal(snapshot.transactions.find(t=>t.id==='t1').amount,101);
-    assert.equal((await sharedWalletData(f.req(null,f.other,f.ledger),f.env)).status,403);
-    assert.equal(f.auth.prepare('SELECT COUNT(*) n FROM ledger_memberships').get().n,before);
-    assert.equal((await sharedWalletContext(f.req(null),{...f.env,AUTH_ANDROID_DATA_COMPAT:undefined})).status,503);
-    assert.equal((await sharedWalletContext(f.req(null),{...f.env,AUTH_SHARED_WALLET_ORIGIN:'https://mywallet-8mx.pages.dev'})).status,503);
-  }finally{f.close();}
-});
 test('copy is resumable, owner-limited and preserves timed recurrence and all source records',async()=>{const f=await fixture();try{
   const initial={action:'create',name:' 우리 장부 ',source:'personal',operationId:randomUUID()};const started=await (await f.call(initial)).json();assert.equal(started.creation.percent,0);const id=started.creation.id;
   assert.equal((await sharedWalletData(f.req(null,f.owner,id),f.env)).status,403);

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { createSession } from '../server/auth/store.ts';
 import { sharedWalletConfiguration, sharedWalletContext, sharedWalletData } from '../server/wallet/shared-web.ts';
-import { onRequestGet, onRequestPatch } from '../functions/api/data.ts';
+import { onRequestGet, onRequestPatch } from '../server/wallet/legacy-data.ts';
 
 async function fixture() {
   const sqlite = new DatabaseSync(':memory:');
