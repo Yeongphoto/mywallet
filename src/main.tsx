@@ -13,6 +13,7 @@ import './memoney-family.css';
 import './family-adaptive.css';
 import './entry-dialog.css';
 import './theme1.css';
+import './annual-chart-toggle.css';
 
 const rootElement = document.getElementById('root');
 
