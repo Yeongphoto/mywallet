@@ -1,13 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseDevices, parseApk, preflightReport } from './android-device-preflight.mjs';
+import { parseDevices, parseApk, preflightReport, selectPhysicalDevice } from './android-device-preflight.mjs';
 const profile = JSON.parse(readFileSync(new URL('../config/android-release.json', import.meta.url), 'utf8'));
 const development = JSON.parse(readFileSync(new URL('../capacitor.config.json', import.meta.url), 'utf8'));
 const badging = "package: name='com.memoney.probe' versionCode='1' versionName='0.1.0-probe'\nsdkVersion:'24'\ntargetSdkVersion:'36'\napplication-debuggable\n";
 const cert = 'Verifies\nSigner #1 certificate SHA-1 digest: ' + 'ab'.repeat(20) + '\n';
 const apk = parseApk(badging, cert);
 const report = devices => preflightReport({ devices, apk, profile, development, backend: 'http://127.0.0.1:5198' });
+test('physical testing never implicitly selects a phone or falls back to another device', () => {
+  const devices = parseDevices('phone-a device model:A\nphone-b device model:B\nemulator-5554 device\n');
+  assert.equal(selectPhysicalDevice(devices, 'phone-b').model, 'B');
+  for (const serial of [undefined, '', 'missing', 'emulator-5554', 'phone-a;cmd']) assert.throws(() => selectPhysicalDevice(devices, serial));
+});
+test('physical testing refuses offline, unauthorized and ambiguous matching identities', () => {
+  for (const state of ['offline', 'unauthorized']) assert.throws(() => selectPhysicalDevice(parseDevices('phone-a ' + state), 'phone-a'));
+  assert.throws(() => selectPhysicalDevice(parseDevices('phone-a device\nphone-a device'), 'phone-a'));
+});
 test('device states and emulators are classified without treating unauthorized phones as ready', () => {
   const devices = parseDevices('List of devices attached\nemulator-5554 device product:sdk model:Virtual\nphone-a unauthorized usb:1\nphone-b offline\nphone-c device usb:2 model:Physical\n');
   assert.equal(devices.length, 4); assert.equal(report(devices).physicalDeviceCheck.authorized, 1);

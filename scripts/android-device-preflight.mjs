@@ -22,6 +22,12 @@ export function parseApk(output, certificates) {
     debuggable: /^application-debuggable\s*$/m.test(output),
     sha1: signers[0][2].toUpperCase().match(/../g).join(':') };
 }
+export function selectPhysicalDevice(devices, serial) {
+  if (typeof serial !== 'string' || !/^[a-zA-Z0-9._:-]+$/.test(serial) || serial.startsWith('emulator-')) throw Error('An explicit physical device is mandatory');
+  const matches = devices.filter(device => device.serial === serial);
+  if (matches.length !== 1 || matches[0].state !== 'device' || matches[0].emulator) throw Error('Selected physical device is not authorized');
+  return matches[0];
+}
 export function preflightReport({ devices, apk, profile, development, backend }) {
   if (apk.appId !== 'com.memoney.probe' || !apk.debuggable || backend !== 'http://127.0.0.1:5198' ||
       !Number.isInteger(apk.minSdk) || !Number.isInteger(apk.targetSdk)) throw Error('Expected the isolated debug bundle probe, not another app');
