@@ -54,7 +54,7 @@ export function signingConfigurationErrors(env, fileExists = isFile) {
   return errors;
 }
 
-function prepare() {
+export function prepareNativeProject() {
   assertDevelopmentConfig(root);
   const development = readDevelopmentConfig(root).capacitor;
   const profile = JSON.parse(read(join(root, 'config/android-release.json')));
@@ -143,7 +143,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (errors.length) process.exitCode = 1;
     else console.log('Signing input present; certificate validity and key ownership still require verification. No secrets printed or signing performed.');
   } else {
-    const directory = prepare();
+    const directory = prepareNativeProject();
     console.log(`Preparation directory: ${directory}`);
     if (mode === 'verify') verify(directory);
   }

@@ -16,12 +16,7 @@ import java.nio.charset.StandardCharsets;
 public class MemoneyLocalBackupPlugin extends Plugin {
     private boolean pending;
     private boolean trustedPage() {
-        String url = getBridge().getWebView().getUrl();
-        if (url == null) return false;
-        Uri uri = Uri.parse(url);
-        Uri configured = Uri.parse(getBridge().getConfig().getServerUrl());
-        return configured.getScheme().equals(uri.getScheme()) && configured.getHost().equals(uri.getHost())
-            && configured.getPort() == uri.getPort() && "/guest".equals(uri.getPath());
+        return MemoneyPageTrust.allowed(getBridge(), "/guest");
     }
     @PluginMethod
     public void save(PluginCall call) {

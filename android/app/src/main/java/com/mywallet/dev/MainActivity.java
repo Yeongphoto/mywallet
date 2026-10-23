@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         splash.setKeepOnScreenCondition(() -> !launchReady && android.os.SystemClock.elapsedRealtime() < launchDeadline);
         splash.setOnExitAnimationListener(view -> view.remove());
         registerPlugin(MemoneyLaunchScreenPlugin.class);
+        registerPlugin(MemoneyApiPlugin.class);
         bridgeBuilder.addWebViewListener(new com.getcapacitor.WebViewListener() {
             @Override public void onPageLoaded(android.webkit.WebView view) {
                 if (view.getUrl() != null && view.getUrl().endsWith("/android-unavailable.html")) finishLaunch();

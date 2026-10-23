@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { preloadD1Cache } from './d1-cache-preload';
 import { registerPwaServiceWorker } from './pwa-register';
+import { installNativeApi } from './auth/native-api';
 import './styles.css';
 import './mobile.css';
 import './calendar.css';
@@ -27,6 +28,11 @@ if (!rootElement) {
 const appRootElement = rootElement;
 
 async function bootstrap() {
+  const bundled = await installNativeApi();
+  if (bundled && window.location.pathname === '/') {
+    window.location.replace(window.localStorage.getItem('memoney:wallet-mode') === 'shared-web' ? '/wallet' : '/guest');
+    return;
+  }
   if (document.documentElement.hasAttribute('data-native-mememo') && window.MewalletLoadingArtwork?.variant !== 'mememo-native-v2') {
     // The existing web renderer URL is immutable. Refresh only the Android variant.
     await new Promise<void>(resolve => {

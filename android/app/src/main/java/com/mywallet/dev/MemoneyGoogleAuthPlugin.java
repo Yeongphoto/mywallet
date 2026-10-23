@@ -28,13 +28,7 @@ public class MemoneyGoogleAuthPlugin extends Plugin {
 
     // Only the configured test app origin can use native Google credentials.
     private boolean trustedPage() {
-        String url = getBridge().getWebView().getUrl();
-        if (url == null) return false;
-        Uri uri = Uri.parse(url);
-        Uri configured = Uri.parse(getBridge().getConfig().getServerUrl());
-        return configured.getScheme().equals(uri.getScheme()) && configured.getHost().equals(uri.getHost())
-            && configured.getPort() == uri.getPort()
-            && ("/signin".equals(uri.getPath()) || "/wallet".equals(uri.getPath()) || "/sharing".equals(uri.getPath()) || "/guest".equals(uri.getPath()));
+        return MemoneyPageTrust.allowed(getBridge(), "/signin", "/wallet", "/sharing", "/guest");
     }
 
     @PluginMethod
