@@ -31,7 +31,7 @@ try {
   browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:' + forward, defaultViewport: null });
   const page = (await browser.pages()).find(value => new URL(value.url()).origin === 'https://localhost');
   assert.ok(page, 'Bundled probe WebView is unavailable');
-  await page.goto('https://localhost/signin?wallet=shared', { waitUntil: 'domcontentloaded' });
+  await page.goto('https://localhost/signin?wallet=shared&probe=google', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.signin-google', { timeout: 15000 });
   if (tapGoogle) {
     await page.click('.signin-google');

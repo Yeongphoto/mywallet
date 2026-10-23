@@ -44,10 +44,17 @@ export default function SignInScreen() {
   const generation = useRef(0);
   const initialized = useRef(false);
   const [walletUnavailable, setWalletUnavailable] = useState(false);
+  const authProbe = import.meta.env.VITE_ANDROID_AUTH_PROBE === 'true' &&
+    new URLSearchParams(window.location.search).get('probe') === 'google';
   useLaunchReady(!loading && !busy && (!user || walletUnavailable));
 
   useEffect(() => {
     if (!user) return;
+    if (authProbe) {
+      setWalletUnavailable(true);
+      setNotice('Google 인증과 서버 세션이 확인됐어요. 격리 테스트에서는 장부 연결을 생략합니다.');
+      return;
+    }
     let disposed = false;
     void preparePersonalLogin().then(() => readWalletContext()).then(() => {
       if (!disposed && !inFlight.current) {
@@ -123,11 +130,11 @@ export default function SignInScreen() {
         <strong className="signin-wordmark"><BrandWordmark /></strong>
       </header>
       <section className="signin-content" aria-busy={loading || busy}>
-        <h1>{user ? '연결 확인' : '시작하기'}</h1>
+        <h1>{authProbe && user ? 'Google 로그인 확인 완료' : user ? '연결 확인' : '시작하기'}</h1>
         <div className="signin-card">
           {user ? (
             <>
-              <button className="secondary-button" disabled={busy} onClick={() => void refresh()}>다시 연결</button>
+              {!authProbe && <button className="secondary-button" disabled={busy} onClick={() => void refresh()}>다시 연결</button>}
             </>
           ) : !isAndroid&&enabled&&browserEnabled ? <BrowserLoginButton onAuthenticated={setUser} /> : (
             <>
