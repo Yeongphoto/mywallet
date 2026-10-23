@@ -9791,7 +9791,7 @@ ${sheet4Rows}  </sheetData>
       {editingTransaction && (
         <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setEditingTransaction(null)}>
           <div className="entry-dialog-viewport">
-          <div className="modal-content transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content entry-modal transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>거래 내역 수정</h3>
             </div>
@@ -12821,7 +12821,8 @@ function TransactionEditForm({
 
   return (
     <>
-      <form className="transaction-edit-form" data-entry-type={transaction.type} onSubmit={handleSubmit}>
+      <form className="entry-form" data-entry-type={transaction.type} onSubmit={handleSubmit}>
+        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         <DateTimeEntryField kind="date" value={date} onOpen={() => setActivePopup('date')} />
         <DateTimeEntryField kind="time" value={time} onOpen={() => setActivePopup('time')} />
         <label
@@ -12845,84 +12846,9 @@ function TransactionEditForm({
           />
           <span className="currency-suffix" aria-hidden="true">원</span>
         </label>
-        <label
-          ref={contentFieldRef}
-          className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
-          style={{ gridColumn: 'span 2', position: 'relative' }}
-          aria-label="내용"
-        >
-          <input
-            ref={titleRef}
-            type="text"
-            placeholder="내용 (미입력 시 분류명)"
-            value={title}
-            onChange={(e) => {
-              const val = e.target.value;
-              setTitle(val);
-              setIsTitleSuggestionsOpen(val.trim().length > 0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-              }
-            }}
-            onFocus={() => {
-              if (title.trim().length > 0) {
-                setIsTitleSuggestionsOpen(true);
-              }
-            }}
-            onBlur={() => {
-              setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
-            }}
-          />
-          {title && (
-            <button
-              type="button"
-              className="content-clear-btn"
-              aria-label="내용 지우기"
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={(e) => {
-                e.preventDefault();
-                setTitle('');
-                setIsTitleSuggestionsOpen(false);
-                titleRef.current?.focus();
-              }}
-            >
-              ✕
-            </button>
-          )}
-          {isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 && (
-            <FloatingTitleSuggestions anchorRef={contentFieldRef}>
-              <div className="title-suggestions-list">
-                {titleSuggestions.map((item) => (
-                  <button
-                    key={item.title}
-                    type="button"
-                    className="title-suggestion-item"
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setTitle(item.title);
-                      setIsTitleSuggestionsOpen(false);
-                      titleRef.current?.blur();
-                    }}
-                  >
-                    <HighlightedSuggestionTitle title={item.title} query={title} />
-                    {item.category && (
-                      <span className="suggestion-badge">
-                        {categories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </FloatingTitleSuggestions>
-          )}
-        </label>
 
         {isInstallment && (
-          <div className="installment-edit-summary">
+          <div className="installment-edit-summary" style={{ gridColumn: 'span 2' }}>
             <span>총 할부금액 {formatCurrency(installmentTotal)}</span>
             <span>남은 잔액 {formatCurrency(Math.max(0, previewRemainingBalance))} · 남은 {remainingInstallments}개월</span>
           </div>
@@ -13030,6 +12956,84 @@ function TransactionEditForm({
           </>
         )}
 
+        <label
+          ref={contentFieldRef}
+          className={`compact-entry-field content-entry-field ${isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 ? 'has-suggestions-open' : ''}`}
+          style={{ gridColumn: 'span 2', position: 'relative' }}
+          aria-label="내용"
+        >
+          <input
+            ref={titleRef}
+            type="text"
+            placeholder="내용 (미입력 시 분류명)"
+            value={title}
+            onChange={(e) => {
+              const val = e.target.value;
+              setTitle(val);
+              setIsTitleSuggestionsOpen(val.trim().length > 0);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                setIsTitleSuggestionsOpen(false);
+                e.currentTarget.blur();
+              }
+            }}
+            onFocus={() => {
+              if (title.trim().length > 0) {
+                setIsTitleSuggestionsOpen(true);
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => setIsTitleSuggestionsOpen(false), 200);
+            }}
+          />
+          {title && (
+            <button
+              type="button"
+              className="content-clear-btn"
+              aria-label="내용 지우기"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                e.preventDefault();
+                setTitle('');
+                setIsTitleSuggestionsOpen(false);
+                titleRef.current?.focus();
+              }}
+            >
+              ✕
+            </button>
+          )}
+          {isTitleSuggestionsOpen && title.trim().length > 0 && titleSuggestions.length > 0 && (
+            <FloatingTitleSuggestions anchorRef={contentFieldRef}>
+              <div className="title-suggestions-list">
+                {titleSuggestions.map((item) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    className="title-suggestion-item"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setTitle(item.title);
+                      setIsTitleSuggestionsOpen(false);
+                      titleRef.current?.blur();
+                    }}
+                  >
+                    <HighlightedSuggestionTitle title={item.title} query={title} />
+                    {item.category && (
+                      <span className="suggestion-badge">
+                        {categories.find((c) => c.id === item.category || c.label === item.category)?.label || item.category}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </FloatingTitleSuggestions>
+          )}
+        </label>
+
         {!isInstallment && !isAssetOnly && (
           <label className="recurring-toggle" style={{ gridColumn: 'span 2' }}>
             <input
@@ -13042,7 +13046,8 @@ function TransactionEditForm({
           </label>
         )}
 
-        <div className="transaction-edit-actions">
+        </div>
+        <div className="entry-actions transaction-edit-actions">
           <button type="button" className="danger-button" onClick={onCancel}>
             취소
           </button>
@@ -13106,16 +13111,7 @@ function TransactionEditForm({
               selectedId={category}
               onSelect={(catId) => {
                 setCategory(catId);
-                if (!assetId) {
-                  setActivePopup('asset');
-                } else {
-                  setActivePopup('none');
-                  if (!title.trim()) {
-                    setTimeout(() => titleRef.current?.focus(), 50);
-                  } else if (document.activeElement instanceof HTMLElement) {
-                    document.activeElement.blur();
-                  }
-                }
+                setActivePopup('none');
               }}
             />
           </div>
@@ -13135,12 +13131,7 @@ function TransactionEditForm({
               selectedId={assetId}
               onSelect={(aId) => {
                 setAssetId(aId);
-                if (transaction.type === 'transfer') {
-                  setActivePopup('toAsset');
-                } else {
-                  setActivePopup('none');
-                  setTimeout(() => titleRef.current?.focus(), 50);
-                }
+                setActivePopup('none');
               }}
             />
           </div>
@@ -13161,7 +13152,6 @@ function TransactionEditForm({
               onSelect={(toId) => {
                 setToAssetId(toId);
                 setActivePopup('none');
-                setTimeout(() => titleRef.current?.focus(), 50);
               }}
             />
           </div>

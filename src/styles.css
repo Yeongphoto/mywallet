@@ -4783,11 +4783,6 @@ body.category-handle-drag-active {
     box-shadow: none;
   }
 
-  .transaction-edit-modal .modal-header {
-    flex: 0 0 auto;
-    padding: clamp(12px, 3dvh, 24px) clamp(20px, 5vw, 40px);
-  }
-
   .transaction-edit-modal .modal-body {
     display: flex;
     flex: 1;
