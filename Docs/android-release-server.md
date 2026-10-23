@@ -47,7 +47,7 @@ https://memoney-6r5.pages.dev
 - 추후 `com.memoney.app` + Play 앱 서명 SHA-1의 Android client를 추가하고, 그 ID를 출시 프로필과 서버의 Android authorized-party 허용 목록에 같이 넣는다. 개발 client를 재사용하지 않는다.
 - Audience/동의 화면의 현재 게시 상태·시험 사용자·지원 연락처·정책 링크를 콘솔에서 다시 확인한다. 이번 단계에서 Google 콘솔을 저장하거나 공개 상태로 바꾸지 않았다.
 - 세션은 새 origin의 `__Host-` 쿠키에 `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`를 유지한다. Domain 쿠키로 넓히거나 CORS `*`/서드파티 쿠키 허용으로 우회하지 않는다.
-- 새로운 origin에서도 동일한 Google issuer/subject는 같은 인증 DB user ID를 가리킨다. 브라우저 쿠키는 origin별로 별개이므로 새 주소의 재로그인은 정상이다. 실제 Google/실기기 로그인은 아직 하지 않았다.
+- 새로운 origin에서도 동일한 Google issuer/subject는 같은 인증 DB user ID를 가리킨다. 브라우저 쿠키는 origin별로 별개이므로 새 주소의 재로그인은 정상이다. 검증 패키지 `com.memoney.probe`에서는 2026-10-23 실제 Google 로그인/세션 발급을 격리 서버로 확인했다. 새 origin과 출시 패키지의 로그인은 아직 검증하지 않았다.
 
 ## 네이티브 번들 화면 호환성에서 확인한 문제
 
