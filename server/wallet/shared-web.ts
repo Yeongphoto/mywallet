@@ -6,11 +6,13 @@ import { availableLedgers, isolatedSharedReady } from './shared-creation.ts';
 import { scopedFinance } from './scoped-finance.ts';
 import { generationDatabase, recoveryState } from './recovery-store.ts';
 import { ensurePersonalLedger, personalFinance, personalOnboardingComplete } from './personal.ts';
+import { hostedWalletDeployment } from './deployment.ts';
 
 export interface SharedWalletEnvironment extends AuthEnvironment {
   AUTH_SHARED_WALLET_ORIGIN?: string;
   AUTH_SHARED_WALLET_LEDGER_ID?: string;
   AUTH_SHARED_TEST_DEPLOYMENT?: string;
+  AUTH_RELEASE_DEPLOYMENT?: string;
   AUTH_TEST_PERSONAL_LEDGER?: string;
   TEST_FINANCE?: D1Database;
   AUTH_TEST_MULTI_LEDGER?: string;
@@ -26,10 +28,9 @@ export function sharedWalletConfiguration(env: SharedWalletEnvironment) {
     if(!env.TEST_FINANCE||!env.TEST_SHARED_FINANCE||env.AUTH_SHARED_WALLET_ORIGIN)return null;
     return {origin:'',ledgerId:env.AUTH_SHARED_WALLET_LEDGER_ID||''};
   }
-  // Explicit test deployments only. Never enabled implicitly in the existing web deployment.
-  const local = env.AUTH_LOCAL_DEV === 'true' && env.AUTH_ORIGIN === 'http://localhost:5187';
-  const hosted = env.AUTH_SHARED_TEST_DEPLOYMENT === 'true' && env.AUTH_LOCAL_DEV !== 'true' &&
-    env.AUTH_ORIGIN === 'https://memoney-android-test.pages.dev';
+  // Only explicit isolated deployments; existing ledger/owner checks still apply.
+  const local = env.AUTH_LOCAL_DEV === 'true' && env.AUTH_ORIGIN === 'http://localhost:5187' && env.AUTH_RELEASE_DEPLOYMENT !== 'true';
+  const hosted = hostedWalletDeployment(env);
   if ((!local && !hosted) ||
       !uuid.test(env.AUTH_SHARED_WALLET_LEDGER_ID || '')) return null;
   if (env.AUTH_TEST_PERSONAL_LEDGER === 'true') {

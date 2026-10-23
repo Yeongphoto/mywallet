@@ -4,12 +4,13 @@ import { hashToken } from '../auth/store.ts';
 import type { SharedWalletEnvironment } from './shared-web.ts';
 import { copyTables, scopedFinance, schemaStatements } from './scoped-finance.ts';
 import { ensurePersonalLedger, personalFinance, personalOnboardingComplete } from './personal.ts';
+import { hostedWalletDeployment } from './deployment.ts';
 
 export type Creation = {ledger_id:string;owner_user_id:string;operation_id:string;request_hash:string;source:string;status:string};
 type CopyRow = {table:string;values:Record<string,unknown>};
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','Vary':'Cookie'}});
 export async function isolatedSharedReady(env:SharedWalletEnvironment) {
-  if(env.AUTH_TEST_MULTI_LEDGER!=='true'||(env.AUTH_PERSONAL_ONBOARDING!=='true'&&env.AUTH_ORIGIN!=='https://memoney-android-test.pages.dev')||
+  if(env.AUTH_TEST_MULTI_LEDGER!=='true'||(env.AUTH_PERSONAL_ONBOARDING!=='true'&&!hostedWalletDeployment(env))||
     env.AUTH_SHARED_TEST_DEPLOYMENT!=='true'||!env.TEST_SHARED_FINANCE||env.AUTH_SHARED_WALLET_ORIGIN) return false;
   return !!await env.TEST_SHARED_FINANCE.prepare('SELECT id FROM memoney_shared_test_database WHERE id=?').bind('memoney-android-test-shared').first();
 }

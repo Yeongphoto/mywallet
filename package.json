@@ -24,6 +24,8 @@
     "android:release:prepare": "node scripts/android-release-prepare.mjs prepare",
     "android:release:verify": "node scripts/android-release-prepare.mjs verify",
     "android:signing:check": "node scripts/android-release-prepare.mjs signing-check",
+    "android:server:prepare": "node scripts/android-release-server.mjs",
+    "check:android-server": "tsc -p tsconfig.auth.json && node --test scripts/android-release-server.test.mjs",
     "android:build": "npm run android:sync && node scripts/android-dev.mjs build",
     "android:run": "npm run android:build && node scripts/android-dev.mjs run",
     "android:connect": "node scripts/android-connect.mjs",

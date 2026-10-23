@@ -41,7 +41,8 @@ export function releaseConfigErrors(profile, development) {
   require(profile.server?.cleartext === false && profile.server?.errorPath === 'android-unavailable.html', 'Release must retain HTTPS and the offline error page');
   const auth = profile.plugins?.MemoneyGoogleAuth;
   require(auth?.webClientId === development.plugins?.MemoneyGoogleAuth?.webClientId, 'Keep the common Web OAuth audience; do not replace it with an Android client');
-  require(typeof auth?.androidClientId === 'string' && oauthId.test(auth.androidClientId) && auth.androidClientId !== development.plugins?.MemoneyGoogleAuth?.androidClientId, 'Pending: release Android OAuth client (not the debug client)');
+  require(typeof auth?.androidClientId === 'string' && oauthId.test(auth.androidClientId) && auth.androidClientId !== development.plugins?.MemoneyGoogleAuth?.androidClientId,
+    `${auth?.androidClientId == null ? 'Pending' : 'Invalid'}: release Android OAuth client (not the debug client)`);
   require(typeof profile.readiness?.playAppSigningSha1 === 'string' && /^(?:[A-Fa-f0-9]{2}:){19}[A-Fa-f0-9]{2}$/.test(profile.readiness.playAppSigningSha1), 'Pending: Play app signing SHA-1 (not upload/debug key)');
   for (const key of ['uploadKeyConfigured', 'serverDeploymentVerified', 'originMigrationVerified']) {
     require(profile.readiness?.[key] === true, `Pending: ${key}`);
