@@ -28,6 +28,8 @@
     "android:bundle:build": "npm run build && node scripts/android-bundle-probe.mjs",
     "check:native-api": "node --test scripts/native-api.test.mjs",
     "check:local-durability": "node scripts/check-local-durability.mjs",
+    "android:device:check": "node scripts/android-device-preflight.mjs",
+    "check:android-device": "node --test scripts/android-device-preflight.test.mjs",
     "android:bundle:test": "node scripts/check-bundle-probe.mjs",
     "check:android-server": "tsc -p tsconfig.auth.json && node --test scripts/android-release-server.test.mjs",
     "android:build": "npm run android:sync && node scripts/android-dev.mjs build",

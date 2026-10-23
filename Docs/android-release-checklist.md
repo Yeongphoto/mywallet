@@ -61,6 +61,8 @@
 
 ## 4단계: 서명과 Google 로그인
 
+2026-10-23 [실기기·실제 로그인 사전 점검](android-device-readiness.md): 검증 APK 자체의 패키지와 서명은 확인했지만 실제 기기는 연결되지 않았다. 현재 합성 인증 fixture를 실제 Google 로그인 검증으로 간주하지 않는다. `npm run android:device:check`로 읽기 전용 재확인이 가능하다.
+
 - [ ] Play App Signing 구성과 별도의 업로드 키를 준비한다. 키·비밀번호·서비스 계정 JSON은 Git, 채팅, APK에 넣지 않는다.
 - [ ] 키의 안전한 별도 백업과 담당자·복구 절차를 기록한다. 공개 인증서 지문만 문서에 기록한다.
 - [ ] 출시 패키지 + Play 앱 서명 SHA-1로 같은 Google Cloud 프로젝트에 Android OAuth client를 준비한다. 업로드 키 SHA-1과 혼동하지 않는다.
