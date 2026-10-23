@@ -47,7 +47,9 @@ Google의 [Android 클라이언트 인증 안내](https://developers.google.com/
 - `npm run check:android-device`: 파서·기기 구분·서명 실패·패키지 혼동·합성 인증 오인 차단·기기 일련번호 비노출 6건 통과.
 - `npm run check:android-google-probe`: 실제 Google verifier 구성에서 잘못된 토큰 거부와 금융 API 차단 1건 통과. 합성 토큰만 쓰는 기존 fixture 동작은 별도 유지한다.
 - 검증 APK 빌드 성공, 서명 SHA-1이 등록값과 일치. Google Cloud에는 검증용 Android OAuth client만 추가했다. 운영 서버·공유 DB·기존 개발 OAuth client는 변경하지 않았다.
-- 현재 ADB에는 에뮬레이터만 연결되어 있고 삼성 실기기는 연결되어 있지 않다. 실제 Google 로그인은 아직 진행하지 않았다.
+- 2026-10-23 실기기 `SM_F971N`에서 등록한 Android client로 Google 로그인을 완료했다. 격리 인증 서버에서 `/api/auth/session`이 200·authenticated로 확인됐고, 검증 화면은 `Google 로그인 확인 완료`를 표시했다. 금융 API 요청은 0건이었다.
+- 처음에는 인증 후 일반 장부 연결 화면으로 넘어가려 했으나, 실데이터 보호를 위해 장부 컨텍스트/API를 막은 검증 서버가 의도대로 요청을 거부해 재연결 안내가 보였다. 검증 APK 전용 `?probe=google` 경로가 인증 성공을 표시하고 장부 API를 생략하도록 보완했다. 정식 앱 동작이나 실서버/공유 DB 연동을 검증한 것은 아니다.
+- 검증 완료 후 메모리 인증 서버를 종료하고 이 도구가 추가한 `tcp:5198` reverse만 제거했다. 계정 이메일·토큰·쿠키는 기록하지 않았고, 공유 장부 및 금융 DB에 접근하지 않았다.
 
 ## 후속 실기기 검사 — 공유장부 보호
 
