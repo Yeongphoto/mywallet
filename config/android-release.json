@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "appId": "com.memoney.app",
+  "appName": "Memoney",
+  "localizedAppName": { "ko": "메머니" },
+  "webDir": "dist",
+  "loggingBehavior": "none",
+  "server": {
+    "url": "https://memoney-6r5.pages.dev/signin",
+    "errorPath": "android-unavailable.html",
+    "cleartext": false
+  },
+  "plugins": {
+    "MemoneyGoogleAuth": {
+      "webClientId": "367615872651-ln2adrilfm9c9ofk12pl5jip1so1ra08.apps.googleusercontent.com",
+      "androidClientId": null
+    }
+  },
+  "hosting": {
+    "project": "memoney",
+    "origin": "https://memoney-6r5.pages.dev"
+  },
+  "readiness": {
+    "playAppSigningSha1": null,
+    "uploadKeyConfigured": false,
+    "serverDeploymentVerified": false,
+    "originMigrationVerified": false
+  }
+}

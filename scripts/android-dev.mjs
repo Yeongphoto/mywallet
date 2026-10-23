@@ -2,10 +2,12 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { assertDevelopmentConfig } from './android-build-config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const mode = process.argv[2];
 if (!['build', 'run'].includes(mode) || process.argv.length !== 3) throw new Error('Use build or run only');
+assertDevelopmentConfig(root);
 const config = JSON.parse(readFileSync(join(root, 'capacitor.config.json'), 'utf8'));
 const hosted = config.server?.url === 'https://memoney-android-test.pages.dev/signin';
 if (config.appId !== 'com.mywallet.dev' || (!hosted && config.server?.url !== 'http://localhost:5187/signin')) {
