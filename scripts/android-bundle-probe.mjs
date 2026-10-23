@@ -10,6 +10,11 @@ export function buildBundleProbe() {
   const assets = join(directory, 'android/app/src/main/assets');
   const config = JSON.parse(readFileSync(join(directory, 'capacitor.config.json'), 'utf8'));
   config.appId = 'com.memoney.probe'; config.appName = 'Memoney Probe';
+  const probeAndroidClientId = process.env.MYWALLET_PROBE_ANDROID_CLIENT_ID;
+  if (probeAndroidClientId && !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(probeAndroidClientId)) {
+    throw Error('Invalid probe Android OAuth client ID');
+  }
+  if (probeAndroidClientId) config.plugins.MemoneyGoogleAuth.androidClientId = probeAndroidClientId;
   config.server = { hostname: 'localhost', androidScheme: 'https' };
   config.plugins.MemoneyApi = { enabled: true, origin: 'http://127.0.0.1:5198', allowLocalProbe: true };
   for (const file of [join(directory, 'capacitor.config.json'), join(assets, 'capacitor.config.json')]) writeFileSync(file, JSON.stringify(config, null, 2) + '\n', 'utf8');
@@ -50,7 +55,8 @@ gradle.taskGraph.whenReady { graph ->
     { cwd: join(directory, 'android'), env: { ...process.env, JAVA_HOME: java, ANDROID_HOME: sdk }, stdio: 'inherit' });
   if (result.status !== 0) throw Error('Probe APK build failed');
   const apk = join(directory, 'android/app/build/outputs/apk/debug/app-debug.apk');
-  writeFileSync(join(root, 'android/build/memoney-bundle-probe.json'), JSON.stringify({ directory, apk, appId: 'com.memoney.probe', backend: 'http://127.0.0.1:5198' }, null, 2) + '\n', 'utf8');
+  writeFileSync(join(root, 'android/build/memoney-bundle-probe.json'), JSON.stringify({ directory, apk,
+    appId: 'com.memoney.probe', backend: 'http://127.0.0.1:5198', ...(probeAndroidClientId ? { androidClientId: probeAndroidClientId } : {}) }, null, 2) + '\n', 'utf8');
   console.log(`Probe APK: ${apk}`);
   return { directory, apk };
 }

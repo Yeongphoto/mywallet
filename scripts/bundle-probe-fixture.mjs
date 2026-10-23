@@ -14,12 +14,14 @@ function adapter(sqlite) {
       catch (error) { sqlite.exec('ROLLBACK'); throw error; }
     } };
 }
-export async function startBundleFixture() {
+export async function startBundleFixture({ realGoogleAndroidClientId } = {}) {
   const origin = 'http://127.0.0.1:5198', auth = new DatabaseSync(':memory:'), finance = new DatabaseSync(':memory:');
   auth.exec(readFileSync(new URL('./auth-foundation-schema.sql', import.meta.url), 'utf8'));
   finance.exec(readFileSync(new URL('./android-sandbox-schema.sql', import.meta.url), 'utf8'));
+  const webClientId = JSON.parse(readFileSync(new URL('../config/android-release.json', import.meta.url), 'utf8')).plugins.MemoneyGoogleAuth.webClientId;
   const env = { DB: adapter(auth), AUTH_ENABLED: 'true', AUTH_LOCAL_DEV: 'true', AUTH_ORIGIN: origin,
-    AUTH_GOOGLE_CLIENT_ID: 'probe.apps.googleusercontent.com' };
+    AUTH_GOOGLE_CLIENT_ID: realGoogleAndroidClientId ? webClientId : 'probe.apps.googleusercontent.com',
+    ...(realGoogleAndroidClientId ? { AUTH_GOOGLE_ANDROID_CLIENT_ID: realGoogleAndroidClientId } : {}) };
   const metrics = { requests: 0, financialReads: 0, financialWrites: 0, denied: 0, duplicateCookieNames: 0, financeRows: 0, routes: {} };
   const ledger = '22222222-2222-4222-8222-222222222222';
   const server = createServer(async (incoming, outgoing) => {
@@ -33,12 +35,14 @@ export async function startBundleFixture() {
       const cookieNames = (request.headers.get('Cookie') || '').split(';').map(value => value.trim().split('=')[0]).filter(Boolean);
       if (new Set(cookieNames).size !== cookieNames.length) metrics.duplicateCookieNames++;
       let response;
-      if (url.searchParams.has('redirect')) response = new Response(null, { status: 302, headers: { Location: 'https://example.invalid' } });
+      if (!realGoogleAndroidClientId && url.searchParams.has('redirect')) response = new Response(null, { status: 302, headers: { Location: 'https://example.invalid' } });
       else if (url.pathname.startsWith('/api/auth/')) {
-        response = await handleAuth(request, env, url.pathname.slice('/api/auth/'.length), async token => {
+        response = await handleAuth(request, env, url.pathname.slice('/api/auth/'.length), realGoogleAndroidClientId ? undefined : async token => {
           if (token !== 'isolated-probe-token') throw Error('Fixture only');
           return { issuer: 'https://accounts.google.com', subject: 'isolated-bundle-probe' };
         });
+      } else if (realGoogleAndroidClientId) {
+        response = Response.json({ error: 'PROBE_AUTH_ONLY' }, { status: 403 });
       } else {
         const session = await handleAuth(new Request(origin + '/api/auth/session', { headers: request.headers }), env, 'session');
         if (!session.ok) { metrics.denied++; response = session; }
