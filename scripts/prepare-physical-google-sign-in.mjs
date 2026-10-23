@@ -22,7 +22,7 @@ let browser, forward;
 try {
   let pid;
   for (let attempt = 0; attempt < 30; attempt++) {
-    pid = run('shell', 'pidof', appId).split(/\s/)[0];
+    try { pid = run('shell', 'pidof', appId).split(/\s/)[0]; } catch { /* Wait for this probe process only. */ }
     if (/^\d+$/.test(pid)) break;
     await new Promise(resolve => setTimeout(resolve, 250));
   }
