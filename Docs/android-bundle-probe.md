@@ -41,15 +41,15 @@ npm run android:bundle:test
 
 재현 가능한 검사는 `scripts/check-bundle-probe.mjs`, `scripts/bundle-probe-fixture.mjs`, `scripts/native-api.test.mjs`에 있다. 스크린샷과 합성 로컬 백업은 `%LOCALAPPDATA%/Memoney/web-ui-checks/<실행 PID>/`에 보존하며 외부에 업로드하지 않는다.
 
-## 발견한 출시 차단 항목: 저장 직후 즉시 강제 종료
+## 저장 직후 즉시 강제 종료 보강
 
-초기 검사에서 UI 저장 직후 백그라운드 전환 없이 `am force-stop`한 경우, 재실행 시 최근 거래가 없는 이전 로컬 snapshot이 읽히는 사례를 관찰했다. 현재 통과한 재시작 검사는 새로고침 확인, 홈으로 백그라운드 전환, 3초 대기 후 프로세스 종료를 사용한다. 이를 즉시 강제 종료 내구성까지 검증한 것으로 보지 않는다.
+초기 APK에서 UI 저장 직후 백그라운드 전환 없이 `am force-stop`하면 최근 거래가 없는 이전 snapshot이 읽혔다. 별도 localStorage 키만 저장하는 실험에서도 재현되어 화면 상태와 독립적인 내구성 문제를 확인했다.
 
-WebView 저장의 디스크 반영 시점과 검증용 초기 fixture 주입의 영향을 분리해 추가 재현해야 한다. 근본 원인은 아직 확정하지 않았다. 이번 작업에서 localStorage 대신 다른 저장소를 조용히 기준으로 삼거나 자동 복구로 덮어쓰는 변경은 하지 않았다.
+번들 기기 장부에 strict IndexedDB 확인 사본을 추가했다. 원본 보관·세대·충돌 처리와 한계는 [기기 장부 내구성](local-guest-durability.md)을 따른다. 웹과 D1 우선순위는 변경하지 않는다.
 
-원래의 더 강한 종료 조건은 `node scripts/check-bundle-probe.mjs --abrupt-stop` 진단 모드로 남긴다. 이 모드는 정상 백그라운드 전환과 대기를 생략하며 통과를 보장하지 않는다. 기본 검사의 성공과 별도로 다룬다.
+`node scripts/check-bundle-probe.mjs --abrupt-stop`은 저장 모달이 완료로 닫힌 직후 홈 전환·대기·후속 API 검사 없이 즉시 종료한다. 재시작 후 해당 고유 제목과 금액을 확인하고, 인증 및 서버 종료 검사도 이어서 수행한다. 기존 합성 기록을 초기 fixture로 덮어쓰지 않는다.
 
-다음 우선 작업은 테스트 fixture 없이 일반 입력만으로 재현하고, 저장 성공 응답 전에 안전하게 영속화할 네이티브 보존 경로를 검토·검증하는 것이다. 동기화 정책과 원본/복구 세대 보존 규칙은 유지해야 한다. 해결 전 `originMigrationVerified`나 실제 출시 허용을 켜지 않는다.
+새 APK에서 이 즉시 종료 검사가 통과했다. 격리 브라우저 내구성 검사 18건과 기존 회귀 119건도 통과했다. 실기기와 정식 서버 검증은 아직 남았으므로 `originMigrationVerified`와 실제 출시 허용은 켜지 않는다.
 
 ## 아직 하지 않은 것
 

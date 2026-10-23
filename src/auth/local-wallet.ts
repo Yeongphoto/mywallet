@@ -1,4 +1,5 @@
 import { dateInTimeZone, dueRecurringTransactions } from '../recurring.ts';
+import { persistGuestSnapshot } from './local-durability.ts';
 // The guest ledger is authoritative only in explicitly selected local mode.
 // Account caches and the legacy web keys are never read or migrated here.
 export const GUEST_ID_KEY = 'memoney:guest:active-id';
@@ -51,7 +52,7 @@ export function persistLocalView(id: string, view: Row, storage = window.localSt
   // Keep settlements, order revisions and completed operation receipts which App's view does not contain.
   const changed = Object.keys(view).some(k => !['updatedAt', 'theme', 'styleTheme'].includes(k) && stable(view[k]) !== stable(current[k]));
   const updatedAt = Math.max(current.updatedAt || 0, view.updatedAt || 0, changed ? Date.now() : 0);
-  storage.setItem(guestKey(id), JSON.stringify({ ...current, ...view, updatedAt }));
+  return persistGuestSnapshot(id, guestKey(id), JSON.stringify({ ...current, ...view, updatedAt }), storage);
   });
 }
 class LocalError extends Error {
@@ -231,7 +232,7 @@ async function localWalletFetchUnlocked(id: string, input: RequestInfo | URL, in
       if(!transactions.length)return Response.json({success:true,generated:0,transactions:[],more:false});
       const now=Date.now(),saved=transactions.map(t=>({...t,revision:1,createdAt:now}));
       data.transactions.push(...saved);data.updatedAt=now;
-      storage.setItem(guestKey(id),JSON.stringify(data));
+      await persistGuestSnapshot(id,guestKey(id),JSON.stringify(data),storage);
       return Response.json({success:true,generated:saved.length,transactions:saved,more:saved.length===40});
     }
     const request = stable(body), receipts = data.localOperations || {};
@@ -244,8 +245,9 @@ async function localWalletFetchUnlocked(id: string, input: RequestInfo | URL, in
     data.updatedAt = Date.now();
     if (body.operationId) receipts[body.operationId] = { request, result };
     data.localOperations = receipts;
-    // A single synchronous write commits rows and receipts together; quota/errors never report success.
-    storage.setItem(guestKey(id), JSON.stringify(data));
+    // Rows and operation receipts share one acknowledged checkpoint in the
+    // bundled app. Other clients retain their existing localStorage behavior.
+    await persistGuestSnapshot(id, guestKey(id), JSON.stringify(data), storage);
     return Response.json(result);
   } catch (error) {
     if (error instanceof LocalError) return Response.json({ error: error.message, current: error.current }, { status: error.status });

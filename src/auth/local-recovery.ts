@@ -1,13 +1,15 @@
 import { assertGuestGeneration, guestGeneration, localSnapshot, withGuestLock } from './local-wallet';
 import { staleArchiveDatabase } from './recovery-client';
 import type { RecoveryInfo } from './recovery-client';
+import { checkpointGuest, durableWriteTransaction, guestDurabilityEnabled } from './local-durability';
 const retention=7*24*60*60*1000;
 type Archive={id:string;localLedger:string;kind:string;created_at:number;expires_at:number;restored_at:number|null;snapshot:string;hash:string;generation:string;resultGeneration:string;committed:boolean;recoveryId?:string};
 async function hash(value:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');}
 async function records(db:IDBDatabase){return new Promise<Archive[]>((resolve,reject)=>{const r=db.transaction('archives').objectStore('archives').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
-async function put(db:IDBDatabase,record:Archive){return new Promise<void>((resolve,reject)=>{const tx=db.transaction('archives','readwrite');tx.objectStore('archives').put(record);tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});}
+async function put(db:IDBDatabase,record:Archive){return new Promise<void>((resolve,reject)=>{const tx=guestDurabilityEnabled()?durableWriteTransaction(db,'archives'):db.transaction('archives','readwrite');tx.objectStore('archives').put(record);tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);tx.onerror=()=>reject(tx.error);});}
 export async function localRecoveryInfo(id:string):Promise<RecoveryInfo> {
   if(!navigator.locks||!window.indexedDB)throw Error('LOCAL_RECOVERY_UNSUPPORTED');
+  return withGuestLock(id,async()=>{
   assertGuestGeneration(id);
   const db=await staleArchiveDatabase();
   try {
@@ -16,7 +18,7 @@ export async function localRecoveryInfo(id:string):Promise<RecoveryInfo> {
     for(const record of all.filter(r=>r.localLedger===id)) {
       if(record.expires_at<=now) {
         if(record.generation!==generation)window.localStorage.removeItem(`memoney:guest:${id}:mywallet:v2`+(record.generation!=='initial'?`:generation:${record.generation}`:''));
-        await new Promise<void>((resolve,reject)=>{const tx=db.transaction('archives','readwrite');tx.objectStore('archives').delete(record.id);tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);});
+        await new Promise<void>((resolve,reject)=>{const tx=guestDurabilityEnabled()?durableWriteTransaction(db,'archives'):db.transaction('archives','readwrite');tx.objectStore('archives').delete(record.id);tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);});
         continue;
       }
       if(!record.committed&&record.resultGeneration===generation){record.committed=true;await put(db,record);}
@@ -24,8 +26,10 @@ export async function localRecoveryInfo(id:string):Promise<RecoveryInfo> {
       if(record.committed)active.push(record);
     }
     const snapshot=JSON.stringify(localSnapshot(window.localStorage,id));
+    await checkpointGuest(id);
     return {state:{status:'active',expires_at:null},generation,version:await hash(snapshot),counts:Object.fromEntries(Object.entries(JSON.parse(snapshot)).filter(([,v])=>Array.isArray(v)).map(([k,v])=>[k,(v as unknown[]).length])),records:active.sort((a,b)=>b.created_at-a.created_at),serverTime:now};
   }finally{db.close();}
+  });
 }
 export async function localRecoveryAction(id:string,body:Record<string,unknown>) {
   if(!navigator.locks)throw Error('LOCAL_RECOVERY_UNSUPPORTED');
@@ -54,6 +58,12 @@ export async function localRecoveryAction(id:string,body:Record<string,unknown>)
       // This one atomic pointer write activates the new generation. Older app code
       // can only write its old storage key, never the new active ledger.
       window.localStorage.setItem(`memoney:guest:${id}:recovery-generation`,next);
+      try { await checkpointGuest(id,window.localStorage,true); }
+      catch(error) {
+        if(generation==='initial')window.localStorage.removeItem(`memoney:guest:${id}:recovery-generation`);
+        else window.localStorage.setItem(`memoney:guest:${id}:recovery-generation`,generation);
+        throw error;
+      }
       record.committed=true;
       try {await put(db,record);if(target){target.restored_at=Date.now();await put(db,target);}}catch{/* The committed pointer lets the next read repair the completion marker. */}
     }finally{db.close();}

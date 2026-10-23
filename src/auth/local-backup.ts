@@ -1,6 +1,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { guestKey, localSnapshot, assertGuestGeneration, withGuestLock } from './local-wallet';
 import type { LocalSnapshot } from './local-wallet';
+import { persistGuestSnapshot } from './local-durability';
 const files = registerPlugin<{ save(options: { content: string; name: string; mimeType: string }): Promise<void> }>('MemoneyLocalBackup');
 export async function saveGuestBackup(content: string, name: string, mimeType = 'application/json') {
   if (Capacitor.getPlatform() === 'android') { await files.save({ content, name, mimeType }); return; }
@@ -18,11 +19,11 @@ export function parseGuestArchive(text: string, id: string): LocalSnapshot {
   return localSnapshot({ getItem: () => JSON.stringify(backup.data) }, id);
 }
 export async function restoreGuestArchive(id: string, snapshot: LocalSnapshot) {
-  return withGuestLock(id,()=>{
+  return withGuestLock(id,async()=>{
   assertGuestGeneration(id);
   const current = localSnapshot(window.localStorage, id);
   window.localStorage.setItem(guestKey(id, `pre-restore:${Date.now()}`), JSON.stringify(current));
-  window.localStorage.setItem(guestKey(id), JSON.stringify(snapshot));
+  await persistGuestSnapshot(id, guestKey(id), JSON.stringify(snapshot));
   window.location.replace('/guest#settings');
   });
 }

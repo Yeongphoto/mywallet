@@ -45,31 +45,50 @@ try {
   await page.waitForSelector('.app-header', { timeout: 30000 });
   assert.equal(new URL(page.url()).pathname, '/guest');
   assert.equal(fixture.metrics.financialReads + fixture.metrics.financialWrites, 0);
-  const guestId = randomUUID();
-  await page.evaluate(id => {
-    localStorage.setItem('memoney:guest:active-id', id); localStorage.setItem('memoney:wallet-mode', 'local');
-    localStorage.setItem(`memoney:guest:${id}:mywallet:v2`, JSON.stringify({ updatedAt: 1, transactions: [], plans: [], recurringRules: [], deletedRecurringTxs: [],
-      assets: [{ id: 'probe-cash', name: 'Probe 현금', category: 'cash', memo: '', amount: 0 }] }));
-  }, guestId);
-  await page.reload(); await page.waitForSelector('.app-header');
+  const guestId = await page.evaluate(() => localStorage.getItem('memoney:guest:active-id'));
+  const title = '번들 저장 검증 ' + randomUUID().slice(0, 8);
+  let assetName = await page.evaluate(id => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).assets[0]?.name, guestId);
+  if (!assetName) {
+    await page.click('.sidebar a[href="#asset"]');
+    await page.click('button[aria-label="자산 등록"]');
+    await page.click('button[aria-label="자산 카테고리"]');
+    await page.waitForSelector('.picker-grid-btn');
+    await page.evaluate(() => document.querySelector('.picker-grid-btn').click());
+    await page.type('input[name="asset-name"]', 'Probe 현금');
+    await page.evaluate(() => document.querySelector('.asset-entry-form .amount-entry-field').click());
+    await page.waitForSelector('.amount-keypad-grid');
+    await page.evaluate(() => [...document.querySelectorAll('.keypad-btn')].find(button => button.textContent.trim() === '1').click());
+    await page.click('.keypad-submit-btn');
+    await page.evaluate(() => { document.activeElement?.blur(); document.querySelector('.picker-popup-backdrop')?.click(); document.querySelector('.asset-entry-form').requestSubmit(); });
+    await page.waitForFunction(() => !document.querySelector('.entry-form'));
+    await page.click('.sidebar a[href="#summary"]');
+    assetName = 'Probe 현금';
+  }
   await page.click('button[aria-label="거래 등록"]');
-  await page.type('.entry-modal .content-entry-field input', '번들 저장 검증');
+  await page.type('.entry-modal .content-entry-field input', title);
   await page.evaluate(() => document.querySelector('.entry-modal .amount-entry-field').click());
   await page.waitForSelector('.amount-keypad-grid');
   for (const digit of '1234') await page.evaluate(digit => [...document.querySelectorAll('.keypad-btn')].find(button => button.textContent.trim() === digit).click(), digit);
   await page.click('.keypad-submit-btn');
   await page.waitForSelector('.picker-grid-btn');
   await page.evaluate(() => document.querySelector('.picker-grid-btn').click());
-  await page.waitForFunction(() => [...document.querySelectorAll('.picker-grid-btn')].some(button => button.textContent.includes('Probe 현금')));
-  await page.evaluate(() => [...document.querySelectorAll('.picker-grid-btn')].find(button => button.textContent.includes('Probe 현금')).click());
+  await page.waitForFunction(name => [...document.querySelectorAll('.picker-grid-btn')].some(button => button.textContent.includes(name)), {}, assetName);
+  await page.evaluate(name => [...document.querySelectorAll('.picker-grid-btn')].find(button => button.textContent.includes(name)).click(), assetName);
   await page.evaluate(() => { document.activeElement?.blur(); document.querySelector('.picker-popup-backdrop')?.click(); });
   await page.evaluate(() => document.querySelector('.entry-form').requestSubmit());
-  await page.waitForFunction(id => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`) || '{}').transactions?.some(row => row.title === '번들 저장 검증' && row.amount === 1234), {}, guestId);
+  // The modal closes only after the awaited save acknowledges its strict commit.
+  await page.waitForFunction(() => !document.querySelector('.entry-form'), { polling: 10 });
+  if (abrupt) {
+    run('shell', 'am', 'force-stop', appId); await browser.disconnect();
+    run('shell', 'am', 'start', '-n', appId + '/com.mywallet.dev.MainActivity');
+    page = await attach(); await page.waitForSelector('.app-header');
+  }
+  await page.waitForFunction(({ id, title }) => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`) || '{}').transactions?.some(row => row.title === title && row.amount === 1234), {}, { id: guestId, title });
   assert.equal(fixture.metrics.financialReads + fixture.metrics.financialWrites, 0);
   const local = await page.evaluate(id => localStorage.getItem(`memoney:guest:${id}:mywallet:v2`), guestId);
   if (!abrupt) {
     await page.reload(); await page.waitForSelector('.app-header');
-    assert.equal(await page.evaluate(id => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions[0]?.amount, guestId), 1234);
+    assert.equal(await page.evaluate(({id,title}) => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions.find(row => row.title === title)?.amount, {id:guestId,title}), 1234);
   }
   writeFileSync(webUiArtifact('bundle-local-backup.json'), JSON.stringify({ format: 'memoney-local', version: 1, data: JSON.parse(local) }), 'utf8');
   const api = await page.evaluate(async ledger => {
@@ -104,7 +123,7 @@ try {
   run('shell', 'am', 'start', '-n', appId + '/com.mywallet.dev.MainActivity');
   page = await attach(); await page.waitForSelector('.app-header');
   assert.equal(await page.evaluate(async () => (await fetch('/api/auth/session')).status), 200, 'Native cookie survives app restart');
-  assert.equal(await page.evaluate(id => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions[0]?.amount, guestId), 1234);
+  assert.equal(await page.evaluate(({id,title}) => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions.find(row => row.title === title)?.amount, {id:guestId,title}), 1234);
   await page.evaluate(async () => { await fetch('/api/auth/logout', { method: 'POST' }); });
   assert.equal(await page.evaluate(async () => (await fetch('/api/auth/session')).status), 401);
   await fixture.close(); closed = true;
@@ -112,7 +131,7 @@ try {
   run('shell', 'am', 'force-stop', appId); await browser.disconnect();
   run('shell', 'am', 'start', '-n', appId + '/com.mywallet.dev.MainActivity');
   page = await attach(); await page.waitForSelector('.app-header');
-  assert.equal(await page.evaluate(id => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions[0].amount, guestId), 1234);
+  assert.equal(await page.evaluate(({id,title}) => JSON.parse(localStorage.getItem(`memoney:guest:${id}:mywallet:v2`)).transactions.find(row => row.title === title)?.amount, {id:guestId,title}), 1234);
   assert.equal(await page.evaluate(() => /\ufffd|\\u[0-9a-f]{4}/i.test(document.body.innerText)), false);
   const screenshot = webUiArtifact('bundle-offline.png'); await page.screenshot({ path: screenshot });
   assert.equal(fixture.metrics.financialWrites, 0);
@@ -120,7 +139,7 @@ try {
   assert.equal(fixture.metrics.duplicateCookieNames, 0);
   console.log(JSON.stringify({ bundledLocalOrigin: page.url(), localUiSave: true, cookieRestart: true, logout: true,
     foreignLedgerDenied: true, forbiddenHeadersDenied: true, redirectsDenied: true, backendStoppedColdLaunch: true,
-    localRecordPreserved: true, metrics: fixture.metrics, screenshot }));
+    localRecordPreserved: true, immediateKillAfterAcknowledgement: abrupt, metrics: fixture.metrics, screenshot }));
 } finally {
   if (browser) await browser.disconnect(); if (!closed) await fixture.close();
   for (const port of forwards) { try { run('forward', '--remove', 'tcp:' + port); } catch { /* Preserve unrelated forwards. */ } }

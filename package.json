@@ -27,6 +27,7 @@
     "android:server:prepare": "node scripts/android-release-server.mjs",
     "android:bundle:build": "npm run build && node scripts/android-bundle-probe.mjs",
     "check:native-api": "node --test scripts/native-api.test.mjs",
+    "check:local-durability": "node scripts/check-local-durability.mjs",
     "android:bundle:test": "node scripts/check-bundle-probe.mjs",
     "check:android-server": "tsc -p tsconfig.auth.json && node --test scripts/android-release-server.test.mjs",
     "android:build": "npm run android:sync && node scripts/android-dev.mjs build",

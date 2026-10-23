@@ -6624,24 +6624,37 @@ ${sheet4Rows}  </sheetData>
             title: 'CSV 복원',
             message: `현재 데이터가 백업 파일 기준으로 교체됩니다. 거래 ${newTransactions.length}건, 자산 ${newAssets.length}건, 계획 ${newPlans.length}건${importedSettings ? ', 설정값 포함' : ''}을 복원할까요?`,
             confirmLabel: '복원',
-            onConfirm: () => {
+            onConfirm: async () => {
               if (isLocalWallet() && importedSettings?.localData) {
                 try {
                   const id = walletContext()!.ledger.id;
                   const complete = localSnapshot({ getItem: () => JSON.stringify(importedSettings!.localData) }, id);
                   window.localStorage.setItem(walletStorageKey(`mywallet:v2:pre-restore:${Date.now()}`), window.localStorage.getItem(STORAGE_KEY) || '{}');
-                  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(complete));
+                  await persistLocalView(id, complete);
                   window.location.reload();
                 } catch { showNotice('기기 원본을 복원하지 못했습니다. 저장 공간과 백업 파일을 확인해 주세요.', '복원 실패', 'error'); }
                 return;
               }
+              const nextTime = Date.now();
               if (isLocalWallet()) {
-                persistLocalView(walletContext()!.ledger.id, { cardSettlements: [], localOperations: {}, assetOrderRevisions: {}, categoryOrderRevisions: {} });
+                try {
+                  await persistLocalView(walletContext()!.ledger.id, {
+                    transactions: newTransactions, assets: newAssets, budget: newBudget, plans: newPlans,
+                    theme: normalizeThemePreference(importedSettings?.theme), updatedAt: nextTime,
+                    customExpenseCategories: importedSettings?.customExpenseCategories ?? [],
+                    customIncomeCategories: importedSettings?.customIncomeCategories ?? [],
+                    customAssetCategories: importedSettings?.customAssetCategories ?? [],
+                    categoryColors: importedSettings?.categoryColors ?? {}, categoryLabels: importedSettings?.categoryLabels ?? {},
+                    categoryBudgetExcluded: importedSettings?.categoryBudgetExcluded ?? {}, categoryOrder: importedSettings?.categoryOrder ?? {},
+                    hiddenCategories: importedSettings?.hiddenCategories ?? {}, hiddenAssets: importedSettings?.hiddenAssets ?? {},
+                    recurringRules: importedSettings?.recurringRules ?? [], deletedRecurringTxs: importedSettings?.deletedRecurringTxs ?? [],
+                    cardSettlements: [], localOperations: {}, assetOrderRevisions: {}, categoryOrderRevisions: {},
+                  });
+                } catch { showNotice('기기 원본을 복원하지 못했습니다. 저장 공간과 백업 파일을 확인해 주세요.', '복원 실패', 'error'); return; }
                 setCardSettlements([]);
                 assetOrderRevisionsRef.current = {};
                 categoryOrderRevisionsRef.current = {};
               }
-              const nextTime = Date.now();
               setTransactions(newTransactions);
               setAssets(newAssets);
               setBudget(newBudget);

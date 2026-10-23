@@ -29,6 +29,16 @@ const appRootElement = rootElement;
 
 async function bootstrap() {
   const bundled = await installNativeApi();
+  if (bundled) {
+    try { await (await import('./auth/local-durability')).initializeGuestDurability(); }
+    catch {
+      appRootElement.setAttribute('role', 'alert');
+      appRootElement.textContent = '기기 기록을 안전하게 열지 못했어요. 앱 데이터를 지우지 말고 저장 공간과 백업을 확인해 주세요.';
+      const { registerPlugin } = await import('@capacitor/core');
+      await registerPlugin<{ready():Promise<void>}>('MemoneyLaunchScreen').ready().catch(() => {});
+      return;
+    }
+  }
   if (bundled && window.location.pathname === '/') {
     window.location.replace(window.localStorage.getItem('memoney:wallet-mode') === 'shared-web' ? '/wallet' : '/guest');
     return;
