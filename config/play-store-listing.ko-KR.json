@@ -6,6 +6,7 @@
   "releaseNotes": "<ko-KR>\n메머니 첫 내부 테스트 준비 버전입니다.\n기기 장부와 기본 화면을 점검합니다.\nGoogle 로그인·공유 장부·구독의 정식 연결은 준비 중입니다.\n</ko-KR>",
   "internalReleaseNotes": "<ko-KR>\nGoogle 로그인과 기존 개인·공유 장부 연결을 위한 설정을 추가했습니다.\n기존 장부 서버와 데이터를 그대로 사용합니다.\n기기 장부와 기존 기록은 유지되며 구독 결제는 아직 활성화하지 않았습니다.\n</ko-KR>",
   "guideReleaseNotes": "<ko-KR>\n연간 자산 그래프의 억 단위를 소수점 두 자리로 표시합니다.\n자산 등록부터 장부 입력까지 첫 사용 가이드를 추가했습니다.\n가이드를 완료하거나 닫으면 같은 기기에서 다시 표시하지 않습니다.\n</ko-KR>",
+  "openingBalanceReleaseNotes": "<ko-KR>\n새 자산을 등록할 때 입력한 기초금액이 0원으로 저장되던 문제를 수정했습니다.\n로컬 장부와 로그인한 장부 모두 신규 등록 금액을 보존합니다.\n기존 자산과 거래 기록은 자동 변경하지 않습니다.\n</ko-KR>",
   "supportEmail": "syh4472@gmail.com",
   "category": "FINANCE",
   "status": "draft-not-published",
