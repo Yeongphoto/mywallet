@@ -29,7 +29,7 @@ try {
   });
   await page.goto('http://localhost:5187/sharing'); await page.waitForSelector('input[aria-label="초대할 Google 계정"]');
   await page.type('input[aria-label="초대할 Google 계정"]','guest@gmail.com');
-  await page.evaluate(()=>document.querySelector('.sharing-card form').requestSubmit());
+  await page.evaluate(()=>document.querySelector('input[aria-label="초대할 Google 계정"]').closest('form').requestSubmit());
   await page.waitForSelector('input[aria-label="초대 링크"]');
   assert((await page.$eval('input[aria-label="초대 링크"]',e=>e.value)).includes(token));
   await page.screenshot({path:'android/build/sharing-owner-ui.png'});
