@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer-core';
 
 const browser=await puppeteer.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,defaultViewport:{width:411,height:914}});
 try {
-  const page=await browser.newPage(), ledgerId=crypto.randomUUID(), ownerId=crypto.randomUUID(), guestId=crypto.randomUUID(), token='a'.repeat(64);
+  const page=await browser.newPage(), ledgerId=crypto.randomUUID(), personalId=crypto.randomUUID(), ownerId=crypto.randomUUID(), guestId=crypto.randomUUID(), token='a'.repeat(64);
   let owner=true, accepted=false, wrong=false, invitation=null, financialWrites=0, sessionReads=0;
   await page.setRequestInterception(true);
   page.on('request',request=>{
@@ -13,6 +13,7 @@ try {
     let status=200, data={};
     if(path==='/api/wallet/sharing') {
       if(request.method()==='GET') data={user:{id:owner?ownerId:guestId,email:owner?'owner@gmail.com':'guest@gmail.com'},ledger:owner?{id:ledgerId,role:'owner'}:null,
+        personalLedger:{id:personalId,name:'개인 장부'},
         members:owner?[{id:ownerId,email:'owner@gmail.com',role:'owner'}]:[],invitations:invitation?[invitation]:[]};
       else {
         const body=JSON.parse(request.postData());

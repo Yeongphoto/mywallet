@@ -18,7 +18,7 @@ function adapter(sqlite) {
       catch (error) { sqlite.exec('ROLLBACK'); throw error; }
     } };
 }
-export async function startBundleFixture({ realGoogleAndroidClientId, sharedWallet = false, port = 5198 } = {}) {
+export async function startBundleFixture({ realGoogleAndroidClientId, sharedWallet = false, port = 5198, middleware } = {}) {
   let origin = port ? `http://127.0.0.1:${port}` : '';
   const auth = new DatabaseSync(':memory:'), finance = new DatabaseSync(':memory:');
   const shared = sharedWallet ? new DatabaseSync(':memory:') : null;
@@ -42,8 +42,14 @@ export async function startBundleFixture({ realGoogleAndroidClientId, sharedWall
   const ledger = '22222222-2222-4222-8222-222222222222';
   const server = createServer(async (incoming, outgoing) => {
     try {
+      const requestUrl = new URL(incoming.url, origin || 'http://127.0.0.1');
+      if (!requestUrl.pathname.startsWith('/api/')) {
+        if (middleware) middleware(incoming, outgoing, () => { if (!outgoing.headersSent) { outgoing.writeHead(404); outgoing.end(); } });
+        else { outgoing.writeHead(404); outgoing.end(); }
+        return;
+      }
       const chunks = []; for await (const chunk of incoming) chunks.push(chunk);
-      const body = Buffer.concat(chunks), url = new URL(incoming.url, origin);
+      const body = Buffer.concat(chunks), url = requestUrl;
       const request = new Request(url, { method: incoming.method, headers: incoming.headers, ...(body.length ? { body } : {}) });
       metrics.requests++;
       const route = incoming.method + ' ' + url.pathname;

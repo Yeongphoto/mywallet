@@ -120,7 +120,7 @@ export default function SharingScreen() {
         <span>{i.email}<small>{i.role === 'editor' ? '함께 기록' : '보기만'} · {new Date(i.expiresAt).toLocaleDateString('ko-KR')}까지</small></span>
         <button type="button" disabled={busy} onClick={() => void perform(async () => { await api({ action: 'revoke', id: i.id }); setLink(''); await refresh(); })}>취소</button></div>)}
     </section>}
-    {!state?.ledger && !state?.personalLedger && <section className="sharing-card"><h2>초대 수락</h2>
+    {!state?.ledger && <section className="sharing-card"><h2>초대 수락</h2>
       <label>초대 링크<input aria-label="받은 초대 링크" autoComplete="off" value={inviteInput} onChange={e => { setInviteInput(e.target.value); setPreview(null); }} placeholder="링크 또는 초대 코드" /></label>
       {!preview ? <button type="button" className="primary-button" disabled={busy || !state || !invitationToken(inviteInput)} onClick={() => void perform(async () => {
         const result = await api({ action: 'preview', token: invitationToken(inviteInput) }); setPreview(result.ledger);
