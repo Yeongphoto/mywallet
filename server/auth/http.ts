@@ -3,12 +3,14 @@ import type { GoogleIdentity } from './google.ts';
 import { createChallenge, readChallenge, consumeChallenge, resolveUser, createSession, sessionUser, revokeSession } from './store.ts';
 import type { AuthDatabase } from './store.ts';
 import { browserLogin } from './browser-login.ts';
+import { androidAuthorizedParties } from './android-clients.ts';
 
 export interface AuthEnvironment {
   DB: AuthDatabase;
   AUTH_ENABLED?: string;
   AUTH_GOOGLE_CLIENT_ID?: string;
   AUTH_GOOGLE_ANDROID_CLIENT_ID?: string;
+  AUTH_GOOGLE_ANDROID_CLIENT_IDS?: string;
   AUTH_ORIGIN?: string;
   AUTH_LOCAL_DEV?: string;
   AUTH_LEDGER_INVITES?: string;
@@ -17,8 +19,8 @@ export interface AuthEnvironment {
 }
 function settings(env: AuthEnvironment, request: Request) {
   if (env.AUTH_ENABLED !== 'true' || !env.AUTH_GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') || !env.AUTH_ORIGIN) return null;
-  if (env.AUTH_GOOGLE_ANDROID_CLIENT_ID !== undefined &&
-      !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.AUTH_GOOGLE_ANDROID_CLIENT_ID)) return null;
+  const parties = androidAuthorizedParties(env);
+  if (!parties) return null;
   try {
     const origin = new URL(env.AUTH_ORIGIN);
     const local = env.AUTH_LOCAL_DEV === 'true' && origin.protocol === 'http:' &&
@@ -26,7 +28,7 @@ function settings(env: AuthEnvironment, request: Request) {
     if (origin.origin !== env.AUTH_ORIGIN || new URL(request.url).origin !== origin.origin ||
       (origin.protocol !== 'https:' && !local)) return null;
     return { clientId: env.AUTH_GOOGLE_CLIENT_ID, origin: origin.origin, local, personalOnboarding: env.AUTH_PERSONAL_ONBOARDING === 'true',
-      authorizedParties: env.AUTH_GOOGLE_ANDROID_CLIENT_ID ? [env.AUTH_GOOGLE_ANDROID_CLIENT_ID] : [],
+      authorizedParties: parties,
       sessionCookie: local ? 'mywallet-dev-session' : '__Host-mywallet-session',
       challengeCookie: local ? 'mywallet-dev-login-state' : '__Host-mywallet-login-state' };
   } catch { return null; }

@@ -37,10 +37,12 @@ export function draftGradle(versionCode) {
     `gradle.taskGraph.whenReady { graph ->\n` +
     ` if (graph.allTasks.any { it.project.path == ':app' && (it.name ==~ /(?i)(install|publish).*/ || it.name ==~ /(?i)(assemble|bundle).*Debug/) }) throw new GradleException('Play draft: no debug identity, installation or publishing')\n}\n`;
 }
-export function assertDraftBuild(identity, config) {
+export function assertDraftBuild(identity, config, internal = false) {
   if (identity.app !== 'memoney' || identity.mode !== 'production' || identity.authProbe !== false) throw Error('Production assets required; probe builds cannot be uploaded');
   if (config.appId !== 'com.memoney.app' || config.server?.url || config.server?.hostname !== 'localhost' ||
-      config.server?.androidScheme !== 'https' || config.plugins?.MemoneyApi?.origin !== 'https://memoney-6r5.pages.dev' ||
+      config.server?.androidScheme !== 'https' || config.plugins?.MemoneyApi?.origin !== (internal ? 'https://memoney-android-test.pages.dev' : 'https://memoney-6r5.pages.dev') ||
+      (internal && config.plugins?.MemoneyApi?.hostedInternalTest !== true) ||
+      (!internal && config.plugins?.MemoneyApi?.hostedInternalTest !== undefined) ||
       config.plugins?.MemoneyApi?.allowLocalProbe || config.plugins?.MemoneyBilling?.enabled !== false) throw Error('Unexpected Play draft configuration');
 }
 function createKey() {
@@ -60,13 +62,23 @@ function createKey() {
   console.log('Upload key created outside Git: ' + signing);
   console.log('Password protected for this Windows user using DPAPI. An independent recoverable backup is still required.');
 }
-function buildDraft(versionCode) {
+function buildDraft(versionCode, internal = false) {
   const secret = password(), java = javaHome();
   const identity = JSON.parse(read(join(root, 'dist/memoney-build.json')));
   const directory = prepareNativeProject();
   const assets = join(directory, 'android/app/src/main/assets');
   const config = JSON.parse(read(join(assets, 'capacitor.config.json')));
-  assertDraftBuild(identity, config);
+  if (internal) {
+    const connection = JSON.parse(read(join(root, 'config/android-internal.json')));
+    const databases = JSON.parse(read(join(root, 'scripts/hosted-databases.json')));
+    for (const role of ['auth', 'personal', 'shared']) if (connection.databaseIds[role] !== databases[role].id) throw Error('Common DB identity changed');
+    if (connection.appId !== 'com.memoney.app' || connection.track !== 'internal' || connection.billingEnabled !== false ||
+        !/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(connection.androidClientId)) throw Error('Invalid internal profile');
+    config.plugins.MemoneyApi = { enabled: true, origin: connection.apiOrigin, hostedInternalTest: true };
+    config.plugins.MemoneyGoogleAuth.androidClientId = connection.androidClientId;
+    for (const file of [join(directory, 'capacitor.config.json'), join(assets, 'capacitor.config.json')]) writeFileSync(file, JSON.stringify(config, null, 2) + '\n', 'utf8');
+  }
+  assertDraftBuild(identity, config, internal);
   const tracked = new Set(execFileSync('git', ['ls-files', '-z', '--', 'public'], { cwd: root, encoding: 'utf8' }).split('\0'));
   cpSync(join(root, 'dist'), join(assets, 'public'), { recursive: true, filter(source) {
     const file = relative(join(root, 'dist'), source).replaceAll('\\', '/');
@@ -92,7 +104,8 @@ function buildDraft(versionCode) {
   const verification = execFileSync(join(java, 'bin/jarsigner.exe'), ['-verify', aab], { encoding: 'utf8' });
   if (!/jar verified/.test(verification)) throw Error('AAB signature verification failed');
   const receipt = { appId: config.appId, versionCode, aab, sha256: createHash('sha256').update(readFileSync(aab)).digest('hex'),
-    purpose: 'console-upload-draft', rolloutReady: false, billingEnabled: false,
+    purpose: internal ? 'internal-common-db-test' : 'console-upload-draft', rolloutReady: false, billingEnabled: false,
+    apiOrigin: config.plugins.MemoneyApi.origin,
     pending: ['Play signing certificate and Android OAuth', 'Authenticated backend deployment and isolated real-device verification'],
     commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim() };
   writeFileSync(join(root, 'android/build/memoney-play-draft.json'), JSON.stringify(receipt, null, 2) + '\n', 'utf8');
@@ -101,5 +114,6 @@ function buildDraft(versionCode) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === 'key-create' && process.argv.length === 3) createKey();
   else if (process.argv[2] === 'build-draft' && process.argv.length === 4) buildDraft(Number(process.argv[3]));
-  else throw Error('Use key-create or build-draft <versionCode>');
+  else if (process.argv[2] === 'build-internal' && process.argv.length === 4) buildDraft(Number(process.argv[3]), true);
+  else throw Error('Use key-create, build-draft <versionCode>, or build-internal <versionCode>');
 }

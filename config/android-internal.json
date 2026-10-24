@@ -1,0 +1,13 @@
+{
+  "appId": "com.memoney.app",
+  "apiOrigin": "https://memoney-android-test.pages.dev",
+  "androidClientId": "367615872651-8l3ik6ilrmratp13iagl8ucnas1m6gnh.apps.googleusercontent.com",
+  "playAppSigningSha1": "63:40:F9:64:75:7C:FF:30:84:0E:93:09:F7:6D:6A:8C:6F:6D:B9:93",
+  "billingEnabled": false,
+  "track": "internal",
+  "databaseIds": {
+    "auth": "ec28198a-6040-4074-a142-1cf6f76c7f15",
+    "personal": "a4113709-d951-4b50-aa78-cc80eb7cda9f",
+    "shared": "0a69096e-4d87-423e-b4a2-6afc0fb94698"
+  }
+}

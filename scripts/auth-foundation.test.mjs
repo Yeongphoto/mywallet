@@ -116,6 +116,30 @@ test('HTTP native login passes only configured authorized parties into token ver
   } finally { sqlite.close(); }
 });
 
+test('development and Play signing clients share the same Google account without widening audience or unknown parties', async () => {
+  const { sqlite, env } = fixture();
+  const playClient = 'play-signing.apps.googleusercontent.com';
+  const multi = { ...env, AUTH_GOOGLE_ANDROID_CLIENT_ID: androidClientId, AUTH_GOOGLE_ANDROID_CLIENT_IDS: playClient };
+  try {
+    const users = [];
+    for (const azp of [androidClientId, playClient]) {
+      const challengeResponse = await handleAuth(request('challenge', 'POST'), multi, 'challenge', verify);
+      const state = cookiesOf(challengeResponse)[0], challenge = await challengeResponse.json();
+      const login = await handleAuth(request('google', 'POST', state, { idToken: await sign({ azp, nonce: challenge.nonce }) }), multi, 'google', verify);
+      assert.equal(login.status, 200);
+      const session = await handleAuth(request('session', 'GET', cookiesOf(login)[0]), multi, 'session', verify);
+      users.push((await session.json()).user.id);
+    }
+    assert.equal(users[0], users[1]);
+    assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM users').get().n, 1);
+    for (const invalid of ['*', '', `${playClient},`, Array(11).fill(playClient).join(',')]) {
+      assert.equal((await handleAuth(request('session'), { ...multi, AUTH_GOOGLE_ANDROID_CLIENT_IDS: invalid }, 'session', verify)).status, 503);
+    }
+    await assert.rejects(verifyGoogleIdentity(await sign({ azp: 'unknown.apps.googleusercontent.com' }), clientId, nonce, keys, [androidClientId, playClient]));
+    await assert.rejects(verifyGoogleIdentity(await sign({ aud: playClient, azp: playClient }), clientId, nonce, keys, [androidClientId, playClient]));
+  } finally { sqlite.close(); }
+});
+
 test('challenge is hashed, expires and can be consumed exactly once', async () => {
   const { db, sqlite } = fixture();
   try {

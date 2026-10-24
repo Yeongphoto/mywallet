@@ -23,3 +23,13 @@ test('signed draft requires explicit versions and environment signing without ch
   assert.match(draftGradle(2), /no debug identity, installation or publishing/);
   assert.match(readFileSync(new URL('../android/app/build.gradle', import.meta.url), 'utf8'), /Release disabled:/);
 });
+test('internal build uses only the existing hosted API with an explicit native opt-in', () => {
+  const internal = structuredClone(config);
+  internal.plugins.MemoneyApi = { enabled: true, origin: 'https://memoney-android-test.pages.dev', hostedInternalTest: true };
+  assert.doesNotThrow(() => assertDraftBuild(identity, internal, true));
+  assert.throws(() => assertDraftBuild(identity, internal));
+  delete internal.plugins.MemoneyApi.hostedInternalTest;
+  assert.throws(() => assertDraftBuild(identity, internal, true));
+  const source = readFileSync(new URL('../android/app/src/main/java/com/mywallet/dev/MemoneyApiPlugin.java', import.meta.url), 'utf8');
+  assert.match(source, /getBoolean\("hostedInternalTest", false\)/);
+});

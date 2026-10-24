@@ -41,6 +41,8 @@ public class MemoneyApiPlugin extends Plugin {
         if (!getConfig().getBoolean("enabled", false) || getBridge().getConfig().getServerUrl() != null) return null;
         String value = getConfig().getString("origin", "");
         if ("https://memoney-6r5.pages.dev".equals(value) && "com.memoney.app".equals(getContext().getPackageName())) return value;
+        if ("com.memoney.app".equals(getContext().getPackageName()) && getConfig().getBoolean("hostedInternalTest", false)
+            && "https://memoney-android-test.pages.dev".equals(value)) return value;
         boolean debug = (getContext().getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
         if (debug && "com.memoney.probe".equals(getContext().getPackageName()) &&
             getConfig().getBoolean("allowLocalProbe", false) && "http://127.0.0.1:5198".equals(value)) return value;
