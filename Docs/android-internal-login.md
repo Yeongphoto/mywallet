@@ -42,3 +42,5 @@ ZIP에는 향후/혼합 서명 인증서도 있었다. 이 첫 등록만으로 �
 `node scripts/android-play-draft.mjs build-internal <새 versionCode>`로 기존 업로드 키를 사용하는 AAB를 만든다. 앱 ID·저장 키·로컬 기록은 유지한다. 사용자 미추적 APK/MSI/PDF는 네이티브/서버 산출물에 포함하지 않는다. Play Console 내부 테스트 트랙에 올린 뒤 기존 설치에서 업데이트한다. 결제·광고·최초 이전은 이 업데이트로 활성화하지 않는다.
 
 수정 AAB `2 (0.1.2)`의 SHA-256은 `de3898f40b0a77a8e0ce2ac2c94df235ba5ed64e47dfcea0437fa784c8d55a3e`이다. Gradle Release 빌드와 서명 검증이 성공했다. 현재 USB 기기가 연결되지 않아 설치된 Play 패키지 서명·실제 Google 로그인은 아직 확인하지 못했다.
+
+Play Console 내부 테스트 트랙에서 `2 (0.1.2)`를 저장 및 출시했고, 2026-10-24 21:44 KST에 최신 버전 `2 (0.1.2)` / 활성 / **내부 테스터에게 제공됨**을 확인했다. 기존 참여 링크에서 업데이트한다: `https://play.google.com/apps/internaltest/4700164615757710024`. 공개 트랙으로 승급하지 않았다. 사용자 기기의 실제 업데이트와 Google 로그인/기존 장부 표시는 아직 확인 전이다.
