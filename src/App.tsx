@@ -14,6 +14,7 @@ import { useLaunchReady } from './auth/use-launch-ready';
 import { ReceivedInvitation } from './auth/ReceivedInvitation';
 import { AccountSettings } from './auth/AccountSettings';
 import { BillingSettings } from './auth/BillingSettings';
+import { FirstUseGuide } from './FirstUseGuide';
 import { walletFetch as fetch, walletStorageKey, walletContext, isLocalWallet, readWalletContext, selectCloudLedger } from './auth/wallet-scope';
 import { persistLocalView, localSnapshot, MODE_KEY } from './auth/local-wallet';
 import type { LocalSnapshot } from './auth/local-wallet';
@@ -6786,6 +6787,8 @@ ${sheet4Rows}  </sheetData>
           </div>
         </div>
       )}
+      <FirstUseGuide activeTab={activeTab} assetCount={assets.length} entryOpen={isEntryModalOpen} entryMode={registrationMode}
+        ready={!isLoading && !isSyncOverlayVisible} paused={Boolean(editingTransaction) || Boolean(confirmDialog) || isAssetSettingsOpen || isCategoryModalOpen || isAssetModalOpen || isMonthPickerOpen} />
       {/* Sidebar Navigation (Fixed bottom bar on mobile) */}
       <aside className="sidebar">
         <div>
@@ -6800,13 +6803,14 @@ ${sheet4Rows}  </sheetData>
               <span><AppIcon name="dashboard" /></span>
               <strong>차트</strong>
             </a>
-            <a href="#asset" className={activeTab === 'asset' ? 'active' : ''} onClick={() => setActiveTab('asset')}>
+            <a data-guide="asset-tab" href="#asset" className={activeTab === 'asset' ? 'active' : ''} onClick={() => setActiveTab('asset')}>
               <span><AppIcon name="asset" /></span>
               <strong>자산</strong>
             </a>
             <button
               type="button"
               className={`mobile-primary-action ${isTodayPledged ? 'pledged' : ''}`}
+              data-guide={activeTab === 'asset' ? 'asset-add' : 'ledger-add'}
               aria-label={activeTab === 'asset' ? '자산 등록' : isTodayPledged ? '무지출 챌린지 도전 중 (등록 시 확인)' : '거래 등록'}
               title={isTodayPledged ? '무지출 챌린지 도전 중!' : (activeTab === 'asset' ? '자산 등록' : '거래 등록')}
               onClick={() => {
@@ -6837,7 +6841,7 @@ ${sheet4Rows}  </sheetData>
               <span><AppIcon name="plan" /></span>
               <strong>계획</strong>
             </a>
-            <a href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => { setLedgerView('daily'); setActiveTab('ledger'); }}>
+            <a data-guide="ledger-tab" href="#ledger" className={activeTab === 'ledger' ? 'active' : ''} onClick={() => { setLedgerView('daily'); setActiveTab('ledger'); }}>
               <span><AppIcon name="ledger" /></span>
               <strong>장부</strong>
             </a>
@@ -6845,6 +6849,7 @@ ${sheet4Rows}  </sheetData>
           <div className="desktop-registration-action">
             <button
               type="button"
+              data-guide={activeTab === 'asset' ? 'asset-add' : 'ledger-add'}
               className={isTodayPledged ? 'pledged' : ''}
               onClick={() => {
                 if (isTodayPledged && activeTab !== 'asset') {
@@ -7445,7 +7450,7 @@ ${sheet4Rows}  </sheetData>
                       const formatAxisValue = (value: number) => {
                         const sign = value < 0 ? '-' : '';
                         const absolute = Math.abs(value);
-                        if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(1)}억`;
+                        if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(isAssetChart ? 2 : 1)}억`;
                         if (absolute >= 10000) return `${sign}${Math.round(absolute / 10000)}만`;
                         return `${value}`;
                       };
