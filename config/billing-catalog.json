@@ -1,0 +1,10 @@
+{
+  "packageName": "com.memoney.app",
+  "productId": "memoney_premium",
+  "basePlanId": "annual",
+  "billingPeriod": "P1Y",
+  "autoRenew": true,
+  "referenceRegion": "KR",
+  "referencePrice": { "currency": "KRW", "amount": 2000 },
+  "consoleRegistered": false
+}

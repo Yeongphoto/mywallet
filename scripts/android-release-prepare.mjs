@@ -16,7 +16,8 @@ export function preparationArtifacts(profile, development) {
   const capacitor = {
     appId: profile.appId, appName: profile.appName, webDir: 'dist', loggingBehavior: 'none',
     android: { appendUserAgent: development.android.appendUserAgent },
-    plugins: { MemoneyApi: { ...profile.plugins.MemoneyApi }, MemoneyGoogleAuth: { webClientId: profile.plugins.MemoneyGoogleAuth.webClientId,
+    plugins: { MemoneyBilling: { enabled: profile.plugins.MemoneyBilling?.enabled === true },
+      MemoneyApi: { ...profile.plugins.MemoneyApi }, MemoneyGoogleAuth: { webClientId: profile.plugins.MemoneyGoogleAuth.webClientId,
       ...(profile.plugins.MemoneyGoogleAuth.androidClientId ? { androidClientId: profile.plugins.MemoneyGoogleAuth.androidClientId } : {}) } },
     server: profile.server,
   };
@@ -31,7 +32,7 @@ export function preparationArtifacts(profile, development) {
     'android/app/memoney-preparation.gradle': `// Generated preparation only; not a shipping build.\n` +
       `android.defaultConfig {\n    applicationId '${profile.appId}'\n    versionCode 1\n    versionName '0.1.0'\n}\n` +
       `gradle.taskGraph.whenReady { graph ->\n` +
-      `    if (graph.allTasks.any { it.name ==~ /(?i)(assemble|bundle|install|publish).*/ || it.name ==~ /package(Debug|Release)/ }) {\n` +
+      `    if (graph.allTasks.any { it.project.path == ':app' && (it.name ==~ /(?i)(assemble|bundle|install|publish).*/ || it.name ==~ /package(Debug|Release)/) }) {\n` +
       `        throw new GradleException('Preparation only: signing, OAuth, backend and origin migration are not approved for release.')\n    }\n}\n` +
       `tasks.register('memoneyProfileMetadata') {\n    doLast {\n` +
       `        println('MEMONEY_APP_ID=' + android.defaultConfig.applicationId)\n` +
@@ -109,6 +110,8 @@ function verify(directory) {
   }
   const merged = gradle('processDebugResources');
   if (merged.status !== 0) throw Error(`Native resources verification failed\n${merged.stdout}\n${merged.stderr}`);
+  const compiled = gradle('compileDebugJavaWithJavac');
+  if (compiled.status !== 0) throw Error(`Native Java verification failed\n${compiled.stdout}\n${compiled.stderr}`);
   // Gradle/AGP emits a fully resolved manifest for the resource link task.
   const mergedManifest = join(directory, 'android/app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml');
   const manifest = read(mergedManifest);
@@ -131,7 +134,7 @@ function verify(directory) {
   if (existsSync(outputs) && readdirSync(outputs, { recursive: true }).some(file => /\.(apk|aab)$/i.test(file))) {
     throw Error('Preparation must not produce an APK/AAB');
   }
-  console.log('Native metadata, resources, merged manifest and debug/release build guards verified; no APK/AAB created');
+  console.log('Native metadata, resources, Java compilation, merged manifest and debug/release build guards verified; no APK/AAB created');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

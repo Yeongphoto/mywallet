@@ -1,7 +1,7 @@
 import { handleAuth } from '../auth/http.ts';
 import type { AuthEnvironment } from '../auth/http.ts';
 import { annualProduct, billingAccountId, hasAnnualPremium, verifyAnnualPurchase } from './annual.ts';
-import { accountPremium, saveVerifiedSubscription } from './store.ts';
+import { accountPremium, saveVerifiedSubscription, recordPurchaseAcknowledged } from './store.ts';
 import { acknowledgeAnnualPurchase, playAccessToken, playCredentialsConfigured } from './google-play.ts';
 import type { PlayCredentials } from './google-play.ts';
 
@@ -68,6 +68,7 @@ export async function handleBilling(request: Request, env: BillingEnvironment, a
     // retryable and must not turn a real purchase into a false free account.
     if (!purchase.acknowledged && hasAnnualPremium(userId, [purchase], now)) {
       await acknowledgeAnnualPurchase(purchaseToken, accessToken, fetcher);
+      await recordPurchaseAcknowledged(env.DB, purchase);
     }
     return reply({ ...(await status()), purchasePending: purchase.state === 'SUBSCRIPTION_STATE_PENDING' });
   } catch (error) {

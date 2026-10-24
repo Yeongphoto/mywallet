@@ -10,7 +10,7 @@ export async function saveVerifiedSubscription(db: AuthDatabase, purchase: Verif
     (purchase_token_hash,user_id,product_id,base_plan_id,state,expires_at,auto_renew,acknowledged,verified_at,test_purchase)
     VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(purchase_token_hash) DO UPDATE SET
     state=excluded.state,expires_at=excluded.expires_at,auto_renew=excluded.auto_renew,
-    acknowledged=excluded.acknowledged,verified_at=excluded.verified_at,test_purchase=excluded.test_purchase
+    acknowledged=MAX(billing_subscriptions.acknowledged,excluded.acknowledged),verified_at=excluded.verified_at,test_purchase=excluded.test_purchase
     WHERE billing_subscriptions.user_id=excluded.user_id AND billing_subscriptions.verified_at<=excluded.verified_at
     RETURNING purchase_token_hash`).bind(purchase.purchaseTokenHash, purchase.userId, purchase.productId, purchase.basePlanId,
       purchase.state, purchase.expiresAt, Number(purchase.autoRenewEnabled), Number(purchase.acknowledged),
@@ -20,6 +20,12 @@ export async function saveVerifiedSubscription(db: AuthDatabase, purchase: Verif
     .bind(purchase.purchaseTokenHash).first<{ user_id: string }>();
   if (previous?.user_id !== purchase.userId) throw Error('PURCHASE_ALREADY_LINKED');
   return 'stale' as const;
+}
+
+export async function recordPurchaseAcknowledged(db: AuthDatabase, purchase: VerifiedAnnualSubscription) {
+  assertFreshlyVerifiedPurchase(purchase);
+  await db.prepare('UPDATE billing_subscriptions SET acknowledged=1 WHERE purchase_token_hash=? AND user_id=?')
+    .bind(purchase.purchaseTokenHash, purchase.userId).run();
 }
 
 export async function accountPremium(db: AuthDatabase, userId: string, now = Date.now()) {

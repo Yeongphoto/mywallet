@@ -11,6 +11,7 @@
     "cleartext": false
   },
   "plugins": {
+    "MemoneyBilling": { "enabled": false },
     "MemoneyApi": {
       "enabled": true,
       "origin": "https://memoney-6r5.pages.dev"

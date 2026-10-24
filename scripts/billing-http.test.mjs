@@ -72,6 +72,7 @@ test('verified annual purchase is durably granted before server acknowledgement 
   assert(!JSON.stringify(body).includes('server-access-token'));
   assert(f.calls[1].url.endsWith('/purchases/subscriptions/memoney_premium/tokens/private-purchase-token:acknowledge'));
   assert.equal(f.calls[1].method, 'POST');
+  assert.equal(f.sqlite.prepare('SELECT acknowledged FROM billing_subscriptions').get().acknowledged, 1);
   assert.equal((await accountPremium(f.db, other, f.now)).plan, 'free');
 });
 
@@ -105,6 +106,7 @@ test('acknowledgement failure stays retryable without losing a verified entitlem
   assert.equal((await status.json()).plan, 'premium_yearly');
   f.deps.fetcher = original;
   assert.equal((await handleBilling(f.request('verify', { purchaseToken: 'token' }), f.env, 'verify', f.deps)).status, 200);
+  assert.equal(f.sqlite.prepare('SELECT acknowledged FROM billing_subscriptions').get().acknowledged, 1);
 });
 
 test('verification throttling prevents repeated publisher API calls and DB failures never become a false free status', async t => {

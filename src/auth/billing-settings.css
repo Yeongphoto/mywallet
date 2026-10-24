@@ -1,0 +1,5 @@
+.settings-row.billing-settings { display: grid; gap: 12px; }
+.billing-settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.billing-settings-heading > span, .billing-settings p { color: var(--text-secondary); font-size: .84rem; }
+.billing-settings p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.billing-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }

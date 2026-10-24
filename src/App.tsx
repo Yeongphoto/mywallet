@@ -13,6 +13,7 @@ import { LoadingScreen } from './LoadingScreen';
 import { useLaunchReady } from './auth/use-launch-ready';
 import { ReceivedInvitation } from './auth/ReceivedInvitation';
 import { AccountSettings } from './auth/AccountSettings';
+import { BillingSettings } from './auth/BillingSettings';
 import { walletFetch as fetch, walletStorageKey, walletContext, isLocalWallet, readWalletContext, selectCloudLedger } from './auth/wallet-scope';
 import { persistLocalView, localSnapshot, MODE_KEY } from './auth/local-wallet';
 import type { LocalSnapshot } from './auth/local-wallet';
@@ -8689,6 +8690,7 @@ ${sheet4Rows}  </sheetData>
             {settingsSection === 'app' && (
               <div className="settings-stack">
                 {walletContext() && <AccountSettings />}
+                {walletContext() && !isLocalWallet() && <BillingSettings />}
                 {walletContext() && <div className="settings-row ledger-settings-row">
                   <strong>장부</strong>
                   <div className="ledger-settings-controls">

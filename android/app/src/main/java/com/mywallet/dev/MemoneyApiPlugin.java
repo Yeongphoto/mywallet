@@ -34,7 +34,8 @@ public class MemoneyApiPlugin extends Plugin {
     private static final List<String> ENDPOINTS = Arrays.asList(
         "/api/data", "/api/auth/config", "/api/auth/session", "/api/auth/challenge", "/api/auth/google", "/api/auth/logout",
         "/api/auth/browser-start", "/api/auth/browser-preview", "/api/auth/browser-approve", "/api/auth/browser-poll", "/api/auth/browser-claim",
-        "/api/wallet/context", "/api/wallet/sharing", "/api/wallet/ledgers", "/api/wallet/onboarding", "/api/wallet/recovery"
+        "/api/wallet/context", "/api/wallet/sharing", "/api/wallet/ledgers", "/api/wallet/onboarding", "/api/wallet/recovery",
+        "/api/billing/status", "/api/billing/verify"
     );
     private String origin() {
         if (!getConfig().getBoolean("enabled", false) || getBridge().getConfig().getServerUrl() != null) return null;
@@ -125,7 +126,8 @@ public class MemoneyApiPlugin extends Plugin {
             URL target = new URL(backend + path);
             connection = (HttpURLConnection) target.openConnection();
             connection.setInstanceFollowRedirects(false);
-            connection.setConnectTimeout(10_000); connection.setReadTimeout(20_000);
+            connection.setConnectTimeout(10_000);
+            connection.setReadTimeout("/api/billing/verify".equals(path) ? 60_000 : 20_000);
             connection.setRequestMethod(method);
             connection.setRequestProperty("Origin", backend);
             connection.setRequestProperty("Accept", "application/json");

@@ -17,6 +17,7 @@ test('preparation uses production identity without mutating development', () => 
   assert.equal(cap.server.hostname, 'localhost');
   assert.equal(cap.server.androidScheme, 'https');
   assert.deepEqual(cap.plugins.MemoneyApi, { enabled: true, origin: 'https://memoney-6r5.pages.dev' });
+  assert.equal(cap.plugins.MemoneyBilling.enabled, false);
   assert.equal(JSON.stringify(development), before);
   assert.equal(cap.plugins.MemoneyGoogleAuth.androidClientId, undefined);
   assert.equal(cap.readiness, undefined);
@@ -32,6 +33,7 @@ test('generated Android names are exact UTF-8 localized resources', () => {
 test('generated project retains build and install guards and independent version', () => {
   const gradle = preparationArtifacts(profile, development)['android/app/memoney-preparation.gradle'];
   assert.match(gradle, /assemble\|bundle\|install\|publish/);
+  assert.match(gradle, /it\.project\.path == ':app'/);
   assert.match(gradle, /versionCode 1/);
   assert.match(gradle, /versionName '0.1.0'/);
 });
