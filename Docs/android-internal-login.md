@@ -35,6 +35,10 @@ ZIP에는 향후/혼합 서명 인증서도 있었다. 이 첫 등록만으로 �
 
 검증: 인증 50건(개발/Play 클라이언트로 같은 사용자 ID 반환 포함), 내부 빌드 구성 3건, 웹 production 빌드, 실제 Cloudflare Functions 컴파일 통과. 실제 기기 Google 로그인과 실장부 조회는 별도로 확인해야 한다.
 
+인증 설정 패치는 `bcbf52d` 기준으로 기존 Android 서버에 배포했다: `a5d4d7cd.memoney-android-test.pages.dev`. 업로드한 정적 파일은 0개였으며 배포 후 canonical HTML의 SHA-256이 동결본과 같았다. `/api/auth/config` 200, 비로그인 `/api/auth/session` 및 `/api/data` 401을 확인했다. 금융 DB 조회·수정·스키마 작업은 실행하지 않았다.
+
 ## 업데이트
 
 `node scripts/android-play-draft.mjs build-internal <새 versionCode>`로 기존 업로드 키를 사용하는 AAB를 만든다. 앱 ID·저장 키·로컬 기록은 유지한다. 사용자 미추적 APK/MSI/PDF는 네이티브/서버 산출물에 포함하지 않는다. Play Console 내부 테스트 트랙에 올린 뒤 기존 설치에서 업데이트한다. 결제·광고·최초 이전은 이 업데이트로 활성화하지 않는다.
+
+수정 AAB `2 (0.1.2)`의 SHA-256은 `de3898f40b0a77a8e0ce2ac2c94df235ba5ed64e47dfcea0437fa784c8d55a3e`이다. Gradle Release 빌드와 서명 검증이 성공했다. 현재 USB 기기가 연결되지 않아 설치된 Play 패키지 서명·실제 Google 로그인은 아직 확인하지 못했다.
