@@ -29,7 +29,7 @@ for (const [field, value] of [['appId', 'com.memoney.app'], ['appName', 'Memoney
 
 test('development rejects a production server before sync', () => {
   const changed = structuredClone(development);
-  changed.capacitor.server.url = draft.server.url;
+  changed.capacitor.server.url = draft.hosting.origin + '/signin';
   assert.ok(developmentConfigErrors(changed).length);
 });
 
@@ -81,4 +81,26 @@ test('release rejects malformed signing fingerprint', () => {
   const changed = readyFixture();
   changed.readiness.playAppSigningSha1 = 'AB:CD';
   assert.ok(releaseConfigErrors(changed, development.capacitor).length);
+});
+
+test('release rejects a remote WebView and invalid local bundled origins', () => {
+  for (const server of [
+    { ...draft.server, url: draft.hosting.origin + '/signin' },
+    { ...draft.server, hostname: 'external.example' },
+    { ...draft.server, androidScheme: 'http' },
+  ]) {
+    const changed = readyFixture(); changed.server = server;
+    assert(releaseConfigErrors(changed, development.capacitor).some(error => error.includes('bundled assets')));
+  }
+});
+
+test('release rejects disabled API bridge, test backends and debug probe access', () => {
+  for (const api of [
+    { ...draft.plugins.MemoneyApi, enabled: false },
+    { ...draft.plugins.MemoneyApi, origin: 'http://127.0.0.1:5198' },
+    { ...draft.plugins.MemoneyApi, allowLocalProbe: true },
+  ]) {
+    const changed = readyFixture(); changed.plugins.MemoneyApi = api;
+    assert(releaseConfigErrors(changed, development.capacitor).some(error => error.includes('Release API')));
+  }
 });

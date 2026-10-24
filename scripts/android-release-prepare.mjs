@@ -16,7 +16,7 @@ export function preparationArtifacts(profile, development) {
   const capacitor = {
     appId: profile.appId, appName: profile.appName, webDir: 'dist', loggingBehavior: 'none',
     android: { appendUserAgent: development.android.appendUserAgent },
-    plugins: { MemoneyGoogleAuth: { webClientId: profile.plugins.MemoneyGoogleAuth.webClientId,
+    plugins: { MemoneyApi: { ...profile.plugins.MemoneyApi }, MemoneyGoogleAuth: { webClientId: profile.plugins.MemoneyGoogleAuth.webClientId,
       ...(profile.plugins.MemoneyGoogleAuth.androidClientId ? { androidClientId: profile.plugins.MemoneyGoogleAuth.androidClientId } : {}) } },
     server: profile.server,
   };

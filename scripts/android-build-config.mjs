@@ -37,8 +37,12 @@ export function releaseConfigErrors(profile, development) {
   require(profile.appName === 'Memoney' && profile.localizedAppName?.ko === '메머니', 'Release names must be Memoney / 메머니 (case-sensitive)');
   require(profile.webDir === 'dist' && profile.loggingBehavior === 'none', 'Unexpected release webDir or logging');
   require(profile.hosting?.project === 'memoney' && profile.hosting?.origin === 'https://memoney-6r5.pages.dev', 'Release must use the reserved memoney hosting project');
-  require(profile.server?.url === `${profile.hosting?.origin}/signin` && !devUrls.has(profile.server?.url), 'Release must not use a development origin');
-  require(profile.server?.cleartext === false && profile.server?.errorPath === 'android-unavailable.html', 'Release must retain HTTPS and the offline error page');
+  require(profile.server?.url === undefined && profile.server?.hostname === 'localhost' && profile.server?.androidScheme === 'https',
+    'Release must use bundled assets on https://localhost, without a remote server.url');
+  require(profile.server?.cleartext === false, 'Release must keep cleartext disabled');
+  const api = profile.plugins?.MemoneyApi;
+  require(api?.enabled === true && api.origin === profile.hosting?.origin && api.allowLocalProbe === undefined,
+    'Release API must use the reserved HTTPS origin without local probe access');
   const auth = profile.plugins?.MemoneyGoogleAuth;
   require(auth?.webClientId === development.plugins?.MemoneyGoogleAuth?.webClientId, 'Keep the common Web OAuth audience; do not replace it with an Android client');
   require(typeof auth?.androidClientId === 'string' && oauthId.test(auth.androidClientId) && auth.androidClientId !== development.plugins?.MemoneyGoogleAuth?.androidClientId,

@@ -13,7 +13,10 @@ test('preparation uses production identity without mutating development', () => 
   const cap = JSON.parse(artifacts['capacitor.config.json']);
   assert.equal(cap.appId, 'com.memoney.app');
   assert.equal(cap.appName, 'Memoney');
-  assert.equal(cap.server.url, 'https://memoney-6r5.pages.dev/signin');
+  assert.equal(cap.server.url, undefined);
+  assert.equal(cap.server.hostname, 'localhost');
+  assert.equal(cap.server.androidScheme, 'https');
+  assert.deepEqual(cap.plugins.MemoneyApi, { enabled: true, origin: 'https://memoney-6r5.pages.dev' });
   assert.equal(JSON.stringify(development), before);
   assert.equal(cap.plugins.MemoneyGoogleAuth.androidClientId, undefined);
   assert.equal(cap.readiness, undefined);

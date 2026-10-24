@@ -13,7 +13,7 @@
 | 한국어 이름 | 기존 설정 유지 | `메머니` |
 | 버전 | 9 / 0.3.4 | 1 / 0.1.0, 독립적으로 증가 |
 | Java namespace | `com.mywallet.dev` | 기존 namespace 유지 |
-| 서버 | 기존 Android 시험 주소 | 프로필의 `https://memoney-6r5.pages.dev/signin`, 아직 미배포 |
+| 화면 / API | 기존 Android 시험 주소 | 번들 `https://localhost` / API `https://memoney-6r5.pages.dev`, 운영 연결 미검증 |
 | APK/AAB 생성·설치 | 기존 개발 절차 | 준비 전용 가드로 차단 |
 
 Java namespace와 applicationId는 서로 다른 설정이다. Java 파일을 일괄 이동하지 않고 출시 준비 프로젝트의 applicationId만 바꾼다. Activity는 명시적인 `com.mywallet.dev.MainActivity`로 연결하며 FileProvider는 최종 applicationId의 `com.memoney.app.fileprovider`로 분리한다. [Android 공식 설정 안내](https://developer.android.com/build/configure-app-module).
@@ -58,7 +58,7 @@ Google Cloud Android OAuth client는 추후 `com.memoney.app`과 Play 앱 서명
 
 ## 다음 작업
 
-1. 출시 앱의 번들 화면과 원격 API·네이티브 로그인 호환 경로를 설계하고 격리 시험한다.
+1. 번들 화면과 원격 API·네이티브 로그인은 검증 패키지에서 실기기 확인했다. 2026-10-24 정식 프로필에도 같은 번들 origin과 제한된 `MemoneyApi` 전송 구성을 적용했다. 정식 패키지의 운영 서버 왕복 검증은 남아 있다.
 2. 새 서버 origin을 위한 Google 인증 허용 원본과 쿠키·CSP·로그인 복귀 경로를 준비한다.
 3. 키 보관·백업 방식과 Play App Signing을 구성한 뒤 업로드 키를 생성한다.
 4. 인증·서명·서버·origin 이전 검증 후에만 실제 AAB 빌드를 허용한다.
@@ -67,9 +67,11 @@ Google Cloud Android OAuth client는 추후 `com.memoney.app`과 Play 앱 서명
 
 ## 검증 기록
 
-- 설정·출시 준비 단위 검사 22건 통과. 기존 개발 설정 검사 통과.
+- 설정·출시 준비 단위 검사 24건 통과. 기존 개발 설정 검사 통과.
 - 실제 Gradle 메타데이터와 리소스 처리 성공. 최종 매니페스트의 출시 package, FileProvider authority, 기존 namespace의 Activity 연결을 확인했다.
 - Android 병합 리소스에서 기본 `Memoney`와 한국어 `메머니`를 확인했다. 설치된 런처 화면 검증은 아직 수행하지 않았다.
 - 준비 프로젝트의 `assembleDebug`, `bundleRelease` 차단 확인. APK/AAB 생성·설치 없음.
 - 서명 환경변수 4개가 없는 상태에서 검사 실패를 확인했다. 키 생성·서명·비밀번호 출력 없음.
 - Git에 추적되지 않은 생성 폴더는 검증 기록으로 보존한다. 기존 개발 소스와 `.wrangler`, DB, 실행 중인 브라우저는 변경하지 않았다.
+
+2026-10-24 `android:release:verify` 재검증: `com.memoney.app` 준비 프로젝트의 리소스와 매니페스트 처리가 성공했고 APK/AAB 생성 차단도 유지됐다. 원격 `server.url`은 출시 프로필에서 제거했다. `https://localhost` 번들과 `https://memoney-6r5.pages.dev` API만 허용하며, 원격 WebView·HTTP·검증 앱용 loopback API·`allowLocalProbe` 혼입을 구성 검사에서 거부한다. 현재 출시 프로필은 서명·OAuth·운영 서버 검증 5개 항목이 여전히 미완료다.
