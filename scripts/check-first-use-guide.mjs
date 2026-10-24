@@ -41,6 +41,10 @@ try {
     }), true, `${width}/${theme}: guide fits viewport`);
     await page.goto(origin + '/guest#summary');
     await stage('asset-tab'); await assertFit();
+    assert.equal(await page.$eval('.first-use-guide-ring', el => getComputedStyle(el).boxShadow.includes('0.68')), true, 'spotlight dims the surrounding page');
+    assert.equal(await page.$eval('.first-use-guide-tip', el => {
+      const rect = el.getBoundingClientRect(); return getComputedStyle(el).fontSize === '20px' && rect.top + rect.height / 2 < innerHeight * .6;
+    }), true, 'larger guide is near the viewport center');
     if (width === 411) await page.screenshot({ path: webUiArtifact(`first-use-${styleTheme}-${theme}.png`) });
     await clickTarget('asset-tab'); await stage('asset-add'); await assertFit();
     await clickTarget('asset-add'); await page.waitForSelector('.entry-modal', { visible: true });
@@ -83,9 +87,30 @@ try {
       assert(labels.every(value => /^-?\d+\.\d{2}억$/.test(value)), 'asset axis uses two decimal places');
     }
     await page.evaluate(key => localStorage.removeItem(key), completed); await page.reload(); await stage('asset-tab');
-    await page.click('[aria-label="가이드 닫기"]');
+    await page.click('.first-use-guide-off');
     await page.reload(); await page.waitForSelector('.header-settings-btn');
     assert.equal(await page.$('.first-use-guide'), null, 'manual dismissal is also durable');
+    await page.click('.header-settings-btn');
+    const selector = '.ledger-settings-controls .instant-select-trigger';
+    await page.waitForSelector(selector, { visible: true });
+    await page.$eval(selector, el => el.scrollIntoView({ block: 'center' }));
+    const field = await page.$(selector), rect = await field.boundingBox();
+    await page.mouse.move(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    await page.mouse.down();
+    assert.equal(await page.$eval(selector, el => getComputedStyle(el).transform), 'none', 'ledger selector does not shrink on press');
+    assert.equal(await page.$eval(selector, el => getComputedStyle(el).filter), 'none', 'ledger selector does not dim on press');
+    await page.mouse.up();
+    await page.waitForSelector('.ledger-settings-controls .instant-select-menu');
+    assert.equal(await page.$eval('.ledger-settings-controls .instant-select-menu', el => getComputedStyle(el).animationName), 'ledger-menu-unfold');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.ledger-settings-controls .instant-select-menu', { hidden: true });
+    await page.click(selector);
+    await page.waitForSelector('.ledger-settings-controls .instant-select-menu');
+    await page.click('.settings-hub strong');
+    await page.waitForSelector('.ledger-settings-controls .instant-select-menu', { hidden: true });
+    await page.evaluate(() => [...document.querySelectorAll('.settings-segment button')].find(el => el.textContent.includes('데이터')).click());
+    await page.waitForSelector('.settings-data-card');
+    assert.equal(await page.evaluate(() => document.body.textContent.includes('편한가계부 CSV 이관')), false, 'legacy importer has no visible entry point');
     assert.deepEqual(errors, []);
     await context.close();
   }

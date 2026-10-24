@@ -34,6 +34,24 @@ html[data-style-theme="default"] .ledger-settings-controls .ledger-connection-ac
 }
 html[data-style-theme="default"][data-ui-theme="theme1"] .ledger-settings-controls :is(.instant-select-trigger, .ledger-connection-action) { border-radius: 0 !important; }
 
+/* The field stays still; only its menu unfolds with the existing jelly rhythm. */
+.ledger-settings-controls .instant-select-menu {
+  transform-origin: 50% 0;
+  animation: ledger-menu-unfold 360ms;
+}
+.ledger-settings-controls .instant-select-trigger > span[aria-hidden] { transition: transform 240ms cubic-bezier(.2, .85, .3, 1.08); }
+.ledger-settings-controls .instant-select-trigger[aria-expanded="true"] > span[aria-hidden] { transform: rotate(180deg); }
+@keyframes ledger-menu-unfold {
+  0% { transform: translateY(-8px) scale(1, .86); opacity: 0; }
+  58% { transform: translateY(2px) scale(1.006, 1.035); opacity: 1; }
+  80% { transform: translateY(-1px) scale(.998, .988); }
+  100% { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ledger-settings-controls .instant-select-menu { animation: none; }
+  .ledger-settings-controls .instant-select-trigger > span[aria-hidden] { transition: none; }
+}
+
 /* Compact checkbox switches use the same mint jelly and elastic travel. */
 html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) { position: relative; }
 html[data-style-theme="default"] :is(.asset-detail-toggle, .plan-inclusion-toggle) > input {

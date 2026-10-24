@@ -47,11 +47,13 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
       const left = viewport?.offsetLeft || 0, top = viewport?.offsetTop || 0;
       const width = viewport?.width || innerWidth, height = viewport?.height || innerHeight;
       if (rect.bottom < top || rect.top > top + height) { setPosition(null); return; }
-      const tipW = Math.min(300, width - 24), tipH = tip.current?.offsetHeight || 142;
-      const beside = rect.left < left + width * 0.3 && rect.bottom < top + height - 160;
-      const tipX = Math.max(left + 12, Math.min(beside ? rect.right + 14 : rect.left + rect.width / 2 - tipW / 2, left + width - tipW - 12));
-      const tipY = Math.max(top + 12, Math.min(beside ? rect.top + rect.height / 2 - tipH / 2
-        : rect.top - tipH - 14 >= top + 12 ? rect.top - tipH - 14 : rect.bottom + 14, top + height - tipH - 12));
+      const tipW = Math.min(380, width - 32), tipH = tip.current?.offsetHeight || 200;
+      const tipX = left + (width - tipW) / 2;
+      let tipY = Math.max(top + 16, Math.min(top + height * .46 - tipH / 2, top + height - tipH - 16));
+      // Short landscape windows must still leave the highlighted control reachable.
+      if (tipX < rect.right + 12 && tipX + tipW > rect.left - 12 && tipY < rect.bottom + 12 && tipY + tipH > rect.top - 12) {
+        tipY = rect.top - tipH - 20 >= top + 16 ? rect.top - tipH - 20 : Math.min(rect.bottom + 20, top + height - tipH - 16);
+      }
       setPosition({ x: rect.x, y: rect.y, w: rect.width, h: rect.height, tipX, tipY, tipW });
     };
     const update = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
@@ -82,6 +84,7 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
         <button type="button" aria-label="가이드 닫기" onClick={finish}>×</button></div>
       <p aria-live="polite">{text}</p>
       {target === 'asset-add' && assetCount > 0 && <button className="first-use-guide-skip" type="button" onClick={() => setStep('ledger-tab')}>이미 자산이 있어요 →</button>}
+      <button className="first-use-guide-off" type="button" onClick={finish}>가이드 끄기</button>
     </div>
   </div>, document.body);
 }

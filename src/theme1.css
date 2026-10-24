@@ -45,7 +45,7 @@ html[data-style-theme="default"][data-ui-theme="theme1"] :is(
   box-shadow: var(--theme1-raised) !important;
 }
 
-html[data-style-theme="default"][data-ui-theme="theme1"] button:active:not(:disabled) {
+html[data-style-theme="default"][data-ui-theme="theme1"] button:active:not(:disabled):not(.ledger-settings-controls .instant-select-trigger) {
   box-shadow: var(--theme1-pressed) !important;
 }
 

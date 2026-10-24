@@ -9446,10 +9446,11 @@ ${sheet4Rows}  </sheetData>
                       </button>
                     </div>
                   </article>
-                  <article className="settings-data-card settings-csv-card">
+                  {/* Legacy importer stays implemented, with its settings entry hidden. */}
+                  {false && <article className="settings-data-card settings-csv-card">
                     <div><span>EASY MONEY</span><strong>편한가계부 CSV 이관</strong></div>
                     <div className="settings-card-actions"><label className="primary-button">CSV 이관<input type="file" accept=".csv" onChange={handleImportEasyMoneyCSV} style={{ display: 'none' }} /></label></div>
-                  </article>
+                  </article>}
                 </div>
                 <div className="settings-row">
                   <strong>안전한 전체 백업</strong>

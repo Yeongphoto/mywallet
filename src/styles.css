@@ -167,7 +167,7 @@ button,
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-button:not(:disabled):active,
+button:not(:disabled):not(.ledger-settings-controls .instant-select-trigger):active,
 [role='button']:not([aria-disabled='true']):active {
   transform: scale(0.94) !important;
   filter: brightness(0.92) saturate(1.05);
@@ -221,7 +221,7 @@ button {
   gap: 8px;
 }
 
-button:active {
+button:not(.ledger-settings-controls .instant-select-trigger):active {
   transform: scale(0.97);
 }
 
