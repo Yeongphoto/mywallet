@@ -25,6 +25,8 @@
     "android:release:verify": "node scripts/android-release-prepare.mjs verify",
     "android:signing:check": "node scripts/android-release-prepare.mjs signing-check",
     "android:server:prepare": "node scripts/android-release-server.mjs",
+    "android:server:runtime": "npm run build && node scripts/prepare-release-runtime.mjs",
+    "check:release-runtime": "node --test scripts/release-runtime.test.mjs",
     "build:android-probe": "npm run check:pwa && tsc -b && vite build --mode android-probe",
     "android:bundle:build": "npm run build:android-probe && node scripts/android-bundle-probe.mjs",
     "android:probe:google-server": "node scripts/android-google-probe-server.mjs",

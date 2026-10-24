@@ -2,6 +2,21 @@
 
 작성: 2026-10-23 · `android_dev` · 실제 배포/전환 전 단계
 
+## 2026-10-24 실행 코드 묶음 준비
+
+`npm run android:server:runtime`은 일반 production 웹 빌드 후 `android/build/memoney-release-runtime-<고유값>/`에 정식 서버 실행 코드를 생성한다. 기존 서버와 DB에는 접속하지 않는다. 설정 초안만 만들던 기존 `android:server:prepare`도 그대로 사용할 수 있다.
+
+- Vite의 `memoney-build.json`에서 production 빌드와 `authProbe=false`를 확인한다. Android 인증 실험 모드 빌드는 서버 배포 묶음으로 인정하지 않는다.
+- 인증·장부·복구 경로와 내부 금융 연산을 함께 복사한다. 공개 `/api/data`는 항상 `sharedWalletData`를 거치며, 기존 금융 연산은 내부 `legacy-data.ts`에 두어 인증 재귀와 공개 우회를 막는다.
+- 공통 DB 세 개의 실제 ID와 기존 개인 장부 매핑을 검사한다. 초기 사용자 seed와 금융 데이터 복사는 생성하지 않는다.
+- public의 미추적 사용자 파일과 PDF는 제외한다. `.wrangler`, 서명 키와 기기 데이터를 가져오지 않고 기존 생성 폴더도 덮어쓰지 않는다.
+- `wrangler.json`과 `RELEASE_READINESS.json`을 만들되 인증과 최초 이전은 계속 비활성이다. 새 런타임의 API middleware는 정확한 출시 origin·출시 플래그·인증·최초 이전 활성화가 모두 맞기 전에는 503을 반환하고 DB 핸들러를 실행하지 않는다.
+- 최초 이전 스키마 적용과 모든 앱/웹 origin의 인증 발급을 함께 맞추는 절차를 마친 뒤 활성화한다. 생성 명령은 스키마 변경·배포·원격 푸시를 실행하지 않는다.
+
+검증: `npm run check:release-runtime` 3건으로 비활성 API 차단, 원본 장부 처리기 분리, production/probe 혼입과 DB ID 변경 거부, 사용자 PDF 제외, 기존 폴더 보존을 확인했다. 실제 production 빌드와 런타임 생성이 성공했고, 생성된 `functions`를 `wrangler pages functions build`로 컴파일했다. 생성된 배포 자산에는 PDF가 0개였으며 운영 활성화와 공통 DB 왕복 검증은 아직 수행하지 않았다.
+
+이하 내용 중 번들/API 구조와 실행 코드 미구현 설명은 2026-10-23 당시 기록이다. 현재 정식 앱 프로필은 번들 `https://localhost` 화면과 `https://memoney-6r5.pages.dev` API를 사용하도록 준비되어 있다.
+
 ## 이번 단계의 결과
 
 - 출시 원본은 `https://memoney-6r5.pages.dev`, 프로젝트는 `memoney`다. 실제 서비스는 아직 배포하지 않았다.
