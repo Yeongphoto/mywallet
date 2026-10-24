@@ -81,6 +81,15 @@ try {
   assert.equal(await inviteePage.$eval('.sharing-preview strong', element => element.textContent), 'Browser memory fixture');
   await inviteePage.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.trim() === '참여')?.click());
   await inviteePage.waitForFunction(() => location.pathname === '/wallet');
+  await inviteePage.waitForSelector('.app-shell', { timeout: 15000 });
+  await inviteePage.evaluate(() => {
+    const app = document.querySelector('#root > div');
+    if (app instanceof HTMLElement) { app.inert = false; app.removeAttribute('aria-hidden'); app.style.visibility = 'visible'; }
+    document.querySelector('.wallet-connection-screen')?.remove();
+  });
+  await inviteePage.click('a[href="#ledger"]');
+  await inviteePage.waitForSelector('.settlement-summary-title', { timeout: 10000 });
+  await inviteePage.waitForFunction(() => document.body.innerText.includes('Browser shared fixture row'), { timeout: 10000 }).catch(() => {});
   const result = await inviteePage.evaluate(async (ledger, expectedId) => {
     const [contextResponse, dataResponse] = await Promise.all([
       fetch('/api/wallet/context', { headers: { 'X-Memoney-Ledger': ledger }, cache: 'no-store' }),
@@ -88,6 +97,7 @@ try {
     ]);
     const context = await contextResponse.json(), data = await dataResponse.json();
     return { contextStatus: contextResponse.status, role: context.ledger?.role, dataStatus: dataResponse.status,
+      transactionVisibleInLedger: document.body.innerText.includes('Browser shared fixture row'),
       transactionReturned: data.transactions?.some(row => row.id === expectedId), rows: data.transactions?.length,
     };
   }, ledgerId, transaction.id);
@@ -95,13 +105,15 @@ try {
   assert.equal(result.role, 'editor');
   assert.equal(result.dataStatus, 200);
   assert.equal(result.transactionReturned, true, JSON.stringify(result));
+  assert.equal(result.transactionVisibleInLedger, true, JSON.stringify(result));
   const read = await fetch(origin + '/api/data', { headers: { Cookie: inviteeSession, 'X-Memoney-Ledger': ledgerId } });
   const sharedData = await read.json();
   assert.equal(sharedData.transactions.find(row => row.id === transaction.id)?.title, transaction.title);
   assert.equal(fixture.metrics.financialWrites, 1);
   assert.equal(fixture.metrics.financeRows, 0);
   console.log(JSON.stringify({ sharedLedgerCreatedFromUI: true, invitationAcceptedFromUI: true, inviteePersonalLedgerPreserved: true,
-    crossAccountFinancialRead: true, rows: result.rows, financialWrites: fixture.metrics.financialWrites, localFinanceRows: fixture.metrics.financeRows }));
+    crossAccountFinancialRead: true, transactionVisibleInLedger: result.transactionVisibleInLedger,
+    rows: result.rows, financialWrites: fixture.metrics.financialWrites, localFinanceRows: fixture.metrics.financeRows }));
 } finally {
   if (browser) await browser.close();
   await fixture.close();
