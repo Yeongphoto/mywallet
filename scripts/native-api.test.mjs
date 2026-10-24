@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { nativeApiFetch } from '../src/auth/native-api.ts';
 
 function fixture(response = { status: 200, headers: { 'Content-Type': 'application/json', 'Set-Cookie': 'private=secret' }, body: '{"ok":true}' }) {
@@ -7,6 +8,10 @@ function fixture(response = { status: 200, headers: { 'Content-Type': 'applicati
   const bridge = { async configuration() { return { enabled: true }; }, async request(options) { calls.push(options); return response; } };
   return { calls, other, bridge, fetch: nativeApiFetch(bridge, async (...args) => { other.push(args); return new Response('asset'); }, 'https://localhost') };
 }
+test('Android API bridge accepts the no-store cache-control header used during wallet preload', () => {
+  const source = readFileSync(new URL('../android/app/src/main/java/com/mywallet/dev/MemoneyApiPlugin.java', import.meta.url), 'utf8');
+  assert.match(source, /Arrays\.asList\("content-type", "accept", "cache-control", "x-memoney-ledger", "x-memoney-generation"\)/);
+});
 test('local API fetch uses only relative path and strips cookie response headers', async () => {
   const f = fixture();
   const response = await f.fetch('/api/data?after=1', { headers: { 'X-Memoney-Ledger': 'ledger' } });

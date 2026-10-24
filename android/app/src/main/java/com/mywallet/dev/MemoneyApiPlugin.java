@@ -111,7 +111,7 @@ public class MemoneyApiPlugin extends Plugin {
             Iterator<String> keys = headers.keys();
             while (keys.hasNext()) {
                 String key = keys.next(), value = headers.optString(key, "");
-                if (!Arrays.asList("content-type", "accept", "x-memoney-ledger", "x-memoney-generation").contains(key.toLowerCase(java.util.Locale.ROOT)) ||
+                if (!Arrays.asList("content-type", "accept", "cache-control", "x-memoney-ledger", "x-memoney-generation").contains(key.toLowerCase(java.util.Locale.ROOT)) ||
                     value.length() > 256 || value.contains("\r") || value.contains("\n")) {
                     call.reject("API header rejected", "API_REJECTED"); return;
                 }

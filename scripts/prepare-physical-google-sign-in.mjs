@@ -4,10 +4,11 @@ import puppeteer from 'puppeteer-core';
 import { join } from 'node:path';
 
 const args = process.argv.slice(2);
-if (args.length < 2 || args.length > 3 || args[0] !== '--serial' || !args[1] || (args[2] && args[2] !== '--tap-google')) {
-  throw Error('Use --serial <authorized physical device> [--tap-google]');
+if (args.length < 2 || args[0] !== '--serial' || !args[1] || args.slice(2).some(arg => !['--tap-google','--shared-flow'].includes(arg)) ||
+    new Set(args.slice(2)).size !== args.length - 2) {
+  throw Error('Use --serial <authorized physical device> [--tap-google] [--shared-flow]');
 }
-const serial = args[1], appId = 'com.memoney.probe', tapGoogle = args[2] === '--tap-google';
+const serial = args[1], appId = 'com.memoney.probe', tapGoogle = args.includes('--tap-google'), sharedFlow = args.includes('--shared-flow');
 const adb = join(process.env.LOCALAPPDATA, 'Android/Sdk/platform-tools/adb.exe');
 const output = execFileSync(adb, ['devices', '-l'], { encoding: 'utf8' });
 const device = output.split(/\r?\n/).find(line => new RegExp('^' + serial + '\\s+device\\s').test(line));
@@ -36,7 +37,7 @@ try {
   if (!browser) throw lastError || Error('Probe WebView debugging endpoint did not start');
   const page = (await browser.pages()).find(value => new URL(value.url()).origin === 'https://localhost');
   assert.ok(page, 'Bundled probe WebView is unavailable');
-  await page.goto('https://localhost/signin?wallet=shared&probe=google', { waitUntil: 'domcontentloaded' });
+  await page.goto(sharedFlow ? 'https://localhost/signin?wallet=shared&probe=shared' : 'https://localhost/signin?wallet=shared&probe=google', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.signin-google', { timeout: 15000 });
   if (tapGoogle) {
     await page.click('.signin-google');
@@ -50,9 +51,9 @@ try {
     route: location.pathname }));
   assert.equal(state.platform, 'android');
   assert.equal(state.nativeGoogle, true);
-  assert.equal(state.buttonEnabled, !tapGoogle);
   assert.equal(state.financialRequests, 0);
-  console.log(JSON.stringify({ ...state, googlePromptRequested: tapGoogle }));
+  console.log(JSON.stringify({ ...state, flow: sharedFlow ? 'shared-ledger-memory-only' : 'auth-only', googlePromptRequested: tapGoogle,
+    signInFeedback: await page.$eval('.signin-feedback', element => element.textContent || '') }));
 } finally {
   if (browser) await browser.disconnect();
   if (forward) { try { run('forward', '--remove', 'tcp:' + forward); } catch { /* Only remove this script's forwarding port. */ } }

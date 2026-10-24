@@ -24,11 +24,24 @@ try {
   browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:' + forward, defaultViewport: null });
   const page = (await browser.pages()).find(value => new URL(value.url()).origin === 'https://localhost');
   assert.ok(page, 'Bundled probe WebView is unavailable');
+  if (new URL(page.url()).pathname === '/wallet') {
+    await page.waitForSelector('.header-settings-btn', { timeout: 15000 }).catch(() => {});
+  }
   const state = await page.evaluate(async () => {
     try {
       const response = await fetch('/api/auth/session', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
       const body = await response.json();
-      return { status: response.status, authenticated: Boolean(body.user?.id), route: location.pathname,
+      const [contextResponse, ledgersResponse, onboardingResponse] = await Promise.all([
+        fetch('/api/wallet/context', { cache:'no-store', signal:AbortSignal.timeout(5000) }),
+        fetch('/api/wallet/ledgers', { cache:'no-store', signal:AbortSignal.timeout(5000) }),
+        fetch('/api/wallet/onboarding', { cache:'no-store', signal:AbortSignal.timeout(5000) }),
+      ]);
+      const [context, ledgers, onboarding] = await Promise.all([contextResponse.json(), ledgersResponse.json(), onboardingResponse.json()]);
+      return { status: response.status, authenticated: Boolean(body.user?.id), route: location.pathname, hash:location.hash,
+        contextStatus:contextResponse.status, ledgerKind:context.ledger?.kind||null, ledgerRole:context.ledger?.role||null,
+        ledgerCount:Array.isArray(ledgers.ledgers)?ledgers.ledgers.length:null,
+        onboardingStatus:onboarding.status||null,
+        appRendered:!!document.querySelector('.header-settings-btn'),
         heading: document.querySelector('.signin-content h1')?.textContent || '',
         feedback: document.querySelector('.signin-feedback')?.textContent || '',
         financialRequests: performance.getEntriesByType('resource').filter(entry => entry.name.includes('/api/data')).length };
@@ -40,7 +53,7 @@ try {
     }
   });
   assert.equal(state.financialRequests, 0);
-  if (state.status === 200 && state.authenticated) {
+  if (state.status === 200 && state.authenticated && state.appRendered && state.contextStatus === 200 && state.onboardingStatus === 'complete') {
     const root = fileURLToPath(new URL('../', import.meta.url));
     const { apk } = inspectDeviceReadiness();
     const probe = JSON.parse(await (await import('node:fs/promises')).readFile(join(root, 'android/build/memoney-bundle-probe.json'), 'utf8'));

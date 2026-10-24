@@ -3,6 +3,10 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { handleAuth } from '../server/auth/http.ts';
 import { onRequestGet } from '../functions/api/data.ts';
+import { handlePersonalOnboarding } from '../server/wallet/personal.ts';
+import { sharedWalletContext, sharedWalletData } from '../server/wallet/shared-web.ts';
+import { handleLedgers } from '../server/wallet/shared-creation.ts';
+import { handleSharing } from '../server/wallet/invitations.ts';
 
 function adapter(sqlite) {
   return { prepare(sql) { return { values: [], bind(...values) { this.values = values; return this; },
@@ -14,14 +18,26 @@ function adapter(sqlite) {
       catch (error) { sqlite.exec('ROLLBACK'); throw error; }
     } };
 }
-export async function startBundleFixture({ realGoogleAndroidClientId } = {}) {
-  const origin = 'http://127.0.0.1:5198', auth = new DatabaseSync(':memory:'), finance = new DatabaseSync(':memory:');
+export async function startBundleFixture({ realGoogleAndroidClientId, sharedWallet = false, port = 5198 } = {}) {
+  let origin = port ? `http://127.0.0.1:${port}` : '';
+  const auth = new DatabaseSync(':memory:'), finance = new DatabaseSync(':memory:');
+  const shared = sharedWallet ? new DatabaseSync(':memory:') : null;
   auth.exec(readFileSync(new URL('./auth-foundation-schema.sql', import.meta.url), 'utf8'));
   finance.exec(readFileSync(new URL('./android-sandbox-schema.sql', import.meta.url), 'utf8'));
+  if (sharedWallet) {
+    auth.exec(readFileSync(new URL('./ledger-invitations-schema.sql', import.meta.url), 'utf8'));
+    auth.exec(readFileSync(new URL('./shared-creation-auth-schema.sql', import.meta.url), 'utf8'));
+    auth.exec(readFileSync(new URL('./personal-onboarding-auth-schema.sql', import.meta.url), 'utf8'));
+    shared.exec(readFileSync(new URL('./android-sandbox-schema.sql', import.meta.url), 'utf8'));
+    shared.exec(readFileSync(new URL('./shared-creation-finance-schema.sql', import.meta.url), 'utf8'));
+  }
   const webClientId = JSON.parse(readFileSync(new URL('../config/android-release.json', import.meta.url), 'utf8')).plugins.MemoneyGoogleAuth.webClientId;
   const env = { DB: adapter(auth), AUTH_ENABLED: 'true', AUTH_LOCAL_DEV: 'true', AUTH_ORIGIN: origin,
     AUTH_GOOGLE_CLIENT_ID: realGoogleAndroidClientId ? webClientId : 'probe.apps.googleusercontent.com',
-    ...(realGoogleAndroidClientId ? { AUTH_GOOGLE_ANDROID_CLIENT_ID: realGoogleAndroidClientId } : {}) };
+    ...(realGoogleAndroidClientId ? { AUTH_GOOGLE_ANDROID_CLIENT_ID: realGoogleAndroidClientId } : {}),
+    ...(sharedWallet ? { AUTH_PERSONAL_ONBOARDING: 'true', AUTH_TEST_MULTI_LEDGER: 'true', AUTH_TEST_PERSONAL_LEDGER: 'true',
+      AUTH_SHARED_TEST_DEPLOYMENT: 'true', AUTH_LEDGER_INVITES: 'true', AUTH_SHARED_WALLET_LEDGER_ID: '00000000-0000-4000-8000-000000000001',
+      TEST_FINANCE: adapter(finance), TEST_SHARED_FINANCE: adapter(shared) } : {}) };
   const metrics = { requests: 0, financialReads: 0, financialWrites: 0, denied: 0, duplicateCookieNames: 0, financeRows: 0, routes: {} };
   const ledger = '22222222-2222-4222-8222-222222222222';
   const server = createServer(async (incoming, outgoing) => {
@@ -38,9 +54,24 @@ export async function startBundleFixture({ realGoogleAndroidClientId } = {}) {
       if (!realGoogleAndroidClientId && url.searchParams.has('redirect')) response = new Response(null, { status: 302, headers: { Location: 'https://example.invalid' } });
       else if (url.pathname.startsWith('/api/auth/')) {
         response = await handleAuth(request, env, url.pathname.slice('/api/auth/'.length), realGoogleAndroidClientId ? undefined : async token => {
-          if (token !== 'isolated-probe-token') throw Error('Fixture only');
-          return { issuer: 'https://accounts.google.com', subject: 'isolated-bundle-probe' };
+          const identities = {
+            'isolated-probe-token': { subject: 'isolated-bundle-probe', email: 'owner@gmail.com', authoritativeEmail: true },
+            'isolated-invitee-token': { subject: 'isolated-bundle-invitee', email: 'invitee@gmail.com', authoritativeEmail: true },
+          };
+          if (!identities[token]) throw Error('Fixture only');
+          return { issuer: 'https://accounts.google.com', ...identities[token] };
         });
+      } else if (sharedWallet && url.pathname === '/api/wallet/onboarding') {
+        response = await handlePersonalOnboarding(request, env);
+      } else if (sharedWallet && url.pathname === '/api/wallet/context') {
+        response = await sharedWalletContext(request, env);
+      } else if (sharedWallet && url.pathname === '/api/wallet/ledgers') {
+        response = await handleLedgers(request, env);
+      } else if (sharedWallet && url.pathname === '/api/wallet/sharing') {
+        response = await handleSharing(request, env);
+      } else if (sharedWallet && url.pathname === '/api/data') {
+        if (incoming.method === 'GET') metrics.financialReads++; else metrics.financialWrites++;
+        response = await sharedWalletData(request, env);
       } else if (realGoogleAndroidClientId) {
         response = Response.json({ error: 'PROBE_AUTH_ONLY' }, { status: 403 });
       } else {
@@ -64,10 +95,11 @@ export async function startBundleFixture({ realGoogleAndroidClientId } = {}) {
       outgoing.writeHead(response.status, headers); outgoing.end(bytes);
     } catch { if (!outgoing.headersSent) outgoing.writeHead(500); outgoing.end('{"error":"FIXTURE_ERROR"}'); }
   });
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(5198, '127.0.0.1', resolve); });
-  return { metrics, ledger, async close() {
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
+  if (!port) { origin = `http://127.0.0.1:${server.address().port}`; env.AUTH_ORIGIN = origin; }
+  return { metrics, ledger, origin, async close() {
     await new Promise(resolve => server.close(resolve));
     metrics.financeRows = finance.prepare('SELECT COUNT(*) n FROM transactions').get().n;
-    auth.close(); finance.close();
+    auth.close(); finance.close(); shared?.close();
   } };
 }
