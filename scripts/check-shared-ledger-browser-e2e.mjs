@@ -81,12 +81,9 @@ try {
   assert.equal(await inviteePage.$eval('.sharing-preview strong', element => element.textContent), 'Browser memory fixture');
   await inviteePage.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.trim() === '참여')?.click());
   await inviteePage.waitForFunction(() => location.pathname === '/wallet');
-  await inviteePage.waitForSelector('.app-shell', { timeout: 15000 });
-  await inviteePage.evaluate(() => {
-    const app = document.querySelector('#root > div');
-    if (app instanceof HTMLElement) { app.inert = false; app.removeAttribute('aria-hidden'); app.style.visibility = 'visible'; }
-    document.querySelector('.wallet-connection-screen')?.remove();
-  });
+  await inviteePage.bringToFront();
+  await inviteePage.waitForSelector('.app-shell', { visible: true, timeout: 20000 });
+  await inviteePage.waitForFunction(() => !document.querySelector('.wallet-connection-screen'), { timeout: 10000 });
   await inviteePage.click('a[href="#ledger"]');
   await inviteePage.waitForSelector('.settlement-summary-title', { timeout: 10000 });
   await inviteePage.waitForFunction(() => document.body.innerText.includes('Browser shared fixture row'), { timeout: 10000 }).catch(() => {});

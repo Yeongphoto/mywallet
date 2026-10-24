@@ -1,6 +1,6 @@
 # Memoney 실기기·실제 Google 로그인 사전 점검
 
-2026-10-23 · `android_dev` · 실기기 Google 로그인과 격리 인증 세션 발급 성공. 장부 API는 차단된 검증 앱에서 확인했으며, 실제 공유장부 연결은 별도 검증 대상이다.
+2026-10-24 · `android_dev` · 실기기 Google 로그인과 메모리 DB 공유 장부의 생성·저장·재조회·초대 생성/취소까지 확인했다. 정식 출시 패키지와 운영 DB 검증은 별도다. 아래 2026-10-23 검증 기록은 당시 범위로 보존한다.
 
 ## 이번 확인 결과
 
@@ -84,6 +84,24 @@ Google의 [Android 클라이언트 인증 안내](https://developers.google.com/
 
 재현 도구는 `scripts/check-physical-recovery.mjs --serial <승인된 기기> --phase <단계>`다. `export` 후 Android 창에서 저장하고 `verify-file → reset → recover`를 실행한다. 이어 `import`로 파일을 선택해 확인 창을 연 뒤 `prepare-import`로 취소하고 합성 차이를 만든다. 다시 `import`로 같은 파일을 선택한 뒤 `verify-import`로 실제 복원을 확인한다. Android 저장/선택 창은 `scripts/physical-document-dialog.mjs`의 제한된 제어로 다룬다. 초기화는 검증된 파일과 같은 guest UUID가 없으면 중단하며, 알 수 없는 금융 기록이나 사용자 자산은 합성 입력으로 인정하지 않는다. 재현 중 원본·파일·단계 상태는 Git 제외 `android/build/physical-recovery-session.json`과 PC 검사 산출물에 보존한다. 무관한 다운로드 파일은 선택하거나 수정하지 않는다. 문서 선택기의 임시 UI XML은 읽은 뒤 해당 임시 파일만 제거한다.
 
-휴대폰 다운로드에 합성 JSON 백업이 남아 있고 검증 앱은 원본 합성 상태로 복원해 열어 뒀다. Google 로그인·공유장부 교차 저장·운영 DB 검증은 여전히 수행하지 않았다.
+휴대폰 다운로드에 합성 JSON 백업이 남아 있고 검증 앱은 원본 합성 상태로 복원해 열어 뒀다. 이 로컬 복구 검사 당시 Google 로그인·공유장부 교차 저장·운영 DB 검증은 수행하지 않았다.
+
+## 실제 Google 로그인·공유 장부 실기기 검증 — 2026-10-24
+
+사용자 지정 테스트 계정은 **PD서**다. 이후 계정 선택에서도 이 표시명을 사용한다. 같은 표시명이 여러 개라면 임의로 다른 계정을 선택하지 않는다. 이메일·토큰·세션 쿠키는 문서와 Git에 기록하지 않는다.
+
+삼성 `SM_F971N`에 기존 데이터를 유지하는 업데이트로 최신 `com.memoney.probe` APK를 설치했다. APK SHA-256은 `6c46f96ef5a274a4eb81cb28a4b10e70df9701dc97aa131bb43ef14e00b21842`이며 설치된 APK의 실제 해시도 일치했다. 서버는 PC `127.0.0.1:5198`의 `android:probe:shared-server`다. 인증·개인·공유 SQLite가 모두 메모리에 있고 D1 바인딩과 금융 외부 서비스가 없다.
+
+- 실제 Google 계정 선택 후 세션 200, 개인 장부 준비 `complete`, 개인 장부 소유자 권한과 화면 진입을 확인했다.
+- 실기기 UI로 빈 공유 장부를 만들고 선택했다. 개인·공유 장부 모두 로딩 화면이 자연스럽게 종료됐다. DOM의 `inert`나 표시 상태를 강제로 바꾸지 않았다.
+- 실기기 등록 UI에서 합성 현금 자산 10,000원과 지출 거래 1,234원을 저장했다. 앱 새로고침 후 같은 거래 ID·금액이 서버와 장부 화면에 남았다. 개인 장부는 검사 전후 전체 응답이 같았다.
+- 합성 대상의 초대 링크를 UI로 만들고 취소했다. 이메일을 발송하거나 실제 다른 계정을 초대하지 않았다.
+- 별도의 브라우저 격리 E2E에서는 두 합성 Google 신원으로 공유 장부 생성·초대 수락·계정 간 같은 거래 조회·장부 화면 표시를 확인했다. 실제 두 Google 계정의 실기기 간 교차 시험은 이 결과에 포함하지 않는다.
+
+재현 도구는 `node scripts/check-physical-shared-probe.mjs --serial <승인된 기기>`다. 먼저 Android OAuth가 설정된 검증 APK를 설치하고, 새 `node scripts/android-google-probe-server.mjs --shared` 프로세스에서 Google 로그인을 완료한다. 소유자당 공유 장부 1개 제한 때문에 재실행은 새로운 메모리 fixture에서 시작한다. 메모리 서버를 종료하면 그 서버의 합성 기록은 사라진다.
+
+도구는 패키지·설치 APK 해시·PC 포트 역방향 연결과 서버의 `X-Memoney-Probe-Isolation: memory-only` 표식을 확인한 다음 동작한다. 결과 JSON과 실기기 화면은 Git 제외 `android/build/physical-shared-verification-*.json`, `android/build/physical-shared-*.png`에 남긴다. 브라우저 재현은 `node scripts/check-shared-ledger-browser-e2e.mjs`이며, 페이지를 전면으로 가져온 뒤 실제 로딩 종료를 기다린다. 이전 테스트의 강제 로딩 제거 코드는 없앴다.
+
+정식 `com.memoney.app`의 Play 서명 OAuth·출시 서버 배포와 운영 공통 DB 왕복을 완료했다는 의미는 아니다. 이번 작업은 원격 푸시와 운영 배포를 수행하지 않았다.
 
 관련: [출시 체크리스트](android-release-checklist.md), [번들 APK 검증](android-bundle-probe.md), [기기 기록 내구성](local-guest-durability.md), [출시 서버 준비](android-release-server.md).

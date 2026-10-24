@@ -3,10 +3,12 @@ import test from 'node:test';
 import { startBundleFixture } from './bundle-probe-fixture.mjs';
 
 test('real Google probe verifies tokens against configured Web audience and blocks every finance route', async () => {
-  const fixture = await startBundleFixture({ realGoogleAndroidClientId: 'probe-android.apps.googleusercontent.com' });
+  const fixture = await startBundleFixture({ realGoogleAndroidClientId: 'probe-android.apps.googleusercontent.com', port: 0 });
   try {
-    const origin = 'http://127.0.0.1:5198';
-    const config = await fetch(origin + '/api/auth/config').then(response => response.json());
+    const origin = fixture.origin;
+    const configuration = await fetch(origin + '/api/auth/config');
+    assert.equal(configuration.headers.get('X-Memoney-Probe-Isolation'), 'memory-only');
+    const config = await configuration.json();
     assert.equal(config.enabled, true);
     assert.equal(config.clientId, '367615872651-ln2adrilfm9c9ofk12pl5jip1so1ra08.apps.googleusercontent.com');
     const noRedirect = await fetch(origin + '/api/auth/config?redirect=1', { redirect: 'manual' });

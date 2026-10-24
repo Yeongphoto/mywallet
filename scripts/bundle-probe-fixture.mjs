@@ -95,6 +95,7 @@ export async function startBundleFixture({ realGoogleAndroidClientId, sharedWall
         }
       }
       const headers = Object.fromEntries([...response.headers.entries()].filter(([key]) => key !== 'set-cookie'));
+      headers['X-Memoney-Probe-Isolation'] = 'memory-only';
       const cookies = response.headers.getSetCookie();
       if (cookies.length) headers['Set-Cookie'] = cookies;
       const bytes = Buffer.from(await response.arrayBuffer());
