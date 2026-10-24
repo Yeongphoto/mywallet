@@ -28,7 +28,12 @@ try {
   }
   assert.match(pid || '', /^\d+$/, 'Probe app did not start');
   forward = run('forward', 'tcp:0', 'localabstract:webview_devtools_remote_' + pid);
-  browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:' + forward, defaultViewport: null });
+  let lastError;
+  for (let attempt = 0; attempt < 20 && !browser; attempt++) {
+    try { browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:' + forward, defaultViewport: null }); }
+    catch (error) { lastError = error; await new Promise(resolve => setTimeout(resolve, 250)); }
+  }
+  if (!browser) throw lastError || Error('Probe WebView debugging endpoint did not start');
   const page = (await browser.pages()).find(value => new URL(value.url()).origin === 'https://localhost');
   assert.ok(page, 'Bundled probe WebView is unavailable');
   await page.goto('https://localhost/signin?wallet=shared&probe=google', { waitUntil: 'domcontentloaded' });

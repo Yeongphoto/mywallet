@@ -1,6 +1,6 @@
 # Memoney 실기기·실제 Google 로그인 사전 점검
 
-2026-10-23 · `android_dev` · 실기기 로컬 저장 검증 및 검증용 OAuth 등록 완료, 실제 계정 로그인은 미검증
+2026-10-23 · `android_dev` · 실기기 Google 로그인과 격리 인증 세션 발급 성공. 장부 API는 차단된 검증 앱에서 확인했으며, 실제 공유장부 연결은 별도 검증 대상이다.
 
 ## 이번 확인 결과
 
@@ -10,7 +10,7 @@
 - APK 서명 검증 성공: `com.memoney.probe`, `versionCode=1`, `0.1.0-probe`, debug, min SDK 24 / target SDK 36.
 - APK에서 읽은 SHA-1: `A6:38:48:B2:17:F2:77:99:5D:54:10:D3:82:58:38:1E:09:E4:E9:BA`.
 - 기존 `android:bundle:test` fixture는 `isolated-probe-token`만 인정하는 합성 인증용이다. 새 `android:probe:google-server`는 Google JWKS로 ID 토큰을 실제 검증하고 메모리 SQLite에만 인증 세션을 저장한다. `/api/auth/*` 외 모든 API를 거부하며 금융 DB에 연결하지 않는다.
-- 정식 `com.memoney.app`의 Android OAuth client·Play 앱 서명 SHA-1·업로드 키·새 서버 배포·origin 이전 검증은 여전히 미완료다. 검사 도구는 준비 플래그를 변경하지 않는다.
+- 정식 `com.memoney.app`의 Android OAuth client·Play 앱 서명 SHA-1·업로드 키·새 서버 배포·origin 이전 검증은 여전히 미완료다. 검증 APK의 로그인 성공은 출시 앱의 로그인이나 공유장부 접근을 증명하지 않는다.
 
 APK 지문은 빌드마다 재확인한다. 이 공개 debug 인증서 지문을 Play 앱 서명 인증서나 업로드 키 지문으로 등록하지 않는다. 원본 keystore나 비밀번호는 읽거나 출력하지 않는다.
 
@@ -48,6 +48,7 @@ Google의 [Android 클라이언트 인증 안내](https://developers.google.com/
 - `npm run check:android-google-probe`: 실제 Google verifier 구성에서 잘못된 토큰 거부와 금융 API 차단 1건 통과. 합성 토큰만 쓰는 기존 fixture 동작은 별도 유지한다.
 - 검증 APK 빌드 성공, 서명 SHA-1이 등록값과 일치. Google Cloud에는 검증용 Android OAuth client만 추가했다. 운영 서버·공유 DB·기존 개발 OAuth client는 변경하지 않았다.
 - 2026-10-23 실기기 `SM_F971N`에서 등록한 Android client로 Google 로그인을 완료했다. 격리 인증 서버에서 `/api/auth/session`이 200·authenticated로 확인됐고, 검증 화면은 `Google 로그인 확인 완료`를 표시했다. 금융 API 요청은 0건이었다.
+- `npm run android:device:check`는 이제 설정 유무와 실제 로그인 증거를 분리한다. 물리 기기 검사 스크립트가 성공 세션과 금융 요청 0건을 확인한 경우, 토큰·쿠키·계정 정보·기기 일련번호 없이 APK 서명과 OAuth client 지문에 묶인 로컬 검증 영수증을 `android/build`에 생성한다. 사전점검은 현재 APK와 일치하는 영수증만 실기기 로그인 검증으로 인정하며 출시 로그인은 계속 미검증으로 둔다.
 - 처음에는 인증 후 일반 장부 연결 화면으로 넘어가려 했으나, 실데이터 보호를 위해 장부 컨텍스트/API를 막은 검증 서버가 의도대로 요청을 거부해 재연결 안내가 보였다. 검증 APK 전용 `?probe=google` 경로가 인증 성공을 표시하고 장부 API를 생략하도록 보완했다. 정식 앱 동작이나 실서버/공유 DB 연동을 검증한 것은 아니다.
 - 검증 완료 후 메모리 인증 서버를 종료하고 이 도구가 추가한 `tcp:5198` reverse만 제거했다. 계정 이메일·토큰·쿠키는 기록하지 않았고, 공유 장부 및 금융 DB에 접근하지 않았다.
 

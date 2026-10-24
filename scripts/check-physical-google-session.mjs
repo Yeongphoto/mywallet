@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { inspectDeviceReadiness } from './android-device-preflight.mjs';
 
 const args = process.argv.slice(2);
 if (args.length !== 2 || args[0] !== '--serial' || !args[1]) throw Error('Use --serial <authorized physical device>');
@@ -37,6 +40,18 @@ try {
     }
   });
   assert.equal(state.financialRequests, 0);
+  if (state.status === 200 && state.authenticated) {
+    const root = fileURLToPath(new URL('../', import.meta.url));
+    const { apk } = inspectDeviceReadiness();
+    const probe = JSON.parse(await (await import('node:fs/promises')).readFile(join(root, 'android/build/memoney-bundle-probe.json'), 'utf8'));
+    const profile = JSON.parse(await (await import('node:fs/promises')).readFile(join(root, 'config/android-release.json'), 'utf8'));
+    const receipt = { verifiedAt: new Date().toISOString(), status: state.status, authenticated: state.authenticated,
+      financialRequests: state.financialRequests, appId: apk.appId, backend: probe.backend,
+      androidClientId: probe.androidClientId, certificateSha1: apk.sha1,
+      webAudience: profile.plugins.MemoneyGoogleAuth.webClientId };
+    const destination = join(root, 'android/build/google-probe-verification-' + Date.now() + '.json');
+    writeFileSync(destination, JSON.stringify(receipt, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+  }
   console.log(JSON.stringify(state));
 } finally {
   if (browser) await browser.disconnect();

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { parseDevices, parseApk, preflightReport, selectPhysicalDevice } from './android-device-preflight.mjs';
+import { parseDevices, parseApk, preflightReport, selectPhysicalDevice, validGoogleProbeProof } from './android-device-preflight.mjs';
 const profile = JSON.parse(readFileSync(new URL('../config/android-release.json', import.meta.url), 'utf8'));
 const development = JSON.parse(readFileSync(new URL('../capacitor.config.json', import.meta.url), 'utf8'));
 const badging = "package: name='com.memoney.probe' versionCode='1' versionName='0.1.0-probe'\nsdkVersion:'24'\ntargetSdkVersion:'36'\napplication-debuggable\n";
@@ -36,11 +36,20 @@ test('the probe cannot be confused with development, production or an arbitrary 
   for (const appId of ['com.mywallet.dev', 'com.memoney.app']) assert.throws(() => preflightReport({ devices: [], apk: { ...apk, appId }, profile, development, backend: 'http://127.0.0.1:5198' }));
   assert.throws(() => preflightReport({ devices: [], apk, profile, development, backend: profile.hosting.origin }));
 });
-test('configuration flags and a connected phone cannot promote fixture authentication to real Google verification', () => {
+test('Google login readiness requires a successful proof matching the exact probe build and OAuth clients', () => {
   const readyProfile = structuredClone(profile); readyProfile.readiness.serverDeploymentVerified = true;
-  const result = preflightReport({ devices: parseDevices('phone device model:Physical'), apk, profile: readyProfile, development, backend: 'http://127.0.0.1:5198' });
-  assert.equal(result.actualGoogleSignIn.ready, false); assert.equal(result.release.liveGoogleSignInVerified, false);
-  assert.equal(result.actualGoogleSignIn.candidateAndroidRegistration.packageName, 'com.memoney.probe');
+  const registration = '367615872651-27d00itbvj65ak6pn5f32scgd2ks685t.apps.googleusercontent.com';
+  const backend = 'http://127.0.0.1:5198', verifiedAt = new Date().toISOString();
+  const proof = { status:200,authenticated:true,financialRequests:0,appId:apk.appId,certificateSha1:apk.sha1,
+    backend,androidClientId:registration,webAudience:readyProfile.plugins.MemoneyGoogleAuth.webClientId,verifiedAt };
+  const result = preflightReport({ devices: parseDevices('phone device model:Physical'), apk, profile: readyProfile,
+    development, backend, androidClientId:registration, googleProof:proof });
+  assert.equal(result.actualGoogleSignIn.configured, true); assert.equal(result.actualGoogleSignIn.liveGoogleSignInVerified, true);
+  assert.equal(result.release.liveGoogleSignInVerified, false);
+  for (const changed of [{...proof,financialRequests:1},{...proof,certificateSha1:'00'},{...proof,authenticated:false},{...proof,backend:'https://example.invalid'}]) {
+    assert.equal(validGoogleProbeProof(changed,{apk,profile:readyProfile,androidClientId:registration,backend}),false);
+  }
+  assert.equal(validGoogleProbeProof(null,{apk,profile:readyProfile,androidClientId:registration,backend}),false);
 });
 test('the report exposes no device serials and inspection performs no install or data operation', () => {
   const result = report(parseDevices('private-device-serial device model:Physical'));

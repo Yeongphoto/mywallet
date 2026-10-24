@@ -28,11 +28,23 @@ export function selectPhysicalDevice(devices, serial) {
   if (matches.length !== 1 || matches[0].state !== 'device' || matches[0].emulator) throw Error('Selected physical device is not authorized');
   return matches[0];
 }
-export function preflightReport({ devices, apk, profile, development, backend }) {
+export function validGoogleProbeProof(proof, { apk, profile, androidClientId, backend }) {
+  if (!proof || proof.status !== 200 || proof.authenticated !== true || proof.financialRequests !== 0 ||
+      proof.appId !== apk.appId || proof.certificateSha1 !== apk.sha1 || proof.backend !== backend ||
+      proof.androidClientId !== androidClientId || proof.webAudience !== profile.plugins.MemoneyGoogleAuth.webClientId) return false;
+  const verifiedAt = Date.parse(proof.verifiedAt || '');
+  return Number.isFinite(verifiedAt) && verifiedAt <= Date.now();
+}
+export function preflightReport({ devices, apk, profile, development, backend, googleProof = null, androidClientId = null }) {
   if (apk.appId !== 'com.memoney.probe' || !apk.debuggable || backend !== 'http://127.0.0.1:5198' ||
       !Number.isInteger(apk.minSdk) || !Number.isInteger(apk.targetSdk)) throw Error('Expected the isolated debug bundle probe, not another app');
   const physical = devices.filter(device => !device.emulator);
   const authorized = physical.filter(device => device.state === 'device');
+  const registrationConfigured = typeof androidClientId === 'string' &&
+    /^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(androidClientId) &&
+    /^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(profile.plugins.MemoneyGoogleAuth.webClientId);
+  const liveGoogleSignInVerified = registrationConfigured && validGoogleProbeProof(googleProof,
+    { apk, profile, androidClientId, backend });
   return {
     readOnly: true,
     devices: devices.map(({ state, emulator, model }) => ({ state, emulator, model })),
@@ -40,10 +52,13 @@ export function preflightReport({ devices, apk, profile, development, backend })
       readyForExplicitSelection: authorized.length > 0 },
     apk,
     probeBackend: backend,
-    actualGoogleSignIn: { ready: false, reasons: ['The probe backend accepts only synthetic fixture credentials.',
-      'The probe package/signing certificate is not covered by the development Android OAuth client.',
-      'Google Console registration and a real-token isolated backend have not been verified.'],
-      candidateAndroidRegistration: { packageName: apk.appId, certificateSha1: apk.sha1, channel: 'local debug probe only; never Play app signing' },
+    actualGoogleSignIn: { configured: registrationConfigured, liveGoogleSignInVerified,
+      verifiedAt: liveGoogleSignInVerified ? googleProof.verifiedAt : null,
+      reasons: liveGoogleSignInVerified ? [] : [registrationConfigured
+        ? 'No matching successful physical-device Google session receipt was found.'
+        : 'A valid Android OAuth client ID and Web audience are required.'],
+      registration: { packageName: apk.appId, certificateSha1: apk.sha1, androidClientId,
+        channel: 'local debug probe only; never Play app signing' },
       webAudience: profile.plugins.MemoneyGoogleAuth.webClientId },
     release: { appId: profile.appId, origin: profile.hosting.origin,
       pending: releaseConfigErrors(profile, development), liveGoogleSignInVerified: false },
@@ -68,12 +83,17 @@ export function inspectDeviceReadiness() {
   const devices = parseDevices(run(join(sdk, 'platform-tools', 'adb' + extension), ['devices', '-l']));
   const badging = run(join(tools, version, 'aapt' + extension), ['dump', 'badging', artifact.apk]);
   const certificate = run(join(java, 'bin', javaName), ['-jar', join(tools, version, 'lib/apksigner.jar'), 'verify', '--verbose', '--print-certs', artifact.apk]);
-  return preflightReport({ devices, apk: parseApk(badging, certificate), backend: artifact.backend,
-    profile: JSON.parse(readFileSync(join(root, 'config/android-release.json'), 'utf8')),
-    development: readDevelopmentConfig(root).capacitor });
+  const apk = parseApk(badging, certificate), profile = JSON.parse(readFileSync(join(root, 'config/android-release.json'), 'utf8'));
+  const proofs = readdirSync(join(root, 'android/build')).filter(name => /^google-probe-verification-\d+\.json$/.test(name))
+    .sort((a,b) => Number(b.match(/\d+/)[0])-Number(a.match(/\d+/)[0]));
+  const googleProof = proofs.map(name => {
+    try { return JSON.parse(readFileSync(join(root, 'android/build', name), 'utf8')); } catch { return null; }
+  }).find(proof => validGoogleProbeProof(proof, { apk, profile, androidClientId: artifact.androidClientId, backend: artifact.backend })) || null;
+  return preflightReport({ devices, apk, backend: artifact.backend, profile,
+    development: readDevelopmentConfig(root).capacitor, googleProof, androidClientId: artifact.androidClientId });
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.length !== 2) throw Error('Read-only inspection has no install or login options');
   const report = inspectDeviceReadiness(); console.log(JSON.stringify(report, null, 2));
-  if (!report.physicalDeviceCheck.readyForExplicitSelection || !report.actualGoogleSignIn.ready) process.exitCode = 2;
+  if (!report.physicalDeviceCheck.readyForExplicitSelection || !report.actualGoogleSignIn.liveGoogleSignInVerified) process.exitCode = 2;
 }
