@@ -71,8 +71,8 @@ try {
     assert.equal(await page.$('.first-use-guide'), null, 'completed guide stays dismissed after reload');
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('memoney:guest:88888888-8888-4888-8888-888888888888:mywallet:v2')));
     assert.equal(saved.assets.length, 1);
-    if (!empty) assert.equal(saved.assets[0].amount, 130000000, 'guide preserves the existing asset');
-    else assert.equal(saved.assets[0].name, 'Starter fixture', 'successful first asset advances the guide');
+    assert.equal(saved.assets[0].amount, 130000000, 'new and existing opening amounts survive restart');
+    if (empty) assert.equal(saved.assets[0].name, 'Starter fixture', 'successful first asset advances the guide');
     assert.equal(saved.transactions.length, empty ? 0 : 1);
     await page.evaluate(() => document.querySelector('a[href="#summary"]').click());
     await page.waitForFunction(() => [...document.querySelectorAll('button')].some(el => el.textContent.trim() === '자산' && el.hasAttribute('aria-pressed')));

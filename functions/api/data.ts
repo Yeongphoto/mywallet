@@ -468,7 +468,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       const sortOrder = Number.isFinite(Number(maxSort?.value)) ? Number(maxSort?.value) + 1 : 0;
       const statements: D1PreparedStatement[] = [
         db.prepare("INSERT INTO assets (id, category, name, kind, amount, memo, card_cycle_start_day, card_cycle_end_day, card_payment_day, card_payment_asset_id, revision, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
-          .bind(String(asset.id), String(asset.category), String(asset.name), asset.kind || null, 0, String(asset.memo), cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId, sortOrder),
+          .bind(String(asset.id), String(asset.category), String(asset.name), asset.kind || null, openingTransaction ? 0 : Number(asset.amount), String(asset.memo), cardCycleStartDay, cardCycleEndDay, cardPaymentDay, cardPaymentAssetId, sortOrder),
         db.prepare("INSERT OR IGNORE INTO sync_groups (id, revision) VALUES (?, 0)").bind(`asset-order:${String(asset.category)}`),
       ];
       if (openingTransaction) {

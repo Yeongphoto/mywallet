@@ -93,6 +93,7 @@ function mutate(data: LocalSnapshot, body: Row): Row {
   if (op === 'asset.create' || op === 'asset.update') {
     const asset = body.asset;
     requireValue(asset?.id && asset.category && asset.name && typeof asset.memo === 'string', 'INVALID_ASSET');
+    if (op === 'asset.create') requireValue(Number.isFinite(Number(asset.amount)), 'INVALID_ASSET');
     for (const key of ['cardCycleStartDay', 'cardCycleEndDay', 'cardPaymentDay']) {
       requireValue(asset[key] == null || (Number.isInteger(asset[key]) && asset[key] >= 1 && asset[key] <= 28), 'INVALID_ASSET');
     }
@@ -102,7 +103,8 @@ function mutate(data: LocalSnapshot, body: Row): Row {
     if (op === 'asset.update') revision(current, body.expectedRevision, 'asset');
     const moved = !current || current.category !== asset.category;
     const sortOrder = moved ? Math.max(-1, ...data.assets.filter(a => a.category === asset.category).map(a => a.sortOrder ?? -1)) + 1 : current.sortOrder;
-    const next = { ...current, ...asset, amount: current?.amount || 0, revision: (current?.revision || 0) + 1, sortOrder };
+    const openingAmount = body.openingTransaction ? 0 : Number(asset.amount);
+    const next = { ...current, ...asset, amount: current ? (current.amount ?? 0) : openingAmount, revision: (current?.revision || 0) + 1, sortOrder };
     const opening = body.openingTransaction ? tx(body.openingTransaction) : null;
     if (opening && data.transactions.some(t => t.id === opening.id)) throw new LocalError('REVISION_CONFLICT', 409);
     data.assets = [...data.assets.filter(a => a.id !== asset.id), next];
