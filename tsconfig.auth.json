@@ -9,5 +9,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["server/auth", "server/wallet", "server/billing", "server/release", "functions/api/auth", "functions/api/wallet"]
+  "include": ["server/auth", "server/wallet", "server/billing", "server/release", "functions/api/auth", "functions/api/wallet", "functions/api/billing"]
 }

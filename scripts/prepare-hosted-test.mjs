@@ -32,6 +32,7 @@ cpSync('dist',join(runtime,'dist'),{recursive:true,filter(source){
 }});
 cpSync('functions/api/auth',join(runtime,'functions/api/auth'),{recursive:true});
 cpSync('functions/api/wallet',join(runtime,'functions/api/wallet'),{recursive:true});
+cpSync('functions/api/billing',join(runtime,'functions/api/billing'),{recursive:true});
 cpSync('server',join(runtime,'server'),{recursive:true});
 // The isolated route imports the existing financial handler; preserve that handler
 // under a separate module so /api/data cannot recurse into itself.
@@ -43,7 +44,7 @@ writeFileSync(join(runtime,'functions/api/data.ts'), "import { sharedWalletData 
 writeFileSync(join(runtime,'functions/api/android-development.ts'), "export const onRequestGet = () => Response.json({environment:'memoney-android-test'});\n",'utf8');
 const config = { name:'memoney-android-test', compatibility_date:'2024-01-01', pages_build_output_dir:'dist',
   d1_databases:[{binding:'DB',database_name:databases.auth.name,database_id:databaseId}],
-  vars:{AUTH_ENABLED:'true',AUTH_GOOGLE_CLIENT_ID:native.plugins.MemoneyGoogleAuth.webClientId,
+  vars:{BILLING_ENABLED:'false',AUTH_ENABLED:'true',AUTH_GOOGLE_CLIENT_ID:native.plugins.MemoneyGoogleAuth.webClientId,
     AUTH_GOOGLE_ANDROID_CLIENT_ID:native.plugins.MemoneyGoogleAuth.androidClientId,AUTH_ORIGIN:origin,
     AUTH_LEDGER_INVITES:'true',AUTH_SHARED_TEST_DEPLOYMENT:'true',AUTH_SHARED_WALLET_ORIGIN:connection.origin,
     AUTH_SHARED_WALLET_LEDGER_ID:connection.ledgerId} };

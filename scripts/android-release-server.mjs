@@ -19,6 +19,7 @@ export function releaseServerDraft(profile, development, databases, personal) {
       !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(personal.ledgerId || '')) errors.push('Configured personal ledger mapping is required');
   if (errors.length) throw Error(errors.join('\n'));
   const vars = {
+    BILLING_ENABLED: 'false',
     AUTH_ENABLED: 'false', // Draft only: no automatic login/traffic activation.
     AUTH_ORIGIN: profile.hosting.origin,
     AUTH_GOOGLE_CLIENT_ID: profile.plugins.MemoneyGoogleAuth.webClientId,

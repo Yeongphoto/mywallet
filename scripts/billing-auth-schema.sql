@@ -16,3 +16,8 @@ CREATE TABLE IF NOT EXISTS billing_subscriptions (
   test_purchase INTEGER NOT NULL CHECK(test_purchase IN(0,1))
 );
 CREATE INDEX IF NOT EXISTS billing_subscriptions_user ON billing_subscriptions(user_id,expires_at);
+CREATE TABLE IF NOT EXISTS billing_verification_windows (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  window_start INTEGER NOT NULL,
+  attempts INTEGER NOT NULL CHECK(attempts>0)
+);

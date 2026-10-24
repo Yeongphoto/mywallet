@@ -28,6 +28,7 @@ export function prepareReleaseRuntime({ sourceRoot = root, distribution = join(r
   } });
   cpSync(join(sourceRoot, 'functions/api/auth'), join(destination, 'functions/api/auth'), { recursive: true });
   cpSync(join(sourceRoot, 'functions/api/wallet'), join(destination, 'functions/api/wallet'), { recursive: true });
+  cpSync(join(sourceRoot, 'functions/api/billing'), join(destination, 'functions/api/billing'), { recursive: true });
   cpSync(join(sourceRoot, 'server'), join(destination, 'server'), { recursive: true });
   // Internal financial handlers receive only an already scoped { DB }. They must
   // never import the public /api/data route and recurse into authentication.

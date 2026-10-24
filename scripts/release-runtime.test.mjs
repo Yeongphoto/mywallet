@@ -36,6 +36,7 @@ function fixture(t) {
   put('dist/memoney-build.json', JSON.stringify({ app: 'memoney', mode: 'production', authProbe: false }));
   put('functions/api/auth/[action].ts', 'export const onRequest=()=>{};');
   put('functions/api/wallet/context.ts', 'export const onRequestGet=()=>{};');
+  put('functions/api/billing/[action].ts', 'export const onRequest=()=>{};');
   put('functions/api/data.ts', 'export const legacyFinancialHandler = true;');
   put('server/wallet/shared-web.ts', "import { legacyFinancialHandler } from '../../functions/api/data.ts';");
   put('server/release/gate.ts', 'export const releaseGate=()=>null;');
@@ -57,6 +58,7 @@ test('generated public data route is authenticated, legacy handler is internal, 
   assert.match(readFileSync(join(out, 'server/wallet/shared-web.ts'), 'utf8'), /from '\.\/legacy-data.ts'/);
   assert.match(readFileSync(join(out, 'server/wallet/legacy-data.ts'), 'utf8'), /legacyFinancialHandler/);
   assert.match(readFileSync(join(out, 'functions/_middleware.ts'), 'utf8'), /releaseGate/);
+  assert(existsSync(join(out, 'functions/api/billing/[action].ts')));
   assert.equal(result.config.vars.AUTH_ENABLED, 'false');
   assert.equal(result.config.vars.AUTH_PERSONAL_ONBOARDING, 'false');
   assert.equal(result.readiness.deployable, false);
