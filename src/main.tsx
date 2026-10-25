@@ -66,6 +66,11 @@ async function bootstrap() {
     createRoot(appRootElement).render(<StrictMode><SharingScreen /></StrictMode>);
     return;
   }
+  if (window.location.pathname === '/account-management') {
+    const { default: AccountManagement } = await import('./auth/AccountManagement');
+    createRoot(appRootElement).render(<StrictMode><AccountManagement /></StrictMode>);
+    return;
+  }
   if (window.location.pathname === '/browser-login') {
     const { default: BrowserApprovalScreen } = await import('./auth/BrowserLogin');
     createRoot(appRootElement).render(<StrictMode><BrowserApprovalScreen /></StrictMode>);

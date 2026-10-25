@@ -1,6 +1,10 @@
 .settings-row.account-settings-row { flex-direction: row; align-items: center; gap: 16px; }
 .account-settings-label { display: grid; gap: 6px; min-width: 0; }
+.account-settings-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.account-settings-actions > a { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none; }
 .account-settings-label > span { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; line-height: 1.4; }
+.account-settings-label > .account-membership { justify-self: start; padding: 3px 8px; border: 1px solid var(--border-input); border-radius: 6px; }
+.account-settings-label > .account-membership.is-premium { color: var(--text-primary); background: var(--primary-soft); font-weight: 700; }
 .account-settings-action { flex: 0 0 auto; min-height: 44px; min-width: 88px; padding: 10px 12px; border: 1px solid var(--border-card); border-radius: 10px; background: var(--bg-card); color: var(--primary); font-family: inherit; font-size: 13px; white-space: nowrap; cursor: pointer; }
 .account-settings-action:disabled { opacity: .5; cursor: default; }
 .account-settings-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

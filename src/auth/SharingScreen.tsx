@@ -100,7 +100,7 @@ export default function SharingScreen() {
     </section>}
     {state?.ledger && <section className="sharing-card"><div className="sharing-ledger-heading"><h2>{state.ledger.name || '공유 장부'}</h2><span>{state.ledger.role==='owner'?'호스트':'게스트'}</span></div>
       {state.ledger.role==='owner'&&<form className="sharing-form-row" onSubmit={e=>{e.preventDefault();const value=new FormData(e.currentTarget).get('name');void perform(async()=>{await ledgerApi({action:'rename',ledgerId:state.ledger!.id,name:value});await refresh();});}}>
-        <input name="name" aria-label="공유 장부 이름 변경" defaultValue={state.ledger.name} required/><button className="secondary-button" disabled={busy}>이름 변경</button></form>}
+        <input name="name" aria-label="공유 장부 이름 변경" defaultValue={state.ledger.name} required/><button className="secondary-button" disabled={busy}>변경</button></form>}
       <label className="sharing-id">장부 ID<input readOnly aria-label="장부 ID" value={state.ledger.id} onFocus={e => e.currentTarget.select()} /></label>
       <div className="sharing-members">{state.members.map(member => <div key={member.id}><span>{member.email || (member.id === state.user.id ? '나' : '참여자')}</span>
         <small>{member.role === 'owner' ? '호스트' : member.role === 'editor' ? '게스트' : '게스트 · 보기만'}</small>

@@ -28,7 +28,16 @@ export function BillingSettings({ client: supplied }: { client?: AnnualBillingCl
     if (!supported) return;
     let disposed = false;
     setBusy(true); setNotice('');
-    void client.load().then(result => { if (!disposed) { setView(result); if (result.priceError) setNotice(message(new Error(result.priceError))); } })
+    void (async () => {
+      if (!supplied) {
+        const response=await fetch('/api/account/membership',{credentials:'same-origin',cache:'no-store',redirect:'error',signal:AbortSignal.timeout(10000)});
+        if(!response.ok)throw Error('MEMBERSHIP_UNAVAILABLE');
+        const membership=await response.json();
+        if(['premium_admin','premium_tester'].includes(membership.plan))return {available:false};
+        if(!['free','premium_yearly'].includes(membership.plan))throw Error('MEMBERSHIP_UNAVAILABLE');
+      }
+      return client.load();
+    })().then(result => { if (!disposed) { setView(result); if ('priceError' in result && result.priceError) setNotice(message(new Error(result.priceError))); } })
       .catch(error => { if (!disposed) { setView({ available: true }); setNotice(message(error)); } })
       .finally(() => { if (!disposed) setBusy(false); });
     return () => { disposed = true; };

@@ -8692,8 +8692,7 @@ ${sheet4Rows}  </sheetData>
                   <strong>장부</strong>
                   <div className="ledger-settings-controls">
                     <InstantSelect ariaLabel="장부 선택" value={isLocalWallet()?'local':cloudLedgers.length?walletContext()!.ledger.id:'shared-web'} placeholder="장부 선택"
-                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), ...(isLocalWallet() ? [{ value: 'local', label: '기기 장부' }] : []),
-                        cloudLedgers.some(l=>l.kind==='shared')?{value:'manage-shared',label:'공유 장부 관리'}:{value:'create-shared',label:'공유 장부 만들기'}]}
+                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), ...(isLocalWallet() ? [{ value: 'local', label: '기기 장부' }] : [])]}
                       onChange={value => void selectWallet(value)} />
                     {isLocalWallet() && <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>}
                   </div>
@@ -9416,7 +9415,7 @@ ${sheet4Rows}  </sheetData>
                   <span className="settings-sync-action">{isLocalWallet() ? '동기화 설정' : '서버 확인'}</span>
                 </button>
                 <div className="settings-data-grid">
-                  <LedgerRecovery />
+                  <LedgerRecovery onManageShared={!isLocalWallet() ? () => void selectWallet('manage-shared') : undefined} />
                   {isLocalWallet() && <article className="settings-data-card">
                     <strong>로컬 백업</strong>
                     <div className="settings-card-actions">

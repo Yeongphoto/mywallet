@@ -35,7 +35,7 @@ public class MemoneyApiPlugin extends Plugin {
         "/api/data", "/api/auth/config", "/api/auth/session", "/api/auth/challenge", "/api/auth/google", "/api/auth/logout",
         "/api/auth/browser-start", "/api/auth/browser-preview", "/api/auth/browser-approve", "/api/auth/browser-poll", "/api/auth/browser-claim",
         "/api/wallet/context", "/api/wallet/sharing", "/api/wallet/ledgers", "/api/wallet/onboarding", "/api/wallet/recovery",
-        "/api/billing/status", "/api/billing/verify"
+        "/api/billing/status", "/api/billing/verify", "/api/account/membership", "/api/account/manage"
     );
     private String origin() {
         if (!getConfig().getBoolean("enabled", false) || getBridge().getConfig().getServerUrl() != null) return null;
@@ -49,7 +49,7 @@ public class MemoneyApiPlugin extends Plugin {
         return null;
     }
     private boolean trusted() {
-        return MemoneyPageTrust.allowed(getBridge(), "/", "/guest", "/signin", "/wallet", "/sharing");
+        return MemoneyPageTrust.allowed(getBridge(), "/", "/guest", "/signin", "/wallet", "/sharing", "/account-management");
     }
     @Override public void load() {
         if (origin() == null) return;

@@ -1,0 +1,13 @@
+.account-management { box-sizing: border-box; width: min(100%, 760px); margin: 0 auto; padding: 24px 16px; color: var(--text-primary); }
+.account-management header { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
+.account-management h1 { margin: 0; font-size: 22px; }
+.account-management header a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--border-input); border-radius: 8px; text-decoration: none; color: var(--text-primary); background: var(--bg-card); }
+.account-management form, .account-management article { padding: 20px; margin-top: 16px; border: 1px solid var(--border-card); border-radius: 12px; background: var(--bg-card); }
+.account-management form > div { display: flex; gap: 10px; margin-block: 10px; }
+.account-management input { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px; border: 1px solid var(--border-input); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); }
+.account-management button { flex-shrink: 0; min-height: 44px; padding-inline: 16px; }
+.account-management button.primary-button { background: var(--primary-soft); color: var(--text-primary); border: 1px solid var(--border-input); }
+.account-management small, .account-management article span { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.account-management article { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.account-management article > div:first-child { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.account-management-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; width: 100%; }
