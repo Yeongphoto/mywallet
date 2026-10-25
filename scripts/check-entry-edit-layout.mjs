@@ -50,7 +50,7 @@ try{
   assert.deepEqual(edit.order,entry.order,label+' field order');
   if(width<=768&&styleTheme==='default'){
    assert(Math.abs(edit.modal.h-entry.modal.h)<1,label+' mobile full height');
-   assert(Math.abs(edit.action.bottom-entry.action.bottom)<1,label+' actions anchored together');
+   assert(Math.abs(edit.action.bottom-entry.action.bottom)<1,label+' actions anchored together '+JSON.stringify({entryBottom:entry.action.bottom,editBottom:edit.action.bottom,entryY:entry.modal.y,editY:edit.modal.y,entryH:entry.modal.h,editH:edit.modal.h}));
   }
   assert.deepEqual(errors,[],label+' runtime errors');
   if(width===411&&height===900&&theme==='dark'&&type==='expense')await page.screenshot({path:webUiArtifact(`entry-edit-${styleTheme}-${theme}.png`)});

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppAppearance } from './use-app-appearance';
 import { useLaunchReady } from './use-launch-ready';
+import { AppPageHeader } from '../AppPageHeader';
 import './account-management.css';
 
 type Grant={userId:string;email:string|null;active:number;updatedAt:number};
@@ -19,7 +20,7 @@ export default function AccountManagement(){
   async function change(body:unknown){if(busy)return;setBusy(true);setError('');setNotice('');try{await api(body);setGrants((await api()).grants);setEmail('');setPending(null);setNotice('회원 목록을 반영했어요.');}
     catch(cause){if(['ADMIN_REQUIRED','UNAUTHENTICATED'].includes((cause as Error).message))setGrants(null);showError(cause);}finally{setBusy(false);}}
   const back=new URLSearchParams(location.search).get('return')==='local'?'/guest#settings':'/wallet#settings';
-  return <main className="account-management"><header><a className="secondary-button" href={back}>설정으로 돌아가기</a><h1>계정 관리</h1></header>
+  return <><AppPageHeader title="계정 관리" backHref={back}/><main className="account-management">
     <p>{grants!==null?'슈퍼 관리자 · 내부 테스터 프리미엄':'회원 혜택 관리'}</p>
     {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
     {grants===null&&!error&&<p role="status">권한과 목록을 확인하고 있어요…</p>}
@@ -33,5 +34,5 @@ export default function AccountManagement(){
         {pending===grant.userId&&<div className="account-management-confirm" role="group" aria-label="테스터 혜택 해제 확인"><span>테스터 프리미엄 혜택을 해제할까요?</span><button type="button" className="secondary-button" disabled={busy} onClick={()=>void change({action:'revoke',userId:grant.userId})}>해제 확인</button><button type="button" className="secondary-button" disabled={busy} onClick={()=>setPending(null)}>취소</button></div>}
       </article>)}</section></>}
     {busy&&<p role="status">반영 중…</p>}
-  </main>;
+  </main></>;
 }

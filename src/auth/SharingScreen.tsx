@@ -8,6 +8,7 @@ import { clearInvitation, invitationToken, pendingInvitation, rememberInvitation
 import { useAppAppearance } from './use-app-appearance';
 import { useLaunchReady } from './use-launch-ready';
 import { LoadingScreen } from '../LoadingScreen';
+import { AppPageHeader } from '../AppPageHeader';
 import './sharing.css';
 
 type SharingState = { user: { id: string; email: string | null }; ledger: { id: string; name?:string; role: string } | null;
@@ -38,7 +39,7 @@ async function ledgerApi(body?:unknown){const r=await fetch('/api/wallet/ledgers
   signal:AbortSignal.timeout(30000),headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
   const data=await r.json();if(!r.ok)throw Error(data.error||'CREATION_UNAVAILABLE');return data;}
 export default function SharingScreen() {
-  const appearance = useAppAppearance();
+  useAppAppearance();
   const [state, setState] = useState<SharingState | null>(null), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(''), [needLogin, setNeedLogin] = useState(false);
   const [email, setEmail] = useState(''), [role, setRole] = useState('editor');
@@ -75,9 +76,8 @@ export default function SharingScreen() {
     try { await action(); } catch (error) { describe(error); } finally { setBusy(false); } }
   function login() { const token = invitationToken(inviteInput); if (token) rememberInvitation(token); location.assign('/signin?join=1&reauth=1'); }
   if (loading) return <LoadingScreen />;
-  return <main className="sharing-page">
-    <header className="sharing-header"><button type="button" aria-label="뒤로" onClick={() => location.assign(new URLSearchParams(location.search).get('return')==='local'?'/guest#settings':state?.ledger || state?.personalLedger ? '/wallet#settings' : '/guest#settings')}>‹</button>
-      <h1>{state?.ledger?'공유 장부 관리':'공유 장부 만들기'}</h1><img src={appearance.logo} alt="Memoney" /></header>
+  return <><AppPageHeader title={state?.ledger?'공유 장부 관리':'공유 장부 만들기'} onBack={() => location.assign(new URLSearchParams(location.search).get('return')==='local'?'/guest#settings':state?.ledger || state?.personalLedger ? '/wallet#settings' : '/guest#settings')} />
+    <main className="sharing-page">
     {state && <div className="sharing-account"><span>{state.user.email || 'Google 계정'}</span>
       <button type="button" disabled={busy} onClick={() => void perform(async () => { await auth.logout(); login(); })}>계정 변경</button></div>}
     {notice && <p className="sharing-notice" role="status">{notice}</p>}
@@ -129,5 +129,5 @@ export default function SharingScreen() {
           const result=await api({ action: 'accept', token: invitationToken(inviteInput) }); clearInvitation(); if(result.ledgerId)selectCloudLedger(result.ledgerId); location.assign('/wallet#settings');
         })}>참여</button></>}
     </section>}
-  </main>;
+  </main></>;
 }

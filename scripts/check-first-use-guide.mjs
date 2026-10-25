@@ -72,6 +72,21 @@ try {
     if (width === 411) await page.screenshot({ path: webUiArtifact(`first-use-${styleTheme}-${theme}.png`) });
     await clickTarget('asset-tab'); await stage('asset-add'); await assertFit();
     await clickTarget('asset-add'); await page.waitForSelector('.entry-modal', { visible: true });
+    await page.waitForFunction(()=>document.querySelector('.entry-dialog-viewport').getBoundingClientRect().top>=document.querySelector('.entry-dialog-backdrop .app-page-header').getBoundingClientRect().bottom);
+    assert.equal(await page.$eval('.entry-dialog-backdrop .app-page-header',el=>getComputedStyle(el).position),'fixed');
+    if(width===411&&theme==='light'&&styleTheme==='default'){
+      await page.$$eval('.entry-modal',elements=>Promise.all(elements.flatMap(el=>el.getAnimations()).map(animation=>animation.finished.catch(()=>{}))));
+      await page.evaluate(()=>document.documentElement.style.setProperty('--safe-area-inset-top','24px'));
+      assert.equal(await page.$eval('.entry-dialog-backdrop .app-page-header',el=>el.getBoundingClientRect().height),112,'status bar inset is filled once');
+      const heightBefore=await page.$eval('input[name="asset-name"]',el=>el.getBoundingClientRect().height);
+      await page.focus('input[name="asset-name"]');
+      await page.evaluate(()=>{Object.defineProperty(visualViewport,'height',{configurable:true,get:()=>500});visualViewport.dispatchEvent(new Event('resize'));});
+      await page.waitForFunction(()=>parseFloat(document.documentElement.style.getPropertyValue('--entry-keyboard-inset'))>0);
+      assert.equal(await page.$eval('input[name="asset-name"]',el=>el.getBoundingClientRect().height),heightBefore,'keyboard leaves input size unchanged');
+      assert.equal(await page.$eval('.entry-dialog-backdrop .app-page-header',el=>el.getBoundingClientRect().top),0,'keyboard does not shift branding');
+      await page.evaluate(()=>{document.activeElement.blur();delete visualViewport.height;visualViewport.dispatchEvent(new Event('resize'));});
+      await page.waitForFunction(()=>parseFloat(document.documentElement.style.getPropertyValue('--entry-keyboard-inset'))===0);
+    }
     assert.equal(await page.$('.first-use-guide'), null, 'guide never covers the registration modal');
     await page.click('[aria-label="등록 창 닫기"]'); await stage('ledger-tab');
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('memoney:guest:88888888-8888-4888-8888-888888888888:mywallet:v2')).assets.length), empty ? 0 : 1, 'cancel advances without creating an asset');

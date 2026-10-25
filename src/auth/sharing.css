@@ -1,9 +1,5 @@
-.sharing-page { width: min(100%, 560px); box-sizing: border-box; margin: auto; padding: 24px 16px 48px; color: var(--text-primary); font-family: inherit; }
-.sharing-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-.sharing-header h1 { flex: 1; margin: 0; font-size: 20px; }
-.sharing-header img { width: 32px; height: 32px; object-fit: contain; }
+.sharing-page { width: min(100%, 560px); box-sizing: border-box; margin: auto; padding: calc(var(--page-header-height) + 24px) 16px 48px; color: var(--text-primary); font-family: inherit; }
 .sharing-page button, .sharing-page input, .sharing-page select { font-family: inherit; }
-.sharing-header button { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--text-primary); font-size: 30px; cursor: pointer; }
 .sharing-account { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; font-size: 13px; }
 .sharing-card { padding: 20px; margin-bottom: 16px; border: 1px solid var(--border-card); background: var(--bg-card); border-radius: 18px; }
 .sharing-card h2 { margin: 0 0 20px; font-size: 16px; }
@@ -14,6 +10,7 @@
 .sharing-form-row select { flex: 1; }
 .sharing-page .primary-button, .sharing-page .secondary-button { min-height: 46px; margin: 0; font-size: 14px; }
 .sharing-form-row .primary-button { flex: 1; white-space: nowrap; }
+.sharing-form-row .secondary-button { flex: 0 0 auto; padding-inline: 16px; white-space: nowrap; }
 .sharing-card > .primary-button, .sharing-page > .primary-button { width: 100%; }
 .sharing-page > .primary-button { margin-bottom: 16px; }
 .sharing-members > div, .sharing-invite-row, .sharing-preview { display: flex; align-items: center; gap: 12px; padding-block: 12px; font-size: 13px; }

@@ -15,6 +15,7 @@ html[data-style-theme="default"] .registration-mode-tabs > button.active {
   color: var(--entry-action-ink) !important;
 }
 .modal-backdrop.entry-dialog-backdrop {
+  --entry-content-height: calc(var(--entry-screen-height, 100dvh) - var(--page-header-height));
   inset: 0 !important;
   height: auto !important;
   min-height: var(--entry-screen-height, 100%);
@@ -27,11 +28,11 @@ html[data-style-theme="default"] .registration-mode-tabs > button.active {
 }
 .entry-dialog-viewport {
   position: absolute;
-  inset: var(--entry-viewport-top, 0px) 0 auto;
-  height: var(--entry-screen-height, 100dvh);
+  inset: calc(var(--entry-viewport-top, 0px) + var(--page-header-height)) 0 auto;
+  height: var(--entry-content-height);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(var(--entry-screen-height, 100dvh), max-content) var(--entry-keyboard-inset, 0px);
+  grid-template-rows: minmax(var(--entry-content-height), max-content) var(--entry-keyboard-inset, 0px);
   align-content: start;
   box-sizing: border-box;
   overflow-y: auto;
@@ -196,15 +197,6 @@ html[data-style-theme="default"] .entry-title-suggestions button:active {
   }
 }
 @media (max-width: 768px) {
-  .entry-dialog-backdrop::before {
-    content: '';
-    position: fixed;
-    inset: 0 0 auto;
-    height: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
-    background: var(--bg-app);
-    z-index: 2;
-    pointer-events: none;
-  }
   html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal {
     --entry-field-height: clamp(52px, calc(var(--entry-screen-height, 100svh) * .095), 88px);
     --edit-field-height: var(--entry-field-height);
@@ -212,12 +204,13 @@ html[data-style-theme="default"] .entry-title-suggestions button:active {
     flex-direction: column;
     align-self: stretch;
     width: 100% !important;
+    /* Keep the established form geometry; the outer viewport scrolls below the fixed header. */
     min-height: var(--entry-screen-height, 100svh);
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     background: var(--bg-app);
-    padding-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+    padding-top: 0;
   }
   html[data-style-theme="default"] .entry-dialog-viewport .modal-content.entry-modal .modal-body {
     display: flex !important;

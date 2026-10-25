@@ -15,6 +15,16 @@ try {
     console.log('Ledger settings', width, theme, kind);
     const context = await browser.createBrowserContext(), page = await context.newPage();
     await page.setViewport({ width, height: 900 });
+    const checkHeader=async()=>{
+      await page.waitForSelector('.app-page-header');
+      assert.equal(await page.$eval('.app-page-header',el=>getComputedStyle(el).position),'fixed');
+      assert.equal(await page.$eval('.app-page-header',el=>el.getBoundingClientRect().top),0);
+      assert.equal(await page.$eval('.app-page-brand .memoney-wordmark-main',el=>Math.round(el.getBoundingClientRect().width)),124);
+      assert.equal(await page.evaluate(()=>document.querySelector('main').getBoundingClientRect().top+parseFloat(getComputedStyle(document.querySelector('main')).paddingTop)>=document.querySelector('.app-page-header').getBoundingClientRect().bottom),true,'page content clears the shared header');
+      await page.evaluate(()=>window.scrollTo(0,400));
+      assert.equal(await page.$eval('.app-page-header',el=>el.getBoundingClientRect().top),0,'header stays fixed while scrolling');
+      await page.evaluate(()=>window.scrollTo(0,0));
+    };
     let loggedOut = false, failLogout = width === 320 && theme === 'light' && kind === 'personal';
     let grants=[{userId:guest,email:'tester@example.invalid',active:1,updatedAt:1}];
     const ledger = { id: kind === 'personal' ? personal : shared, kind, name: kind === 'personal' ? '개인 장부' : '공유 장부', role: 'owner' };
@@ -71,6 +81,7 @@ try {
     if(width===320){
       if(kind==='personal'){
         await page.click('a.account-settings-action');await page.waitForSelector('#tester-email');
+        await checkHeader();
         await page.type('#tester-email','new@example.invalid');await page.click('button[type="submit"]');
         await page.waitForFunction(()=>[...document.querySelectorAll('.account-management article strong')].some(el=>el.textContent==='new@example.invalid'));
         await page.click('.account-management article button');await page.waitForSelector('.account-management-confirm');
@@ -78,12 +89,13 @@ try {
         await page.waitForFunction(()=>document.body.textContent.includes('테스터 혜택 해제됨'));
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
         await page.screenshot({path:webUiArtifact(`account-management-${theme}.png`)});
-        await page.click('.account-management header a');await page.waitForSelector(trigger,{visible:true});
+        await page.click('.app-page-header a[aria-label="설정으로 돌아가기"]');await page.waitForSelector(trigger,{visible:true});
       }
       await page.evaluate(()=>[...document.querySelectorAll('.settings-segment button')].find(el=>el.textContent==='데이터').click());
       await page.waitForSelector('.ledger-recovery [aria-label="공유 장부 관리"]');
       if(kind==='shared')assert.deepEqual(await page.$$eval('.ledger-recovery .settings-card-actions button',nodes=>nodes.map(el=>el.textContent)),['관리','공유 장부 삭제 예약']);
       await page.click('.ledger-recovery [aria-label="공유 장부 관리"]');await page.waitForSelector('.sharing-form-row input[name="name"]');
+      await checkHeader();
       assert.equal(await page.$eval('.sharing-form-row button',el=>el.textContent),'변경');
       await page.goto(origin+'/wallet#settings');await page.waitForSelector(trigger,{visible:true});
     }

@@ -4,6 +4,7 @@ import type { AssetItem, CardSettlement, CategoryOption, Transaction, UnifiedFor
 import { importEasyMoneyCsv } from './easyMoneyImporter';
 import { LoadingGlyph } from './LoadingGlyph';
 import { BrandWordmark } from './BrandWordmark';
+import { AppPageHeader } from './AppPageHeader';
 import { JellyToggle } from './JellyToggle';
 import { dueRecurringTransactions } from './recurring';
 import { LedgerRecovery } from './auth/LedgerRecovery';
@@ -9817,11 +9818,9 @@ ${sheet4Rows}  </sheetData>
       {/* Edit Transaction Modal */}
       {editingTransaction && (
         <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setEditingTransaction(null)}>
+          <AppPageHeader title="거래 내역 수정" onClose={() => setEditingTransaction(null)} closeLabel="수정 창 닫기"/>
           <div className="entry-dialog-viewport">
           <div className="modal-content entry-modal transaction-edit-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>거래 내역 수정</h3>
-            </div>
             <div className="modal-body">
               <TransactionEditForm
                 key={editingTransaction.id}
@@ -10300,12 +10299,9 @@ ${sheet4Rows}  </sheetData>
       {/* 통합 자산/거래 등록 모달 */}
       {isEntryModalOpen && (
         <div className="modal-backdrop entry-dialog-backdrop" onClick={() => setIsEntryModalOpen(false)}>
+          <AppPageHeader title="통합 자산/거래 등록" onClose={() => setIsEntryModalOpen(false)} closeLabel="등록 창 닫기"/>
           <div className="entry-dialog-viewport">
           <div className={`modal-content entry-modal${registrationMode === 'asset' ? ' asset-entry-modal' : ''}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title-icon"><AppIcon name="plus" size={20} /> 통합 자산/거래 등록</h3>
-              <button type="button" className="close-btn" aria-label="등록 창 닫기" onClick={() => setIsEntryModalOpen(false)}>×</button>
-            </div>
             <div className="registration-mode-tabs" aria-label="등록 종류">
               <button type="button" className={registrationMode === 'asset' ? 'active asset' : ''} onClick={() => switchRegistrationMode('asset')}>자산</button>
               <button type="button" className={registrationMode === 'expense' ? 'active expense' : ''} onClick={() => switchRegistrationMode('expense')}>지출</button>
