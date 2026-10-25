@@ -198,14 +198,15 @@ html[data-style-theme="default"] .entry-title-suggestions button:active {
 }
 @media (max-width: 768px) {
   html[data-style-theme="default"] .entry-dialog-viewport > .modal-content.entry-modal {
-    --entry-field-height: clamp(52px, calc(var(--entry-screen-height, 100svh) * .095), 88px);
+    --entry-field-height: clamp(48px, calc(var(--entry-content-height) * .105), 88px);
+    --registration-field-gap: clamp(6px, calc((var(--entry-content-height) - 400px) * .04), 12px);
     --edit-field-height: var(--entry-field-height);
     display: flex;
     flex-direction: column;
     align-self: stretch;
     width: 100% !important;
-    /* Keep the established form geometry; the outer viewport scrolls below the fixed header. */
-    min-height: var(--entry-screen-height, 100svh);
+    /* Fit below the fixed header; longer forms still use the outer scroller. */
+    min-height: var(--entry-content-height);
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -222,13 +223,13 @@ html[data-style-theme="default"] .entry-title-suggestions button:active {
     display: flex;
     flex-direction: column;
     flex: 1 !important;
-    gap: 12px !important;
+    gap: var(--registration-field-gap) !important;
   }
-  html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .entry-form .form-grid { gap: 12px !important; }
+  html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .entry-form .form-grid { gap: var(--registration-field-gap) !important; }
   html[data-style-theme="default"] .entry-dialog-viewport .entry-modal .entry-actions {
     margin-top: auto;
-    padding-top: 12px !important;
-    height: calc(var(--entry-field-height) + 12px);
-    min-height: calc(var(--entry-field-height) + 12px);
+    padding-top: var(--registration-field-gap) !important;
+    height: calc(var(--entry-field-height) + var(--registration-field-gap));
+    min-height: calc(var(--entry-field-height) + var(--registration-field-gap));
   }
 }
