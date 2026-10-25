@@ -14,7 +14,7 @@ import { useLaunchReady } from './auth/use-launch-ready';
 import { ReceivedInvitation } from './auth/ReceivedInvitation';
 import { AccountSettings } from './auth/AccountSettings';
 import { BillingSettings } from './auth/BillingSettings';
-import { FirstUseGuide } from './FirstUseGuide';
+import { FirstUseGuide, useFirstUseGuide } from './FirstUseGuide';
 import { walletFetch as fetch, walletStorageKey, walletContext, isLocalWallet, readWalletContext, selectCloudLedger } from './auth/wallet-scope';
 import { persistLocalView, localSnapshot, MODE_KEY } from './auth/local-wallet';
 import type { LocalSnapshot } from './auth/local-wallet';
@@ -2992,6 +2992,7 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     });
   });
   const [activeTab, setActiveTab] = useState<AppTab>(() => getTabFromHash());
+  const { enabled: isGuideEnabled, setEnabled: setGuideEnabled, finish: finishGuide, runId: guideRunId } = useFirstUseGuide();
   const [transactionListCategory, setTransactionListCategory] = useState(() => getTransactionListCategoryFromHash());
   const contentScrollRef = useRef<HTMLElement | null>(null);
   const assetListScrollRef = useRef({ contentTop: 0, documentTop: 0 });
@@ -6787,8 +6788,8 @@ ${sheet4Rows}  </sheetData>
           </div>
         </div>
       )}
-      <FirstUseGuide activeTab={activeTab} assetCount={assets.length} entryOpen={isEntryModalOpen} entryMode={registrationMode}
-        ready={!isLoading && !isSyncOverlayVisible} paused={Boolean(editingTransaction) || Boolean(confirmDialog) || isAssetSettingsOpen || isCategoryModalOpen || isAssetModalOpen || isMonthPickerOpen} />
+      {isGuideEnabled && <FirstUseGuide key={guideRunId} activeTab={activeTab} assetCount={assets.length} entryOpen={isEntryModalOpen} entryMode={registrationMode} onFinish={finishGuide}
+        ready={!isLoading && !isSyncOverlayVisible} paused={activeTab === 'settings' || Boolean(editingTransaction) || Boolean(confirmDialog) || isAssetSettingsOpen || isCategoryModalOpen || isAssetModalOpen || isMonthPickerOpen} />}
       {/* Sidebar Navigation (Fixed bottom bar on mobile) */}
       <aside className="sidebar">
         <div>
@@ -8736,6 +8737,23 @@ ${sheet4Rows}  </sheetData>
                   <JellyToggle value={styleTheme === 'theme1' ? 'theme1' : 'default'} className="theme-toggle" role="group" aria-label="디자인 테마">
                     <button type="button" className={styleTheme !== 'theme1' ? 'active' : ''} aria-pressed={styleTheme !== 'theme1'} onClick={() => setStyleTheme('default')}>기본</button>
                     <button type="button" className={styleTheme === 'theme1' ? 'active' : ''} aria-pressed={styleTheme === 'theme1'} onClick={() => setStyleTheme('theme1')}>테마1</button>
+                  </JellyToggle>
+                </div>
+
+                <div className="settings-row theme-settings-row">
+                  <div>
+                    <strong>사용 가이드</strong>
+                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                      켜면 처음부터 안내하고, 한 회차가 끝나면 자동으로 꺼집니다.
+                    </div>
+                  </div>
+                  <JellyToggle value={isGuideEnabled ? 'on' : 'off'} className="theme-toggle" role="group" aria-label="사용 가이드">
+                    <button type="button" className={isGuideEnabled ? 'active' : ''} aria-pressed={isGuideEnabled} onClick={() => {
+                      setGuideEnabled(true);
+                      window.location.hash = 'summary';
+                      setActiveTab('summary');
+                    }}>켜기</button>
+                    <button type="button" className={!isGuideEnabled ? 'active' : ''} aria-pressed={!isGuideEnabled} onClick={finishGuide}>끄기</button>
                   </JellyToggle>
                 </div>
 

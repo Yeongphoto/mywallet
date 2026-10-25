@@ -1,24 +1,41 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './first-use-guide.css';
 
 const completedKey = 'memoney:usage-guide:v1:completed';
 type Step = 'asset-tab' | 'asset-add' | 'ledger-tab' | 'ledger-add' | 'done';
-type Props = { activeTab: string; assetCount: number; entryOpen: boolean; entryMode: string; paused: boolean; ready: boolean };
-let dismissedInMemory = false;
+type Props = { activeTab: string; assetCount: number; entryOpen: boolean; entryMode: string; paused: boolean; ready: boolean; onFinish: () => void };
+let enabledInMemory: boolean | null = null;
 
-export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, paused, ready }: Props) {
-  const [step, setStep] = useState<Step>(() => {
-    try { return dismissedInMemory || localStorage.getItem(completedKey) ? 'done' : 'asset-tab'; }
-    catch { return dismissedInMemory ? 'done' : 'asset-tab'; }
+// This preference belongs to the device, never to a financial ledger snapshot.
+export function useFirstUseGuide() {
+  const [runId, setRunId] = useState(0);
+  const [enabled, setEnabledState] = useState(() => {
+    if (enabledInMemory !== null) return enabledInMemory;
+    try { return !localStorage.getItem(completedKey); }
+    catch { return true; }
   });
+  const setEnabled = useCallback((value: boolean) => {
+    if (value) setRunId(previous => previous + 1);
+    enabledInMemory = value;
+    try {
+      if (value) localStorage.removeItem(completedKey);
+      else localStorage.setItem(completedKey, '1');
+    } catch { /* Still allow replay and dismissal for this page without device storage. */ }
+    setEnabledState(value);
+  }, []);
+  const finish = useCallback(() => setEnabled(false), [setEnabled]);
+  return { enabled, setEnabled, finish, runId };
+}
+
+export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, paused, ready, onFinish }: Props) {
+  const [step, setStep] = useState<Step>('asset-tab');
   const openedAssetAt = useRef<number | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number; w: number; h: number; tipX: number; tipY: number; tipW: number } | null>(null);
   const tip = useRef<HTMLDivElement>(null);
   const finish = () => {
-    dismissedInMemory = true;
-    try { localStorage.setItem(completedKey, '1'); } catch { /* Keep dismissing for this page if device storage is unavailable. */ }
     setStep('done');
+    onFinish();
   };
   useEffect(() => {
     if (!ready || step === 'done') return;
