@@ -5822,15 +5822,6 @@ export default function App({ onReady }: { onReady?: () => void } = {}) {
     }
   }
 
-  function requestDisconnectWallet() {
-    requestConfirm({
-      title: '장부 연결 끊기',
-      message: '이 기기를 로컬 장부로 전환할까요?\nGoogle 계정의 개인·공유 장부와 참여 권한은 그대로 보존됩니다. 장부 선택에서 언제든 다시 연결할 수 있어요.',
-      confirmLabel: '로컬로 전환',
-      onConfirm: () => { void selectWallet('local'); },
-    });
-  }
-
   async function selectWallet(mode: string) {
     if(mode==='create-shared'||mode==='manage-shared') {
       saveAppAppearance(theme,styleTheme);
@@ -8701,12 +8692,10 @@ ${sheet4Rows}  </sheetData>
                   <strong>장부</strong>
                   <div className="ledger-settings-controls">
                     <InstantSelect ariaLabel="장부 선택" value={isLocalWallet()?'local':cloudLedgers.length?walletContext()!.ledger.id:'shared-web'} placeholder="장부 선택"
-                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), { value: 'local', label: '로컬 장부' },
+                      options={[...(cloudLedgers.length?cloudLedgers.map(l=>({value:l.id,label:l.name,detail:l.kind==='shared'?(l.role==='owner'?'호스트':'게스트'):undefined})):[{ value: 'shared-web', label: walletContext()!.ledger.name || (walletContext()!.ledger.kind === 'personal' ? '개인 장부' : 'Google 장부') }]), ...(isLocalWallet() ? [{ value: 'local', label: '기기 장부' }] : []),
                         cloudLedgers.some(l=>l.kind==='shared')?{value:'manage-shared',label:'공유 장부 관리'}:{value:'create-shared',label:'공유 장부 만들기'}]}
                       onChange={value => void selectWallet(value)} />
-                    {isLocalWallet()
-                      ? <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>
-                      : <button type="button" className="ledger-connection-action" onClick={requestDisconnectWallet}>연결 끊기</button>}
+                    {isLocalWallet() && <button type="button" className="ledger-connection-action" onClick={() => window.dispatchEvent(new Event('memoney:open-local-sync'))}>연결</button>}
                   </div>
                 </div>}
                 <div className="settings-row theme-settings-row">

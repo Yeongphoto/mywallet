@@ -17,6 +17,10 @@ html[data-style-theme="default"] .ledger-settings-controls {
   background: transparent !important;
   box-shadow: none !important;
 }
+html[data-style-theme="default"] .ledger-settings-controls:has(> .instant-select:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
 html[data-style-theme="default"] .ledger-settings-controls .instant-select-trigger,
 html[data-style-theme="default"] .ledger-settings-controls .ledger-connection-action {
   box-sizing: border-box;

@@ -25,11 +25,13 @@ export default function WalletScreen() {
   useLaunchReady(!!error||!!recoveryGate);
   const [loggingOut, setLoggingOut] = useState(false);
   const [signInRequired, setSignInRequired] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
   const retry = useRef<() => void>(() => {});
   useEffect(() => {
     // Let App finish its modal/history cleanup before navigating.
-    if (signInRequired) window.location.replace('/signin');
-  }, [signInRequired]);
+    if (signedOut) window.location.replace('/guest#settings');
+    else if (signInRequired) window.location.replace('/signin');
+  }, [signInRequired, signedOut]);
   useEffect(() => {
     let disposed = false;
     let opened = false;
@@ -97,7 +99,7 @@ export default function WalletScreen() {
       if (disposed || logoutInFlight || redirecting) return;
       closing = true; logoutInFlight = true; clearRetry();
       lockWalletScope(); setApp(null); setStage('sleep'); setLoggingOut(true); setError('');
-      try { await auth.logout(); if (!disposed) setSignInRequired(true); }
+      try { await auth.logout(); if (!disposed) setSignedOut(true); }
       catch { if (!disposed) setError('로그아웃을 완료하지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.'); }
       finally { logoutInFlight = false; if (!disposed) setLoggingOut(false); }
     }
