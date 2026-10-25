@@ -11,5 +11,6 @@
 .app-page-brand .memoney-wordmark-main { width: 124px; }
 .app-page-toolbar { display: flex; align-items: center; gap: 12px; height: 56px; box-sizing: border-box; padding: 6px max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)); background: var(--family-toolbar, var(--bg-card)); border-bottom: 1px solid var(--family-ink, var(--border-card)); }
 .app-page-toolbar h1 { flex: 1; min-width: 0; margin: 0; font-size: 18px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.app-page-toolbar > :is(a,button) { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; box-sizing: border-box; padding: 0; border: 1px solid var(--border-input); border-radius: 8px; background: var(--bg-card); color: var(--text-primary); font: inherit; font-size: 28px; text-decoration: none; cursor: pointer; }
+.app-page-toolbar > :is(a,button) { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; box-sizing: border-box; padding: 0; border: 1px solid var(--border-input); border-radius: 8px; background: var(--bg-card); color: var(--text-primary); font: inherit; line-height: 1; text-decoration: none; cursor: pointer; }
 html[data-ui-theme="theme1"] .app-page-toolbar > :is(a,button) { border-radius: 0; }
+.app-page-action-icon { display: block; flex: none; width: 24px; height: 24px; }

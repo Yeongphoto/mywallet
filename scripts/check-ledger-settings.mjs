@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 import { webUiArtifact } from './web-ui-artifact.mjs';
+import {checkPageActionCenters} from './check-page-action-centers.mjs';
 
 const origin = process.env.MEMONEY_UI_ORIGIN || 'http://127.0.0.1:5190';
 assert(['127.0.0.1', 'localhost'].includes(new URL(origin).hostname));
@@ -11,12 +12,13 @@ const shared = '66666666-6666-4666-8666-666666666666';
 const guest = '55555555-5555-4555-8555-555555555555';
 let financialWrites = 0;
 try {
-  for (const width of [320, 768]) for (const theme of ['light', 'dark']) for (const kind of ['personal', 'shared']) {
-    console.log('Ledger settings', width, theme, kind);
+  for (const width of [320, 768]) for (const theme of ['light', 'dark']) for (const styleTheme of ['default','theme1']) for (const kind of ['personal', 'shared']) {
+    console.log('Ledger settings', width, theme, styleTheme, kind);
     const context = await browser.createBrowserContext(), page = await context.newPage();
     await page.setViewport({ width, height: 900 });
     const checkHeader=async()=>{
       await page.waitForSelector('.app-page-header');
+      await checkPageActionCenters(page);
       assert.equal(await page.$eval('.app-page-header',el=>getComputedStyle(el).position),'fixed');
       assert.equal(await page.$eval('.app-page-header',el=>el.getBoundingClientRect().top),0);
       assert.equal(await page.$eval('.app-page-brand .memoney-wordmark-main',el=>Math.round(el.getBoundingClientRect().width)),124);
@@ -29,13 +31,13 @@ try {
     let grants=[{userId:guest,email:'tester@example.invalid',active:1,updatedAt:1}];
     const ledger = { id: kind === 'personal' ? personal : shared, kind, name: kind === 'personal' ? '개인 장부' : '공유 장부', role: 'owner' };
     const data = { transactions: [], assets: [{ id: 'cloud-asset', category: 'cash', name: 'Cloud fixture', amount: 2000 }], plans: [], recurringRules: [], deletedRecurringTxs: [], updatedAt: 1 };
-    await page.evaluateOnNewDocument(({ guest, theme }) => {
+    await page.evaluateOnNewDocument(({ guest, theme, styleTheme }) => {
       localStorage.setItem('memoney:guest:active-id', guest);
       localStorage.setItem('memoney:usage-guide:v1:completed', '1');
-      localStorage.setItem('memoney:appearance:v1', JSON.stringify({ theme, styleTheme: 'default' }));
+      localStorage.setItem('memoney:appearance:v1', JSON.stringify({ theme, styleTheme }));
       const key = `memoney:guest:${guest}:mywallet:v2`;
       if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ transactions: [], assets: [{ id: 'device-asset', category: 'cash', name: 'Device fixture', amount: 1000 }], plans: [{ category: 'food', type: 'expense', plannedAmount: 77 }], recurringRules: [], deletedRecurringTxs: [], updatedAt: 1, theme }));
-    }, { guest, theme });
+    }, { guest, theme, styleTheme });
     await page.setRequestInterception(true);
     page.on('request', request => {
       const url = new URL(request.url());
@@ -119,5 +121,5 @@ try {
     await context.close();
   }
   assert.equal(financialWrites, 0);
-  console.log('Ledger settings: 8 mocked personal/shared responsive combinations, failed logout retry, original device data preserved; financial writes: 0');
+  console.log('Ledger settings: 16 mocked personal/shared responsive style/theme combinations, centered header icons, failed logout retry, original device data preserved; financial writes: 0');
 } finally { await browser.close(); }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import puppeteer from 'puppeteer-core';
 import {webUiArtifact} from './web-ui-artifact.mjs';
+import {checkPageActionCenters} from './check-page-action-centers.mjs';
 
 const origin=process.env.MEMONEY_UI_ORIGIN||'http://127.0.0.1:5190';
 assert(['127.0.0.1','localhost'].includes(new URL(origin).hostname),'Local fixtures only');
@@ -35,6 +36,7 @@ try {
      gap:parseFloat(getComputedStyle(modal.querySelector('.form-grid')).rowGap),fieldHeight:field.getBoundingClientRect().height};
    });
    const label=`${width}x${height}/${styleTheme}/${theme}/${title}`;
+   await checkPageActionCenters(page);
    assert(layout.top>=layout.headerBottom-1,label+' header clear');
    assert(layout.overflow<=1,label+' unnecessary scroll '+JSON.stringify(layout));
    assert(layout.actionBottom<=height+1,label+' actions fit');
