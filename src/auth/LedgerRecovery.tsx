@@ -49,13 +49,13 @@ export function LedgerRecovery({standalone=false,onManageShared}:{standalone?:bo
   const manage=onManageShared?<button type="button" className="secondary-button" aria-label="공유 장부 관리" disabled={busy} onClick={onManageShared}>관리</button>:null;
   if(!owner)return standalone?<section className="ledger-recovery"><h2>공유 장부가 보관 중이에요</h2><p>호스트가 복구하면 다시 사용할 수 있어요.</p><a className="secondary-button" href="/guest#settings">다른 장부 선택</a></section>:previousChanges||manage?<article className="settings-data-card ledger-recovery">{manage&&<><strong>공유 장부</strong><div className="settings-card-actions">{manage}</div></>}{previousChanges}{error&&<p role="alert">이전 변경을 내보내지 못했어요.</p>}</article>:null;
   if(error==='RECOVERY_NOT_CONFIGURED')return manage?<article className="settings-data-card ledger-recovery"><strong>공유 장부</strong><div className="settings-card-actions">{manage}</div></article>:null;
-  return <article className="settings-data-card ledger-recovery" aria-busy={busy}>
+  return <article className="settings-data-card ledger-recovery" aria-busy={busy||(!info&&!error)}>
     <strong>{info?.state.status==='archived'?'보관 중인 공유 장부':info?.state.status==='expired'?'보관 기간이 지난 장부':'장부 보관 및 복구'}</strong>
     {local&&<p>이 기기에 7일 동안 보관합니다. 앱·사이트 데이터를 지우면 복구할 수 없으니 파일 백업도 남겨 주세요.</p>}
+    {(!info||info.state.status==='active')&&<><p>{shared?'모든 멤버의 이용이 중단됩니다. 7일 안에 복구하지 않으면 장부 데이터가 삭제됩니다.':'초기화 전 기록은 7일 동안 보관됩니다.'}</p><div className="settings-card-actions">{manage}<button className="secondary-button" disabled={busy||!info} onClick={()=>ask(shared?'archive':'reset')}>{shared?'공유 장부 삭제 예약':local?'로컬 장부 초기화':'개인 장부 초기화'}</button></div></>}
     {!info&&!error&&<p role="status">복구 상태를 확인하고 있어요.</p>}
-    {(!info||info.state.status!=='active')&&manage&&<div className="settings-card-actions">{manage}</div>}
+    {info&&info.state.status!=='active'&&manage&&<div className="settings-card-actions">{manage}</div>}
     {info&&<>
-      {info.state.status==='active'&&<><p>{shared?'모든 멤버의 이용이 중단됩니다. 7일 안에 복구하지 않으면 장부 데이터가 삭제됩니다.':'초기화 전 기록은 7일 동안 보관됩니다.'}</p><div className="settings-card-actions">{manage}<button className="secondary-button" disabled={busy} onClick={()=>ask(shared?'archive':'reset')}>{shared?'공유 장부 삭제 예약':local?'로컬 장부 초기화':'개인 장부 초기화'}</button></div></>}
       {info.state.status==='archived'&&<p>복구 가능 기한: {date(info.state.expires_at!)}</p>}
       {info.state.status==='expired'&&<p>7일의 복구 기간이 지났어요.</p>}
       {info.records.filter(r=>!r.restored_at).map(record=><div className="recovery-record" key={record.id}><div><strong>{record.kind==='before-restore'?'복구 직전 기록':record.kind==='archive'?'공유 장부 보관':'초기화 전 기록'}</strong><small>{date(record.created_at)} · {date(record.expires_at)}까지</small></div><button className="secondary-button" disabled={busy} onClick={()=>ask('restore',record.id)}>복구</button></div>)}

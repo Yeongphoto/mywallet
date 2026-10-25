@@ -8676,13 +8676,13 @@ ${sheet4Rows}  </sheetData>
           <section className="settings-hub settings-hub-category">
             <div className="settings-head">
               <h2>설정</h2>
-              <div className="settings-segment" role="tablist" aria-label="설정 메뉴">
+              <JellyToggle value={settingsSection} className="settings-segment" role="tablist" aria-label="설정 메뉴">
                 <button type="button" className={settingsSection === 'app' ? 'active' : ''} onClick={() => setSettingsSection('app')}>환경</button>
                 <button type="button" className={settingsSection === 'category' ? 'active' : ''} onClick={() => setSettingsSection('category')}>카테고리</button>
                 <button type="button" className={settingsSection === 'asset' ? 'active' : ''} onClick={() => setSettingsSection('asset')}>자산관리</button>
                 <button type="button" className={settingsSection === 'recurring' ? 'active' : ''} onClick={() => setSettingsSection('recurring')}>정기기록</button>
                 <button type="button" className={settingsSection === 'data' ? 'active' : ''} onClick={() => setSettingsSection('data')}>데이터</button>
-              </div>
+              </JellyToggle>
             </div>
 
             {settingsSection === 'app' && (
