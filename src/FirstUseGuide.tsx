@@ -30,7 +30,7 @@ export function useFirstUseGuide() {
 
 export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, paused, ready, onFinish }: Props) {
   const [step, setStep] = useState<Step>('asset-tab');
-  const openedAssetAt = useRef<number | null>(null);
+  const openedAssetEntry = useRef(false);
   const [position, setPosition] = useState<{ x: number; y: number; w: number; h: number; tipX: number; tipY: number; tipW: number } | null>(null);
   const tip = useRef<HTMLDivElement>(null);
   const finish = () => {
@@ -40,9 +40,9 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
   useEffect(() => {
     if (!ready || step === 'done') return;
     if (step === 'asset-tab' && activeTab === 'asset') setStep('asset-add');
-    if (step === 'asset-add' && entryOpen && entryMode === 'asset' && openedAssetAt.current === null) openedAssetAt.current = assetCount;
-    if (step === 'asset-add' && !entryOpen && openedAssetAt.current !== null && assetCount > openedAssetAt.current) {
-      openedAssetAt.current = null; setStep('ledger-tab');
+    if (step === 'asset-add' && entryOpen && entryMode === 'asset') openedAssetEntry.current = true;
+    if (step === 'asset-add' && !entryOpen && openedAssetEntry.current) {
+      openedAssetEntry.current = false; setStep('ledger-tab');
     }
     if (step === 'ledger-tab' && activeTab === 'ledger') setStep('ledger-add');
     if (step === 'ledger-add' && activeTab === 'ledger' && entryOpen && entryMode !== 'asset') setStep('plan-tab');
@@ -96,6 +96,13 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
     y: position.y - ((position.h + 8) * 1.1 - position.h) / 2,
     w: (position.w + 8) * 1.1, h: (position.h + 8) * 1.1,
   };
+  const radius = spotlight ? Math.min(20, spotlight.w / 2, spotlight.h / 2) : 0;
+  // The clear cutout and visible frame share the same bounds and circular corners.
+  const cutoutPath = spotlight && `M0 0H${innerWidth}V${innerHeight}H0Z M${spotlight.x + radius} ${spotlight.y}`
+    + `H${spotlight.x + spotlight.w - radius}A${radius} ${radius} 0 0 1 ${spotlight.x + spotlight.w} ${spotlight.y + radius}`
+    + `V${spotlight.y + spotlight.h - radius}A${radius} ${radius} 0 0 1 ${spotlight.x + spotlight.w - radius} ${spotlight.y + spotlight.h}`
+    + `H${spotlight.x + radius}A${radius} ${radius} 0 0 1 ${spotlight.x} ${spotlight.y + spotlight.h - radius}`
+    + `V${spotlight.y + radius}A${radius} ${radius} 0 0 1 ${spotlight.x + radius} ${spotlight.y}Z`;
   const text = target === 'asset-tab' ? '사용하시기 전에 자산을 먼저 추가해보세요!'
     : target === 'asset-add' ? '+ 버튼을 눌러 자산을 추가해보세요.'
       : target === 'ledger-tab' ? '이제 장부에서 지출·수입을 입력해보세요.'
@@ -105,8 +112,8 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
       : '계획 탭에서 예산을 정하면 결산에서 실제 지출과 차이를 확인할 수 있어요.';
   return createPortal(<div className="first-use-guide" data-guide-step={step === 'plan-review' ? step : target}>
     {spotlight && <>
-      <div className="first-use-guide-backdrop" aria-hidden="true" style={{ clipPath: `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${spotlight.x}px ${spotlight.y}px, ${spotlight.x + spotlight.w}px ${spotlight.y}px, ${spotlight.x + spotlight.w}px ${spotlight.y + spotlight.h}px, ${spotlight.x}px ${spotlight.y + spotlight.h}px, ${spotlight.x}px ${spotlight.y}px)` }} />
-      <div className="first-use-guide-ring" aria-hidden="true" style={{ left: spotlight.x, top: spotlight.y, width: spotlight.w, height: spotlight.h }} />
+      <div className="first-use-guide-backdrop" aria-hidden="true" style={{ clipPath: `path(evenodd, "${cutoutPath}")` }} />
+      <div className="first-use-guide-ring" aria-hidden="true" style={{ left: spotlight.x, top: spotlight.y, width: spotlight.w, height: spotlight.h, borderRadius: radius }} />
     </>}
     <div ref={tip} className="first-use-guide-tip" role="region" aria-label="첫 사용 가이드"
       style={{ visibility: position ? 'visible' : 'hidden', left: position?.tipX || 12, top: position?.tipY || 12, width: position?.tipW || 300 }}>

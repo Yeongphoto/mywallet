@@ -53,6 +53,14 @@ try {
     assert.equal(await page.$eval('.first-use-guide-backdrop', el => getComputedStyle(el).backdropFilter), 'blur(3px)', 'guide lightly blurs its surroundings');
     assert.equal(await page.$eval('.first-use-guide-backdrop', el => getComputedStyle(el).clipPath !== 'none'), true, 'highlight remains a clear cutout');
     assert.equal(await page.evaluate(() => {
+      const clip = getComputedStyle(document.querySelector('.first-use-guide-backdrop')).clipPath;
+      const path = new Path2D(clip.match(/"([^"]+)"/)[1]);
+      const ring = document.querySelector('.first-use-guide-ring').getBoundingClientRect();
+      const context = document.createElement('canvas').getContext('2d');
+      return context.isPointInPath(path, ring.right - 1, ring.top + 1, 'evenodd')
+        && !context.isPointInPath(path, ring.left + ring.width / 2, ring.top + ring.height / 2, 'evenodd');
+    }), true, 'rounded corner stays blurred while the center stays clear; no rectangular cutout');
+    assert.equal(await page.evaluate(() => {
       const anchor = [...document.querySelectorAll('[data-guide="asset-tab"]')].find(el => el.getBoundingClientRect().width > 0).getBoundingClientRect();
       const ring = document.querySelector('.first-use-guide-ring').getBoundingClientRect();
       return Math.abs(ring.width / (anchor.width + 8) - 1.1) < .01 && Math.abs(ring.height / (anchor.height + 8) - 1.1) < .01;
@@ -65,9 +73,12 @@ try {
     await clickTarget('asset-tab'); await stage('asset-add'); await assertFit();
     await clickTarget('asset-add'); await page.waitForSelector('.entry-modal', { visible: true });
     assert.equal(await page.$('.first-use-guide'), null, 'guide never covers the registration modal');
-    await page.click('[aria-label="등록 창 닫기"]'); await stage('asset-add');
+    await page.click('[aria-label="등록 창 닫기"]'); await stage('ledger-tab');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('memoney:guest:88888888-8888-4888-8888-888888888888:mywallet:v2')).assets.length), empty ? 0 : 1, 'cancel advances without creating an asset');
     if (empty) {
-      assert.equal(await page.$('.first-use-guide-skip'), null);
+      // Independently retain the opening-balance regression check after cancellation.
+      await clickTarget('asset-tab');
+      await page.waitForFunction(() => document.querySelector('a[href="#asset"]').classList.contains('active'));
       await clickTarget('asset-add'); await page.waitForSelector('.asset-entry-form');
       await page.click('button[aria-label="자산 카테고리"]');
       await page.waitForSelector('.picker-grid-btn', { visible: true });
@@ -80,7 +91,7 @@ try {
       assert.equal(await page.$eval('input[name="asset-amount"]', el => el.value.replaceAll(',', '')), '130000000');
       await page.click('.asset-entry-form button[type="submit"]');
       await page.waitForSelector('.entry-modal', { hidden: true });
-    } else await page.click('.first-use-guide-skip');
+    }
     await stage('ledger-tab');
     await clickTarget('ledger-tab'); await stage('ledger-add'); await assertFit();
     assert((await page.$eval('.first-use-guide-detail', el => el.textContent)).includes('설정 → 카테고리'));
