@@ -36,12 +36,28 @@ try {
     });
     const stage = name => page.waitForSelector(`.first-use-guide[data-guide-step="${name}"] .first-use-guide-tip`, { visible: true });
     const clickTarget = name => page.$$eval(`[data-guide="${name}"]`, elements => elements.find(el => el.getBoundingClientRect().width > 0).click());
+    const finishPlan = async () => {
+      await stage('plan-tab');
+      assert.equal(await page.evaluate(key => localStorage.getItem(key), completed), null, 'ledger entry alone does not finish the plan guide');
+      await clickTarget('plan-tab'); await stage('plan-review'); await assertFit();
+      assert((await page.$eval('.first-use-guide-detail', el => el.textContent)).includes('실제 지출과 차이'));
+      assert.equal(await page.$eval('.first-use-guide-off', el => el.textContent), '가이드 마치기');
+      await page.click('.first-use-guide-off');
+      await page.waitForFunction(key => localStorage.getItem(key) === '1', {}, completed);
+    };
     const assertFit = async () => assert.equal(await page.$eval('.first-use-guide-tip', el => {
       const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
     }), true, `${width}/${theme}: guide fits viewport`);
     await page.goto(origin + '/guest#summary');
     await stage('asset-tab'); await assertFit();
-    assert.equal(await page.$eval('.first-use-guide-ring', el => getComputedStyle(el).boxShadow.includes('0.68')), true, 'spotlight dims the surrounding page');
+    assert.equal(await page.$eval('.first-use-guide-backdrop', el => getComputedStyle(el).backdropFilter), 'blur(3px)', 'guide lightly blurs its surroundings');
+    assert.equal(await page.$eval('.first-use-guide-backdrop', el => getComputedStyle(el).clipPath !== 'none'), true, 'highlight remains a clear cutout');
+    assert.equal(await page.evaluate(() => {
+      const anchor = [...document.querySelectorAll('[data-guide="asset-tab"]')].find(el => el.getBoundingClientRect().width > 0).getBoundingClientRect();
+      const ring = document.querySelector('.first-use-guide-ring').getBoundingClientRect();
+      return Math.abs(ring.width / (anchor.width + 8) - 1.1) < .01 && Math.abs(ring.height / (anchor.height + 8) - 1.1) < .01;
+    }), true, 'highlight frame is ten percent larger in both dimensions');
+    assert((await page.$eval('.first-use-guide-detail', el => el.textContent)).includes('설정 → 자산관리'));
     assert.equal(await page.$eval('.first-use-guide-tip', el => {
       const rect = el.getBoundingClientRect(); return getComputedStyle(el).fontSize === '20px' && rect.top + rect.height / 2 < innerHeight * .6;
     }), true, 'larger guide is near the viewport center');
@@ -67,10 +83,11 @@ try {
     } else await page.click('.first-use-guide-skip');
     await stage('ledger-tab');
     await clickTarget('ledger-tab'); await stage('ledger-add'); await assertFit();
+    assert((await page.$eval('.first-use-guide-detail', el => el.textContent)).includes('설정 → 카테고리'));
     await clickTarget('ledger-add'); await page.waitForSelector('.entry-modal', { visible: true });
-    await page.waitForFunction(key => localStorage.getItem(key) === '1', {}, completed);
     assert.equal(await page.$('.first-use-guide'), null);
     await page.click('[aria-label="등록 창 닫기"]');
+    await finishPlan();
     await page.reload(); await page.waitForSelector('.header-settings-btn');
     assert.equal(await page.$('.first-use-guide'), null, 'completed guide stays dismissed after reload');
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('memoney:guest:88888888-8888-4888-8888-888888888888:mywallet:v2')));
@@ -97,6 +114,7 @@ try {
     await clickTarget('ledger-tab'); await stage('ledger-add');
     await clickTarget('ledger-add'); await page.waitForSelector('.entry-modal', { visible: true });
     await page.click('[aria-label="등록 창 닫기"]');
+    await finishPlan();
     await page.click('.header-settings-btn');
     assert.equal(await page.$eval(guideOff, el => el.getAttribute('aria-pressed')), 'true', 'replayed round also switches off');
     await page.click(guideOn); await stage('asset-tab');

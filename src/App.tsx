@@ -6829,7 +6829,7 @@ ${sheet4Rows}  </sheetData>
                 <AppIcon name="plus" size={25} />
               )}
             </button>
-            <a href="#plan" className={activeTab === 'plan' ? 'active' : ''} onClick={() => setActiveTab('plan')}>
+            <a data-guide="plan-tab" href="#plan" className={activeTab === 'plan' ? 'active' : ''} onClick={() => setActiveTab('plan')}>
               <span><AppIcon name="plan" /></span>
               <strong>계획</strong>
             </a>

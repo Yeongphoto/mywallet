@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import './first-use-guide.css';
 
 const completedKey = 'memoney:usage-guide:v1:completed';
-type Step = 'asset-tab' | 'asset-add' | 'ledger-tab' | 'ledger-add' | 'done';
+type Step = 'asset-tab' | 'asset-add' | 'ledger-tab' | 'ledger-add' | 'plan-tab' | 'plan-review' | 'done';
 type Props = { activeTab: string; assetCount: number; entryOpen: boolean; entryMode: string; paused: boolean; ready: boolean; onFinish: () => void };
 let enabledInMemory: boolean | null = null;
 
@@ -45,12 +45,13 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
       openedAssetAt.current = null; setStep('ledger-tab');
     }
     if (step === 'ledger-tab' && activeTab === 'ledger') setStep('ledger-add');
-    if (step === 'ledger-add' && activeTab === 'ledger' && entryOpen && entryMode !== 'asset') finish();
+    if (step === 'ledger-add' && activeTab === 'ledger' && entryOpen && entryMode !== 'asset') setStep('plan-tab');
+    if (step === 'plan-tab' && activeTab === 'plan' && !entryOpen) setStep('plan-review');
   }, [ready, step, activeTab, entryOpen, entryMode, assetCount]);
 
   // Keep add instructions attached to the correct tab if the user navigates away.
   const target = step === 'asset-add' && activeTab !== 'asset' ? 'asset-tab'
-    : step === 'ledger-add' && activeTab !== 'ledger' ? 'ledger-tab' : step;
+    : step === 'ledger-add' && activeTab !== 'ledger' ? 'ledger-tab' : step === 'plan-review' ? 'plan-tab' : step;
   const visible = ready && !paused && !entryOpen && step !== 'done';
   useLayoutEffect(() => {
     if (!visible) { setPosition(null); return; }
@@ -90,18 +91,31 @@ export function FirstUseGuide({ activeTab, assetCount, entryOpen, entryMode, pau
   }, [visible, target, assetCount]);
 
   if (!visible) return null;
+  const spotlight = position && {
+    x: position.x - ((position.w + 8) * 1.1 - position.w) / 2,
+    y: position.y - ((position.h + 8) * 1.1 - position.h) / 2,
+    w: (position.w + 8) * 1.1, h: (position.h + 8) * 1.1,
+  };
   const text = target === 'asset-tab' ? '사용하시기 전에 자산을 먼저 추가해보세요!'
     : target === 'asset-add' ? '+ 버튼을 눌러 자산을 추가해보세요.'
-      : target === 'ledger-tab' ? '이제 장부에서 지출·수입을 입력해보세요.' : '+ 버튼을 눌러 지출·수입을 입력해보세요.';
-  return createPortal(<div className="first-use-guide" data-guide-step={target}>
-    {position && <div className="first-use-guide-ring" aria-hidden="true" style={{ left: position.x - 4, top: position.y - 4, width: position.w + 8, height: position.h + 8 }} />}
+      : target === 'ledger-tab' ? '이제 장부에서 지출·수입을 입력해보세요.'
+        : target === 'ledger-add' ? '+ 버튼을 눌러 지출·수입을 입력해보세요.' : '계획을 입력하고 실제 지출과 비교해보세요.';
+  const detail = target.startsWith('asset') ? '자산 카테고리는 설정 → 자산관리에서 추가·수정할 수 있어요.'
+    : target.startsWith('ledger') ? '지출·수입 카테고리는 설정 → 카테고리에서 추가·수정할 수 있어요.'
+      : '계획 탭에서 예산을 정하면 결산에서 실제 지출과 차이를 확인할 수 있어요.';
+  return createPortal(<div className="first-use-guide" data-guide-step={step === 'plan-review' ? step : target}>
+    {spotlight && <>
+      <div className="first-use-guide-backdrop" aria-hidden="true" style={{ clipPath: `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${spotlight.x}px ${spotlight.y}px, ${spotlight.x + spotlight.w}px ${spotlight.y}px, ${spotlight.x + spotlight.w}px ${spotlight.y + spotlight.h}px, ${spotlight.x}px ${spotlight.y + spotlight.h}px, ${spotlight.x}px ${spotlight.y}px)` }} />
+      <div className="first-use-guide-ring" aria-hidden="true" style={{ left: spotlight.x, top: spotlight.y, width: spotlight.w, height: spotlight.h }} />
+    </>}
     <div ref={tip} className="first-use-guide-tip" role="region" aria-label="첫 사용 가이드"
       style={{ visibility: position ? 'visible' : 'hidden', left: position?.tipX || 12, top: position?.tipY || 12, width: position?.tipW || 300 }}>
-      <div className="first-use-guide-heading"><span>시작 가이드 · {step.startsWith('asset') ? '1' : '2'}/2</span>
+      <div className="first-use-guide-heading"><span>시작 가이드 · {step.startsWith('asset') ? '1' : step.startsWith('ledger') ? '2' : '3'}/3</span>
         <button type="button" aria-label="가이드 닫기" onClick={finish}>×</button></div>
       <p aria-live="polite">{text}</p>
+      <p className="first-use-guide-detail">{detail}</p>
       {target === 'asset-add' && assetCount > 0 && <button className="first-use-guide-skip" type="button" onClick={() => setStep('ledger-tab')}>이미 자산이 있어요 →</button>}
-      <button className="first-use-guide-off" type="button" onClick={finish}>가이드 끄기</button>
+      <button className="first-use-guide-off" type="button" onClick={finish}>{step === 'plan-review' ? '가이드 마치기' : '가이드 끄기'}</button>
     </div>
   </div>, document.body);
 }

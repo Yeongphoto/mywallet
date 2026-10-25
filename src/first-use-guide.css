@@ -1,8 +1,12 @@
 .first-use-guide { position: fixed; inset: 0; z-index: 110; pointer-events: none; }
+.first-use-guide-backdrop {
+  position: fixed; inset: 0; background: rgb(0 0 0 / 22%);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
 .first-use-guide-ring {
   position: fixed; border: 3px solid var(--primary); border-radius: 20px;
   box-sizing: border-box;
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 28%, transparent), 0 0 0 150vmax rgb(0 0 0 / 68%);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 28%, transparent);
   pointer-events: none;
 }
 .first-use-guide-tip {
@@ -14,6 +18,7 @@
 .first-use-guide-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 14px; }
 .first-use-guide-heading button { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; color: var(--text-primary); background: transparent; font: inherit; font-size: 24px; cursor: pointer; }
 .first-use-guide-tip p { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.first-use-guide-tip .first-use-guide-detail { margin-top: 10px; font-size: 14px; font-weight: 400; color: var(--text-secondary); }
 .first-use-guide-skip { margin-top: 12px; padding: 6px 0; color: var(--text-primary); background: transparent; border: 0; text-decoration: underline; font: inherit; font-size: 12px; cursor: pointer; }
 .first-use-guide-off { display: flex; margin: 20px 0 0 auto; min-height: 44px; padding: 8px 16px; border: 1px solid var(--border-input); border-radius: 10px; color: var(--text-primary); background: var(--bg-card); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .first-use-guide button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
