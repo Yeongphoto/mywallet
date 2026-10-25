@@ -10,6 +10,7 @@
   "guidePolishReleaseNotes": "<ko-KR>\n첫 사용 가이드의 배경 강조와 안내 크기·위치를 개선하고 가이드 끄기를 추가했습니다.\n설정의 장부 선택 목록이 젤리 효과로 펼쳐지도록 개선했습니다.\n편한가계부 CSV 이관 메뉴를 숨겼습니다.\n</ko-KR>",
   "guideReplayReleaseNotes": "<ko-KR>\n설정의 환경에서 사용 가이드를 다시 켜고 끌 수 있습니다. 안내 한 회차를 마치면 자동으로 꺼집니다.\n로그인 중 장부 목록에서 기기 장부와 연결 끊기 버튼을 정리했습니다.\n로그아웃하면 기존 기기 장부로 돌아갑니다.\n</ko-KR>",
   "planGuideReleaseNotes": "<ko-KR>\n사용 가이드에 계획과 실제 지출을 비교하는 안내를 추가했습니다.\n자산과 지출·수입 카테고리를 설정에서 관리할 수 있도록 안내합니다.\n가이드 배경에 약한 블러를 적용하고 강조 영역을 키웠습니다.\n</ko-KR>",
+  "membershipReleaseNotes": "<ko-KR>\n슈퍼 계정의 계정 관리와 테스터 프리미엄 회원 표시를 추가했습니다.\n공유장부 관리를 설정의 데이터 화면으로 통합했습니다.\n가이드 강조 모서리를 통일하고 자산 등록을 취소해도 다음 안내로 진행하도록 개선했습니다.\n</ko-KR>",
   "supportEmail": "syh4472@gmail.com",
   "category": "FINANCE",
   "status": "draft-not-published",
